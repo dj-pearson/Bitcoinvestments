@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import {
-  getLocalPortfolio,
+  getPortfolio,
   createPortfolio,
   addHolding,
   updatePortfolioPrices,
@@ -49,7 +49,7 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
 
   async function loadPortfolio() {
     setLoading(true);
-    let p = getLocalPortfolio();
+    let p = await getPortfolio();
 
     if (p && p.holdings.length > 0) {
       setUpdating(true);
@@ -61,8 +61,8 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
     setLoading(false);
   }
 
-  function handleCreatePortfolio() {
-    const p = createPortfolio('My Portfolio');
+  async function handleCreatePortfolio() {
+    const p = await createPortfolio('My Portfolio');
     setPortfolio(p);
     setShowAddModal(true);
   }
@@ -387,7 +387,7 @@ function AddHoldingModal({
       return;
     }
 
-    const updatedPortfolio = addHolding(
+    const updatedPortfolio = await addHolding(
       portfolio,
       crypto.id,
       crypto.symbol,

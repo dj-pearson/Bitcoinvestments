@@ -11,10 +11,14 @@ import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Profile } from './pages/Profile';
 import { Learn } from './pages/Learn';
+import { GuideDetail } from './pages/GuideDetail';
 import { Glossary } from './pages/Glossary';
 import { Article } from './pages/Article';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
+import { AffiliateStats } from './pages/AffiliateStats';
+import { AdManager } from './pages/AdManager';
+import { Pricing } from './pages/Pricing';
 
 function App() {
   return (
@@ -31,13 +35,16 @@ function App() {
             <Route path="signup" element={<Signup />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="affiliate-stats" element={<ProtectedRoute><AffiliateStats /></ProtectedRoute>} />
+            <Route path="ad-manager" element={<ProtectedRoute><AdManager /></ProtectedRoute>} />
             <Route path="learn" element={<Learn />} />
-            <Route path="learn/:guideId" element={<Learn />} />
+            <Route path="learn/:guideId" element={<GuideDetail />} />
             <Route path="glossary" element={<Glossary />} />
             <Route path="article/:slug" element={<Article />} />
             <Route path="privacy" element={<Privacy />} />
             <Route path="terms" element={<Terms />} />
             <Route path="disclaimer" element={<Terms />} />
+            <Route path="pricing" element={<Pricing />} />
             <Route path="start" element={<Learn />} />
             <Route path="prices" element={<Dashboard />} />
             <Route path="*" element={<Home />} />

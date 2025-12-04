@@ -414,6 +414,14 @@ export async function subscribeToNewsletter(
       return { success: false, error: error.message };
     }
 
+    // Send welcome email for reactivated subscriber
+    // Import dynamically to avoid circular dependencies
+    import('./email').then(({ sendNewsletterWelcomeEmail }) => {
+      sendNewsletterWelcomeEmail(email).catch(err =>
+        console.error('Failed to send welcome email:', err)
+      );
+    });
+
     return { success: true };
   }
 
@@ -429,6 +437,14 @@ export async function subscribeToNewsletter(
   if (error) {
     return { success: false, error: error.message };
   }
+
+  // Send welcome email (don't await - fire and forget)
+  // Import dynamically to avoid circular dependencies
+  import('./email').then(({ sendNewsletterWelcomeEmail }) => {
+    sendNewsletterWelcomeEmail(email).catch(err =>
+      console.error('Failed to send welcome email:', err)
+    );
+  });
 
   return { success: true };
 }

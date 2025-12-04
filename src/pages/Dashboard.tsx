@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
+import { PortfolioTracker } from '../components/PortfolioTracker';
 import {
   getCachedTopCryptocurrencies,
   getGlobalMarketData,
@@ -120,6 +121,11 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Portfolio Tracker */}
+      <div className="mb-8">
+        <PortfolioTracker variant="full" />
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Main Price Table */}

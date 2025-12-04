@@ -15,3 +15,6 @@ export * from './auth';
 
 // Database service (Supabase)
 export * from './database';
+
+// News service
+export * from './news';

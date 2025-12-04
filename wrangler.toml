@@ -1,26 +1,31 @@
 # Cloudflare Pages Configuration
-# This file is used for local development with Wrangler
-# For production, ALL environment variables should be set in Cloudflare Dashboard
-
 name = "bitcoin-investments"
 compatibility_date = "2024-11-20"
 
 # Pages configuration
 pages_build_output_dir = "dist"
 
-# NOTE: Do NOT define [vars] here for Pages projects!
-# Environment variables should be set in:
-# Cloudflare Dashboard > Workers & Pages > Your Project > Settings > Environment Variables
-#
-# For local development, use .dev.vars file instead
-# See .dev.vars.example for the template
-#
-# Required environment variables (set in Dashboard):
-# - VITE_SUPABASE_URL
-# - VITE_SUPABASE_PUBLISHABLE_KEY
-# - VITE_STRIPE_PUBLISHABLE_KEY
-# - VITE_STRIPE_PRICE_MONTHLY
-# - VITE_STRIPE_PRICE_ANNUAL
-# - STRIPE_SECRET_KEY (secret)
-# - STRIPE_WEBHOOK_SECRET (secret)
-# - SUPABASE_SERVICE_ROLE_KEY (secret)
+# Build-time environment variables (public - embedded in frontend bundle)
+# These are safe to commit as they're public anyway
+[vars]
+VITE_SUPABASE_URL = "https://mkdckqrukmukbmgxabyk.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iim6AzEHVn7sGeqL5V9WJg_1dLtUT0W"
+VITE_SUPABASE_PROJECT_ID = "mkdckqrukmukbmgxabyk"
+
+# Stripe public keys (set your actual values here)
+# For testing: pk_test_xxxxx, For production: pk_live_xxxxx
+VITE_STRIPE_PUBLISHABLE_KEY = "pk_test_xxxxxx"
+VITE_STRIPE_PRICE_MONTHLY = "price_xxxxxx"
+VITE_STRIPE_PRICE_ANNUAL = "price_xxxxxx"
+
+# Optional API keys (can be empty for basic functionality)
+VITE_COINGECKO_API_KEY = ""
+VITE_CRYPTOCOMPARE_API_KEY = ""
+VITE_RESEND_API_KEY = ""
+VITE_FROM_EMAIL = ""
+
+# Secrets (MUST be set in Cloudflare Dashboard - Settings - Environment Variables)
+# These should be type "Secret" (encrypted) in the dashboard:
+# - STRIPE_SECRET_KEY (sk_test_xxxxx or sk_live_xxxxx)
+# - STRIPE_WEBHOOK_SECRET (whsec_xxxxx)
+# - SUPABASE_SERVICE_ROLE_KEY (eyJhbGc...)

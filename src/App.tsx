@@ -19,6 +19,7 @@ import { Terms } from './pages/Terms';
 import { AffiliateStats } from './pages/AffiliateStats';
 import { AdManager } from './pages/AdManager';
 import { Pricing } from './pages/Pricing';
+import { Charts } from './pages/Charts';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="charts" element={<Charts />} />
             <Route path="calculators" element={<Calculators />} />
             <Route path="compare" element={<Compare />} />
             <Route path="compare/:type/:id" element={<Compare />} />

@@ -8,6 +8,7 @@ import {
   Trash2,
   X,
   PieChart,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import {
@@ -19,6 +20,7 @@ import {
   deletePortfolio,
   getPortfolioAllocation,
 } from '../services/portfolio';
+import { PortfolioChart } from './charts';
 import type { Portfolio } from '../types';
 
 interface PortfolioTrackerProps {
@@ -271,9 +273,16 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
           <p className="text-gray-400">No holdings yet. Add your first crypto!</p>
         </div>
       ) : (
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Holdings List */}
-          <div className="lg:col-span-2">
+        <>
+          {/* Portfolio Charts */}
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            <PortfolioChart portfolio={portfolio} type="performance" height={250} />
+            <PortfolioChart portfolio={portfolio} type="allocation" height={250} />
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Holdings List */}
+            <div className="lg:col-span-2">
             <h4 className="text-sm font-medium text-gray-400 mb-3">Holdings</h4>
             <div className="space-y-2">
               {portfolio.holdings.map((holding) => (
@@ -339,6 +348,7 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
             </div>
           </div>
         </div>
+        </>
       )}
 
       <AddHoldingModal

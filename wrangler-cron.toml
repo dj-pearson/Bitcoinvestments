@@ -1,0 +1,29 @@
+# Cloudflare Worker for Scheduled Price Alerts
+# This worker runs on a schedule to check price alerts
+
+name = "price-alerts-cron"
+main = "workers/price-alerts-cron.ts"
+compatibility_date = "2024-11-20"
+
+# Run every 5 minutes
+# Adjust the schedule as needed:
+# - "*/5 * * * *" = Every 5 minutes
+# - "*/15 * * * *" = Every 15 minutes
+# - "0 * * * *" = Every hour
+# - "0 */6 * * *" = Every 6 hours
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Environment variables
+# Set these in Cloudflare Dashboard for security
+[env.production]
+vars = { PAGES_URL = "https://bitcoinvestments.net" }
+
+[env.staging]
+vars = { PAGES_URL = "https://staging.bitcoinvestments.net" }
+
+# Required secrets (set in Cloudflare Dashboard):
+# - SUPABASE_SERVICE_ROLE_KEY
+# - RESEND_API_KEY (inherited from Pages environment)
+# - FROM_EMAIL (inherited from Pages environment)
+

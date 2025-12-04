@@ -113,7 +113,7 @@ export async function createCheckoutSession(
   userEmail: string,
   successUrl: string = window.location.origin + '/profile?session_id={CHECKOUT_SESSION_ID}',
   cancelUrl: string = window.location.origin + '/pricing'
-): Promise<{ sessionId: string | null; error: string | null }> {
+): Promise<{ sessionId: string | null; url: string | null; error: string | null }> {
   try {
     // Call your backend API to create checkout session
     const response = await fetch('/api/create-checkout-session', {
@@ -134,12 +134,13 @@ export async function createCheckoutSession(
       throw new Error('Failed to create checkout session');
     }
 
-    const { sessionId } = await response.json();
-    return { sessionId, error: null };
+    const { sessionId, url } = await response.json();
+    return { sessionId, url, error: null };
   } catch (error) {
     console.error('Error creating checkout session:', error);
     return {
       sessionId: null,
+      url: null,
       error: error instanceof Error ? error.message : 'Failed to start checkout',
     };
   }
@@ -153,26 +154,20 @@ export async function redirectToCheckout(
   userId: string,
   userEmail: string
 ): Promise<{ error: string | null }> {
-  const stripe = await getStripe();
-
-  if (!stripe) {
+  // Check if Stripe is configured
+  if (!isStripeConfigured()) {
     return { error: 'Stripe is not configured' };
   }
 
   // Create checkout session
-  const { sessionId, error } = await createCheckoutSession(priceId, userId, userEmail);
+  const { url, error } = await createCheckoutSession(priceId, userId, userEmail);
 
-  if (error || !sessionId) {
+  if (error || !url) {
     return { error: error || 'Failed to create checkout session' };
   }
 
-  // Redirect to Stripe Checkout
-  const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
-
-  if (stripeError) {
-    return { error: stripeError.message || 'Failed to redirect to checkout' };
-  }
-
+  // Redirect to Stripe Checkout URL
+  window.location.href = url;
   return { error: null };
 }
 

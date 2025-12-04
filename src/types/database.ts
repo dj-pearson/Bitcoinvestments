@@ -24,7 +24,10 @@ export type Database = {
           created_at: string;
           updated_at: string;
           subscription_status: 'free' | 'premium';
+          subscription_tier: string | null;
           subscription_expires_at: string | null;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
           preferences: Json;
           referral_code: string | null;
           referred_by: string | null;
@@ -35,7 +38,10 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           subscription_status?: 'free' | 'premium';
+          subscription_tier?: string | null;
           subscription_expires_at?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
           preferences?: Json;
           referral_code?: string | null;
           referred_by?: string | null;
@@ -46,7 +52,10 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           subscription_status?: 'free' | 'premium';
+          subscription_tier?: string | null;
           subscription_expires_at?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
           preferences?: Json;
           referral_code?: string | null;
           referred_by?: string | null;

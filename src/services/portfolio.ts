@@ -10,7 +10,6 @@ import {
   createDbPortfolio,
   getPortfolioHoldings,
   upsertHolding,
-  deleteDbPortfolio,
 } from './database';
 
 // Local storage key for portfolio data
@@ -618,12 +617,12 @@ export function exportPortfolioToCSV(portfolio: Portfolio): string {
 /**
  * Import portfolio from CSV
  */
-export function importPortfolioFromCSV(
+export async function importPortfolioFromCSV(
   csvContent: string,
   portfolioName: string
-): Portfolio {
+): Promise<Portfolio> {
   const lines = csvContent.trim().split('\n');
-  const portfolio = createPortfolio(portfolioName);
+  const portfolio = await createPortfolio(portfolioName);
 
   // Skip header row
   for (let i = 1; i < lines.length; i++) {

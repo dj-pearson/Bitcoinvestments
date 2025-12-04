@@ -82,7 +82,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
 
     return new Response(
-      JSON.stringify({ sessionId: session.id }),
+      JSON.stringify({
+        sessionId: session.id,
+        url: session.url // Return the full checkout URL
+      }),
       {
         status: 200,
         headers: {

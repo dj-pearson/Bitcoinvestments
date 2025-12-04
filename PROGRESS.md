@@ -53,6 +53,11 @@
 - [x] News Aggregator (CryptoCompare API)
 - [x] Global market stats (market cap, BTC dominance)
 - [x] Trending cryptocurrencies
+- [x] **Interactive price charts with Chart.js**
+- [x] **Portfolio performance charts**
+- [x] **Portfolio allocation pie charts**
+- [x] **Multi-cryptocurrency comparison charts**
+- [x] **Dedicated Charts page with search**
 - [ ] Portfolio tracker exchange API connections
 - [ ] AI-powered news summarization
 
@@ -92,6 +97,8 @@
 - [x] Preferences section
 - [x] Profile data persistence to Supabase
 - [x] Price alerts saved to database
+- [x] **Automated price alert notifications (email)**
+- [x] **Price alert cron job worker**
 
 ### Newsletter System
 - [x] Newsletter component (3 variants: card, inline, footer)
@@ -191,7 +198,7 @@
 
 ## Summary
 
-### Completed Features: ~90%
+### Completed Features: ~92%
 - Core UI/UX and design system
 - Authentication system (Supabase Auth)
 - Dashboard with live data
@@ -206,15 +213,20 @@
 - Cookie consent banner (GDPR-compliant)
 - Supabase database (8 tables with RLS)
 - Profile persistence to Supabase
-- Price alerts system
-- **Newsletter system with Resend integration**
-- **Affiliate tracking dashboard with analytics**
-- **Self-hosted ad platform with smart serving**
-- **Stripe payment integration with 3-tier pricing**
-- **Backend API functions (Cloudflare Workers)**
-- **Complete deployment setup (Cloudflare Pages + Workers)**
+- Price alerts system with automated notifications
+- **Automated price alert checker (Cloudflare Worker cron)**
+- **Interactive price charts with Chart.js**
+- **Portfolio performance & allocation charts**
+- **Multi-crypto comparison charts**
+- **Dedicated Charts page with search**
+- Newsletter system with Resend integration
+- Affiliate tracking dashboard with analytics
+- Self-hosted ad platform with smart serving
+- Stripe payment integration with 3-tier pricing
+- Backend API functions (Cloudflare Workers)
+- Complete deployment setup (Cloudflare Pages + Workers)
 - Email templates (welcome, price alerts)
-- Comprehensive documentation (5 guides)
+- Comprehensive documentation (6 guides)
 
 ### In Progress / Partially Complete: ~5%
 - Automated weekly newsletter (needs cron job)

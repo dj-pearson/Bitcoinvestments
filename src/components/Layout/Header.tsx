@@ -10,6 +10,10 @@ const navItems = [
         href: '/dashboard',
     },
     {
+        label: 'Charts',
+        href: '/charts',
+    },
+    {
         label: 'Compare',
         href: '/compare',
         children: [

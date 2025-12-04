@@ -7,10 +7,12 @@ import {
   ArrowRight,
   RefreshCw,
   Search,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
 import { PortfolioTracker } from '../components/PortfolioTracker';
+import { PriceChart } from '../components/charts';
 import {
   getCachedTopCryptocurrencies,
   getGlobalMarketData,
@@ -121,6 +123,17 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Featured Chart - Bitcoin */}
+      <div className="mb-8">
+        <PriceChart
+          cryptocurrencyId="bitcoin"
+          cryptocurrencyName="Bitcoin"
+          days={7}
+          height={300}
+          showVolume={false}
+        />
+      </div>
 
       {/* Portfolio Tracker */}
       <div className="mb-8">

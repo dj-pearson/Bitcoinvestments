@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Bitcoin, ChevronDown } from 'lucide-react';
+import { Menu, X, Bitcoin, ChevronDown, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { getCurrentUser, type AuthUser } from '../../services/auth';
 
 const navItems = [
     {
@@ -35,7 +36,17 @@ const navItems = [
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [user, setUser] = useState<AuthUser | null>(null);
+    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const location = useLocation();
+
+    useEffect(() => {
+        async function checkAuth() {
+            const currentUser = await getCurrentUser();
+            setUser(currentUser);
+        }
+        checkAuth();
+    }, [location.pathname]);
 
     const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + '/');
 
@@ -98,12 +109,63 @@ export function Header() {
                                 )}
                             </div>
                         ))}
-                        <Link
-                            to="/start"
-                            className="px-6 py-2.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-medium transition-all hover:shadow-[0_0_20px_-5px_rgba(139,92,246,0.5)]"
-                        >
-                            Get Started
-                        </Link>
+
+                        {/* Auth Section */}
+                        {user ? (
+                            <div
+                                className="relative"
+                                onMouseEnter={() => setUserDropdownOpen(true)}
+                                onMouseLeave={() => setUserDropdownOpen(false)}
+                            >
+                                <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                                    <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center">
+                                        <User className="w-4 h-4 text-brand-primary" />
+                                    </div>
+                                    <ChevronDown className={cn(
+                                        'w-4 h-4 transition-transform',
+                                        userDropdownOpen && 'rotate-180'
+                                    )} />
+                                </button>
+
+                                {userDropdownOpen && (
+                                    <div className="absolute top-full right-0 pt-2">
+                                        <div className="glass-card p-2 min-w-[180px] rounded-xl border border-white/10">
+                                            <div className="px-4 py-2 border-b border-white/10 mb-2">
+                                                <p className="text-sm text-gray-400">Signed in as</p>
+                                                <p className="text-sm text-white font-medium truncate">{user.email}</p>
+                                            </div>
+                                            <Link
+                                                to="/profile"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Profile Settings
+                                            </Link>
+                                            <Link
+                                                to="/dashboard"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Dashboard
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    to="/login"
+                                    className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    to="/signup"
+                                    className="px-6 py-2.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-medium transition-all hover:shadow-[0_0_20px_-5px_rgba(139,92,246,0.5)]"
+                                >
+                                    Get Started
+                                </Link>
+                            </div>
+                        )}
                     </nav>
 
                     {/* Mobile Menu Button */}
@@ -151,13 +213,42 @@ export function Header() {
                                 )}
                             </div>
                         ))}
-                        <Link
-                            to="/start"
-                            className="w-full text-center px-6 py-3 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white font-medium mt-2"
-                            onClick={() => setIsMenuOpen(false)}
-                        >
-                            Get Started
-                        </Link>
+
+                        {/* Mobile Auth */}
+                        <div className="border-t border-white/10 mt-2 pt-4">
+                            {user ? (
+                                <div className="space-y-2">
+                                    <div className="px-4 py-2">
+                                        <p className="text-sm text-gray-400">Signed in as</p>
+                                        <p className="text-sm text-white font-medium">{user.email}</p>
+                                    </div>
+                                    <Link
+                                        to="/profile"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Profile Settings
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <Link
+                                        to="/login"
+                                        className="block w-full text-center px-6 py-3 rounded-lg border border-white/20 text-white font-medium"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Sign In
+                                    </Link>
+                                    <Link
+                                        to="/signup"
+                                        className="block w-full text-center px-6 py-3 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white font-medium"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Get Started
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
                     </nav>
                 </div>
             )}

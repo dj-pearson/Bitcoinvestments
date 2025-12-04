@@ -4,6 +4,14 @@ import type {
   Transaction,
 } from '../types';
 import { getSimplePrices } from './coingecko';
+import { getCurrentUser } from './auth';
+import {
+  getUserPortfolios,
+  createDbPortfolio,
+  getPortfolioHoldings,
+  upsertHolding,
+  deleteDbPortfolio,
+} from './database';
 
 // Local storage key for portfolio data
 const PORTFOLIO_STORAGE_KEY = 'bitcoin_investments_portfolio';
@@ -34,9 +42,127 @@ export function saveLocalPortfolio(portfolio: Portfolio): void {
 }
 
 /**
+ * Get portfolio - tries Supabase first if user is logged in, falls back to localStorage
+ */
+export async function getPortfolio(): Promise<Portfolio | null> {
+  const user = await getCurrentUser();
+
+  if (user) {
+    // Try to get from Supabase
+    const portfolios = await getUserPortfolios(user.id);
+
+    if (portfolios.length > 0) {
+      // Get the default or first portfolio
+      const dbPortfolio = portfolios.find(p => p.is_default) || portfolios[0];
+      const holdings = await getPortfolioHoldings(dbPortfolio.id);
+
+      // Convert database format to frontend format
+      const portfolio: Portfolio = {
+        id: dbPortfolio.id,
+        user_id: dbPortfolio.user_id,
+        name: dbPortfolio.name,
+        created_at: dbPortfolio.created_at,
+        updated_at: dbPortfolio.updated_at,
+        holdings: holdings.map(h => ({
+          id: h.id,
+          portfolio_id: h.portfolio_id,
+          cryptocurrency_id: h.cryptocurrency_id,
+          symbol: h.symbol,
+          name: h.name,
+          amount: h.amount,
+          average_buy_price: h.average_buy_price,
+          current_price: h.average_buy_price, // Will be updated by price fetch
+          current_value: h.amount * h.average_buy_price,
+          cost_basis: h.amount * h.average_buy_price,
+          profit_loss: 0,
+          profit_loss_percentage: 0,
+          transactions: [], // Transactions loaded separately if needed
+        })),
+        total_value_usd: 0,
+        total_cost_basis: 0,
+        total_profit_loss: 0,
+        total_profit_loss_percentage: 0,
+      };
+
+      recalculatePortfolioTotals(portfolio);
+      return portfolio;
+    } else {
+      // Check if there's a localStorage portfolio to migrate
+      const localPortfolio = getLocalPortfolio();
+      if (localPortfolio) {
+        await migrateLocalPortfolioToSupabase(user.id, localPortfolio);
+        return localPortfolio;
+      }
+    }
+  }
+
+  // Fall back to localStorage for non-authenticated users
+  return getLocalPortfolio();
+}
+
+/**
+ * Migrate localStorage portfolio to Supabase
+ */
+async function migrateLocalPortfolioToSupabase(
+  userId: string,
+  localPortfolio: Portfolio
+): Promise<void> {
+  try {
+    // Create portfolio in Supabase
+    const dbPortfolio = await createDbPortfolio(userId, localPortfolio.name, true);
+
+    if (!dbPortfolio) {
+      console.error('Failed to create portfolio in Supabase');
+      return;
+    }
+
+    // Migrate holdings
+    for (const holding of localPortfolio.holdings) {
+      await upsertHolding({
+        portfolio_id: dbPortfolio.id,
+        cryptocurrency_id: holding.cryptocurrency_id,
+        symbol: holding.symbol,
+        name: holding.name,
+        amount: holding.amount,
+        average_buy_price: holding.average_buy_price,
+      });
+    }
+
+    // Clear localStorage after successful migration
+    localStorage.removeItem(PORTFOLIO_STORAGE_KEY);
+    console.log('Successfully migrated portfolio to Supabase');
+  } catch (error) {
+    console.error('Error migrating portfolio to Supabase:', error);
+  }
+}
+
+/**
  * Create a new portfolio
  */
-export function createPortfolio(name: string, userId?: string): Portfolio {
+export async function createPortfolio(name: string, userId?: string): Promise<Portfolio> {
+  const user = await getCurrentUser();
+
+  if (user) {
+    // Create in Supabase
+    const dbPortfolio = await createDbPortfolio(user.id, name, true);
+
+    if (dbPortfolio) {
+      return {
+        id: dbPortfolio.id,
+        user_id: dbPortfolio.user_id,
+        name: dbPortfolio.name,
+        created_at: dbPortfolio.created_at,
+        updated_at: dbPortfolio.updated_at,
+        holdings: [],
+        total_value_usd: 0,
+        total_cost_basis: 0,
+        total_profit_loss: 0,
+        total_profit_loss_percentage: 0,
+      };
+    }
+  }
+
+  // Fall back to localStorage
   const portfolio: Portfolio = {
     id: generateId(),
     user_id: userId || 'local',
@@ -57,7 +183,7 @@ export function createPortfolio(name: string, userId?: string): Portfolio {
 /**
  * Add a holding to portfolio
  */
-export function addHolding(
+export async function addHolding(
   portfolio: Portfolio,
   cryptoId: string,
   symbol: string,
@@ -67,7 +193,9 @@ export function addHolding(
   purchaseDate: string,
   exchange?: string,
   notes?: string
-): Portfolio {
+): Promise<Portfolio> {
+  const user = await getCurrentUser();
+
   // Check if holding already exists
   const existingHoldingIndex = portfolio.holdings.findIndex(
     h => h.cryptocurrency_id === cryptoId
@@ -100,6 +228,18 @@ export function addHolding(
       .reduce((sum, t) => sum + t.amount, 0);
     holding.average_buy_price = totalBought > 0 ? totalCost / totalBought : 0;
     holding.cost_basis = holding.amount * holding.average_buy_price;
+
+    // Update in Supabase if user is logged in
+    if (user && portfolio.user_id !== 'local') {
+      await upsertHolding({
+        portfolio_id: portfolio.id,
+        cryptocurrency_id: holding.cryptocurrency_id,
+        symbol: holding.symbol,
+        name: holding.name,
+        amount: holding.amount,
+        average_buy_price: holding.average_buy_price,
+      });
+    }
   } else {
     // Create new holding
     const holding: PortfolioHolding = {
@@ -121,11 +261,32 @@ export function addHolding(
     transaction.holding_id = holding.id;
     holding.transactions.push(transaction);
     portfolio.holdings.push(holding);
+
+    // Save to Supabase if user is logged in
+    if (user && portfolio.user_id !== 'local') {
+      const dbHolding = await upsertHolding({
+        portfolio_id: portfolio.id,
+        cryptocurrency_id: holding.cryptocurrency_id,
+        symbol: holding.symbol,
+        name: holding.name,
+        amount: holding.amount,
+        average_buy_price: holding.average_buy_price,
+      });
+
+      // Update holding ID with database ID if successful
+      if (dbHolding) {
+        holding.id = dbHolding.id;
+      }
+    }
   }
 
   portfolio.updated_at = new Date().toISOString();
   recalculatePortfolioTotals(portfolio);
-  saveLocalPortfolio(portfolio);
+
+  // Save to localStorage if not logged in or as backup
+  if (!user || portfolio.user_id === 'local') {
+    saveLocalPortfolio(portfolio);
+  }
 
   return portfolio;
 }

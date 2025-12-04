@@ -1,0 +1,15 @@
+# Cloudflare Workers Development Environment Variables
+# Copy this file to .dev.vars and fill in your actual values
+# DO NOT commit .dev.vars to git!
+
+# Stripe Configuration (Backend - Secret Keys)
+STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx
+
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx
+
+# Stripe Price IDs (Public)
+VITE_STRIPE_PRICE_MONTHLY=price_xxxxxxxxxxxxxxxxxxxxx
+VITE_STRIPE_PRICE_ANNUAL=price_xxxxxxxxxxxxxxxxxxxxx

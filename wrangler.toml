@@ -1,0 +1,21 @@
+# Cloudflare Pages Configuration
+# This file is used for local development with Wrangler
+# For production, set environment variables in Cloudflare Dashboard
+
+name = "bitcoin-investments"
+compatibility_date = "2024-11-20"
+
+# Pages configuration
+pages_build_output_dir = "dist"
+
+# Environment variables for local development
+# DO NOT commit sensitive values - use .dev.vars instead
+[vars]
+VITE_SUPABASE_URL = ""  # Set in Cloudflare Dashboard
+VITE_STRIPE_PRICE_MONTHLY = ""  # Set in Cloudflare Dashboard
+VITE_STRIPE_PRICE_ANNUAL = ""  # Set in Cloudflare Dashboard
+
+# Secrets (set these in Cloudflare Dashboard > Settings > Environment Variables)
+# STRIPE_SECRET_KEY = "sk_test_..." or "sk_live_..."
+# STRIPE_WEBHOOK_SECRET = "whsec_..."
+# SUPABASE_SERVICE_ROLE_KEY = "eyJ..." (for admin operations)

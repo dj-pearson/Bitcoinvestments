@@ -4,6 +4,11 @@ import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { Calculators } from './pages/Calculators';
 import { Compare } from './pages/Compare';
+import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { Profile } from './pages/Profile';
+import { Learn } from './pages/Learn';
 
 function App() {
   return (
@@ -15,9 +20,13 @@ function App() {
           <Route path="calculators" element={<Calculators />} />
           <Route path="compare" element={<Compare />} />
           <Route path="compare/:type/:id" element={<Compare />} />
-          {/* Placeholder routes */}
-          <Route path="learn" element={<Home />} />
-          <Route path="start" element={<Home />} />
+          <Route path="login" element={<Login />} />
+          <Route path="signup" element={<Signup />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="learn" element={<Learn />} />
+          <Route path="learn/:guideId" element={<Learn />} />
+          <Route path="start" element={<Learn />} />
           <Route path="prices" element={<Dashboard />} />
           <Route path="*" element={<Home />} />
         </Route>

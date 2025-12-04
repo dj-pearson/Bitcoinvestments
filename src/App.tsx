@@ -9,6 +9,8 @@ import { Signup } from './pages/Signup';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Profile } from './pages/Profile';
 import { Learn } from './pages/Learn';
+import { Glossary } from './pages/Glossary';
+import { Article } from './pages/Article';
 
 function App() {
   return (
@@ -26,6 +28,8 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="learn" element={<Learn />} />
           <Route path="learn/:guideId" element={<Learn />} />
+          <Route path="glossary" element={<Glossary />} />
+          <Route path="article/:slug" element={<Article />} />
           <Route path="start" element={<Learn />} />
           <Route path="prices" element={<Dashboard />} />
           <Route path="*" element={<Home />} />

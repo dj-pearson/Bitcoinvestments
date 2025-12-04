@@ -10,7 +10,6 @@ pages_build_output_dir = "dist"
 [vars]
 VITE_SUPABASE_URL = "https://mkdckqrukmukbmgxabyk.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iim6AzEHVn7sGeqL5V9WJg_1dLtUT0W"
-VITE_SUPABASE_PROJECT_ID = "mkdckqrukmukbmgxabyk"
 
 # Stripe public keys (set your actual values here)
 # For testing: pk_test_xxxxx, For production: pk_live_xxxxx

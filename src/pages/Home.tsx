@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { ArrowRight, Shield, Zap, Globe, TrendingUp, Calculator, BookOpen, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,7 +10,7 @@ import { Newsletter } from '../components/Newsletter';
 import { NewsFeed } from '../components/NewsFeed';
 import { FearGreedGauge } from '../components/FearGreedIndex';
 
-gsap.registerPlugin(useGSAP);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export function Home() {
     const containerRef = useRef<HTMLDivElement>(null);

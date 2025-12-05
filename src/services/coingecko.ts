@@ -8,22 +8,95 @@ import type {
 const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
 const ALTERNATIVE_ME_API = 'https://api.alternative.me/fng';
 
-// Rate limiting helper
+// Enhanced cache with longer duration to avoid rate limiting
+const dataCache = new Map<string, { data: unknown; timestamp: number; error?: boolean }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for successful responses
+const ERROR_CACHE_DURATION = 30 * 1000; // 30 seconds for error responses
+
+// Rate limiting helper with request queue
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 1200; // CoinGecko free tier: ~50 calls/min
+const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests (safer for free tier)
+const requestQueue: Array<{ resolve: () => void }> = [];
+let isProcessingQueue = false;
 
-async function rateLimitedFetch(url: string): Promise<Response> {
-  const now = Date.now();
-  const timeSinceLastRequest = now - lastRequestTime;
+async function processQueue(): Promise<void> {
+  if (isProcessingQueue) return;
+  isProcessingQueue = true;
+  
+  while (requestQueue.length > 0) {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+      await new Promise(resolve => 
+        setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
+      );
+    }
+    
+    const request = requestQueue.shift();
+    if (request) {
+      lastRequestTime = Date.now();
+      request.resolve();
+    }
+  }
+  
+  isProcessingQueue = false;
+}
 
-  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-    await new Promise(resolve =>
-      setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
-    );
+async function rateLimitedFetch(url: string, cacheKey?: string): Promise<Response> {
+  // Check cache first
+  if (cacheKey) {
+    const cached = dataCache.get(cacheKey);
+    if (cached) {
+      const maxAge = cached.error ? ERROR_CACHE_DURATION : CACHE_DURATION;
+      if (Date.now() - cached.timestamp < maxAge) {
+        // Return a mock response from cache
+        return new Response(JSON.stringify(cached.data), {
+          status: cached.error ? 429 : 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
   }
 
-  lastRequestTime = Date.now();
-  return fetch(url);
+  // Queue the request
+  await new Promise<void>(resolve => {
+    requestQueue.push({ resolve });
+    processQueue();
+  });
+
+  try {
+    const response = await fetch(url);
+    
+    // If rate limited, return cached data or throw
+    if (response.status === 429) {
+      const cached = dataCache.get(cacheKey || url);
+      if (cached && cached.data) {
+        console.warn('CoinGecko rate limited, returning cached data');
+        return new Response(JSON.stringify(cached.data), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+    
+    return response;
+  } catch (error) {
+    // On network error, try to return cached data
+    const cached = dataCache.get(cacheKey || url);
+    if (cached && cached.data) {
+      console.warn('Network error, returning cached data');
+      return new Response(JSON.stringify(cached.data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    throw error;
+  }
+}
+
+function cacheResponse(key: string, data: unknown, isError: boolean = false): void {
+  dataCache.set(key, { data, timestamp: Date.now(), error: isError });
 }
 
 /**
@@ -34,20 +107,24 @@ export async function getTopCryptocurrencies(
   page: number = 1,
   currency: string = 'usd'
 ): Promise<Cryptocurrency[]> {
+  const cacheKey = `top_cryptos_${limit}_${page}_${currency}`;
+  
   try {
     const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=${limit}&page=${page}&sparkline=true&price_change_percentage=7d,30d`;
 
-    const response = await rateLimitedFetch(url);
+    const response = await rateLimitedFetch(url, cacheKey);
 
     if (!response.ok) {
       throw new Error(`CoinGecko API error: ${response.status}`);
     }
 
     const data = await response.json();
+    cacheResponse(cacheKey, data);
     return data as Cryptocurrency[];
   } catch (error) {
     console.error('Error fetching cryptocurrencies:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent UI crashes
+    return [];
   }
 }
 
@@ -158,19 +235,23 @@ export async function getSimplePrices(
   includeMarketCap: boolean = false,
   include24hChange: boolean = false
 ): Promise<Record<string, Record<string, number>>> {
+  const cacheKey = `simple_prices_${ids.join('_')}_${currencies.join('_')}`;
+  
   try {
     const url = `${COINGECKO_API_BASE}/simple/price?ids=${ids.join(',')}&vs_currencies=${currencies.join(',')}&include_market_cap=${includeMarketCap}&include_24hr_change=${include24hChange}`;
 
-    const response = await rateLimitedFetch(url);
+    const response = await rateLimitedFetch(url, cacheKey);
 
     if (!response.ok) {
       throw new Error(`CoinGecko API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    cacheResponse(cacheKey, data);
+    return data;
   } catch (error) {
     console.error('Error fetching simple prices:', error);
-    throw error;
+    return {};
   }
 }
 
@@ -184,21 +265,25 @@ export async function getGlobalMarketData(): Promise<{
   market_cap_change_percentage_24h_usd: number;
   active_cryptocurrencies: number;
   markets: number;
-}> {
+} | null> {
+  const cacheKey = 'global_market_data';
+  
   try {
     const url = `${COINGECKO_API_BASE}/global`;
 
-    const response = await rateLimitedFetch(url);
+    const response = await rateLimitedFetch(url, cacheKey);
 
     if (!response.ok) {
       throw new Error(`CoinGecko API error: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.data;
+    const marketData = data.data || data;
+    cacheResponse(cacheKey, marketData);
+    return marketData;
   } catch (error) {
     console.error('Error fetching global market data:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -214,20 +299,24 @@ export async function getTrendingCryptocurrencies(): Promise<{
   market_cap_rank: number;
   price_btc: number;
 }[]> {
+  const cacheKey = 'trending_cryptos';
+  
   try {
     const url = `${COINGECKO_API_BASE}/search/trending`;
 
-    const response = await rateLimitedFetch(url);
+    const response = await rateLimitedFetch(url, cacheKey);
 
     if (!response.ok) {
       throw new Error(`CoinGecko API error: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.coins.map((item: { item: unknown }) => item.item);
+    const trending = data.coins?.map((item: { item: unknown }) => item.item) || [];
+    cacheResponse(cacheKey, trending);
+    return trending;
   } catch (error) {
     console.error('Error fetching trending cryptocurrencies:', error);
-    throw error;
+    return [];
   }
 }
 

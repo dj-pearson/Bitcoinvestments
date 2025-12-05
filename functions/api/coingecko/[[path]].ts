@@ -44,6 +44,9 @@ export async function onRequest(context: {
   
   // Construct CoinGecko API URL
   const apiKey = env.VITE_COINGECKO_API_KEY || '';
+  console.log('Environment keys available:', Object.keys(env));
+  console.log('VITE_COINGECKO_API_KEY present:', !!apiKey);
+  
   const baseUrl = 'https://api.coingecko.com/api/v3';
   const targetUrl = `${baseUrl}/${apiPath}${searchParams ? `?${searchParams}` : ''}`;
   
@@ -55,8 +58,11 @@ export async function onRequest(context: {
     };
     
     if (apiKey) {
-      headers['x-cg-pro-api-key'] = apiKey;
-      console.log('Using API key:', apiKey.substring(0, 6) + '...');
+      // CoinGecko uses different headers for demo vs pro keys
+      // Demo keys start with CG-1V, Pro keys are different
+      const headerName = apiKey.startsWith('CG-1V') ? 'x-cg-demo-api-key' : 'x-cg-pro-api-key';
+      headers[headerName] = apiKey;
+      console.log('Using API key:', apiKey.substring(0, 6) + '... with header:', headerName);
     } else {
       console.warn('No API key found in environment!');
     }

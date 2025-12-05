@@ -8,8 +8,8 @@ import {
   Title,
   Tooltip,
   Legend,
-  ChartOptions,
 } from 'chart.js';
+import type { ChartOptions } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { getHistoricalData } from '../../services/coingecko';
 import { Loader2, X } from 'lucide-react';

@@ -31,8 +31,12 @@ export function WalletImport({ portfolio, onUpdate, onClose }: WalletImportProps
   const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set());
 
   // Get native token balance (ETH, MATIC, etc.)
-  const { data: ethBalance, isLoading: ethLoading } = useBalance({
+  const { data: ethBalance, isLoading: ethLoading, isError: ethError } = useBalance({
     address: address,
+    chainId: chain?.id,
+    query: {
+      enabled: !!address && !!chain?.id,
+    },
   });
 
   // Map chain-specific native tokens to CoinGecko IDs
@@ -75,11 +79,15 @@ export function WalletImport({ portfolio, onUpdate, onClose }: WalletImportProps
         chainId: chain?.id,
         balance: ethBalance?.formatted,
         symbol: ethBalance?.symbol,
+        decimals: ethBalance?.decimals,
+        value: ethBalance?.value?.toString(),
         hasBalance: ethBalance && parseFloat(ethBalance.formatted) > 0,
         availableTokensCount: availableTokens.length,
+        isLoading: ethLoading,
+        isError: ethError,
       });
     }
-  }, [isConnected, address, chain, ethBalance, availableTokens.length]);
+  }, [isConnected, address, chain, ethBalance, availableTokens.length, ethLoading, ethError]);
 
   useEffect(() => {
     // Reset imported state when wallet changes

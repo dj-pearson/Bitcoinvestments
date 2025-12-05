@@ -251,7 +251,7 @@ export async function getAuditLogs(params?: {
 export async function getUserStats(): Promise<UserStats> {
   const { data, error } = await supabase.rpc('get_user_stats');
 
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching user stats:', error);
     return {
       total_users: 0,
@@ -263,7 +263,15 @@ export async function getUserStats(): Promise<UserStats> {
     };
   }
 
-  return data[0] as UserStats;
+  const statsArray = data as unknown as UserStats[];
+  return statsArray[0] || {
+    total_users: 0,
+    active_users: 0,
+    premium_users: 0,
+    suspended_users: 0,
+    new_users_7d: 0,
+    new_users_30d: 0,
+  };
 }
 
 /**
@@ -272,7 +280,7 @@ export async function getUserStats(): Promise<UserStats> {
 export async function getScamDatabaseStats(): Promise<ScamStats> {
   const { data, error } = await supabase.rpc('get_scam_stats');
 
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching scam stats:', error);
     return {
       total_reports: 0,
@@ -283,7 +291,14 @@ export async function getScamDatabaseStats(): Promise<ScamStats> {
     };
   }
 
-  return data[0] as ScamStats;
+  const statsArray = data as unknown as ScamStats[];
+  return statsArray[0] || {
+    total_reports: 0,
+    verified_reports: 0,
+    pending_reports: 0,
+    total_victims: 0,
+    total_loss_usd: 0,
+  };
 }
 
 /**

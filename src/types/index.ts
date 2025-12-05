@@ -297,6 +297,38 @@ export interface FearGreedHistorical {
   data: FearGreedIndex[];
 }
 
+// Gas Price Types
+export interface GasPrice {
+  low: number;
+  average: number;
+  high: number;
+  instant?: number;
+  baseFee?: number;
+  lastUpdated: string;
+}
+
+export interface ChainGasInfo {
+  chainId: number;
+  chainName: string;
+  symbol: string;
+  gasPrice: GasPrice;
+  nativeTokenPrice?: number;
+  estimatedCosts: {
+    transfer: number; // Cost in USD for a simple transfer
+    swap: number; // Cost in USD for a DEX swap
+    nftMint: number; // Cost in USD for NFT mint
+  };
+}
+
+export type SupportedChain =
+  | 'ethereum'
+  | 'polygon'
+  | 'arbitrum'
+  | 'optimism'
+  | 'bsc'
+  | 'avalanche'
+  | 'base';
+
 // Advertisement Types
 export interface Advertisement {
   id: string;

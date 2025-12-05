@@ -715,6 +715,117 @@ export function deletePortfolio(): void {
 }
 
 /**
+ * Get or create a holding for an asset
+ * Used primarily for transaction imports
+ */
+export async function getOrCreateHolding(
+  userId: string,
+  symbol: string,
+  name: string
+): Promise<PortfolioHolding> {
+  let portfolio = await getPortfolio();
+
+  if (!portfolio) {
+    portfolio = await createPortfolio('My Portfolio', userId);
+  }
+
+  // Check if holding already exists
+  const existingHolding = portfolio.holdings.find(
+    h => h.symbol.toUpperCase() === symbol.toUpperCase()
+  );
+
+  if (existingHolding) {
+    return existingHolding;
+  }
+
+  // Create new empty holding
+  const holding: PortfolioHolding = {
+    id: generateId(),
+    portfolio_id: portfolio.id,
+    cryptocurrency_id: symbol.toLowerCase(),
+    symbol: symbol.toUpperCase(),
+    name: name || symbol,
+    amount: 0,
+    average_buy_price: 0,
+    current_price: 0,
+    current_value: 0,
+    cost_basis: 0,
+    profit_loss: 0,
+    profit_loss_percentage: 0,
+    transactions: [],
+  };
+
+  portfolio.holdings.push(holding);
+  portfolio.updated_at = new Date().toISOString();
+
+  // Save to localStorage
+  saveLocalPortfolio(portfolio);
+
+  return holding;
+}
+
+/**
+ * Add a transaction to a holding
+ * Used primarily for transaction imports
+ */
+export async function addTransaction(
+  holdingId: string,
+  transaction: Omit<Transaction, 'id'>
+): Promise<Transaction> {
+  const portfolio = await getPortfolio();
+
+  if (!portfolio) {
+    throw new Error('Portfolio not found');
+  }
+
+  const holding = portfolio.holdings.find(h => h.id === holdingId);
+
+  if (!holding) {
+    throw new Error('Holding not found');
+  }
+
+  const newTransaction: Transaction = {
+    ...transaction,
+    id: generateId(),
+    holding_id: holdingId,
+  };
+
+  holding.transactions.push(newTransaction);
+
+  // Update holding amounts based on transaction type
+  switch (transaction.type) {
+    case 'buy':
+    case 'transfer_in':
+    case 'staking_reward':
+      // Recalculate average buy price for buys
+      if (transaction.type === 'buy' && transaction.price_per_unit > 0) {
+        const totalCost = holding.cost_basis + (transaction.amount * transaction.price_per_unit);
+        const totalAmount = holding.amount + transaction.amount;
+        holding.average_buy_price = totalAmount > 0 ? totalCost / totalAmount : 0;
+        holding.cost_basis = totalCost;
+      }
+      holding.amount += transaction.amount;
+      break;
+    case 'sell':
+    case 'transfer_out':
+      holding.amount = Math.max(0, holding.amount - transaction.amount);
+      holding.cost_basis = holding.amount * holding.average_buy_price;
+      break;
+  }
+
+  // Update current value
+  if (holding.current_price > 0) {
+    holding.current_value = holding.amount * holding.current_price;
+  }
+
+  portfolio.updated_at = new Date().toISOString();
+  recalculatePortfolioTotals(portfolio);
+  saveLocalPortfolio(portfolio);
+
+  return newTransaction;
+}
+
+/**
  * Generate unique ID
  */
 function generateId(): string {

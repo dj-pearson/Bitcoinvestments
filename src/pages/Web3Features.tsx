@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { WalletConnect, TransactionImport, Web3Auth, TokenApprovalManager } from '../components/Web3';
 import { useAccount } from 'wagmi';
 

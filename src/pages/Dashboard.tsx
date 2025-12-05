@@ -7,7 +7,6 @@ import {
   ArrowRight,
   RefreshCw,
   Search,
-  BarChart3,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
 import { generateNonce, createSiweMessage, verifySiweMessage, authenticateWithWallet } from '../../services/siwe';
 import { LogIn, Loader } from 'lucide-react';

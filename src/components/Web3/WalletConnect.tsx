@@ -1,6 +1,4 @@
-import React from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
 import { Wallet } from 'lucide-react';
 
 /**
@@ -8,7 +6,6 @@ import { Wallet } from 'lucide-react';
  * Uses RainbowKit for beautiful, accessible wallet connection
  */
 export function WalletConnect() {
-  const { address, isConnected } = useAccount();
 
   return (
     <div className="wallet-connect">

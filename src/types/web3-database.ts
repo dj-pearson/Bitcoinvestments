@@ -3,7 +3,7 @@
  * Additional types for blockchain and wallet functionality
  */
 
-import { Database } from './database';
+import type { Database } from './database';
 
 // Extend the existing Database type with Web3 tables
 export interface Web3Database extends Database {

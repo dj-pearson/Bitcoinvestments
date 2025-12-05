@@ -4,9 +4,9 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { fetchTransactionHistory, SupportedChain } from './alchemy';
+import { fetchTransactionHistory } from './alchemy';
+import type { SupportedChain } from './alchemy';
 import { fetchSolanaTransactions } from './solana';
-import type { InsertUserWallet, InsertTransactionSync } from '../types/web3-database';
 
 export interface SyncProgress {
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
@@ -26,9 +26,9 @@ export async function saveConnectedWallet(
   label?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('user_wallets')
-      .insert<InsertUserWallet>({
+      .insert({
         user_id: userId,
         wallet_address: walletAddress.toLowerCase(),
         chain,
@@ -85,13 +85,13 @@ export async function syncWalletTransactions(
   userId: string,
   walletAddress: string,
   chain: string,
-  portfolioId?: string,
+  _portfolioId?: string,
   onProgress?: (progress: SyncProgress) => void
 ): Promise<{ success: boolean; imported: number; error?: string }> {
   // Create sync record
   const { data: syncRecord, error: syncError } = await supabase
     .from('transaction_syncs')
-    .insert<InsertTransactionSync>({
+    .insert({
       user_id: userId,
       wallet_address: walletAddress.toLowerCase(),
       chain,
@@ -147,8 +147,8 @@ export async function syncWalletTransactions(
     for (const tx of transactions) {
       try {
         // Determine if transaction is buy/sell/transfer based on address
-        const isSent = tx.from?.toLowerCase() === walletAddress.toLowerCase();
-        const type = isSent ? 'transfer_out' : 'transfer_in';
+        const _isSent = tx.from?.toLowerCase() === walletAddress.toLowerCase();
+        const _type = _isSent ? 'transfer_out' : 'transfer_in';
 
         // Parse amount and create transaction record
         // Note: This requires a holding_id which should be created/found based on the asset

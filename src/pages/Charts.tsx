@@ -28,7 +28,7 @@ export function Charts() {
     symbol: string;
     thumb: string;
   }[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
   const [popularCryptos, setPopularCryptos] = useState<{

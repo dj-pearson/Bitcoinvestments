@@ -157,7 +157,7 @@ function PerformanceChart({ portfolio, height }: { portfolio: Portfolio; height:
         callbacks: {
           label: (context) => {
             const label = context.dataset.label || '';
-            const value = context.parsed.y;
+            const value = context.parsed.y ?? 0;
             return `${label}: $${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           },
         },
@@ -302,7 +302,7 @@ function AllocationChart({ portfolio, height }: { portfolio: Portfolio; height: 
 
         {/* Legend */}
         <div className="space-y-2">
-          {allocation.map((item, index) => (
+          {allocation.map((item) => (
             <div
               key={item.symbol}
               className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors"

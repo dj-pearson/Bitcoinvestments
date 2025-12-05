@@ -431,6 +431,196 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Web3 Tables
+      user_wallets: {
+        Row: {
+          id: string;
+          user_id: string;
+          wallet_address: string;
+          chain: string;
+          wallet_label: string | null;
+          wallet_type: string | null;
+          added_at: string;
+          last_synced_at: string | null;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          wallet_address: string;
+          chain: string;
+          wallet_label?: string | null;
+          wallet_type?: string | null;
+          added_at?: string;
+          last_synced_at?: string | null;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          wallet_address?: string;
+          chain?: string;
+          wallet_label?: string | null;
+          wallet_type?: string | null;
+          added_at?: string;
+          last_synced_at?: string | null;
+          is_active?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_wallets_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      transaction_syncs: {
+        Row: {
+          id: string;
+          user_id: string;
+          wallet_address: string;
+          chain: string;
+          sync_started_at: string;
+          sync_completed_at: string | null;
+          transactions_imported: number;
+          sync_status: 'pending' | 'in_progress' | 'completed' | 'failed';
+          error_message: string | null;
+          from_block: string | null;
+          to_block: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          wallet_address: string;
+          chain: string;
+          sync_started_at?: string;
+          sync_completed_at?: string | null;
+          transactions_imported?: number;
+          sync_status?: 'pending' | 'in_progress' | 'completed' | 'failed';
+          error_message?: string | null;
+          from_block?: string | null;
+          to_block?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          wallet_address?: string;
+          chain?: string;
+          sync_started_at?: string;
+          sync_completed_at?: string | null;
+          transactions_imported?: number;
+          sync_status?: 'pending' | 'in_progress' | 'completed' | 'failed';
+          error_message?: string | null;
+          from_block?: string | null;
+          to_block?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'transaction_syncs_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      token_approvals: {
+        Row: {
+          id: string;
+          user_id: string;
+          wallet_address: string;
+          chain: string;
+          token_address: string;
+          token_name: string | null;
+          token_symbol: string | null;
+          spender_address: string;
+          spender_name: string | null;
+          allowance: string | null;
+          is_unlimited: boolean;
+          approved_at: string | null;
+          last_checked_at: string;
+          is_revoked: boolean;
+          revoked_at: string | null;
+          approval_tx_hash: string | null;
+          risk_level: 'low' | 'medium' | 'high' | 'unknown';
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          wallet_address: string;
+          chain: string;
+          token_address: string;
+          token_name?: string | null;
+          token_symbol?: string | null;
+          spender_address: string;
+          spender_name?: string | null;
+          allowance?: string | null;
+          is_unlimited?: boolean;
+          approved_at?: string | null;
+          last_checked_at?: string;
+          is_revoked?: boolean;
+          revoked_at?: string | null;
+          approval_tx_hash?: string | null;
+          risk_level?: 'low' | 'medium' | 'high' | 'unknown';
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          wallet_address?: string;
+          chain?: string;
+          token_address?: string;
+          token_name?: string | null;
+          token_symbol?: string | null;
+          spender_address?: string;
+          spender_name?: string | null;
+          allowance?: string | null;
+          is_unlimited?: boolean;
+          approved_at?: string | null;
+          last_checked_at?: string;
+          is_revoked?: boolean;
+          revoked_at?: string | null;
+          approval_tx_hash?: string | null;
+          risk_level?: 'low' | 'medium' | 'high' | 'unknown';
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'token_approvals_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      wallet_auth_nonces: {
+        Row: {
+          id: string;
+          wallet_address: string;
+          nonce: string;
+          created_at: string;
+          expires_at: string;
+          used: boolean;
+        };
+        Insert: {
+          id?: string;
+          wallet_address: string;
+          nonce: string;
+          created_at?: string;
+          expires_at: string;
+          used?: boolean;
+        };
+        Update: {
+          id?: string;
+          wallet_address?: string;
+          nonce?: string;
+          created_at?: string;
+          expires_at?: string;
+          used?: boolean;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

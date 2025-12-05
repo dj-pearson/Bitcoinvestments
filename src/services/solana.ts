@@ -1,4 +1,5 @@
-import { Connection, PublicKey, ParsedTransactionWithMeta } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
+import type { ParsedTransactionWithMeta } from '@solana/web3.js';
 
 // Use Alchemy Solana or a public RPC endpoint
 const SOLANA_RPC_URL = 'https://api.mainnet-beta.solana.com';
@@ -66,7 +67,7 @@ function parseTransaction(
   
   return {
     signature,
-    blockTime: tx.blockTime,
+    blockTime: tx.blockTime ?? null,
     slot: tx.slot,
     fee: tx.meta?.fee || 0,
     status,

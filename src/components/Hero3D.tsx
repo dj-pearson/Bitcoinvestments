@@ -59,10 +59,9 @@ export function Hero3D() {
     return (
         <div className="absolute inset-0 z-0">
             <Canvas camera={{ position: [0, 0, 1] }}>
-                <fog attach="fog" args={['#000', 0, 30]} /> {/* Dark background fog */}
+                <fog attach="fog" args={['#000', 0, 30]} />
                 <ambientLight intensity={0.5} />
                 <StarField />
-                {/* We can add more journey elements here later */}
             </Canvas>
         </div>
     );

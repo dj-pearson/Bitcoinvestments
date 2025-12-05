@@ -27,3 +27,4 @@ vars = { PAGES_URL = "https://staging.bitcoinvestments.net" }
 # - RESEND_API_KEY (inherited from Pages environment)
 # - FROM_EMAIL (inherited from Pages environment)
 
+

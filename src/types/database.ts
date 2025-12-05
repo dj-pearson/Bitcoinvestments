@@ -31,6 +31,12 @@ export type Database = {
           preferences: Json;
           referral_code: string | null;
           referred_by: string | null;
+          // Admin fields
+          role: 'user' | 'admin' | 'super_admin';
+          is_suspended: boolean;
+          suspended_at: string | null;
+          suspended_reason: string | null;
+          last_login_at: string | null;
         };
         Insert: {
           id: string;
@@ -45,6 +51,11 @@ export type Database = {
           preferences?: Json;
           referral_code?: string | null;
           referred_by?: string | null;
+          role?: 'user' | 'admin' | 'super_admin';
+          is_suspended?: boolean;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
+          last_login_at?: string | null;
         };
         Update: {
           id?: string;
@@ -59,6 +70,11 @@ export type Database = {
           preferences?: Json;
           referral_code?: string | null;
           referred_by?: string | null;
+          role?: 'user' | 'admin' | 'super_admin';
+          is_suspended?: boolean;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
+          last_login_at?: string | null;
         };
         Relationships: [];
       };
@@ -621,6 +637,216 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Admin Tables
+      admin_audit_logs: {
+        Row: {
+          id: string;
+          admin_id: string;
+          action: string;
+          target_type: string | null;
+          target_id: string | null;
+          details: Json | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_id: string;
+          action: string;
+          target_type?: string | null;
+          target_id?: string | null;
+          details?: Json | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          admin_id?: string;
+          action?: string;
+          target_type?: string | null;
+          target_id?: string | null;
+          details?: Json | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'admin_audit_logs_admin_id_fkey';
+            columns: ['admin_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      scam_reports: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          scam_type: 'phishing' | 'ponzi' | 'rug_pull' | 'fake_ico' | 'impersonation' | 'fake_exchange' | 'pump_dump' | 'other';
+          severity: 'low' | 'medium' | 'high' | 'critical';
+          status: 'pending' | 'verified' | 'rejected' | 'investigating';
+          website_url: string | null;
+          social_media_links: Json | null;
+          wallet_addresses: string[] | null;
+          email_addresses: string[] | null;
+          phone_numbers: string[] | null;
+          token_name: string | null;
+          token_symbol: string | null;
+          blockchain: string | null;
+          contract_address: string | null;
+          red_flags: string[] | null;
+          victims_count: number;
+          estimated_loss_usd: number | null;
+          first_reported_date: string | null;
+          reported_by: string | null;
+          verified_by: string | null;
+          verified_at: string | null;
+          evidence_links: string[] | null;
+          screenshots: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description: string;
+          scam_type: 'phishing' | 'ponzi' | 'rug_pull' | 'fake_ico' | 'impersonation' | 'fake_exchange' | 'pump_dump' | 'other';
+          severity?: 'low' | 'medium' | 'high' | 'critical';
+          status?: 'pending' | 'verified' | 'rejected' | 'investigating';
+          website_url?: string | null;
+          social_media_links?: Json | null;
+          wallet_addresses?: string[] | null;
+          email_addresses?: string[] | null;
+          phone_numbers?: string[] | null;
+          token_name?: string | null;
+          token_symbol?: string | null;
+          blockchain?: string | null;
+          contract_address?: string | null;
+          red_flags?: string[] | null;
+          victims_count?: number;
+          estimated_loss_usd?: number | null;
+          first_reported_date?: string | null;
+          reported_by?: string | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          evidence_links?: string[] | null;
+          screenshots?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          scam_type?: 'phishing' | 'ponzi' | 'rug_pull' | 'fake_ico' | 'impersonation' | 'fake_exchange' | 'pump_dump' | 'other';
+          severity?: 'low' | 'medium' | 'high' | 'critical';
+          status?: 'pending' | 'verified' | 'rejected' | 'investigating';
+          website_url?: string | null;
+          social_media_links?: Json | null;
+          wallet_addresses?: string[] | null;
+          email_addresses?: string[] | null;
+          phone_numbers?: string[] | null;
+          token_name?: string | null;
+          token_symbol?: string | null;
+          blockchain?: string | null;
+          contract_address?: string | null;
+          red_flags?: string[] | null;
+          victims_count?: number;
+          estimated_loss_usd?: number | null;
+          first_reported_date?: string | null;
+          reported_by?: string | null;
+          verified_by?: string | null;
+          verified_at?: string | null;
+          evidence_links?: string[] | null;
+          screenshots?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      scam_categories: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          icon: string | null;
+          color: string | null;
+          reports_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          description?: string | null;
+          icon?: string | null;
+          color?: string | null;
+          reports_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          description?: string | null;
+          icon?: string | null;
+          color?: string | null;
+          reports_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      scam_report_comments: {
+        Row: {
+          id: string;
+          scam_report_id: string;
+          user_id: string;
+          comment: string;
+          is_admin: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          scam_report_id: string;
+          user_id: string;
+          comment: string;
+          is_admin?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          scam_report_id?: string;
+          user_id?: string;
+          comment?: string;
+          is_admin?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'scam_report_comments_scam_report_id_fkey';
+            columns: ['scam_report_id'];
+            isOneToOne: false;
+            referencedRelation: 'scam_reports';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'scam_report_comments_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -641,6 +867,14 @@ export type Database = {
       generate_referral_code: {
         Args: Record<PropertyKey, never>;
         Returns: string;
+      };
+      get_user_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_scam_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
       };
     };
     Enums: {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, UserX, UserCheck, Shield, Ban } from 'lucide-react';
+import { Search, UserCheck, Ban } from 'lucide-react';
 import { getAllUsers, suspendUser, activateUser, updateUserRole } from '../services/admin';
 import { useAuth } from '../contexts/AuthContext';
 import type { AdminUser, UserRole } from '../types/admin-database';

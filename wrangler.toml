@@ -13,9 +13,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iim6AzEHVn7sGeqL5V9WJg_1dLtUT0W"
 
 # Stripe public keys (set your actual values here)
 # For testing: pk_test_xxxxx, For production: pk_live_xxxxx
-VITE_STRIPE_PUBLISHABLE_KEY = "pk_test_xxxxxx"
-VITE_STRIPE_PRICE_MONTHLY = "price_xxxxxx"
-VITE_STRIPE_PRICE_ANNUAL = "price_xxxxxx"
+VITE_STRIPE_PUBLISHABLE_KEY = "pk_live_51Sb4ltACjrOpqtS7x3PDbalWswUIkCvoCS7fdj6RrSc5HYEQgLZfhDziN1SL1ci8m56N0HDMts7IrbN95xMog6Ms00oBhAxO8o"
+VITE_STRIPE_PRICE_MONTHLY = "19.99"
+VITE_STRIPE_PRICE_ANNUAL = "190"
 
 # WalletConnect Project ID (required for wallet connections)
 # Get your free project ID at: https://cloud.walletconnect.com/

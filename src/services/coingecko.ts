@@ -17,8 +17,41 @@ const ALTERNATIVE_ME_API = 'https://api.alternative.me/fng';
 
 // Enhanced cache with longer duration to avoid rate limiting
 const dataCache = new Map<string, { data: unknown; timestamp: number; error?: boolean }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for successful responses
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for successful responses (real-time for premium)
 const ERROR_CACHE_DURATION = 30 * 1000; // 30 seconds for error responses
+const FREE_TIER_CACHE_DURATION = 15 * 60 * 1000; // 15 minutes for free tier (delayed data)
+
+// Track the data delay mode
+let currentDataDelay = 0; // 0 = real-time (premium), >0 = delayed (free tier)
+
+/**
+ * Set the data delay for the current user
+ * @param delayMs - Delay in milliseconds (0 for real-time, 15*60*1000 for 15-min delayed)
+ */
+export function setDataDelay(delayMs: number): void {
+  currentDataDelay = delayMs;
+}
+
+/**
+ * Get the current data delay setting
+ */
+export function getDataDelayMs(): number {
+  return currentDataDelay;
+}
+
+/**
+ * Check if data is being delayed (free tier)
+ */
+export function isDataDelayed(): boolean {
+  return currentDataDelay > 0;
+}
+
+/**
+ * Get the effective cache duration based on user tier
+ */
+function getEffectiveCacheDuration(): number {
+  return currentDataDelay > 0 ? FREE_TIER_CACHE_DURATION : CACHE_DURATION;
+}
 
 // Rate limiting helper with request queue
 // Much more lenient in production since we're using our own proxy
@@ -56,12 +89,18 @@ async function rateLimitedFetch(url: string, cacheKey?: string): Promise<Respons
   if (cacheKey) {
     const cached = dataCache.get(cacheKey);
     if (cached) {
-      const maxAge = cached.error ? ERROR_CACHE_DURATION : CACHE_DURATION;
+      const effectiveDuration = getEffectiveCacheDuration();
+      const maxAge = cached.error ? ERROR_CACHE_DURATION : effectiveDuration;
       if (Date.now() - cached.timestamp < maxAge) {
         // Return a mock response from cache
         return new Response(JSON.stringify(cached.data), {
           status: cached.error ? 429 : 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Cache-Hit': 'true',
+            'X-Data-Delayed': currentDataDelay > 0 ? 'true' : 'false',
+            'X-Cache-Age': String(Date.now() - cached.timestamp)
+          }
         });
       }
     }
@@ -431,7 +470,8 @@ export async function getOHLCData(
 // Legacy cache exports for backwards compatibility
 export function getCached<T>(key: string): T | null {
   const cached = dataCache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+  const effectiveDuration = getEffectiveCacheDuration();
+  if (cached && Date.now() - cached.timestamp < effectiveDuration) {
     return cached.data as T;
   }
   return null;

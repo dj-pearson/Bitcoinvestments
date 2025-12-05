@@ -4,13 +4,26 @@ import type {
   Transaction,
 } from '../types';
 import { getSimplePrices } from './coingecko';
-import { getCurrentUser } from './auth';
+import { getCurrentUser, getUserProfile } from './auth';
 import {
   getUserPortfolios,
   createDbPortfolio,
   getPortfolioHoldings,
   upsertHolding,
 } from './database';
+import { canAddAsset, TIER_LIMITS } from './subscriptionLimits';
+
+export class AssetLimitError extends Error {
+  currentCount: number;
+  maxCount: number;
+
+  constructor(currentCount: number, maxCount: number) {
+    super(`Asset limit reached. You have ${currentCount} assets and the limit is ${maxCount}.`);
+    this.name = 'AssetLimitError';
+    this.currentCount = currentCount;
+    this.maxCount = maxCount;
+  }
+}
 
 // Local storage key for portfolio data
 const PORTFOLIO_STORAGE_KEY = 'bitcoin_investments_portfolio';
@@ -180,7 +193,29 @@ export async function createPortfolio(name: string, userId?: string): Promise<Po
 }
 
 /**
+ * Check if user can add a new asset to their portfolio
+ */
+export async function checkCanAddAsset(
+  portfolio: Portfolio
+): Promise<{ allowed: boolean; limit: number; remaining: number }> {
+  const user = await getCurrentUser();
+
+  if (user) {
+    const profile = await getUserProfile(user.id);
+    return canAddAsset(
+      portfolio.holdings.length,
+      profile?.subscription_status || 'free',
+      profile?.subscription_expires_at
+    );
+  }
+
+  // Non-authenticated users use free tier limits
+  return canAddAsset(portfolio.holdings.length, 'free', null);
+}
+
+/**
  * Add a holding to portfolio
+ * Throws AssetLimitError if free tier limit is reached and adding a new asset
  */
 export async function addHolding(
   portfolio: Portfolio,
@@ -199,6 +234,31 @@ export async function addHolding(
   const existingHoldingIndex = portfolio.holdings.findIndex(
     h => h.cryptocurrency_id === cryptoId
   );
+
+  // If adding a NEW asset (not existing), check limits
+  if (existingHoldingIndex < 0) {
+    let subscriptionStatus: 'free' | 'premium' = 'free';
+    let subscriptionExpiresAt: string | null = null;
+
+    if (user) {
+      const profile = await getUserProfile(user.id);
+      subscriptionStatus = profile?.subscription_status || 'free';
+      subscriptionExpiresAt = profile?.subscription_expires_at || null;
+    }
+
+    const limitCheck = canAddAsset(
+      portfolio.holdings.length,
+      subscriptionStatus,
+      subscriptionExpiresAt
+    );
+
+    if (!limitCheck.allowed) {
+      throw new AssetLimitError(
+        portfolio.holdings.length,
+        limitCheck.limit
+      );
+    }
+  }
 
   const transaction: Transaction = {
     id: generateId(),

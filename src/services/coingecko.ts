@@ -118,7 +118,9 @@ export async function getTopCryptocurrencies(
   const cacheKey = `top_cryptos_${limit}_${page}_${currency}`;
   
   try {
-    const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=${limit}&page=${page}&sparkline=true&price_change_percentage=7d,30d`;
+    // Note: sparkline and price_change_percentage require Pro API
+    // Free tier doesn't support these params, so we'll add them separately if available
+    const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=${limit}&page=${page}&sparkline=false`;
 
     const response = await rateLimitedFetch(url, cacheKey);
 
@@ -144,7 +146,7 @@ export async function getCryptocurrencyById(
   currency: string = 'usd'
 ): Promise<Cryptocurrency | null> {
   try {
-    const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=${currency}&ids=${id}&sparkline=true&price_change_percentage=7d,30d`;
+    const url = `${COINGECKO_API_BASE}/coins/markets?vs_currency=${currency}&ids=${id}&sparkline=false`;
 
     const response = await rateLimitedFetch(url);
 

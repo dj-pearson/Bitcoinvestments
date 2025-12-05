@@ -147,8 +147,9 @@ export async function syncWalletTransactions(
     for (const tx of transactions) {
       try {
         // Determine if transaction is buy/sell/transfer based on address
-        const _isSent = tx.from?.toLowerCase() === walletAddress.toLowerCase();
-        const _type = _isSent ? 'transfer_out' : 'transfer_in';
+        // const isSent = tx.from?.toLowerCase() === walletAddress.toLowerCase();
+        // const type = isSent ? 'transfer_out' : 'transfer_in';
+        void tx; // Acknowledge tx for future use
 
         // Parse amount and create transaction record
         // Note: This requires a holding_id which should be created/found based on the asset

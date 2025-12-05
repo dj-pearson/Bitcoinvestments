@@ -6,6 +6,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { Layout } from './components/Layout/Layout';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
 import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { Calculators } from './pages/Calculators';
@@ -25,6 +26,9 @@ import { AdManager } from './pages/AdManager';
 import { Pricing } from './pages/Pricing';
 import { Charts } from './pages/Charts';
 import { Web3Features } from './pages/Web3Features';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { UserManagement } from './pages/UserManagement';
+import { ScamDatabase } from './pages/ScamDatabase';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -45,12 +49,19 @@ function App() {
                   <Route path="compare" element={<Compare />} />
                   <Route path="compare/:type/:id" element={<Compare />} />
                   <Route path="web3" element={<Web3Features />} />
+                  <Route path="scam-database" element={<ScamDatabase />} />
                   <Route path="login" element={<Login />} />
                   <Route path="signup" element={<Signup />} />
                   <Route path="forgot-password" element={<ForgotPassword />} />
                   <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="affiliate-stats" element={<ProtectedRoute><AffiliateStats /></ProtectedRoute>} />
                   <Route path="ad-manager" element={<ProtectedRoute><AdManager /></ProtectedRoute>} />
+
+                  {/* Admin Routes - require admin role */}
+                  <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                  <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                  <Route path="admin/scam-database" element={<AdminRoute><ScamDatabase /></AdminRoute>} />
+
                   <Route path="learn" element={<Learn />} />
                   <Route path="learn/:guideId" element={<GuideDetail />} />
                   <Route path="glossary" element={<Glossary />} />

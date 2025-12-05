@@ -1,10 +1,13 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Json } from '../types/database';
+import type { UserRole } from '../types/admin-database';
 
 export interface AuthUser {
   id: string;
   email: string;
   created_at: string;
+  role?: UserRole;
+  is_suspended?: boolean;
 }
 
 /**
@@ -81,11 +84,31 @@ export async function signIn(
   }
 
   if (data.user) {
+    // Fetch user profile to get role
+    const profile = await getUserProfile(data.user.id);
+
+    // Check if user is suspended
+    if (profile?.is_suspended) {
+      await signOut();
+      return {
+        user: null,
+        error: profile.suspended_reason || 'Your account has been suspended. Please contact support.'
+      };
+    }
+
+    // Update last login
+    await supabase
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', data.user.id);
+
     return {
       user: {
         id: data.user.id,
         email: data.user.email!,
         created_at: data.user.created_at,
+        role: (profile?.role as UserRole) || 'user',
+        is_suspended: profile?.is_suspended || false,
       },
       error: null,
     };
@@ -112,7 +135,7 @@ export async function signOut(): Promise<{ error: string | null }> {
 }
 
 /**
- * Get the current authenticated user
+ * Get the current authenticated user with role
  */
 export async function getCurrentUser(): Promise<AuthUser | null> {
   if (!isSupabaseConfigured()) {
@@ -122,10 +145,15 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
+    // Fetch user profile to get role
+    const profile = await getUserProfile(user.id);
+
     return {
       id: user.id,
       email: user.email!,
       created_at: user.created_at,
+      role: (profile?.role as UserRole) || 'user',
+      is_suspended: profile?.is_suspended || false,
     };
   }
 

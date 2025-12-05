@@ -15,15 +15,12 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 export function Home() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const heroRef = useRef<HTMLDivElement>(null);
     const [prices, setPrices] = useState<Cryptocurrency[]>([]);
-    const [loadingPrices, setLoadingPrices] = useState(true);
 
     useEffect(() => {
         async function loadPrices() {
             const data = await getTopCryptocurrencies(6);
             setPrices(data);
-            setLoadingPrices(false);
         }
         loadPrices();
     }, []);

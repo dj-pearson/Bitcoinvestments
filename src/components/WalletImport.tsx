@@ -12,16 +12,16 @@ interface WalletImportProps {
   onClose?: () => void;
 }
 
-// Map of common tokens on Ethereum mainnet
-const SUPPORTED_TOKENS = [
-  { 
-    id: 'ethereum', 
-    symbol: 'ETH', 
-    name: 'Ethereum',
-    isNative: true 
-  },
-  // Add more ERC-20 tokens as needed
-];
+// Map of common tokens on Ethereum mainnet (for future ERC-20 support)
+// const SUPPORTED_TOKENS = [
+//   { 
+//     id: 'ethereum', 
+//     symbol: 'ETH', 
+//     name: 'Ethereum',
+//     isNative: true 
+//   },
+//   // Add more ERC-20 tokens as needed
+// ];
 
 export function WalletImport({ portfolio, onUpdate, onClose }: WalletImportProps) {
   const { address, isConnected, chain } = useAccount();

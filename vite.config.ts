@@ -15,14 +15,6 @@ export default defineConfig({
       },
     }),
   ],
-  server: {
-    port: 5173,
-    strictPort: false,
-    https: false, // Explicitly disable HTTPS
-    hmr: {
-      protocol: 'ws', // Use WebSocket (not wss)
-    },
-  },
   optimizeDeps: {
     // Exclude problematic Web3 packages from pre-bundling
     exclude: [

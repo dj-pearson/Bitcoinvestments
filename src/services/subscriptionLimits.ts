@@ -241,7 +241,7 @@ export const TAX_PACKAGE = {
  */
 export function isTaxSeasonActive(): boolean {
   const currentMonth = new Date().getMonth() + 1; // 1-12
-  return TAX_PACKAGE.availableMonths.includes(currentMonth);
+  return (TAX_PACKAGE.availableMonths as readonly number[]).includes(currentMonth);
 }
 
 /**

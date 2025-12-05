@@ -11,7 +11,7 @@ import {
   getPortfolioHoldings,
   upsertHolding,
 } from './database';
-import { canAddAsset, TIER_LIMITS } from './subscriptionLimits';
+import { canAddAsset } from './subscriptionLimits';
 
 export class AssetLimitError extends Error {
   currentCount: number;

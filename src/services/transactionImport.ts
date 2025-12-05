@@ -537,11 +537,9 @@ export function convertToTransaction(
     price_per_unit: imported.pricePerUnit,
     total_value: imported.totalValue,
     fee: imported.fee,
-    fee_currency: imported.feeCurrency,
     date: imported.date,
     exchange: imported.exchange,
     notes: imported.notes,
-    tx_hash: imported.txHash,
   };
 }
 

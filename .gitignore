@@ -29,3 +29,4 @@ dist-ssr
 
 # Cloudflare
 .wrangler
+dkim-dns-records.csv

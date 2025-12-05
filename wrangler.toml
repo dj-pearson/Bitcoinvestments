@@ -19,14 +19,14 @@ VITE_STRIPE_PRICE_ANNUAL = "price_xxxxxx"
 
 # WalletConnect Project ID (required for wallet connections)
 # Get your free project ID at: https://cloud.walletconnect.com/
-VITE_WALLETCONNECT_PROJECT_ID = ""
+VITE_WALLETCONNECT_PROJECT_ID = "9ecc8cf092ace1f3ce01523277569b2b"
 
 # Optional API keys (can be empty for basic functionality)
 VITE_COINGECKO_API_KEY = ""
 VITE_CRYPTOCOMPARE_API_KEY = ""
 VITE_RESEND_API_KEY = ""
 VITE_FROM_EMAIL = ""
-VITE_ALCHEMY_API_KEY = ""
+VITE_ALCHEMY_API_KEY = "FrZhmUfCrljHWNT_26l3t"
 
 # Secrets (MUST be set in Cloudflare Dashboard - Settings - Environment Variables)
 # These should be type "Secret" (encrypted) in the dashboard:

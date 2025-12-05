@@ -5,6 +5,78 @@
 
 // Types for Admin and Scam Database
 
+// AI Model Configuration Types
+export type AIModelProvider = 'claude' | 'openai' | 'gemini';
+
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: AIModelProvider;
+  modelId: string;
+  description: string;
+  isDefault?: boolean;
+  isLightweight?: boolean;
+}
+
+export interface AIModelSettings {
+  provider: AIModelProvider;
+  apiKeySecretName: string;
+  defaultModel: string;
+  lightweightModel: string;
+  maxTokens: number;
+  temperature: number;
+  lastTested: string | null;
+  lastTestedBy: string | null;
+  isConfigured: boolean;
+}
+
+// Available Claude models
+export const CLAUDE_MODELS: AIModel[] = [
+  {
+    id: 'claude-sonnet-4-5',
+    name: 'Claude Sonnet 4.5',
+    provider: 'claude',
+    modelId: 'claude-sonnet-4-5-20250929',
+    description: 'Most capable model for complex tasks',
+    isDefault: true,
+  },
+  {
+    id: 'claude-haiku-4-5',
+    name: 'Claude Haiku 4.5',
+    provider: 'claude',
+    modelId: 'claude-haiku-4-5-20251001',
+    description: 'Fast, lightweight model for simple tasks',
+    isLightweight: true,
+  },
+  {
+    id: 'claude-opus-4',
+    name: 'Claude Opus 4',
+    provider: 'claude',
+    modelId: 'claude-opus-4-20250514',
+    description: 'Most powerful model for complex reasoning',
+  },
+  {
+    id: 'claude-sonnet-4',
+    name: 'Claude Sonnet 4',
+    provider: 'claude',
+    modelId: 'claude-sonnet-4-20250514',
+    description: 'Balanced performance and speed',
+  },
+];
+
+// Default AI settings
+export const DEFAULT_AI_SETTINGS: AIModelSettings = {
+  provider: 'claude',
+  apiKeySecretName: 'CLAUDE_API_KEY',
+  defaultModel: 'claude-sonnet-4-5-20250929',
+  lightweightModel: 'claude-haiku-4-5-20251001',
+  maxTokens: 4096,
+  temperature: 0.7,
+  lastTested: null,
+  lastTestedBy: null,
+  isConfigured: false,
+};
+
 // User roles
 export type UserRole = 'user' | 'admin' | 'super_admin';
 

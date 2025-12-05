@@ -682,6 +682,47 @@ export type Database = {
           }
         ];
       };
+      admin_settings: {
+        Row: {
+          id: string;
+          key: string;
+          value: Json;
+          category: string | null;
+          description: string | null;
+          updated_by: string | null;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          value: Json;
+          category?: string | null;
+          description?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          key?: string;
+          value?: Json;
+          category?: string | null;
+          description?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'admin_settings_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
       scam_reports: {
         Row: {
           id: string;

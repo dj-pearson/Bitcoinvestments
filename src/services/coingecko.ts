@@ -6,13 +6,12 @@ import type {
 } from '../types';
 
 // CoinGecko API configuration
-// Note: Demo/free API keys should still use regular endpoint
-// Only switch to pro-api.coingecko.com if you have a PAID plan
-const COINGECKO_API_KEY = import.meta.env.VITE_COINGECKO_API_KEY || '';
-const USE_PRO_API = import.meta.env.VITE_COINGECKO_USE_PRO === 'true';
-const COINGECKO_API_BASE = (COINGECKO_API_KEY && USE_PRO_API)
-  ? 'https://pro-api.coingecko.com/api/v3'
-  : 'https://api.coingecko.com/api/v3';
+// In production, use our Cloudflare proxy to avoid CORS issues
+// In development, call CoinGecko directly (will have CORS issues but that's expected)
+const isDevelopment = import.meta.env.DEV;
+const COINGECKO_API_BASE = isDevelopment
+  ? 'https://api.coingecko.com/api/v3'
+  : '/api/coingecko';
 
 const ALTERNATIVE_ME_API = 'https://api.alternative.me/fng';
 
@@ -22,8 +21,9 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for successful responses
 const ERROR_CACHE_DURATION = 30 * 1000; // 30 seconds for error responses
 
 // Rate limiting helper with request queue
+// Much more lenient in production since we're using our own proxy
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = COINGECKO_API_KEY ? 100 : 1500; // Faster with API key
+const MIN_REQUEST_INTERVAL = isDevelopment ? 1500 : 100;
 const requestQueue: Array<{ resolve: () => void }> = [];
 let isProcessingQueue = false;
 
@@ -74,12 +74,7 @@ async function rateLimitedFetch(url: string, cacheKey?: string): Promise<Respons
   });
 
   try {
-    // Add API key to headers if available
-    const headers: HeadersInit = COINGECKO_API_KEY 
-      ? { 'x-cg-pro-api-key': COINGECKO_API_KEY }
-      : {};
-    
-    const response = await fetch(url, { headers });
+    const response = await fetch(url);
     
     // If rate limited, return cached data or throw
     if (response.status === 429) {

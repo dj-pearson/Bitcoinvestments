@@ -30,20 +30,56 @@ export function WalletImport({ portfolio, onUpdate, onClose }: WalletImportProps
   const [imported, setImported] = useState(false);
   const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set());
 
-  // Get ETH balance
+  // Get native token balance (ETH, MATIC, etc.)
   const { data: ethBalance, isLoading: ethLoading } = useBalance({
     address: address,
   });
 
+  // Map chain-specific native tokens to CoinGecko IDs
+  const getNativeTokenInfo = () => {
+    if (!ethBalance || !chain) return null;
+    
+    const chainTokenMap: Record<number, { id: string; name: string }> = {
+      1: { id: 'ethereum', name: 'Ethereum' },        // Ethereum Mainnet
+      137: { id: 'matic-network', name: 'Polygon' },  // Polygon
+      42161: { id: 'ethereum', name: 'Ethereum' },    // Arbitrum
+      10: { id: 'ethereum', name: 'Ethereum' },       // Optimism
+      8453: { id: 'ethereum', name: 'Ethereum' },     // Base
+      56: { id: 'binancecoin', name: 'BNB' },         // BSC
+      43114: { id: 'avalanche-2', name: 'Avalanche' }, // Avalanche
+    };
+
+    const tokenInfo = chainTokenMap[chain.id] || { id: 'ethereum', name: 'Ethereum' };
+    return tokenInfo;
+  };
+
+  const nativeToken = getNativeTokenInfo();
+  
   const availableTokens = [
-    ...(ethBalance && ethBalance.value > 0n ? [{
-      id: 'ethereum',
+    ...(ethBalance && nativeToken && parseFloat(ethBalance.formatted) > 0 ? [{
+      id: nativeToken.id,
       symbol: ethBalance.symbol,
-      name: 'Ethereum',
+      name: nativeToken.name,
       balance: parseFloat(ethBalance.formatted),
       value: ethBalance.formatted,
+      chain: chain?.name || 'Unknown',
     }] : []),
   ];
+
+  // Debug logging
+  useEffect(() => {
+    if (isConnected && address) {
+      console.log('🔍 Wallet Debug:', {
+        address,
+        chain: chain?.name,
+        chainId: chain?.id,
+        balance: ethBalance?.formatted,
+        symbol: ethBalance?.symbol,
+        hasBalance: ethBalance && parseFloat(ethBalance.formatted) > 0,
+        availableTokensCount: availableTokens.length,
+      });
+    }
+  }, [isConnected, address, chain, ethBalance, availableTokens.length]);
 
   useEffect(() => {
     // Reset imported state when wallet changes
@@ -169,21 +205,35 @@ export function WalletImport({ portfolio, onUpdate, onClose }: WalletImportProps
             </div>
           ) : availableTokens.length === 0 ? (
             <div className="text-center py-8 space-y-3">
-              <p className="text-sm text-gray-400">
-                No native tokens found in this wallet
+              <p className="text-sm font-medium text-white">
+                No tokens detected in this wallet
               </p>
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-left">
-                <p className="text-xs text-blue-300 font-medium mb-1">
-                  ℹ️ Currently Supported Tokens:
-                </p>
-                <ul className="text-xs text-blue-200 space-y-1">
-                  <li>• Native ETH (Ethereum)</li>
-                  <li>• Native MATIC (Polygon)</li>
-                  <li>• Native ETH (Arbitrum, Optimism)</li>
-                </ul>
-                <p className="text-xs text-blue-400 mt-2">
-                  ERC-20 tokens (USDC, USDT, etc.) will be supported soon!
-                </p>
+              <p className="text-xs text-gray-400">
+                Connected to: <strong>{chain?.name}</strong>
+              </p>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-left space-y-3">
+                <div>
+                  <p className="text-xs text-blue-300 font-medium mb-1">
+                    ℹ️ Currently Supported:
+                  </p>
+                  <ul className="text-xs text-blue-200 space-y-1">
+                    <li>• Native ETH (Ethereum, Arbitrum, Optimism, Base)</li>
+                    <li>• Native MATIC (Polygon)</li>
+                    <li>• Native BNB (Binance Smart Chain)</li>
+                    <li>• Native AVAX (Avalanche)</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs text-blue-300 font-medium mb-1">
+                    🔍 Troubleshooting:
+                  </p>
+                  <ul className="text-xs text-blue-200 space-y-1">
+                    <li>• Make sure you're on a supported network</li>
+                    <li>• Check that you have a balance (try sending small amount)</li>
+                    <li>• ERC-20 tokens not yet supported (coming soon!)</li>
+                    <li>• You can always add holdings manually instead</li>
+                  </ul>
+                </div>
               </div>
             </div>
           ) : (
@@ -232,7 +282,7 @@ export function WalletImport({ portfolio, onUpdate, onClose }: WalletImportProps
                           {token.name} ({token.symbol})
                         </p>
                         <p className="text-xs text-gray-400">
-                          {token.balance.toFixed(6)} {token.symbol}
+                          {token.balance.toFixed(6)} {token.symbol} • {token.chain}
                         </p>
                       </div>
                     </div>

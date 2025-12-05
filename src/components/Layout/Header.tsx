@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '../Logo';
-import { Menu, X, ChevronDown, User } from 'lucide-react';
+import { Menu, X, ChevronDown, User, Shield } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
 
@@ -146,6 +146,16 @@ export function Header() {
                                             >
                                                 Dashboard
                                             </Link>
+                                            {/* Admin Dashboard link - only show for admin users */}
+                                            {(user.role === 'admin' || user.role === 'super_admin') && (
+                                                <Link
+                                                    to="/admin"
+                                                    className="flex items-center gap-2 px-4 py-2 text-sm text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors"
+                                                >
+                                                    <Shield className="w-4 h-4" />
+                                                    Admin Dashboard
+                                                </Link>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -229,6 +239,17 @@ export function Header() {
                                     >
                                         Profile Settings
                                     </Link>
+                                    {/* Mobile Admin Dashboard link */}
+                                    {(user.role === 'admin' || user.role === 'super_admin') && (
+                                        <Link
+                                            to="/admin"
+                                            className="flex items-center gap-2 px-4 py-3 text-base font-medium text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Shield className="w-5 h-5" />
+                                            Admin Dashboard
+                                        </Link>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="space-y-2">

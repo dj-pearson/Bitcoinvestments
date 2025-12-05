@@ -119,7 +119,7 @@ export async function upsertHolding(
     .select('id')
     .eq('portfolio_id', holding.portfolio_id)
     .eq('cryptocurrency_id', holding.cryptocurrency_id)
-    .single();
+    .maybeSingle(); // Use maybeSingle() to avoid 406 errors
 
   if (existing) {
     // Update existing

@@ -17,6 +17,8 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { Profile } from './pages/Profile';
 import { Learn } from './pages/Learn';
 import { GuideDetail } from './pages/GuideDetail';
+import { CourseLanding } from './pages/CourseLanding';
+import { CourseModule } from './pages/CourseModule';
 import { Glossary } from './pages/Glossary';
 import { Article } from './pages/Article';
 import { Privacy } from './pages/Privacy';
@@ -66,6 +68,8 @@ function App() {
 
                   <Route path="learn" element={<Learn />} />
                   <Route path="learn/:guideId" element={<GuideDetail />} />
+                  <Route path="course/:courseId" element={<CourseLanding />} />
+                  <Route path="course/:courseId/:moduleId" element={<CourseModule />} />
                   <Route path="glossary" element={<Glossary />} />
                   <Route path="article/:slug" element={<Article />} />
                   <Route path="privacy" element={<Privacy />} />

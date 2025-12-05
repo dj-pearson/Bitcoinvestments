@@ -31,6 +31,7 @@ import { Web3Features } from './pages/Web3Features';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserManagement } from './pages/UserManagement';
 import { ScamDatabase } from './pages/ScamDatabase';
+import { AdminAISettings } from './pages/AdminAISettings';
 import TaxReports from './pages/TaxReports';
 import { wagmiConfig } from './lib/wagmi';
 
@@ -65,6 +66,7 @@ function App() {
                   <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                   <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
                   <Route path="admin/scam-database" element={<AdminRoute><ScamDatabase /></AdminRoute>} />
+                  <Route path="admin/ai-settings" element={<AdminRoute><AdminAISettings /></AdminRoute>} />
 
                   <Route path="learn" element={<Learn />} />
                   <Route path="learn/:guideId" element={<GuideDetail />} />

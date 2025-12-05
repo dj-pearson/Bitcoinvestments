@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   TrendingUp,
   BarChart3,
+  Bot,
 } from 'lucide-react';
 import { getUserStats, getScamDatabaseStats } from '../services/admin';
 import type { UserStats, ScamStats } from '../types/admin-database';
@@ -179,6 +180,17 @@ export function AdminDashboard() {
                   </span>
                 </div>
               </Link>
+              <Link
+                to="/admin/ai-settings"
+                className="block p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              >
+                <div className="flex items-center">
+                  <Bot className="w-5 h-5 text-purple-600 dark:text-purple-400 mr-3" />
+                  <span className="text-gray-900 dark:text-white font-medium">
+                    AI Model Settings
+                  </span>
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -218,6 +230,20 @@ export function AdminDashboard() {
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-gray-400">AI Services (Claude)</span>
+                  <Link
+                    to="/admin/ai-settings"
+                    className="text-purple-600 dark:text-purple-400 font-medium hover:underline"
+                  >
+                    Configure
+                  </Link>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: '100%' }}></div>
                 </div>
               </div>
             </div>

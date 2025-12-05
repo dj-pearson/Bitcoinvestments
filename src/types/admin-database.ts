@@ -3,7 +3,7 @@
  * Type definitions for admin infrastructure and scam reporting system
  */
 
-import type { Database } from './database';
+// Types for Admin and Scam Database
 
 // User roles
 export type UserRole = 'user' | 'admin' | 'super_admin';

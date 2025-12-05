@@ -5,17 +5,18 @@ interface Env {
   VITE_COINGECKO_API_KEY?: string;
 }
 
-export async function onRequest(context: { request: Request; env: Env }) {
-  const { request, env } = context;
+export async function onRequest(context: { request: Request; env: Env; params?: { path?: string[] } }) {
+  const { request, env, params } = context;
   
-  // Get the path after /api/coingecko/
+  // Get the path from the URL
   const url = new URL(request.url);
-  const apiPath = url.pathname.replace('/api/coingecko/', '');
+  // Remove /api/coingecko/ from the beginning
+  const apiPath = url.pathname.replace(/^\/api\/coingecko\/?/, '');
   const searchParams = url.searchParams.toString();
   
   // Construct CoinGecko API URL
   const apiKey = env.VITE_COINGECKO_API_KEY || '';
-  const baseUrl = apiKey ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
+  const baseUrl = 'https://api.coingecko.com/api/v3';
   const targetUrl = `${baseUrl}/${apiPath}${searchParams ? `?${searchParams}` : ''}`;
   
   try {
@@ -37,22 +38,26 @@ export async function onRequest(context: { request: Request; env: Env }) {
     // Get the response data
     const data = await response.text();
     
-    // Return with CORS headers
+    // If CoinGecko returned an error, pass it through but still add CORS headers
+    // This way the frontend can handle the error properly
     return new Response(data, {
       status: response.status,
+      statusText: response.statusText,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, max-age=60', // Cache for 1 minute
+        'Cache-Control': response.ok ? 'public, max-age=60' : 'no-cache',
       },
     });
   } catch (error) {
+    console.error('Proxy error:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to fetch from CoinGecko',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Proxy failed to fetch from CoinGecko',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        targetUrl: targetUrl.replace(apiKey, '[redacted]'),
       }), 
       {
         status: 500,

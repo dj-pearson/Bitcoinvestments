@@ -121,7 +121,7 @@ function weiToGwei(wei: string): number {
 
 /**
  * Fetch native token price from CoinGecko
- * Returns cached price or 0 on error to prevent blocking gas price display
+ * Uses proxy in production to avoid CORS issues
  */
 async function getTokenPrice(coingeckoId: string): Promise<number> {
   const cached = priceCache.get(coingeckoId);
@@ -130,17 +130,18 @@ async function getTokenPrice(coingeckoId: string): Promise<number> {
   }
 
   try {
-    // Use fetch with no-cors mode as fallback - won't get data but won't throw CORS error
-    // In production, add CoinGecko API key to Cloudflare environment variables
+    // Use proxy in production, direct in development
+    const isDev = import.meta.env.DEV;
+    const baseUrl = isDev 
+      ? 'https://api.coingecko.com/api/v3'
+      : '/api/coingecko';
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`,
-      { 
-        signal: controller.signal,
-        // Note: CORS will still block this, but we handle it gracefully
-      }
+      `${baseUrl}/simple/price?ids=${coingeckoId}&vs_currencies=usd`,
+      { signal: controller.signal }
     );
 
     clearTimeout(timeoutId);
@@ -155,11 +156,10 @@ async function getTokenPrice(coingeckoId: string): Promise<number> {
     priceCache.set(coingeckoId, { price, timestamp: Date.now() });
     return price;
   } catch (error) {
-    // Silently use cached or return 0 - don't spam console
-    if (error instanceof Error && !error.message.includes('aborted')) {
+    // Silently use cached or return 0
+    if (import.meta.env.DEV && error instanceof Error && !error.message.includes('aborted')) {
       console.debug(`Could not fetch price for ${coingeckoId}, using cached/fallback`);
     }
-    // Return cached price even if expired, or 0
     return cached?.price || 0;
   }
 }

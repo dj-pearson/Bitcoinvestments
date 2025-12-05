@@ -1,9 +1,11 @@
 /**
  * Email Service
  *
- * Handles all email sending through Resend API.
- * For production, you'll need to sign up at https://resend.com
- * and add VITE_RESEND_API_KEY to your .env file.
+ * Handles all email sending through Amazon SES SMTP via Supabase.
+ * SMTP credentials are configured in Supabase secrets:
+ * - AMAZON_SMTP_USER_NAME
+ * - AMAZON_SMTP_PASSWORD
+ * - AMAZON_SMTP_ENDPOINT
  */
 
 interface SendEmailOptions {
@@ -13,36 +15,34 @@ interface SendEmailOptions {
   from?: string;
 }
 
-const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY;
-const FROM_EMAIL = import.meta.env.VITE_FROM_EMAIL || 'Bitcoin Investments <hello@bitcoininvestments.com>';
-const RESEND_API_URL = 'https://api.resend.com/emails';
+const FROM_EMAIL = import.meta.env.VITE_FROM_EMAIL || 'Bitcoin Investments <noreply@bitcoinvestments.net>';
+
+// Email API endpoint (Cloudflare Function -> Supabase Edge Function -> Amazon SES)
+const EMAIL_API_URL = import.meta.env.DEV 
+  ? 'http://localhost:8788/api/send-email'  // Local development
+  : '/api/send-email';  // Production (Cloudflare Function)
 
 /**
  * Check if email service is configured
+ * In production, this always returns true as SMTP is configured server-side
  */
 export function isEmailConfigured(): boolean {
-  return Boolean(RESEND_API_KEY);
+  return true;  // Amazon SES SMTP is configured in Supabase secrets
 }
 
 /**
- * Send an email using Resend API
+ * Send an email using Amazon SES SMTP
  */
 export async function sendEmail(options: SendEmailOptions): Promise<{ success: boolean; error?: string }> {
-  if (!isEmailConfigured()) {
-    console.warn('Email service not configured. Set VITE_RESEND_API_KEY in .env');
-    return { success: false, error: 'Email service not configured' };
-  }
-
   try {
-    const response = await fetch(RESEND_API_URL, {
+    const response = await fetch(EMAIL_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: options.from || FROM_EMAIL,
-        to: [options.to],
+        to: options.to,
         subject: options.subject,
         html: options.html,
       }),
@@ -52,7 +52,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
 
     if (!response.ok) {
       console.error('Email send failed:', data);
-      return { success: false, error: data.message || 'Failed to send email' };
+      return { success: false, error: data.error || 'Failed to send email' };
     }
 
     return { success: true };

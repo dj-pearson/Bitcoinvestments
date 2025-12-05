@@ -5,7 +5,15 @@ import type {
   FearGreedHistorical,
 } from '../types';
 
-const COINGECKO_API_BASE = 'https://api.coingecko.com/api/v3';
+// Use our Cloudflare proxy in production to avoid CORS issues
+// In development (localhost), we can call CoinGecko directly
+const isDevelopment = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const COINGECKO_API_BASE = isDevelopment 
+  ? 'https://api.coingecko.com/api/v3'
+  : '/api/coingecko';
+
 const ALTERNATIVE_ME_API = 'https://api.alternative.me/fng';
 
 // Enhanced cache with longer duration to avoid rate limiting
@@ -13,9 +21,9 @@ const dataCache = new Map<string, { data: unknown; timestamp: number; error?: bo
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for successful responses
 const ERROR_CACHE_DURATION = 30 * 1000; // 30 seconds for error responses
 
-// Rate limiting helper with request queue
+// Rate limiting helper with request queue (only needed for development)
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests (safer for free tier)
+const MIN_REQUEST_INTERVAL = isDevelopment ? 2000 : 100; // Much faster in production (proxied)
 const requestQueue: Array<{ resolve: () => void }> = [];
 let isProcessingQueue = false;
 

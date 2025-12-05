@@ -1,168 +1,168 @@
-title,description,category,status,priority,estimated_effort,dependencies,notes
-"Two-Factor Authentication (2FA)","Implement TOTP-based 2FA using authenticator apps (Google Authenticator, Authy) for enhanced account security","Security","to-do","urgent","medium","Supabase Auth","Critical for protecting user accounts and premium subscriptions"
-"Rate Limiting on API Endpoints","Add rate limiting to all API endpoints to prevent abuse and DDoS attacks","Security","to-do","urgent","medium","Cloudflare Workers","Use Cloudflare's built-in rate limiting or implement custom solution"
-"Input Validation & Sanitization","Comprehensive input validation for all user inputs especially ad URLs and form fields","Security","to-do","urgent","medium","","Prevent XSS, SQL injection, and other OWASP Top 10 vulnerabilities"
-"Audit Logging System","Log all sensitive operations (login, password changes, subscription changes, admin actions)","Security","to-do","high","medium","Supabase","Essential for compliance and security monitoring"
-"Session Management Improvements","Implement session timeout, concurrent session limits, and device management","Security","to-do","high","medium","Supabase Auth","Allow users to view and revoke active sessions"
-"CORS Configuration Hardening","Restrict CORS to specific allowed origins instead of allowing all","Security","to-do","high","low","Cloudflare Workers","Currently allows all origins - security risk"
-"Content Security Policy (CSP)","Implement strict CSP headers to prevent XSS and data injection attacks","Security","to-do","high","low","","Add via Cloudflare Workers or meta tags"
-"Secure Cookie Configuration","Ensure all cookies have Secure, HttpOnly, and SameSite attributes properly set","Security","to-do","high","low","","Review and harden cookie settings"
-"Password Strength Requirements","Enforce strong password policies with complexity requirements","Security","to-do","medium","low","","Minimum length, special characters, no common passwords"
-"Account Lockout Policy","Implement account lockout after failed login attempts with CAPTCHA","Security","to-do","medium","medium","","Prevent brute force attacks"
-"Wallet Connect Integration","Allow users to connect MetaMask, WalletConnect, and other Web3 wallets","Web3","to-do","high","high","ethers.js or web3.js","Core Web3 feature for portfolio tracking"
-"ENS Domain Resolution","Display ENS names and resolve .eth addresses for wallet connections","Web3","to-do","medium","medium","Wallet Connect","Enhance Web3 UX"
-"On-Chain Portfolio Tracking","Automatically fetch wallet balances and transaction history from blockchain","Web3","to-do","high","high","Wallet Connect, Etherscan API","Major feature - real-time on-chain data"
-"Multi-Chain Support","Support Ethereum, Polygon, Arbitrum, Optimism, BSC, Solana, and other major chains","Web3","to-do","high","high","Wallet Connect","Essential for comprehensive portfolio tracking"
-"DeFi Protocol Integration","Show DeFi positions (Uniswap LP, Aave deposits, staking positions)","Web3","to-do","medium","high","Multi-Chain Support","Track yield farming and lending positions"
-"NFT Portfolio Display","Display NFT holdings with images, collection info, and floor prices","Web3","to-do","medium","high","Wallet Connect, OpenSea API","NFT market is significant part of crypto"
-"Transaction History Import","Import on-chain transactions for tax reporting and portfolio analysis","Web3","to-do","high","high","Multi-Chain Support","Critical for tax software integration"
-"Gas Price Tracker","Real-time gas prices for Ethereum and other EVM chains","Web3","to-do","low","low","","Helpful utility for users timing transactions"
-"Web3 Authentication Option","Allow login/signup with wallet signature (Sign-In with Ethereum)","Web3","to-do","medium","medium","Wallet Connect, SIWE","Modern Web3 auth alternative"
-"Token Approval Manager","Show and revoke token approvals for connected wallets","Web3","to-do","low","medium","Wallet Connect","Security feature - manage smart contract permissions"
-"AI-Powered Blog Generator","Automated blog post creation using Claude API for market analysis and educational content","AI/Automation","to-do","urgent","high","Claude API","Generate daily/weekly market summaries and educational articles"
-"AI Market Analysis Reports","Weekly AI-generated market analysis with trends, predictions, and insights","AI/Automation","to-do","high","high","Claude API","Premium feature - detailed analysis reports"
-"AI Portfolio Recommendations","Personalized portfolio suggestions based on risk tolerance and goals","AI/Automation","to-do","medium","high","Claude API, Portfolio data","Premium feature with disclaimer"
-"AI News Summarizer","Summarize crypto news articles into key points using AI","AI/Automation","to-do","medium","medium","Claude API, CryptoCompare","Reduce information overload"
-"AI Chatbot Assistant","Interactive chatbot for crypto education and platform help","AI/Automation","to-do","high","high","Claude API","24/7 support and education assistance"
-"Automated Content Calendar","AI-generated content schedule with topics, keywords, and posting times","AI/Automation","to-do","medium","medium","Claude API","Streamline content creation workflow"
-"AI-Powered Price Predictions","Machine learning based price trend predictions with confidence scores","AI/Automation","to-do","low","high","Claude API, Historical data","Experimental feature with strong disclaimers"
-"Automated Newsletter Generation","AI-written weekly newsletters with personalized content per user segment","AI/Automation","to-do","high","medium","Claude API, Resend","Personalize based on user preferences and holdings"
-"AI Glossary Expansion","Use AI to generate additional glossary terms and improve definitions","AI/Automation","to-do","low","low","Claude API","Expand from 40 to 200+ terms"
-"AI-Generated Learning Paths","Personalized learning curriculum based on user's experience level","AI/Automation","to-do","medium","medium","Claude API","Adaptive education system"
-"Video Tutorial Library","Create comprehensive video tutorials for all platform features and crypto education","Knowledgebase","to-do","high","high","Video hosting (YouTube/Vimeo)","Visual learners prefer video content"
-"Interactive Learning Quizzes","Add quizzes at end of each guide to test understanding","Knowledgebase","to-do","medium","medium","","Gamification and engagement"
-"Beginner's Complete Course","Multi-module structured course from zero to confident investor","Knowledgebase","to-do","high","high","","Comprehensive onboarding education"
-"Advanced Trading Strategies Guide","Detailed guides on DCA variations, rebalancing, and risk management","Knowledgebase","to-do","medium","medium","","For intermediate/advanced users"
-"DeFi Explained Series","Complete guide series covering DeFi protocols, yield farming, and risks","Knowledgebase","to-do","medium","high","","Growing DeFi interest among users"
-"NFT Investing Guide","Comprehensive guide to NFT evaluation, buying, and selling","Knowledgebase","to-do","low","medium","","Cover basics to advanced strategies"
-"Crypto Tax Guide by Country","Detailed tax guides for US, UK, Canada, Australia, and EU","Knowledgebase","to-do","high","high","","High-value content for tax season"
-"Security Best Practices Guide","Complete guide to securing crypto assets and avoiding scams","Knowledgebase","to-do","urgent","medium","","Critical safety information"
-"Case Studies Section","Real investor stories with lessons learned (anonymized)","Knowledgebase","to-do","medium","medium","","Social proof and practical learning"
-"Crypto Scam Database","Searchable database of known scams and red flags","Knowledgebase","to-do","medium","high","","Protect users from fraud"
-"Weekly Market Analysis Articles","Regular market updates and analysis posts","Knowledgebase","to-do","high","ongoing","AI/Automation","Can be AI-assisted"
-"Podcast/Audio Content","Audio versions of guides and market updates","Knowledgebase","to-do","low","high","Audio hosting","For users who prefer audio learning"
-"Full Admin Dashboard","Comprehensive admin panel for managing all site aspects","Site Admin","to-do","urgent","high","Role-based access","Central control for all admin functions"
-"User Management System","Admin interface to view, edit, suspend, and manage user accounts","Site Admin","to-do","urgent","high","Admin Dashboard","Essential for support and moderation"
-"Content Management System","Admin interface for creating, editing, and scheduling blog posts and guides","Site Admin","to-do","high","high","Admin Dashboard","Replace manual file editing"
-"Analytics Dashboard","Internal analytics showing user engagement, popular content, and conversions","Site Admin","to-do","high","high","Admin Dashboard","Data-driven decision making"
-"Subscription Management Admin","View and manage all subscriptions, issue refunds, extend trials","Site Admin","to-do","high","medium","Admin Dashboard, Stripe","Support and billing management"
-"Email Campaign Manager","Admin interface for creating and sending email campaigns","Site Admin","to-do","medium","high","Admin Dashboard, Resend","Marketing automation"
-"Ad Campaign Reporting","Enhanced ad analytics with ROI calculations and advertiser reports","Site Admin","to-do","medium","medium","Existing Ad Manager","Better monetization insights"
-"Affiliate Management Admin","Manage affiliate links, payouts, and partner relationships","Site Admin","to-do","medium","medium","Admin Dashboard","Affiliate program management"
-"Site Configuration Panel","Manage site settings, feature flags, and maintenance mode","Site Admin","to-do","medium","medium","Admin Dashboard","Quick configuration changes"
-"Support Ticket System","Internal system for managing user support requests","Site Admin","to-do","medium","high","Admin Dashboard","Organized customer support"
-"Role-Based Access Control","Define admin roles (super admin, content editor, support, etc.)","Site Admin","to-do","high","medium","Admin Dashboard","Granular permission management"
-"Backup and Recovery System","Automated database backups with point-in-time recovery","Site Admin","to-do","urgent","medium","Supabase","Data protection and disaster recovery"
-"Interactive Onboarding Tour","Step-by-step guided tour of platform features for new users","Onboarding","to-do","urgent","medium","","Reduce confusion and improve activation"
-"User Experience Level Assessment","Quiz to determine user's crypto knowledge and customize experience","Onboarding","to-do","high","medium","","Personalized content recommendations"
-"Goal Setting Wizard","Help users define investment goals and risk tolerance during signup","Onboarding","to-do","high","medium","","Personalized recommendations"
-"Quick Start Checklist","Gamified checklist of actions to complete for new users","Onboarding","to-do","high","low","","Drive engagement and feature discovery"
-"Welcome Email Sequence","Automated email series educating new users over first 7 days","Onboarding","to-do","high","medium","Resend","Drip education and engagement"
-"Sample Portfolio Templates","Pre-built portfolio examples for different investment strategies","Onboarding","to-do","medium","low","","Lower barrier to starting"
-"Personalized Dashboard Setup","Wizard to customize dashboard widgets and preferences","Onboarding","to-do","medium","medium","","User feels ownership of experience"
-"Progress Tracking System","Show users their learning and investing progress over time","Onboarding","to-do","medium","medium","","Gamification and motivation"
-"Contextual Help Tooltips","In-app tooltips explaining features and terminology","Onboarding","to-do","medium","medium","","Reduce support burden"
-"First Investment Guide Modal","Pop-up guide when user first adds to portfolio","Onboarding","to-do","medium","low","","Just-in-time education"
-"Code Splitting Implementation","Split code by routes and features for faster initial load","Performance","to-do","urgent","medium","Vite","Reduce bundle size significantly"
-"Lazy Loading for Components","Implement React.lazy() for non-critical components","Performance","to-do","high","medium","","Improve Time to Interactive"
-"Image Optimization Pipeline","WebP conversion, responsive images, and lazy loading","Performance","to-do","high","medium","","Reduce bandwidth and improve LCP"
-"API Response Caching","Implement smart caching for CoinGecko and other API responses","Performance","to-do","high","medium","","Reduce API calls and improve speed"
-"Service Worker for Offline","PWA capabilities with offline access to cached content","Performance","to-do","medium","high","","Improve mobile experience"
-"Database Query Optimization","Review and optimize Supabase queries with proper indexing","Performance","to-do","medium","medium","Supabase","Faster data loading"
-"CDN Asset Optimization","Optimize static asset delivery through Cloudflare CDN","Performance","to-do","medium","low","Cloudflare","Already on Cloudflare, just optimize settings"
-"Bundle Size Analysis","Regular bundle analysis and tree-shaking improvements","Performance","to-do","medium","low","Vite","Monitor and reduce bundle bloat"
-"Prefetching Critical Data","Prefetch likely-needed data based on user behavior","Performance","to-do","low","medium","","Anticipate user needs"
-"Virtual Scrolling for Lists","Implement virtualization for long cryptocurrency lists","Performance","to-do","low","medium","react-window","Handle large data sets efficiently"
-"Unit Test Suite","Comprehensive unit tests for all services and utilities","Testing","to-do","urgent","high","Jest/Vitest","Essential for code quality"
-"Integration Test Suite","Test API integrations and database operations","Testing","to-do","high","high","Testing framework","Catch integration issues"
-"End-to-End Test Suite","Full user flow testing with Playwright or Cypress","Testing","to-do","high","high","Playwright/Cypress","Ensure critical paths work"
-"Component Testing","Visual and functional tests for React components","Testing","to-do","medium","medium","Testing framework","UI consistency"
-"API Contract Testing","Validate external API responses match expected schemas","Testing","to-do","medium","medium","","Catch API changes early"
-"Load Testing","Performance testing under various load conditions","Testing","to-do","medium","medium","k6/Artillery","Ensure scalability"
-"Security Testing","Automated security scanning and penetration testing","Testing","to-do","high","medium","OWASP ZAP","Find vulnerabilities before hackers"
-"Accessibility Testing","Automated a11y testing with manual verification","Testing","to-do","medium","medium","axe-core","Ensure WCAG compliance"
-"Cross-Browser Testing","Test on Chrome, Firefox, Safari, Edge","Testing","to-do","medium","low","BrowserStack","Browser compatibility"
-"Mobile Device Testing","Test on various mobile devices and screen sizes","Testing","to-do","medium","medium","","Responsive design verification"
-"Plausible Analytics Integration","Privacy-focused analytics for user behavior tracking","Analytics","to-do","high","low","","GDPR-compliant alternative to Google Analytics"
-"Conversion Funnel Tracking","Track user journey from landing to subscription","Analytics","to-do","high","medium","Analytics platform","Optimize conversion rates"
-"Error Tracking (Sentry)","Real-time error monitoring and alerting","Analytics","to-do","urgent","low","Sentry","Catch and fix errors quickly"
-"User Behavior Heatmaps","Visual heatmaps of user clicks and scrolls","Analytics","to-do","medium","low","Hotjar/Clarity","UX optimization insights"
-"A/B Testing Framework","Test different UI variations and measure impact","Analytics","to-do","medium","medium","","Data-driven design decisions"
-"Custom Event Tracking","Track specific user actions for product insights","Analytics","to-do","medium","medium","Analytics platform","Understand feature usage"
-"Revenue Analytics Dashboard","Track MRR, churn, LTV, and other business metrics","Analytics","to-do","high","medium","Stripe, Analytics","Business health monitoring"
-"SEO Performance Tracking","Monitor rankings, organic traffic, and SEO health","Analytics","to-do","medium","low","Google Search Console","Organic growth tracking"
-"Email Campaign Analytics","Track open rates, click rates, and conversions","Analytics","to-do","medium","low","Resend","Email marketing optimization"
-"Affiliate Performance Analytics","Detailed tracking of affiliate conversions and revenue","Analytics","to-do","medium","medium","","Optimize affiliate partnerships"
-"Community Forum","Discussion forum for users to share strategies and ask questions","Community","to-do","high","high","Discourse/Custom","Build community engagement"
-"Q&A Section","Stack Overflow-style Q&A for crypto questions","Community","to-do","medium","high","","User-generated content and SEO"
-"User Reviews and Ratings","Allow users to rate and review exchanges, wallets, etc.","Community","to-do","medium","medium","","Social proof and user-generated content"
-"Social Sharing Features","Easy sharing of charts, portfolios, and achievements","Community","to-do","medium","low","","Viral growth potential"
-"Leaderboards","Gamified leaderboards for learning progress and engagement","Community","to-do","low","medium","","Gamification and competition"
-"User Profiles (Public)","Optional public profiles showing badges and achievements","Community","to-do","low","medium","","Community building"
-"Discord/Telegram Integration","Official community channels with bot integrations","Community","to-do","medium","medium","Discord/Telegram API","Real-time community engagement"
-"Referral Program Automation","Automated referral tracking and reward distribution","Community","to-do","medium","medium","","Incentivize user growth"
-"Expert Contributor Program","Allow verified experts to contribute content","Community","to-do","low","high","","Quality user-generated content"
-"Live Chat Support","Real-time chat support for premium users","Community","to-do","medium","medium","Intercom/Crisp","Premium support feature"
-"ARIA Labels Implementation","Add proper ARIA labels to all interactive elements","Accessibility","to-do","high","medium","","Screen reader support"
-"Keyboard Navigation","Full keyboard accessibility for all features","Accessibility","to-do","high","medium","","Keyboard-only users"
-"Color Contrast Improvements","Ensure WCAG AA contrast ratios throughout","Accessibility","to-do","high","low","","Visual accessibility"
-"Focus Indicators","Clear visible focus states for all interactive elements","Accessibility","to-do","medium","low","","Keyboard navigation visibility"
-"Skip Navigation Links","Add skip links for screen reader users","Accessibility","to-do","medium","low","","Screen reader UX"
-"Alt Text for All Images","Descriptive alt text for all images and charts","Accessibility","to-do","medium","medium","","Visual accessibility"
-"Reduced Motion Support","Respect prefers-reduced-motion preference","Accessibility","to-do","low","low","","Motion sensitivity"
-"Screen Reader Testing","Regular testing with NVDA, VoiceOver, JAWS","Accessibility","to-do","medium","ongoing","","Verify accessibility works"
-"Mobile-Responsive Improvements","Enhance mobile experience across all pages","UX/UI","to-do","high","medium","","Mobile users are significant portion"
-"Dark Mode Improvements","Polish dark mode with proper contrast and consistency","UX/UI","to-do","medium","medium","","User preference"
-"Loading State Improvements","Better loading skeletons and progress indicators","UX/UI","to-do","medium","low","","Perceived performance"
-"Error State Improvements","User-friendly error messages with recovery actions","UX/UI","to-do","medium","medium","","Reduce user frustration"
-"Empty State Designs","Helpful empty states with CTAs for new users","UX/UI","to-do","medium","low","","Guide users to take action"
-"Micro-Interactions","Subtle animations for feedback and delight","UX/UI","to-do","low","medium","","Polish and engagement"
-"Consistent Icon System","Unified icon set throughout the application","UX/UI","to-do","low","low","","Visual consistency"
-"Typography Refinement","Improve readability with better type scale and spacing","UX/UI","to-do","low","low","","Reading experience"
-"Form Validation UX","Real-time validation with helpful error messages","UX/UI","to-do","medium","medium","","Reduce form errors"
-"Navigation Improvements","Improve information architecture and navigation flow","UX/UI","to-do","medium","medium","","User findability"
-"Premium Research Reports","Exclusive in-depth crypto research for premium users","Monetization","to-do","high","high","AI/Automation","High-value premium content"
-"Webinar Series","Live and recorded webinars for premium subscribers","Monetization","to-do","medium","high","Video hosting","Premium engagement feature"
-"API Access Tier","Paid API access for developers and traders","Monetization","to-do","low","high","","B2B revenue stream"
-"White-Label Solutions","Offer platform as white-label for other businesses","Monetization","to-do","low","high","","Enterprise revenue"
-"Sponsored Content Integration","Native advertising and sponsored articles","Monetization","to-do","medium","medium","CMS","Additional ad revenue"
-"Premium Calculator Features","Advanced calculator features for paid users","Monetization","to-do","medium","medium","","Feature gating"
-"Team/Family Plans","Multi-user subscription plans","Monetization","to-do","low","medium","Stripe","Expand subscription options"
-"Lifetime Deal Option","One-time payment for lifetime access","Monetization","to-do","low","low","Stripe","AppSumo-style promotion"
-"Donation/Tip Feature","Allow users to support the platform voluntarily","Monetization","to-do","low","low","Stripe","Alternative revenue"
-"Tax Report PDF Export","Generate downloadable tax reports from portfolio data","Features","to-do","high","high","Portfolio data","High-value feature for tax season"
-"Multi-Portfolio Support UI","Allow users to create and manage multiple portfolios","Features","to-do","high","medium","Database ready","Database supports it, needs UI"
-"Portfolio Sharing","Share portfolio view with custom privacy settings","Features","to-do","medium","medium","","Social and collaboration feature"
-"Watchlist Feature","Track cryptocurrencies without adding to portfolio","Features","to-do","medium","medium","","Separate from portfolio holdings"
-"Advanced Charting Tools","TradingView-style advanced charting with indicators","Features","to-do","medium","high","TradingView widget","Power user feature"
-"Calendar/Events Feature","Crypto events calendar (halvings, unlocks, launches)","Features","to-do","medium","medium","","Market awareness tool"
-"News Personalization","Customize news feed based on holdings and interests","Features","to-do","medium","medium","","Relevant content delivery"
-"Crypto Comparison Tool","Side-by-side comparison of any two cryptocurrencies","Features","to-do","low","medium","","Decision support tool"
-"Recurring Buy Reminders","Remind users to make DCA purchases on schedule","Features","to-do","medium","low","","DCA strategy support"
-"Export All Data","Allow users to export all their data (GDPR compliance)","Features","to-do","high","medium","","Legal requirement in many jurisdictions"
-"Import from Other Platforms","Import portfolio data from Coinbase, Binance, etc.","Features","to-do","medium","high","Exchange APIs","Reduce friction for new users"
-"Price Alerts Improvements","Multiple conditions, percentage changes, recurring alerts","Features","to-do","medium","medium","Existing alerts","Enhance existing feature"
-"Internationalization (i18n)","Multi-language support starting with Spanish, German, French","Features","to-do","medium","high","i18next","Expand global reach"
-"Currency Localization","Display values in user's preferred fiat currency","Features","to-do","medium","medium","","User preference"
-"Mobile App (React Native)","Native mobile app for iOS and Android","Mobile","to-do","medium","high","React Native","Long-term mobile strategy"
-"Progressive Web App (PWA)","Full PWA with install prompts and offline support","Mobile","to-do","high","medium","Service Worker","Near-native mobile experience"
-"Push Notifications","Mobile and web push notifications for alerts","Mobile","to-do","medium","medium","PWA","Real-time alert delivery"
-"Biometric Authentication","Face ID / Touch ID for mobile app","Mobile","to-do","low","medium","Mobile App","Mobile security convenience"
-"Widget Support","Home screen widgets for price and portfolio","Mobile","to-do","low","high","Mobile App","Quick glance information"
-"Exchange API Integrations","Connect to Coinbase, Kraken, Binance APIs directly","Integrations","to-do","high","high","OAuth/API keys","Auto-sync portfolio and transactions"
-"Tax Software Deep Integration","Direct export to CoinTracker, Koinly, TaxBit","Integrations","to-do","high","medium","API partnerships","Streamline tax reporting"
-"Spreadsheet Export (Excel)","Enhanced Excel export with multiple sheets and formatting","Integrations","to-do","medium","low","xlsx library","Power user feature"
-"Calendar App Integration","Add events to Google Calendar, Apple Calendar","Integrations","to-do","low","low","Calendar APIs","Event reminders"
-"Zapier/Make Integration","Connect platform to automation tools","Integrations","to-do","low","medium","Webhook system","Power user automation"
-"Bank Connection (Plaid)","Link bank accounts for fiat tracking","Integrations","to-do","low","high","Plaid API","Complete financial picture"
-"Social Login Options","Google, Apple, Twitter sign-in options","Integrations","to-do","medium","medium","Supabase Auth","Reduce signup friction"
-"Stripe Webhook Testing in Production","Verify all Stripe webhook handlers work in production","DevOps","to-do","urgent","low","","Critical before real payments"
-"CI/CD Pipeline Setup","Automated testing and deployment pipeline","DevOps","to-do","high","medium","GitHub Actions","Reliable deployments"
-"Environment Variable Management","Secure secrets management with rotation","DevOps","to-do","high","medium","","Security best practice"
-"Staging Environment","Separate staging environment for testing","DevOps","to-do","high","medium","Cloudflare","Test before production"
-"Database Migration System","Versioned database migrations with rollback","DevOps","to-do","medium","medium","","Safe schema changes"
-"Monitoring and Alerting","Uptime monitoring with alerts for outages","DevOps","to-do","high","low","Uptime Robot/Better Stack","Know when things break"
-"Log Aggregation","Centralized logging for debugging and analysis","DevOps","to-do","medium","medium","","Debugging and compliance"
-"Documentation Site","Developer documentation for APIs and integrations","DevOps","to-do","medium","medium","Docusaurus","If offering API access"
-"Changelog/Release Notes","Public changelog of updates and improvements","DevOps","to-do","low","low","","User communication"
-"Status Page","Public status page for service health","DevOps","to-do","low","low","Instatus/Better Stack","Transparency during outages"
+Title,Category,Priority,Status,Description,Effort,Dependencies,Source,Project,Due Date,Created
+Two-Factor Authentication (2FA),Security,P0-Critical,to_do,"Implement TOTP-based 2FA using authenticator apps (Google Authenticator, Authy) for enhanced account security",medium,Supabase Auth,Improvements.csv,Bitcoin Investments,,
+Rate Limiting on API Endpoints,Security,P0-Critical,to_do,Add rate limiting to all API endpoints to prevent abuse and DDoS attacks,medium,Cloudflare Workers,Improvements.csv,Bitcoin Investments,,
+Input Validation & Sanitization,Security,P0-Critical,to_do,Comprehensive input validation for all user inputs especially ad URLs and form fields,medium,,Improvements.csv,Bitcoin Investments,,
+Audit Logging System,Security,P1-High,to_do,"Log all sensitive operations (login, password changes, subscription changes, admin actions)",medium,Supabase,Improvements.csv,Bitcoin Investments,,
+Session Management Improvements,Security,P1-High,to_do,"Implement session timeout, concurrent session limits, and device management",medium,Supabase Auth,Improvements.csv,Bitcoin Investments,,
+CORS Configuration Hardening,Security,P1-High,to_do,Restrict CORS to specific allowed origins instead of allowing all,low,Cloudflare Workers,Improvements.csv,Bitcoin Investments,,
+Content Security Policy (CSP),Security,P1-High,to_do,Implement strict CSP headers to prevent XSS and data injection attacks,low,,Improvements.csv,Bitcoin Investments,,
+Secure Cookie Configuration,Security,P1-High,to_do,"Ensure all cookies have Secure, HttpOnly, and SameSite attributes properly set",low,,Improvements.csv,Bitcoin Investments,,
+Password Strength Requirements,Security,P2-Medium,to_do,Enforce strong password policies with complexity requirements,low,,Improvements.csv,Bitcoin Investments,,
+Account Lockout Policy,Security,P2-Medium,to_do,Implement account lockout after failed login attempts with CAPTCHA,medium,,Improvements.csv,Bitcoin Investments,,
+Wallet Connect Integration,Web3,P1-High,to_do,"Allow users to connect MetaMask, WalletConnect, and other Web3 wallets",high,ethers.js or web3.js,Improvements.csv,Bitcoin Investments,,
+ENS Domain Resolution,Web3,P2-Medium,to_do,Display ENS names and resolve .eth addresses for wallet connections,medium,Wallet Connect,Improvements.csv,Bitcoin Investments,,
+On-Chain Portfolio Tracking,Web3,P1-High,to_do,Automatically fetch wallet balances and transaction history from blockchain,high,"Wallet Connect, Etherscan API",Improvements.csv,Bitcoin Investments,,
+Multi-Chain Support,Web3,P1-High,to_do,"Support Ethereum, Polygon, Arbitrum, Optimism, BSC, Solana, and other major chains",high,Wallet Connect,Improvements.csv,Bitcoin Investments,,
+DeFi Protocol Integration,Web3,P2-Medium,to_do,"Show DeFi positions (Uniswap LP, Aave deposits, staking positions)",high,Multi-Chain Support,Improvements.csv,Bitcoin Investments,,
+NFT Portfolio Display,Web3,P2-Medium,to_do,"Display NFT holdings with images, collection info, and floor prices",high,"Wallet Connect, OpenSea API",Improvements.csv,Bitcoin Investments,,
+Transaction History Import,Web3,P1-High,to_do,Import on-chain transactions for tax reporting and portfolio analysis,high,Multi-Chain Support,Improvements.csv,Bitcoin Investments,,
+Gas Price Tracker,Web3,P3-Low,to_do,Real-time gas prices for Ethereum and other EVM chains,low,,Improvements.csv,Bitcoin Investments,,
+Web3 Authentication Option,Web3,P2-Medium,to_do,Allow login/signup with wallet signature (Sign-In with Ethereum),medium,"Wallet Connect, SIWE",Improvements.csv,Bitcoin Investments,,
+Token Approval Manager,Web3,P3-Low,to_do,Show and revoke token approvals for connected wallets,medium,Wallet Connect,Improvements.csv,Bitcoin Investments,,
+AI-Powered Blog Generator,AI/Automation,P0-Critical,to_do,Automated blog post creation using Claude API for market analysis and educational content,high,Claude API,Improvements.csv,Bitcoin Investments,,
+AI Market Analysis Reports,AI/Automation,P1-High,to_do,"Weekly AI-generated market analysis with trends, predictions, and insights",high,Claude API,Improvements.csv,Bitcoin Investments,,
+AI Portfolio Recommendations,AI/Automation,P2-Medium,to_do,Personalized portfolio suggestions based on risk tolerance and goals,high,"Claude API, Portfolio data",Improvements.csv,Bitcoin Investments,,
+AI News Summarizer,AI/Automation,P2-Medium,to_do,Summarize crypto news articles into key points using AI,medium,"Claude API, CryptoCompare",Improvements.csv,Bitcoin Investments,,
+AI Chatbot Assistant,AI/Automation,P1-High,to_do,Interactive chatbot for crypto education and platform help,high,Claude API,Improvements.csv,Bitcoin Investments,,
+Automated Content Calendar,AI/Automation,P2-Medium,to_do,"AI-generated content schedule with topics, keywords, and posting times",medium,Claude API,Improvements.csv,Bitcoin Investments,,
+AI-Powered Price Predictions,AI/Automation,P3-Low,to_do,Machine learning based price trend predictions with confidence scores,high,"Claude API, Historical data",Improvements.csv,Bitcoin Investments,,
+Automated Newsletter Generation,AI/Automation,P1-High,to_do,AI-written weekly newsletters with personalized content per user segment,medium,"Claude API, Resend",Improvements.csv,Bitcoin Investments,,
+AI Glossary Expansion,AI/Automation,P3-Low,to_do,Use AI to generate additional glossary terms and improve definitions,low,Claude API,Improvements.csv,Bitcoin Investments,,
+AI-Generated Learning Paths,AI/Automation,P2-Medium,to_do,Personalized learning curriculum based on user's experience level,medium,Claude API,Improvements.csv,Bitcoin Investments,,
+Video Tutorial Library,Knowledgebase,P1-High,to_do,Create comprehensive video tutorials for all platform features and crypto education,high,Video hosting (YouTube/Vimeo),Improvements.csv,Bitcoin Investments,,
+Interactive Learning Quizzes,Knowledgebase,P2-Medium,to_do,Add quizzes at end of each guide to test understanding,medium,,Improvements.csv,Bitcoin Investments,,
+Beginner's Complete Course,Knowledgebase,P1-High,to_do,Multi-module structured course from zero to confident investor,high,,Improvements.csv,Bitcoin Investments,,
+Advanced Trading Strategies Guide,Knowledgebase,P2-Medium,to_do,"Detailed guides on DCA variations, rebalancing, and risk management",medium,,Improvements.csv,Bitcoin Investments,,
+DeFi Explained Series,Knowledgebase,P2-Medium,to_do,"Complete guide series covering DeFi protocols, yield farming, and risks",high,,Improvements.csv,Bitcoin Investments,,
+NFT Investing Guide,Knowledgebase,P3-Low,to_do,"Comprehensive guide to NFT evaluation, buying, and selling",medium,,Improvements.csv,Bitcoin Investments,,
+Crypto Tax Guide by Country,Knowledgebase,P1-High,to_do,"Detailed tax guides for US, UK, Canada, Australia, and EU",high,,Improvements.csv,Bitcoin Investments,,
+Security Best Practices Guide,Knowledgebase,P0-Critical,to_do,Complete guide to securing crypto assets and avoiding scams,medium,,Improvements.csv,Bitcoin Investments,,
+Case Studies Section,Knowledgebase,P2-Medium,to_do,Real investor stories with lessons learned (anonymized),medium,,Improvements.csv,Bitcoin Investments,,
+Crypto Scam Database,Knowledgebase,P2-Medium,to_do,Searchable database of known scams and red flags,high,,Improvements.csv,Bitcoin Investments,,
+Weekly Market Analysis Articles,Knowledgebase,P1-High,to_do,Regular market updates and analysis posts,ongoing,AI/Automation,Improvements.csv,Bitcoin Investments,,
+Podcast/Audio Content,Knowledgebase,P3-Low,to_do,Audio versions of guides and market updates,high,Audio hosting,Improvements.csv,Bitcoin Investments,,
+Full Admin Dashboard,Site Admin,P0-Critical,to_do,Comprehensive admin panel for managing all site aspects,high,Role-based access,Improvements.csv,Bitcoin Investments,,
+User Management System,Site Admin,P0-Critical,to_do,"Admin interface to view, edit, suspend, and manage user accounts",high,Admin Dashboard,Improvements.csv,Bitcoin Investments,,
+Content Management System,Site Admin,P1-High,to_do,"Admin interface for creating, editing, and scheduling blog posts and guides",high,Admin Dashboard,Improvements.csv,Bitcoin Investments,,
+Analytics Dashboard,Site Admin,P1-High,to_do,"Internal analytics showing user engagement, popular content, and conversions",high,Admin Dashboard,Improvements.csv,Bitcoin Investments,,
+Subscription Management Admin,Site Admin,P1-High,to_do,"View and manage all subscriptions, issue refunds, extend trials",medium,"Admin Dashboard, Stripe",Improvements.csv,Bitcoin Investments,,
+Email Campaign Manager,Site Admin,P2-Medium,to_do,Admin interface for creating and sending email campaigns,high,"Admin Dashboard, Resend",Improvements.csv,Bitcoin Investments,,
+Ad Campaign Reporting,Site Admin,P2-Medium,to_do,Enhanced ad analytics with ROI calculations and advertiser reports,medium,Existing Ad Manager,Improvements.csv,Bitcoin Investments,,
+Affiliate Management Admin,Site Admin,P2-Medium,to_do,"Manage affiliate links, payouts, and partner relationships",medium,Admin Dashboard,Improvements.csv,Bitcoin Investments,,
+Site Configuration Panel,Site Admin,P2-Medium,to_do,"Manage site settings, feature flags, and maintenance mode",medium,Admin Dashboard,Improvements.csv,Bitcoin Investments,,
+Support Ticket System,Site Admin,P2-Medium,to_do,Internal system for managing user support requests,high,Admin Dashboard,Improvements.csv,Bitcoin Investments,,
+Role-Based Access Control,Site Admin,P1-High,to_do,"Define admin roles (super admin, content editor, support, etc.)",medium,Admin Dashboard,Improvements.csv,Bitcoin Investments,,
+Backup and Recovery System,Site Admin,P0-Critical,to_do,Automated database backups with point-in-time recovery,medium,Supabase,Improvements.csv,Bitcoin Investments,,
+Interactive Onboarding Tour,Onboarding,P0-Critical,to_do,Step-by-step guided tour of platform features for new users,medium,,Improvements.csv,Bitcoin Investments,,
+User Experience Level Assessment,Onboarding,P1-High,to_do,Quiz to determine user's crypto knowledge and customize experience,medium,,Improvements.csv,Bitcoin Investments,,
+Goal Setting Wizard,Onboarding,P1-High,to_do,Help users define investment goals and risk tolerance during signup,medium,,Improvements.csv,Bitcoin Investments,,
+Quick Start Checklist,Onboarding,P1-High,to_do,Gamified checklist of actions to complete for new users,low,,Improvements.csv,Bitcoin Investments,,
+Welcome Email Sequence,Onboarding,P1-High,to_do,Automated email series educating new users over first 7 days,medium,Resend,Improvements.csv,Bitcoin Investments,,
+Sample Portfolio Templates,Onboarding,P2-Medium,to_do,Pre-built portfolio examples for different investment strategies,low,,Improvements.csv,Bitcoin Investments,,
+Personalized Dashboard Setup,Onboarding,P2-Medium,to_do,Wizard to customize dashboard widgets and preferences,medium,,Improvements.csv,Bitcoin Investments,,
+Progress Tracking System,Onboarding,P2-Medium,to_do,Show users their learning and investing progress over time,medium,,Improvements.csv,Bitcoin Investments,,
+Contextual Help Tooltips,Onboarding,P2-Medium,to_do,In-app tooltips explaining features and terminology,medium,,Improvements.csv,Bitcoin Investments,,
+First Investment Guide Modal,Onboarding,P2-Medium,to_do,Pop-up guide when user first adds to portfolio,low,,Improvements.csv,Bitcoin Investments,,
+Code Splitting Implementation,Performance,P0-Critical,to_do,Split code by routes and features for faster initial load,medium,Vite,Improvements.csv,Bitcoin Investments,,
+Lazy Loading for Components,Performance,P1-High,to_do,Implement React.lazy() for non-critical components,medium,,Improvements.csv,Bitcoin Investments,,
+Image Optimization Pipeline,Performance,P1-High,to_do,"WebP conversion, responsive images, and lazy loading",medium,,Improvements.csv,Bitcoin Investments,,
+API Response Caching,Performance,P1-High,to_do,Implement smart caching for CoinGecko and other API responses,medium,,Improvements.csv,Bitcoin Investments,,
+Service Worker for Offline,Performance,P2-Medium,to_do,PWA capabilities with offline access to cached content,high,,Improvements.csv,Bitcoin Investments,,
+Database Query Optimization,Performance,P2-Medium,to_do,Review and optimize Supabase queries with proper indexing,medium,Supabase,Improvements.csv,Bitcoin Investments,,
+CDN Asset Optimization,Performance,P2-Medium,to_do,Optimize static asset delivery through Cloudflare CDN,low,Cloudflare,Improvements.csv,Bitcoin Investments,,
+Bundle Size Analysis,Performance,P2-Medium,to_do,Regular bundle analysis and tree-shaking improvements,low,Vite,Improvements.csv,Bitcoin Investments,,
+Prefetching Critical Data,Performance,P3-Low,to_do,Prefetch likely-needed data based on user behavior,medium,,Improvements.csv,Bitcoin Investments,,
+Virtual Scrolling for Lists,Performance,P3-Low,to_do,Implement virtualization for long cryptocurrency lists,medium,react-window,Improvements.csv,Bitcoin Investments,,
+Unit Test Suite,Testing,P0-Critical,to_do,Comprehensive unit tests for all services and utilities,high,Jest/Vitest,Improvements.csv,Bitcoin Investments,,
+Integration Test Suite,Testing,P1-High,to_do,Test API integrations and database operations,high,Testing framework,Improvements.csv,Bitcoin Investments,,
+End-to-End Test Suite,Testing,P1-High,to_do,Full user flow testing with Playwright or Cypress,high,Playwright/Cypress,Improvements.csv,Bitcoin Investments,,
+Component Testing,Testing,P2-Medium,to_do,Visual and functional tests for React components,medium,Testing framework,Improvements.csv,Bitcoin Investments,,
+API Contract Testing,Testing,P2-Medium,to_do,Validate external API responses match expected schemas,medium,,Improvements.csv,Bitcoin Investments,,
+Load Testing,Testing,P2-Medium,to_do,Performance testing under various load conditions,medium,k6/Artillery,Improvements.csv,Bitcoin Investments,,
+Security Testing,Testing,P1-High,to_do,Automated security scanning and penetration testing,medium,OWASP ZAP,Improvements.csv,Bitcoin Investments,,
+Accessibility Testing,Testing,P2-Medium,to_do,Automated a11y testing with manual verification,medium,axe-core,Improvements.csv,Bitcoin Investments,,
+Cross-Browser Testing,Testing,P2-Medium,to_do,"Test on Chrome, Firefox, Safari, Edge",low,BrowserStack,Improvements.csv,Bitcoin Investments,,
+Mobile Device Testing,Testing,P2-Medium,to_do,Test on various mobile devices and screen sizes,medium,,Improvements.csv,Bitcoin Investments,,
+Plausible Analytics Integration,Analytics,P1-High,to_do,Privacy-focused analytics for user behavior tracking,low,,Improvements.csv,Bitcoin Investments,,
+Conversion Funnel Tracking,Analytics,P1-High,to_do,Track user journey from landing to subscription,medium,Analytics platform,Improvements.csv,Bitcoin Investments,,
+Error Tracking (Sentry),Analytics,P0-Critical,to_do,Real-time error monitoring and alerting,low,Sentry,Improvements.csv,Bitcoin Investments,,
+User Behavior Heatmaps,Analytics,P2-Medium,to_do,Visual heatmaps of user clicks and scrolls,low,Hotjar/Clarity,Improvements.csv,Bitcoin Investments,,
+A/B Testing Framework,Analytics,P2-Medium,to_do,Test different UI variations and measure impact,medium,,Improvements.csv,Bitcoin Investments,,
+Custom Event Tracking,Analytics,P2-Medium,to_do,Track specific user actions for product insights,medium,Analytics platform,Improvements.csv,Bitcoin Investments,,
+Revenue Analytics Dashboard,Analytics,P1-High,to_do,"Track MRR, churn, LTV, and other business metrics",medium,"Stripe, Analytics",Improvements.csv,Bitcoin Investments,,
+SEO Performance Tracking,Analytics,P2-Medium,to_do,"Monitor rankings, organic traffic, and SEO health",low,Google Search Console,Improvements.csv,Bitcoin Investments,,
+Email Campaign Analytics,Analytics,P2-Medium,to_do,"Track open rates, click rates, and conversions",low,Resend,Improvements.csv,Bitcoin Investments,,
+Affiliate Performance Analytics,Analytics,P2-Medium,to_do,Detailed tracking of affiliate conversions and revenue,medium,,Improvements.csv,Bitcoin Investments,,
+Community Forum,Community,P1-High,to_do,Discussion forum for users to share strategies and ask questions,high,Discourse/Custom,Improvements.csv,Bitcoin Investments,,
+Q&A Section,Community,P2-Medium,to_do,Stack Overflow-style Q&A for crypto questions,high,,Improvements.csv,Bitcoin Investments,,
+User Reviews and Ratings,Community,P2-Medium,to_do,"Allow users to rate and review exchanges, wallets, etc.",medium,,Improvements.csv,Bitcoin Investments,,
+Social Sharing Features,Community,P2-Medium,to_do,"Easy sharing of charts, portfolios, and achievements",low,,Improvements.csv,Bitcoin Investments,,
+Leaderboards,Community,P3-Low,to_do,Gamified leaderboards for learning progress and engagement,medium,,Improvements.csv,Bitcoin Investments,,
+User Profiles (Public),Community,P3-Low,to_do,Optional public profiles showing badges and achievements,medium,,Improvements.csv,Bitcoin Investments,,
+Discord/Telegram Integration,Community,P2-Medium,to_do,Official community channels with bot integrations,medium,Discord/Telegram API,Improvements.csv,Bitcoin Investments,,
+Referral Program Automation,Community,P2-Medium,to_do,Automated referral tracking and reward distribution,medium,,Improvements.csv,Bitcoin Investments,,
+Expert Contributor Program,Community,P3-Low,to_do,Allow verified experts to contribute content,high,,Improvements.csv,Bitcoin Investments,,
+Live Chat Support,Community,P2-Medium,to_do,Real-time chat support for premium users,medium,Intercom/Crisp,Improvements.csv,Bitcoin Investments,,
+ARIA Labels Implementation,Accessibility,P1-High,to_do,Add proper ARIA labels to all interactive elements,medium,,Improvements.csv,Bitcoin Investments,,
+Keyboard Navigation,Accessibility,P1-High,to_do,Full keyboard accessibility for all features,medium,,Improvements.csv,Bitcoin Investments,,
+Color Contrast Improvements,Accessibility,P1-High,to_do,Ensure WCAG AA contrast ratios throughout,low,,Improvements.csv,Bitcoin Investments,,
+Focus Indicators,Accessibility,P2-Medium,to_do,Clear visible focus states for all interactive elements,low,,Improvements.csv,Bitcoin Investments,,
+Skip Navigation Links,Accessibility,P2-Medium,to_do,Add skip links for screen reader users,low,,Improvements.csv,Bitcoin Investments,,
+Alt Text for All Images,Accessibility,P2-Medium,to_do,Descriptive alt text for all images and charts,medium,,Improvements.csv,Bitcoin Investments,,
+Reduced Motion Support,Accessibility,P3-Low,to_do,Respect prefers-reduced-motion preference,low,,Improvements.csv,Bitcoin Investments,,
+Screen Reader Testing,Accessibility,P2-Medium,to_do,"Regular testing with NVDA, VoiceOver, JAWS",ongoing,,Improvements.csv,Bitcoin Investments,,
+Mobile-Responsive Improvements,UX/UI,P1-High,to_do,Enhance mobile experience across all pages,medium,,Improvements.csv,Bitcoin Investments,,
+Dark Mode Improvements,UX/UI,P2-Medium,to_do,Polish dark mode with proper contrast and consistency,medium,,Improvements.csv,Bitcoin Investments,,
+Loading State Improvements,UX/UI,P2-Medium,to_do,Better loading skeletons and progress indicators,low,,Improvements.csv,Bitcoin Investments,,
+Error State Improvements,UX/UI,P2-Medium,to_do,User-friendly error messages with recovery actions,medium,,Improvements.csv,Bitcoin Investments,,
+Empty State Designs,UX/UI,P2-Medium,to_do,Helpful empty states with CTAs for new users,low,,Improvements.csv,Bitcoin Investments,,
+Micro-Interactions,UX/UI,P3-Low,to_do,Subtle animations for feedback and delight,medium,,Improvements.csv,Bitcoin Investments,,
+Consistent Icon System,UX/UI,P3-Low,to_do,Unified icon set throughout the application,low,,Improvements.csv,Bitcoin Investments,,
+Typography Refinement,UX/UI,P3-Low,to_do,Improve readability with better type scale and spacing,low,,Improvements.csv,Bitcoin Investments,,
+Form Validation UX,UX/UI,P2-Medium,to_do,Real-time validation with helpful error messages,medium,,Improvements.csv,Bitcoin Investments,,
+Navigation Improvements,UX/UI,P2-Medium,to_do,Improve information architecture and navigation flow,medium,,Improvements.csv,Bitcoin Investments,,
+Premium Research Reports,Monetization,P1-High,to_do,Exclusive in-depth crypto research for premium users,high,AI/Automation,Improvements.csv,Bitcoin Investments,,
+Webinar Series,Monetization,P2-Medium,to_do,Live and recorded webinars for premium subscribers,high,Video hosting,Improvements.csv,Bitcoin Investments,,
+API Access Tier,Monetization,P3-Low,to_do,Paid API access for developers and traders,high,,Improvements.csv,Bitcoin Investments,,
+White-Label Solutions,Monetization,P3-Low,to_do,Offer platform as white-label for other businesses,high,,Improvements.csv,Bitcoin Investments,,
+Sponsored Content Integration,Monetization,P2-Medium,to_do,Native advertising and sponsored articles,medium,CMS,Improvements.csv,Bitcoin Investments,,
+Premium Calculator Features,Monetization,P2-Medium,to_do,Advanced calculator features for paid users,medium,,Improvements.csv,Bitcoin Investments,,
+Team/Family Plans,Monetization,P3-Low,to_do,Multi-user subscription plans,medium,Stripe,Improvements.csv,Bitcoin Investments,,
+Lifetime Deal Option,Monetization,P3-Low,to_do,One-time payment for lifetime access,low,Stripe,Improvements.csv,Bitcoin Investments,,
+Donation/Tip Feature,Monetization,P3-Low,to_do,Allow users to support the platform voluntarily,low,Stripe,Improvements.csv,Bitcoin Investments,,
+Tax Report PDF Export,Features,P1-High,to_do,Generate downloadable tax reports from portfolio data,high,Portfolio data,Improvements.csv,Bitcoin Investments,,
+Multi-Portfolio Support UI,Features,P1-High,to_do,Allow users to create and manage multiple portfolios,medium,Database ready,Improvements.csv,Bitcoin Investments,,
+Portfolio Sharing,Features,P2-Medium,to_do,Share portfolio view with custom privacy settings,medium,,Improvements.csv,Bitcoin Investments,,
+Watchlist Feature,Features,P2-Medium,to_do,Track cryptocurrencies without adding to portfolio,medium,,Improvements.csv,Bitcoin Investments,,
+Advanced Charting Tools,Features,P2-Medium,to_do,TradingView-style advanced charting with indicators,high,TradingView widget,Improvements.csv,Bitcoin Investments,,
+Calendar/Events Feature,Features,P2-Medium,to_do,"Crypto events calendar (halvings, unlocks, launches)",medium,,Improvements.csv,Bitcoin Investments,,
+News Personalization,Features,P2-Medium,to_do,Customize news feed based on holdings and interests,medium,,Improvements.csv,Bitcoin Investments,,
+Crypto Comparison Tool,Features,P3-Low,to_do,Side-by-side comparison of any two cryptocurrencies,medium,,Improvements.csv,Bitcoin Investments,,
+Recurring Buy Reminders,Features,P2-Medium,to_do,Remind users to make DCA purchases on schedule,low,,Improvements.csv,Bitcoin Investments,,
+Export All Data,Features,P1-High,to_do,Allow users to export all their data (GDPR compliance),medium,,Improvements.csv,Bitcoin Investments,,
+Import from Other Platforms,Features,P2-Medium,to_do,"Import portfolio data from Coinbase, Binance, etc.",high,Exchange APIs,Improvements.csv,Bitcoin Investments,,
+Price Alerts Improvements,Features,P2-Medium,to_do,"Multiple conditions, percentage changes, recurring alerts",medium,Existing alerts,Improvements.csv,Bitcoin Investments,,
+Internationalization (i18n),Features,P2-Medium,to_do,"Multi-language support starting with Spanish, German, French",high,i18next,Improvements.csv,Bitcoin Investments,,
+Currency Localization,Features,P2-Medium,to_do,Display values in user's preferred fiat currency,medium,,Improvements.csv,Bitcoin Investments,,
+Mobile App (React Native),Mobile,P2-Medium,to_do,Native mobile app for iOS and Android,high,React Native,Improvements.csv,Bitcoin Investments,,
+Progressive Web App (PWA),Mobile,P1-High,to_do,Full PWA with install prompts and offline support,medium,Service Worker,Improvements.csv,Bitcoin Investments,,
+Push Notifications,Mobile,P2-Medium,to_do,Mobile and web push notifications for alerts,medium,PWA,Improvements.csv,Bitcoin Investments,,
+Biometric Authentication,Mobile,P3-Low,to_do,Face ID / Touch ID for mobile app,medium,Mobile App,Improvements.csv,Bitcoin Investments,,
+Widget Support,Mobile,P3-Low,to_do,Home screen widgets for price and portfolio,high,Mobile App,Improvements.csv,Bitcoin Investments,,
+Exchange API Integrations,Integrations,P1-High,to_do,"Connect to Coinbase, Kraken, Binance APIs directly",high,OAuth/API keys,Improvements.csv,Bitcoin Investments,,
+Tax Software Deep Integration,Integrations,P1-High,to_do,"Direct export to CoinTracker, Koinly, TaxBit",medium,API partnerships,Improvements.csv,Bitcoin Investments,,
+Spreadsheet Export (Excel),Integrations,P2-Medium,to_do,Enhanced Excel export with multiple sheets and formatting,low,xlsx library,Improvements.csv,Bitcoin Investments,,
+Calendar App Integration,Integrations,P3-Low,to_do,"Add events to Google Calendar, Apple Calendar",low,Calendar APIs,Improvements.csv,Bitcoin Investments,,
+Zapier/Make Integration,Integrations,P3-Low,to_do,Connect platform to automation tools,medium,Webhook system,Improvements.csv,Bitcoin Investments,,
+Bank Connection (Plaid),Integrations,P3-Low,to_do,Link bank accounts for fiat tracking,high,Plaid API,Improvements.csv,Bitcoin Investments,,
+Social Login Options,Integrations,P2-Medium,to_do,"Google, Apple, Twitter sign-in options",medium,Supabase Auth,Improvements.csv,Bitcoin Investments,,
+Stripe Webhook Testing in Production,DevOps,P0-Critical,to_do,Verify all Stripe webhook handlers work in production,low,,Improvements.csv,Bitcoin Investments,,
+CI/CD Pipeline Setup,DevOps,P1-High,to_do,Automated testing and deployment pipeline,medium,GitHub Actions,Improvements.csv,Bitcoin Investments,,
+Environment Variable Management,DevOps,P1-High,to_do,Secure secrets management with rotation,medium,,Improvements.csv,Bitcoin Investments,,
+Staging Environment,DevOps,P1-High,to_do,Separate staging environment for testing,medium,Cloudflare,Improvements.csv,Bitcoin Investments,,
+Database Migration System,DevOps,P2-Medium,to_do,Versioned database migrations with rollback,medium,,Improvements.csv,Bitcoin Investments,,
+Monitoring and Alerting,DevOps,P1-High,to_do,Uptime monitoring with alerts for outages,low,Uptime Robot/Better Stack,Improvements.csv,Bitcoin Investments,,
+Log Aggregation,DevOps,P2-Medium,to_do,Centralized logging for debugging and analysis,medium,,Improvements.csv,Bitcoin Investments,,
+Documentation Site,DevOps,P2-Medium,to_do,Developer documentation for APIs and integrations,medium,Docusaurus,Improvements.csv,Bitcoin Investments,,
+Changelog/Release Notes,DevOps,P3-Low,to_do,Public changelog of updates and improvements,low,,Improvements.csv,Bitcoin Investments,,
+Status Page,DevOps,P3-Low,to_do,Public status page for service health,low,Instatus/Better Stack,Improvements.csv,Bitcoin Investments,,

@@ -29,6 +29,7 @@ import { Web3Features } from './pages/Web3Features';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserManagement } from './pages/UserManagement';
 import { ScamDatabase } from './pages/ScamDatabase';
+import TaxReports from './pages/TaxReports';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ function App() {
                   <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="affiliate-stats" element={<ProtectedRoute><AffiliateStats /></ProtectedRoute>} />
                   <Route path="ad-manager" element={<ProtectedRoute><AdManager /></ProtectedRoute>} />
+                  <Route path="tax-reports" element={<ProtectedRoute><TaxReports /></ProtectedRoute>} />
 
                   {/* Admin Routes - require admin role */}
                   <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

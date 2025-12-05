@@ -1,6 +1,7 @@
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Points, PointMaterial } from '@react-three/drei';
+// @ts-ignore - maath doesn't have TypeScript declarations
 import * as random from 'maath/random/dist/maath-random.esm';
 import * as THREE from 'three';
 
@@ -9,7 +10,7 @@ function StarField(props: any) {
     // Generate 5000 stars in a sphere
     const sphere = useMemo(() => random.inSphere(new Float32Array(5000), { radius: 15 }), []);
 
-    useFrame((state, delta) => {
+    useFrame((_state, delta) => {
         if (ref.current) {
             // Rotation gives a subtle movement feel
             ref.current.rotation.x -= delta / 15;
@@ -32,28 +33,6 @@ function StarField(props: any) {
         </group>
     );
 }
-
-function JourneyPath() {
-    const meshRef = useRef<THREE.Mesh>(null);
-
-    // Create a tunnel/path effect - visualized as moving rings or lines
-    // For now, let's add some "speed lines" or floating elements that move towards camera
-
-    useFrame((state) => {
-        if (meshRef.current) {
-            meshRef.current.rotation.z = state.clock.getElapsedTime() * 0.1;
-        }
-    })
-
-    return (
-        <mesh ref={meshRef} position={[0, 0, 0]} rotation={[1.5, 0, 0]}>
-            {/* Placeholder for more complex geometry if needed, simple torus for now */}
-            <torusGeometry args={[10, 0.1, 16, 100]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.1} />
-        </mesh>
-    )
-}
-
 
 export function Hero3D() {
     return (

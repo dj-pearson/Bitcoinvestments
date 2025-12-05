@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, AlertTriangle, Shield, ExternalLink, Filter } from 'lucide-react';
+import { Search, AlertTriangle, Shield, ExternalLink } from 'lucide-react';
 import {
   searchScamReports,
   checkWalletAddress,

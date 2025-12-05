@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Bitcoin, Twitter, Github, Linkedin, Youtube, Mail } from 'lucide-react';
+import { Twitter, Github, Linkedin, Youtube, Mail } from 'lucide-react';
 import { Newsletter } from '../Newsletter';
+import { Logo } from '../Logo';
 
 export function Footer() {
     return (
@@ -9,11 +10,8 @@ export function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
                     {/* Brand & Newsletter */}
                     <div className="lg:col-span-2 space-y-6">
-                        <Link to="/" className="flex items-center gap-2">
-                            <Bitcoin className="w-6 h-6 text-brand-secondary" />
-                            <span className="text-lg font-bold text-white">
-                                Bitcoin<span className="text-brand-primary">vestments</span>
-                            </span>
+                        <Link to="/">
+                            <Logo />
                         </Link>
                         <p className="text-gray-400 text-sm leading-relaxed">
                             Empowering the next generation of crypto investors with education,

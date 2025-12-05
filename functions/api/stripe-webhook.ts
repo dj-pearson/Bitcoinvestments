@@ -68,7 +68,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutComplete(session, stripe, supabase, context.env);
+
+        // Check if this is a tax package purchase (one-time payment)
+        if (session.mode === 'payment' && session.metadata?.productType === 'tax_report_package') {
+          await handleTaxPackagePurchase(session, supabase);
+        } else {
+          // Regular subscription checkout
+          await handleCheckoutComplete(session, stripe, supabase, context.env);
+        }
         break;
       }
 
@@ -304,4 +311,44 @@ async function handlePaymentFailed(
 
   // You could send an email alert here
   // For now, just log it - Stripe will handle retries
+}
+
+/**
+ * Handle tax package one-time purchase
+ */
+async function handleTaxPackagePurchase(
+  session: Stripe.Checkout.Session,
+  supabase: any
+) {
+  const userId = session.client_reference_id;
+  const packageType = session.metadata?.packageType as 'basic' | 'premium';
+  const taxYear = parseInt(session.metadata?.taxYear || '2024');
+  const amountTotal = session.amount_total ? session.amount_total / 100 : 0;
+
+  if (!userId || !packageType) {
+    console.error('Missing userId or packageType in tax package checkout');
+    return;
+  }
+
+  // Insert tax report purchase record
+  const { error } = await supabase
+    .from('tax_report_purchases')
+    .insert({
+      user_id: userId,
+      package_type: packageType,
+      tax_year: taxYear,
+      price_paid: amountTotal,
+      currency: session.currency?.toUpperCase() || 'USD',
+      stripe_payment_intent_id: session.payment_intent as string,
+      stripe_checkout_session_id: session.id,
+      status: 'completed',
+      purchased_at: new Date().toISOString(),
+    });
+
+  if (error) {
+    console.error('Error creating tax report purchase record:', error);
+    throw error;
+  }
+
+  console.log(`✅ Tax package purchased for user ${userId}: ${packageType} for year ${taxYear}`);
 }

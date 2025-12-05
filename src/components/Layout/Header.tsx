@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Bitcoin, ChevronDown, User } from 'lucide-react';
+import { Logo } from '../Logo';
+import { Menu, X, ChevronDown, User } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
 
@@ -59,13 +60,8 @@ export function Header() {
             <div className="glass border-b border-white/5">
                 <div className="container mx-auto px-4 h-20 flex items-center justify-between">
                     {/* Logo */}
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="p-2 rounded-full bg-brand-primary/10 group-hover:bg-brand-primary/20 transition-colors">
-                            <Bitcoin className="w-8 h-8 text-brand-secondary" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight text-white">
-                            Bitcoin<span className="text-brand-primary">vestments</span>
-                        </span>
+                    <Link to="/">
+                        <Logo />
                     </Link>
 
                     {/* Desktop Navigation */}

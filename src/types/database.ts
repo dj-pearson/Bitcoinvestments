@@ -847,6 +847,72 @@ export type Database = {
           }
         ];
       };
+      // Tax Report Purchases (one-time seasonal package)
+      tax_report_purchases: {
+        Row: {
+          id: string;
+          user_id: string;
+          package_type: 'basic' | 'premium';
+          tax_year: number;
+          price_paid: number;
+          currency: string;
+          stripe_payment_intent_id: string | null;
+          stripe_checkout_session_id: string | null;
+          status: 'pending' | 'completed' | 'refunded' | 'failed';
+          purchased_at: string | null;
+          refunded_at: string | null;
+          report_generated_at: string | null;
+          report_download_count: number;
+          last_download_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          package_type: 'basic' | 'premium';
+          tax_year: number;
+          price_paid: number;
+          currency?: string;
+          stripe_payment_intent_id?: string | null;
+          stripe_checkout_session_id?: string | null;
+          status?: 'pending' | 'completed' | 'refunded' | 'failed';
+          purchased_at?: string | null;
+          refunded_at?: string | null;
+          report_generated_at?: string | null;
+          report_download_count?: number;
+          last_download_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          package_type?: 'basic' | 'premium';
+          tax_year?: number;
+          price_paid?: number;
+          currency?: string;
+          stripe_payment_intent_id?: string | null;
+          stripe_checkout_session_id?: string | null;
+          status?: 'pending' | 'completed' | 'refunded' | 'failed';
+          purchased_at?: string | null;
+          refunded_at?: string | null;
+          report_generated_at?: string | null;
+          report_download_count?: number;
+          last_download_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tax_report_purchases_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -875,6 +941,26 @@ export type Database = {
       get_scam_stats: {
         Args: Record<PropertyKey, never>;
         Returns: Json;
+      };
+      has_tax_report_purchase: {
+        Args: {
+          p_user_id: string;
+          p_tax_year: number;
+        };
+        Returns: boolean;
+      };
+      get_tax_report_package_type: {
+        Args: {
+          p_user_id: string;
+          p_tax_year: number;
+        };
+        Returns: string | null;
+      };
+      increment_tax_report_download: {
+        Args: {
+          p_purchase_id: string;
+        };
+        Returns: undefined;
       };
     };
     Enums: {
@@ -907,6 +993,7 @@ export type AffiliateClick = Tables<'affiliate_clicks'>;
 export type Article = Tables<'articles'>;
 export type Advertisement = Tables<'advertisements'>;
 export type NewsletterSubscriber = Tables<'newsletter_subscribers'>;
+export type TaxReportPurchase = Tables<'tax_report_purchases'>;
 
 // Type for database function calls
 type PublicSchema = Database[Extract<keyof Database, 'public'>];

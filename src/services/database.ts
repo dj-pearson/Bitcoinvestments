@@ -13,6 +13,7 @@ type Holding = Database['public']['Tables']['holdings']['Row'];
 type Transaction = Database['public']['Tables']['transactions']['Row'];
 type AffiliateClick = Database['public']['Tables']['affiliate_clicks']['Row'];
 type PriceAlert = Database['public']['Tables']['price_alerts']['Row'];
+type TaxReportPurchase = Database['public']['Tables']['tax_report_purchases']['Row'];
 
 // ==================== Portfolio Operations ====================
 
@@ -333,6 +334,26 @@ export async function getUserPriceAlerts(userId: string): Promise<PriceAlert[]> 
 }
 
 /**
+ * Count user's active price alerts
+ */
+export async function countActiveAlerts(userId: string): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
+
+  const { count, error } = await supabase
+    .from('price_alerts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error counting active alerts:', error);
+    return 0;
+  }
+
+  return count || 0;
+}
+
+/**
  * Create a price alert
  */
 export async function createPriceAlert(
@@ -578,4 +599,85 @@ export async function trackAdClick(adId: string): Promise<void> {
   if (!isSupabaseConfigured()) return;
 
   await supabase.rpc('increment_ad_clicks', { ad_id: adId });
+}
+
+// ==================== Tax Report Purchase Operations ====================
+
+/**
+ * Check if user has purchased tax report for a given year
+ */
+export async function hasTaxReportPurchase(
+  userId: string,
+  taxYear: number
+): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  const { data, error } = await supabase.rpc('has_tax_report_purchase', {
+    p_user_id: userId,
+    p_tax_year: taxYear,
+  });
+
+  if (error) {
+    console.error('Error checking tax report purchase:', error);
+    return false;
+  }
+
+  return data || false;
+}
+
+/**
+ * Get user's tax report package type for a year
+ */
+export async function getTaxReportPackageType(
+  userId: string,
+  taxYear: number
+): Promise<'basic' | 'premium' | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase.rpc('get_tax_report_package_type', {
+    p_user_id: userId,
+    p_tax_year: taxYear,
+  });
+
+  if (error) {
+    console.error('Error getting tax report package type:', error);
+    return null;
+  }
+
+  return data as 'basic' | 'premium' | null;
+}
+
+/**
+ * Get user's tax report purchases
+ */
+export async function getUserTaxReportPurchases(
+  userId: string
+): Promise<TaxReportPurchase[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const { data, error } = await supabase
+    .from('tax_report_purchases')
+    .select('*')
+    .eq('user_id', userId)
+    .order('tax_year', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching tax report purchases:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Increment tax report download count
+ */
+export async function incrementTaxReportDownload(
+  purchaseId: string
+): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+
+  await supabase.rpc('increment_tax_report_download', {
+    p_purchase_id: purchaseId,
+  });
 }

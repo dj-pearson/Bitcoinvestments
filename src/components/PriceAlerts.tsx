@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getUserPriceAlerts, createPriceAlert, deletePriceAlert } from '../services/database';
-import { getCurrentUser } from '../services/auth';
+import { Link } from 'react-router-dom';
+import { getUserPriceAlerts, createPriceAlert, deletePriceAlert, countActiveAlerts } from '../services/database';
+import { getCurrentUser, getUserProfile } from '../services/auth';
+import { canCreateAlert, TIER_LIMITS } from '../services/subscriptionLimits';
+import { hasPremiumAccess } from '../services/stripe';
+import { UpgradePrompt, LimitCounter } from './UpgradePrompt';
 import type { PriceAlert } from '../types/database';
 
 interface PriceAlertsProps {
@@ -12,6 +16,12 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+  // Subscription state
+  const [isPremium, setIsPremium] = useState(false);
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
+  const [alertLimit, setAlertLimit] = useState(TIER_LIMITS.free.maxActiveAlerts);
 
   // Form state
   const [symbol, setSymbol] = useState('BTC');
@@ -24,17 +34,47 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
       const user = await getCurrentUser();
       if (user) {
         setUserId(user.id);
+
+        // Load user alerts
         const userAlerts = await getUserPriceAlerts(user.id);
         setAlerts(userAlerts);
+
+        // Count active alerts
+        const activeCount = userAlerts.filter(a => a.is_active).length;
+        setActiveAlertCount(activeCount);
+
+        // Check subscription status
+        const profile = await getUserProfile(user.id);
+        const premium = hasPremiumAccess(
+          profile?.subscription_status,
+          profile?.subscription_expires_at
+        );
+        setIsPremium(premium);
+        setAlertLimit(premium ? Infinity : TIER_LIMITS.free.maxActiveAlerts);
       }
       setLoading(false);
     }
     loadData();
   }, []);
 
+  const handleNewAlertClick = () => {
+    // Check if user can create more alerts
+    if (!isPremium && activeAlertCount >= TIER_LIMITS.free.maxActiveAlerts) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    setShowForm(!showForm);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !targetPrice) return;
+
+    // Double-check limit before creating
+    if (!isPremium && activeAlertCount >= TIER_LIMITS.free.maxActiveAlerts) {
+      setShowUpgradePrompt(true);
+      return;
+    }
 
     setSubmitting(true);
 
@@ -48,6 +88,7 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
 
     if (newAlert) {
       setAlerts([newAlert, ...alerts]);
+      setActiveAlertCount(activeAlertCount + 1);
       setShowForm(false);
       setTargetPrice('');
     }
@@ -56,9 +97,14 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
   };
 
   const handleDelete = async (alertId: string) => {
+    const alertToDelete = alerts.find(a => a.id === alertId);
     const success = await deletePriceAlert(alertId);
     if (success) {
       setAlerts(alerts.filter((a) => a.id !== alertId));
+      // Update active count if the deleted alert was active
+      if (alertToDelete?.is_active) {
+        setActiveAlertCount(Math.max(0, activeAlertCount - 1));
+      }
     }
   };
 
@@ -99,15 +145,37 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
 
   return (
     <div className={`bg-gray-800 rounded-xl p-6 border border-gray-700 ${className}`}>
-      <div className="flex items-center justify-between mb-6">
+      {/* Upgrade prompt modal */}
+      {showUpgradePrompt && (
+        <UpgradePrompt
+          limitType="alerts"
+          currentCount={activeAlertCount}
+          maxCount={TIER_LIMITS.free.maxActiveAlerts}
+          variant="modal"
+          onDismiss={() => setShowUpgradePrompt(false)}
+        />
+      )}
+
+      <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white">Price Alerts</h3>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={handleNewAlertClick}
           className="text-sm text-orange-500 hover:text-orange-400 font-medium"
         >
           {showForm ? 'Cancel' : '+ New Alert'}
         </button>
       </div>
+
+      {/* Show limit counter for free users */}
+      {!isPremium && (
+        <div className="mb-4">
+          <LimitCounter
+            current={activeAlertCount}
+            max={TIER_LIMITS.free.maxActiveAlerts}
+            label="Active alerts"
+          />
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-700/50 rounded-lg">

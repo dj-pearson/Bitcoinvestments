@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { GraduationCap, Clock, BookOpen, ChevronRight, Target } from 'lucide-react';
 import { getPublishedArticles } from '../services/database';
 import { Newsletter } from '../components/Newsletter';
+import { getAllCourses } from '../data/courses';
 import type { Article } from '../types/database';
 
 // Static beginner guides (can be moved to database later)
@@ -54,9 +56,59 @@ const BEGINNER_GUIDES = [
     readTime: 7,
     icon: '⚠️',
   },
+  // Advanced Trading Strategies
+  {
+    id: 'dca-strategies',
+    title: 'Advanced DCA Strategies',
+    description: 'Master sophisticated DCA variations including value averaging and dynamic strategies.',
+    category: 'Trading',
+    readTime: 15,
+    icon: '📈',
+  },
+  {
+    id: 'portfolio-rebalancing',
+    title: 'Crypto Portfolio Rebalancing',
+    description: 'Learn when and how to rebalance your portfolio for optimal allocation.',
+    category: 'Trading',
+    readTime: 14,
+    icon: '⚖️',
+  },
+  {
+    id: 'risk-management',
+    title: 'Crypto Risk Management',
+    description: 'Position sizing, stop-losses, and portfolio protection strategies.',
+    category: 'Trading',
+    readTime: 16,
+    icon: '🛡️',
+  },
+  // DeFi Explained Series
+  {
+    id: 'defi-basics',
+    title: 'DeFi Explained: Understanding DeFi',
+    description: 'A comprehensive introduction to decentralized finance protocols and how they work.',
+    category: 'DeFi',
+    readTime: 18,
+    icon: '🏦',
+  },
+  {
+    id: 'yield-farming',
+    title: 'Yield Farming Guide',
+    description: 'Learn yield farming strategies, liquidity provision, and how to maximize returns.',
+    category: 'DeFi',
+    readTime: 20,
+    icon: '🌾',
+  },
+  {
+    id: 'defi-risks',
+    title: 'DeFi Risks Explained',
+    description: 'Smart contract risks, rug pulls, and how to protect yourself in DeFi.',
+    category: 'DeFi',
+    readTime: 17,
+    icon: '⚠️',
+  },
 ];
 
-const CATEGORIES = ['All', 'Basics', 'Getting Started', 'Security', 'Taxes', 'DeFi', 'Trading'];
+const CATEGORIES = ['All', 'Basics', 'Getting Started', 'Security', 'Trading', 'DeFi', 'Taxes', 'Tips'];
 
 export function Learn() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -89,6 +141,62 @@ export function Learn() {
         </p>
       </div>
 
+      {/* Featured Courses Section */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <GraduationCap className="w-7 h-7 text-orange-500" />
+            Featured Courses
+          </h2>
+        </div>
+        <div className="grid md:grid-cols-1 lg:grid-cols-1 gap-6">
+          {getAllCourses().map((course) => (
+            <Link
+              key={course.id}
+              to={`/course/${course.id}`}
+              className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl p-6 border border-orange-500/30 hover:border-orange-500/60 transition-all group"
+            >
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
+                <div className="text-6xl">{course.icon}</div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="px-3 py-1 bg-green-500/20 text-green-500 text-xs font-medium rounded-full">
+                      {course.difficulty}
+                    </span>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <Clock className="w-4 h-4" />
+                      {Math.round(course.totalDuration / 60)} hours
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <BookOpen className="w-4 h-4" />
+                      {course.moduleCount} modules
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-white group-hover:text-orange-500 transition-colors mb-2">
+                    {course.title}
+                  </h3>
+                  <p className="text-gray-400 mb-4">{course.description}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {course.outcomes.slice(0, 3).map((outcome, index) => (
+                      <div key={index} className="flex items-center gap-1 text-xs text-gray-500">
+                        <Target className="w-3 h-3 text-green-500" />
+                        {outcome}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <span className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors">
+                    Start Course
+                    <ChevronRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {/* Category Filter */}
       <div className="flex flex-wrap justify-center gap-2 mb-8">
         {CATEGORIES.map((category) => (
@@ -106,9 +214,11 @@ export function Learn() {
         ))}
       </div>
 
-      {/* Beginner Guides Grid */}
+      {/* Guides Grid */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold text-white mb-6">Beginner Guides</h2>
+        <h2 className="text-2xl font-bold text-white mb-6">
+          {selectedCategory === 'All' ? 'All Guides' : `${selectedCategory} Guides`}
+        </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredGuides.map((guide) => (
             <Link

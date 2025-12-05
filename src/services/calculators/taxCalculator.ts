@@ -19,7 +19,7 @@ const LONG_TERM_BRACKETS = [
 ];
 
 // State capital gains tax rates (simplified - actual rates may vary)
-const STATE_TAX_RATES: Record<string, number> = {
+export const STATE_TAX_RATES: Record<string, number> = {
   CA: 0.133, // California
   NY: 0.0882, // New York
   NJ: 0.1075, // New Jersey

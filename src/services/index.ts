@@ -14,7 +14,35 @@ export * from './affiliate';
 export * from './auth';
 
 // Database service (Supabase)
-export * from './database';
+// Note: Rename addTransaction to avoid conflict with portfolio.ts
+export {
+  getUserPortfolios,
+  createDbPortfolio,
+  deleteDbPortfolio,
+  getPortfolioHoldings,
+  upsertHolding,
+  deleteHolding,
+  getHoldingTransactions,
+  addTransaction as addDbTransaction,
+  trackAffiliateClickDb,
+  markClickConvertedDb,
+  getAffiliateStatsDb,
+  getUserPriceAlerts,
+  countActiveAlerts,
+  createPriceAlert,
+  deletePriceAlert,
+  subscribeToNewsletter,
+  unsubscribeFromNewsletter,
+  getPublishedArticles,
+  getArticleBySlug,
+  getActiveAds,
+  trackAdImpression,
+  trackAdClick,
+  hasTaxReportPurchase,
+  getTaxReportPackageType,
+  getUserTaxReportPurchases,
+  incrementTaxReportDownload,
+} from './database';
 
 // News service
 export * from './news';

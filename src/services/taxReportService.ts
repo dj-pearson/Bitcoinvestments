@@ -9,13 +9,8 @@
  * - Summary reports with short-term vs long-term breakdown
  */
 
-import type { Transaction, Portfolio, PortfolioHolding } from '../types';
-import {
-  calculateCapitalGainsTax,
-  calculateMultipleTransactionsTax,
-  STATE_TAX_RATES,
-  SHORT_TERM_BRACKETS,
-} from './calculators/taxCalculator';
+import type { Transaction, Portfolio } from '../types';
+import { STATE_TAX_RATES } from './calculators/taxCalculator';
 
 // ==================== Types ====================
 
@@ -251,7 +246,7 @@ function categorizeTransactions(
  */
 function calculateTaxableEvents(
   dispositions: (Transaction & { asset: string; symbol: string })[],
-  acquisitions: (Transaction & { asset: string; symbol: string })[],
+  _acquisitions: (Transaction & { asset: string; symbol: string })[],
   method: CostBasisMethod,
   portfolio: Portfolio
 ): TaxableEvent[] {

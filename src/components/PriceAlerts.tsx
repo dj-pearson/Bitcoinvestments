@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { getUserPriceAlerts, createPriceAlert, deletePriceAlert, countActiveAlerts } from '../services/database';
+import { getUserPriceAlerts, createPriceAlert, deletePriceAlert } from '../services/database';
 import { getCurrentUser, getUserProfile } from '../services/auth';
-import { canCreateAlert, TIER_LIMITS } from '../services/subscriptionLimits';
+import { TIER_LIMITS } from '../services/subscriptionLimits';
 import { hasPremiumAccess } from '../services/stripe';
 import { UpgradePrompt, LimitCounter } from './UpgradePrompt';
 import type { PriceAlert } from '../types/database';
@@ -21,7 +20,6 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
   // Subscription state
   const [isPremium, setIsPremium] = useState(false);
   const [activeAlertCount, setActiveAlertCount] = useState(0);
-  const [alertLimit, setAlertLimit] = useState(TIER_LIMITS.free.maxActiveAlerts);
 
   // Form state
   const [symbol, setSymbol] = useState('BTC');
@@ -50,7 +48,6 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
           profile?.subscription_expires_at
         );
         setIsPremium(premium);
-        setAlertLimit(premium ? Infinity : TIER_LIMITS.free.maxActiveAlerts);
       }
       setLoading(false);
     }

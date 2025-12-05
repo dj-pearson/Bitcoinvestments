@@ -100,7 +100,7 @@ export default function TaxReports() {
   const [userId, setUserId] = useState<string | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [packageType, setPackageType] = useState<'basic' | 'premium' | null>(null);
-  const [isPremiumUser, setIsPremiumUser] = useState(false);
+  const [_isPremiumUser, setIsPremiumUser] = useState(false);
 
   // Portfolio state
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);

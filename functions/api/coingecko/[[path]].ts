@@ -48,56 +48,38 @@ export async function onRequest(context: {
   const targetUrl = `${baseUrl}/${apiPath}${searchParams ? `?${searchParams}` : ''}`;
   
   try {
-    // Check Cloudflare cache first using the full URL as cache key
-    const cacheKey = new Request(request.url, request);
-    const cache = caches.default;
+    // Build headers
+    const headers: HeadersInit = {
+      'Accept': 'application/json',
+      'User-Agent': 'BitcoinInvestments/1.0',
+    };
     
-    // Try to get from cache
-    let response = await cache.match(cacheKey);
-    
-    if (!response) {
-      // Not in cache, fetch from CoinGecko
-      const headers: HeadersInit = {
-        'Accept': 'application/json',
-        'User-Agent': 'BitcoinInvestments/1.0',
-      };
-      
-      if (apiKey) {
-        headers['x-cg-pro-api-key'] = apiKey;
-      }
-      
-      response = await fetch(targetUrl, {
-        method: request.method,
-        headers,
-        cf: {
-          // Cloudflare-specific options
-          cacheTtl: getCacheDuration(apiPath),
-          cacheEverything: true,
-        },
-      });
-      
-      // Only cache successful responses
-      if (response.ok) {
-        const cacheDuration = getCacheDuration(apiPath);
-        const cacheResponse = new Response(response.body, response);
-        cacheResponse.headers.set('Cache-Control', `public, max-age=${cacheDuration}`);
-        cacheResponse.headers.set('X-Cache-Status', 'MISS');
-        
-        // Store in cache (don't await, let it happen in background)
-        if (waitUntil) {
-          waitUntil(cache.put(cacheKey, cacheResponse.clone()));
-        }
-        
-        response = cacheResponse;
-      }
+    if (apiKey) {
+      headers['x-cg-pro-api-key'] = apiKey;
+      console.log('Using API key:', apiKey.substring(0, 6) + '...');
     } else {
-      // Mark as cache hit
-      response = new Response(response.body, response);
-      response.headers.set('X-Cache-Status', 'HIT');
+      console.warn('No API key found in environment!');
     }
+    
+    console.log('Fetching from CoinGecko:', targetUrl);
+    
+    // Fetch from CoinGecko with Cloudflare caching
+    const response = await fetch(targetUrl, {
+      method: request.method,
+      headers,
+      cf: {
+        // Let Cloudflare cache this at the edge
+        cacheTtl: getCacheDuration(apiPath),
+        cacheEverything: true,
+      },
+    });
+    
+    console.log('CoinGecko response status:', response.status);
     
     // Get the response data
     const data = await response.text();
+    
+    const cacheDuration = getCacheDuration(apiPath);
     
     // Return with CORS headers
     return new Response(data, {
@@ -108,8 +90,9 @@ export async function onRequest(context: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': response.headers.get('Cache-Control') || 'public, max-age=120',
-        'X-Cache-Status': response.headers.get('X-Cache-Status') || 'UNKNOWN',
+        'Cache-Control': `public, max-age=${cacheDuration}`,
+        'X-API-Key-Present': apiKey ? 'yes' : 'no',
+        'X-Rate-Limit-Remaining': response.headers.get('x-ratelimit-remaining') || 'unknown',
       },
     });
   } catch (error) {

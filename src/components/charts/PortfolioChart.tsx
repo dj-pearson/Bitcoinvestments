@@ -10,8 +10,8 @@ import {
   Legend,
   Filler,
   ArcElement,
-  ChartOptions,
 } from 'chart.js';
+import type { ChartOptions } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
 import type { Portfolio } from '../../types';
 import { Loader2, TrendingUp, TrendingDown, PieChart as PieChartIcon } from 'lucide-react';

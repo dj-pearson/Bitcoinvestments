@@ -13,6 +13,7 @@ import { cn } from '../lib/utils';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
 import { PortfolioTracker } from '../components/PortfolioTracker';
 import { PriceChart } from '../components/charts';
+import { GasPriceTracker } from '../components/GasPriceTracker';
 import {
   getCachedTopCryptocurrencies,
   getGlobalMarketData,
@@ -240,6 +241,9 @@ export function Dashboard() {
         <div className="space-y-6">
           {/* Fear & Greed */}
           <FearGreedGauge historyDays={7} />
+
+          {/* Gas Price Tracker */}
+          <GasPriceTracker variant="compact" />
 
           {/* Trending */}
           <div className="glass-card p-6">

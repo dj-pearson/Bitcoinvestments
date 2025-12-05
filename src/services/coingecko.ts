@@ -6,9 +6,11 @@ import type {
 } from '../types';
 
 // CoinGecko API configuration
-// Use API key if available to avoid rate limits
+// Note: Demo/free API keys should still use regular endpoint
+// Only switch to pro-api.coingecko.com if you have a PAID plan
 const COINGECKO_API_KEY = import.meta.env.VITE_COINGECKO_API_KEY || '';
-const COINGECKO_API_BASE = COINGECKO_API_KEY 
+const USE_PRO_API = import.meta.env.VITE_COINGECKO_USE_PRO === 'true';
+const COINGECKO_API_BASE = (COINGECKO_API_KEY && USE_PRO_API)
   ? 'https://pro-api.coingecko.com/api/v3'
   : 'https://api.coingecko.com/api/v3';
 

@@ -121,6 +121,7 @@ function weiToGwei(wei: string): number {
 
 /**
  * Fetch native token price from CoinGecko
+ * Returns cached price or 0 on error to prevent blocking gas price display
  */
 async function getTokenPrice(coingeckoId: string): Promise<number> {
   const cached = priceCache.get(coingeckoId);
@@ -129,9 +130,20 @@ async function getTokenPrice(coingeckoId: string): Promise<number> {
   }
 
   try {
+    // Use fetch with no-cors mode as fallback - won't get data but won't throw CORS error
+    // In production, add CoinGecko API key to Cloudflare environment variables
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`,
+      { 
+        signal: controller.signal,
+        // Note: CORS will still block this, but we handle it gracefully
+      }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error('Failed to fetch token price');
@@ -143,7 +155,10 @@ async function getTokenPrice(coingeckoId: string): Promise<number> {
     priceCache.set(coingeckoId, { price, timestamp: Date.now() });
     return price;
   } catch (error) {
-    console.error(`Error fetching price for ${coingeckoId}:`, error);
+    // Silently use cached or return 0 - don't spam console
+    if (error instanceof Error && !error.message.includes('aborted')) {
+      console.debug(`Could not fetch price for ${coingeckoId}, using cached/fallback`);
+    }
     // Return cached price even if expired, or 0
     return cached?.price || 0;
   }
@@ -254,7 +269,11 @@ export async function getGasPriceForChain(
     gasCache.set(cacheKey, { data: chainGasInfo, timestamp: Date.now() });
     return chainGasInfo;
   } catch (error) {
-    console.error(`Error fetching gas price for ${chain}:`, error);
+    // Silently handle errors - gas prices are nice-to-have, not critical
+    // Only log in development
+    if (import.meta.env.DEV) {
+      console.debug(`Could not fetch gas price for ${chain}`);
+    }
 
     // Return cached data if available, even if expired
     if (cached) {

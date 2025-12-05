@@ -418,12 +418,9 @@ export async function getOHLCData(
   }
 }
 
-// Cache utilities for reducing API calls
-const cache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_DURATION = 60000; // 1 minute
-
+// Legacy cache exports for backwards compatibility
 export function getCached<T>(key: string): T | null {
-  const cached = cache.get(key);
+  const cached = dataCache.get(key);
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data as T;
   }
@@ -431,45 +428,19 @@ export function getCached<T>(key: string): T | null {
 }
 
 export function setCache<T>(key: string, data: T): void {
-  cache.set(key, { data, timestamp: Date.now() });
+  dataCache.set(key, { data, timestamp: Date.now() });
 }
 
 export function clearCache(): void {
-  cache.clear();
+  dataCache.clear();
 }
 
 /**
- * Cached version of getTopCryptocurrencies
+ * Cached version of getTopCryptocurrencies (now uses built-in caching)
  */
-export async function getCachedTopCryptocurrencies(
-  limit: number = 50,
-  page: number = 1,
-  currency: string = 'usd'
-): Promise<Cryptocurrency[]> {
-  const cacheKey = `top_${limit}_${page}_${currency}`;
-  const cached = getCached<Cryptocurrency[]>(cacheKey);
-
-  if (cached) {
-    return cached;
-  }
-
-  const data = await getTopCryptocurrencies(limit, page, currency);
-  setCache(cacheKey, data);
-  return data;
-}
+export const getCachedTopCryptocurrencies = getTopCryptocurrencies;
 
 /**
- * Cached version of getFearGreedIndex
+ * Cached version of getFearGreedIndex (now uses built-in caching)
  */
-export async function getCachedFearGreedIndex(): Promise<FearGreedIndex> {
-  const cacheKey = 'fear_greed_index';
-  const cached = getCached<FearGreedIndex>(cacheKey);
-
-  if (cached) {
-    return cached;
-  }
-
-  const data = await getFearGreedIndex();
-  setCache(cacheKey, data);
-  return data;
-}
+export const getCachedFearGreedIndex = getFearGreedIndex;

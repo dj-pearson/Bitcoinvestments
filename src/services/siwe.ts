@@ -90,7 +90,7 @@ export async function authenticateWithWallet(
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
     // Check if user exists with this wallet
-    const { data: existingWallet, error: walletError } = await supabase
+    const { data: existingWallet } = await supabase
       .from('user_wallets')
       .select('user_id')
       .eq('wallet_address', walletAddress.toLowerCase())

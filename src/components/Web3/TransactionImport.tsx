@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   saveConnectedWallet,
   getUserWallets,
   syncWalletTransactions,
-  getSyncHistory,
-  SyncProgress,
 } from '../../services/walletSync';
+import type { SyncProgress } from '../../services/walletSync';
 import { Download, RefreshCw, Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
 
 interface ConnectedWallet {
@@ -43,9 +42,9 @@ export function TransactionImport() {
 
   async function loadWallets() {
     if (!user) return;
-    const { data, error } = await getUserWallets(user.id);
+    const { data } = await getUserWallets(user.id);
     if (data) {
-      setWallets(data);
+      setWallets(data as ConnectedWallet[]);
     }
   }
 

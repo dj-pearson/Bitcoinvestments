@@ -175,7 +175,7 @@ export function ComparisonChart({
         callbacks: {
           label: (context) => {
             const label = context.dataset.label || '';
-            const value = context.parsed.y;
+            const value = context.parsed.y ?? 0;
             if (normalize) {
               return `${label}: ${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
             }

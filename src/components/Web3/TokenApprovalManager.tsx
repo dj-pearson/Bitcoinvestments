@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -24,7 +24,7 @@ interface TokenApproval {
 }
 
 export function TokenApprovalManager() {
-  const { address, chain } = useAccount();
+  const { address } = useAccount();
   const { user } = useAuth();
   const [approvals, setApprovals] = useState<TokenApproval[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,7 @@ export function TokenApprovalManager() {
     const { data, error } = await getTokenApprovals(user.id, address);
 
     if (data) {
-      setApprovals(data);
+      setApprovals(data as TokenApproval[]);
     } else if (error) {
       setMessage({ type: 'error', text: error });
     }

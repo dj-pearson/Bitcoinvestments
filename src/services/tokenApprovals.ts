@@ -3,7 +3,7 @@
  * Handles fetching and revoking ERC20 token approvals
  */
 
-import { createPublicClient, createWalletClient, custom, parseAbi, http, formatUnits } from 'viem';
+import { createPublicClient, createWalletClient, custom, parseAbi, http } from 'viem';
 import { mainnet, polygon, arbitrum, optimism } from 'viem/chains';
 import { supabase } from '../lib/supabase';
 import type { InsertTokenApproval } from '../types/web3-database';
@@ -35,7 +35,7 @@ export interface TokenApprovalInfo {
  * Fetch all token approvals for a wallet address
  */
 export async function fetchTokenApprovalsForWallet(
-  walletAddress: string,
+  _walletAddress: string,
   chainName: string,
   tokenAddresses: string[]
 ): Promise<TokenApprovalInfo[]> {
@@ -53,8 +53,8 @@ export async function fetchTokenApprovalsForWallet(
 
   for (const tokenAddress of tokenAddresses) {
     try {
-      // Get token metadata
-      const [name, symbol, decimals] = await Promise.all([
+      // Get token metadata (reserved for future use)
+      const [_name, _symbol, _decimals] = await Promise.all([
         publicClient.readContract({
           address: tokenAddress as `0x${string}`,
           abi: erc20Abi,
@@ -198,7 +198,7 @@ export async function getTokenApprovals(userId: string, walletAddress?: string) 
  */
 export async function markApprovalAsRevoked(
   approvalId: string,
-  txHash: string
+  _txHash: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { error } = await supabase
@@ -224,7 +224,7 @@ export async function markApprovalAsRevoked(
  * Assess risk level of a spender address
  * In a full implementation, this would check against known protocols
  */
-function assessRiskLevel(spenderAddress: string, spenderName: string | null): 'low' | 'medium' | 'high' | 'unknown' {
+export function assessRiskLevel(_spenderAddress: string, spenderName: string | null): 'low' | 'medium' | 'high' | 'unknown' {
   const knownSafe = ['uniswap', 'aave', 'compound', 'curve'];
 
   if (spenderName && knownSafe.some(name => spenderName.toLowerCase().includes(name))) {

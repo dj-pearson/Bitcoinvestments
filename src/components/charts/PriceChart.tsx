@@ -151,7 +151,7 @@ export function PriceChart({
         displayColors: false,
         callbacks: {
           label: (context) => {
-            const value = context.parsed.y;
+            const value = context.parsed.y ?? 0;
             return `$${value.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: value < 1 ? 6 : 2,

@@ -34,8 +34,8 @@ export interface TransactionData {
   blockNum: string;
   timestamp: string;
   rawContract?: {
-    address?: string;
-    decimal?: string;
+    address?: string | null;
+    decimal?: string | null;
   };
 }
 
@@ -96,8 +96,11 @@ export async function fetchTransactionHistory(
       asset: transfer.asset || null,
       category: transfer.category,
       blockNum: transfer.blockNum,
-      timestamp: transfer.metadata.blockTimestamp,
-      rawContract: transfer.rawContract,
+      timestamp: transfer.metadata?.blockTimestamp || '',
+      rawContract: transfer.rawContract ? {
+        address: transfer.rawContract.address ?? undefined,
+        decimal: transfer.rawContract.decimal ?? undefined,
+      } : undefined,
     }));
   } catch (error) {
     console.error(`Error fetching transactions for ${chain}:`, error);

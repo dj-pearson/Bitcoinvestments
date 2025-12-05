@@ -8,7 +8,7 @@ import {
   TrendingUp,
   BarChart3,
 } from 'lucide-react';
-import { getUserStats, getScamDatabaseStats, getRecentActivity } from '../services/admin';
+import { getUserStats, getScamDatabaseStats } from '../services/admin';
 import type { UserStats, ScamStats } from '../types/admin-database';
 
 export function AdminDashboard() {

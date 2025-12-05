@@ -96,7 +96,7 @@ export async function fetchTransactionHistory(
       asset: transfer.asset || null,
       category: transfer.category,
       blockNum: transfer.blockNum,
-      timestamp: transfer.metadata?.blockTimestamp || '',
+      timestamp: (transfer as unknown as { metadata?: { blockTimestamp?: string } }).metadata?.blockTimestamp || '',
       rawContract: transfer.rawContract ? {
         address: transfer.rawContract.address ?? undefined,
         decimal: transfer.rawContract.decimal ?? undefined,

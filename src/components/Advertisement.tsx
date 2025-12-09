@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getActiveAds, trackAdImpression, trackAdClick } from '../services/database';
+import { useAuth } from '../contexts/AuthContext';
+import { hasAdFree } from '../services/subscriptionLimits';
 import type { Advertisement as AdType } from '../types/database';
 
 interface AdvertisementProps {
@@ -8,11 +10,24 @@ interface AdvertisementProps {
 }
 
 export function Advertisement({ zone, className = '' }: AdvertisementProps) {
+  const { profile } = useAuth();
   const [ad, setAd] = useState<AdType | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadAd() {
+      // Check if user has ad-free premium access
+      if (profile) {
+        const adFreeAccess = hasAdFree(
+          profile.subscription_status,
+          profile.subscription_expires_at
+        );
+        if (adFreeAccess) {
+          setLoading(false);
+          return; // Premium users don't see ads
+        }
+      }
+
       const ads = await getActiveAds(zone);
       if (ads.length > 0) {
         // Select random ad from available ones
@@ -24,7 +39,7 @@ export function Advertisement({ zone, className = '' }: AdvertisementProps) {
       setLoading(false);
     }
     loadAd();
-  }, [zone]);
+  }, [zone, profile]);
 
   const handleClick = () => {
     if (ad) {

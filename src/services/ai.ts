@@ -436,3 +436,166 @@ Include:
     maxTokens: 512,
   });
 }
+
+/**
+ * AI Portfolio Analysis Types
+ */
+export interface PortfolioAnalysisInput {
+  holdings: Array<{
+    symbol: string;
+    name: string;
+    amount: number;
+    currentValue: number;
+    costBasis: number;
+    allocationPercentage: number;
+  }>;
+  totalValue: number;
+  totalCostBasis: number;
+  riskTolerance?: 'low' | 'medium' | 'high';
+  investmentGoal?: string;
+  timeHorizon?: 'short' | 'medium' | 'long';
+}
+
+export interface PortfolioAnalysisResult {
+  riskScore: number; // 1-10
+  riskLevel: 'low' | 'medium' | 'high' | 'very_high';
+  diversificationScore: number; // 1-100
+  overallHealth: 'poor' | 'fair' | 'good' | 'excellent';
+  summary: string;
+  strengths: string[];
+  concerns: string[];
+  rebalancingSuggestions: string[];
+  educationalInsights: string[];
+  disclaimer: string;
+}
+
+/**
+ * Generate comprehensive AI portfolio analysis
+ * Premium feature: Risk assessment, diversification score, rebalancing suggestions
+ */
+export async function generatePortfolioAnalysis(
+  input: PortfolioAnalysisInput
+): Promise<AIResponse & { analysis?: PortfolioAnalysisResult }> {
+  const system = `You are an expert cryptocurrency portfolio analyst providing educational insights.
+CRITICAL GUIDELINES:
+- This is NOT financial advice - always include appropriate disclaimers
+- Focus on educational explanations and general principles
+- Be objective and data-driven in your analysis
+- Explain the reasoning behind each assessment
+- Consider both technical factors and risk management principles
+- Be helpful but cautious - never make specific buy/sell recommendations
+
+You must respond in a specific JSON format for programmatic parsing.`;
+
+  const holdingsSummary = input.holdings
+    .map(h => `${h.symbol} (${h.name}): ${h.amount.toFixed(6)} units, Value: $${h.currentValue.toLocaleString()}, Allocation: ${h.allocationPercentage.toFixed(1)}%, P/L: ${(((h.currentValue - h.costBasis) / h.costBasis) * 100).toFixed(1)}%`)
+    .join('\n');
+
+  const prompt = `Analyze this cryptocurrency portfolio and provide a comprehensive assessment:
+
+PORTFOLIO SUMMARY:
+Total Value: $${input.totalValue.toLocaleString()}
+Total Cost Basis: $${input.totalCostBasis.toLocaleString()}
+Overall P/L: ${(((input.totalValue - input.totalCostBasis) / input.totalCostBasis) * 100).toFixed(1)}%
+
+HOLDINGS:
+${holdingsSummary}
+
+USER PROFILE:
+Risk Tolerance: ${input.riskTolerance || 'Not specified'}
+Investment Goal: ${input.investmentGoal || 'Not specified'}
+Time Horizon: ${input.timeHorizon || 'Not specified'}
+
+Please provide your analysis in the following JSON format:
+{
+  "riskScore": <1-10 number>,
+  "riskLevel": "<low|medium|high|very_high>",
+  "diversificationScore": <1-100 number>,
+  "overallHealth": "<poor|fair|good|excellent>",
+  "summary": "<2-3 sentence overall assessment>",
+  "strengths": ["<strength 1>", "<strength 2>", ...],
+  "concerns": ["<concern 1>", "<concern 2>", ...],
+  "rebalancingSuggestions": ["<suggestion 1>", "<suggestion 2>", ...],
+  "educationalInsights": ["<insight 1>", "<insight 2>", ...],
+  "disclaimer": "<appropriate disclaimer about this not being financial advice>"
+}
+
+Consider these factors in your analysis:
+1. Asset concentration risk (% in single assets)
+2. Correlation between holdings (BTC often influences other cryptos)
+3. Market cap diversity (large cap vs small cap exposure)
+4. Sector diversity (DeFi, Layer 1, Layer 2, etc.)
+5. Volatility profile based on asset mix
+6. Current profit/loss positions and tax implications
+7. Alignment with stated risk tolerance and goals`;
+
+  const response = await sendAIMessage([{ role: 'user', content: prompt }], {
+    model: 'default',
+    system,
+    feature: 'portfolio_analysis',
+    maxTokens: 2048,
+    temperature: 0.5, // Lower temperature for more consistent analysis
+  });
+
+  // Try to parse the JSON response
+  if (response.success && response.content) {
+    try {
+      // Extract JSON from the response (handle potential markdown code blocks)
+      let jsonContent = response.content;
+      const jsonMatch = response.content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[1];
+      } else {
+        // Try to find JSON object directly
+        const jsonStart = response.content.indexOf('{');
+        const jsonEnd = response.content.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          jsonContent = response.content.slice(jsonStart, jsonEnd + 1);
+        }
+      }
+
+      const analysis = JSON.parse(jsonContent) as PortfolioAnalysisResult;
+      return {
+        ...response,
+        analysis,
+      };
+    } catch (parseError) {
+      // Return response without parsed analysis if JSON parsing fails
+      console.error('Failed to parse portfolio analysis JSON:', parseError);
+    }
+  }
+
+  return response;
+}
+
+/**
+ * Generate quick portfolio health check
+ * Lighter-weight analysis for frequent checks
+ */
+export async function generateQuickPortfolioCheck(
+  holdings: Array<{ symbol: string; allocationPercentage: number }>
+): Promise<AIResponse> {
+  const system = `You are a cryptocurrency portfolio advisor providing quick health checks.
+Keep responses brief and actionable. This is educational content, not financial advice.`;
+
+  const holdingsList = holdings
+    .map(h => `${h.symbol}: ${h.allocationPercentage.toFixed(1)}%`)
+    .join(', ');
+
+  const prompt = `Quick portfolio health check for: ${holdingsList}
+
+In 2-3 sentences:
+1. Note any obvious concentration risks
+2. Comment on diversification
+3. One actionable insight
+
+Be brief and practical.`;
+
+  return sendAIMessage([{ role: 'user', content: prompt }], {
+    model: 'lightweight',
+    system,
+    feature: 'portfolio_quick_check',
+    maxTokens: 256,
+    temperature: 0.5,
+  });
+}

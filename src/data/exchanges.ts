@@ -57,6 +57,14 @@ export const exchanges: Exchange[] = [
     ],
     user_rating: 4.2,
     review_count: 15420,
+    // Sponsored placement - Featured partner
+    sponsored: {
+      is_sponsored: true,
+      badge_type: 'featured',
+      placement_tier: 1,
+      sponsor_since: '2024-01-01',
+      monthly_fee: 2000,
+    },
   },
   {
     id: 'kraken',
@@ -109,6 +117,14 @@ export const exchanges: Exchange[] = [
     ],
     user_rating: 4.4,
     review_count: 8930,
+    // Sponsored placement - Recommended partner
+    sponsored: {
+      is_sponsored: true,
+      badge_type: 'recommended',
+      placement_tier: 2,
+      sponsor_since: '2024-03-01',
+      monthly_fee: 1500,
+    },
   },
   {
     id: 'binance-us',
@@ -213,6 +229,14 @@ export const exchanges: Exchange[] = [
     ],
     user_rating: 4.0,
     review_count: 4120,
+    // Sponsored placement - Partner
+    sponsored: {
+      is_sponsored: true,
+      badge_type: 'partner',
+      placement_tier: 3,
+      sponsor_since: '2024-06-01',
+      monthly_fee: 500,
+    },
   },
   {
     id: 'crypto-com',

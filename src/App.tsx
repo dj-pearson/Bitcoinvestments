@@ -33,6 +33,10 @@ import { UserManagement } from './pages/UserManagement';
 import { ScamDatabase } from './pages/ScamDatabase';
 import { AdminAISettings } from './pages/AdminAISettings';
 import TaxReports from './pages/TaxReports';
+import { AdvisorDashboard } from './pages/AdvisorDashboard';
+import { InfluencerDashboard } from './pages/InfluencerDashboard';
+import { Backtesting } from './pages/Backtesting';
+import { PortfolioAnalysis } from './pages/PortfolioAnalysis';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -61,6 +65,10 @@ function App() {
                   <Route path="affiliate-stats" element={<ProtectedRoute><AffiliateStats /></ProtectedRoute>} />
                   <Route path="ad-manager" element={<ProtectedRoute><AdManager /></ProtectedRoute>} />
                   <Route path="tax-reports" element={<ProtectedRoute><TaxReports /></ProtectedRoute>} />
+                  <Route path="advisor" element={<ProtectedRoute><AdvisorDashboard /></ProtectedRoute>} />
+                  <Route path="affiliate" element={<InfluencerDashboard />} />
+                  <Route path="backtesting" element={<Backtesting />} />
+                  <Route path="portfolio-analysis" element={<ProtectedRoute><PortfolioAnalysis /></ProtectedRoute>} />
 
                   {/* Admin Routes - require admin role */}
                   <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

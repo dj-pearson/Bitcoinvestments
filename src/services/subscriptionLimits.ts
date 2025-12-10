@@ -2,10 +2,11 @@
  * Subscription Limits Service
  *
  * Centralized configuration and validation for freemium feature limits.
- * Free users have limited access, premium users get unlimited features.
+ * Supports Free, Premium, Advisor, and Enterprise tiers.
  */
 
 import { hasPremiumAccess } from './stripe';
+import type { SubscriptionStatus } from '../types';
 
 /**
  * Feature limits configuration for each tier
@@ -14,6 +15,7 @@ export const TIER_LIMITS = {
   free: {
     // Portfolio limits
     maxAssets: 10,
+    maxClientPortfolios: 0,
 
     // Price alert limits
     maxActiveAlerts: 3,
@@ -30,10 +32,22 @@ export const TIER_LIMITS = {
     emailAlerts: false,
     smsAlerts: false,
     advancedAnalytics: false,
+    adFree: false,
+    aiPortfolioAnalysis: false,
+    backtestingAdvanced: false,
+
+    // Advisor features
+    whiteLabelReports: false,
+    clientDashboard: false,
+    complianceExports: false,
+    customBranding: false,
+    apiAccess: false,
+    teamAccess: false,
   },
   premium: {
-    // Portfolio limits - unlimited
+    // Portfolio limits - unlimited for self
     maxAssets: Infinity,
+    maxClientPortfolios: 0,
 
     // Price alert limits - unlimited
     maxActiveAlerts: Infinity,
@@ -49,6 +63,79 @@ export const TIER_LIMITS = {
     emailAlerts: true,
     smsAlerts: true,
     advancedAnalytics: true,
+    adFree: true,
+    aiPortfolioAnalysis: true,
+    backtestingAdvanced: true,
+
+    // Advisor features
+    whiteLabelReports: false,
+    clientDashboard: false,
+    complianceExports: false,
+    customBranding: false,
+    apiAccess: false,
+    teamAccess: false,
+  },
+  advisor: {
+    // Portfolio limits
+    maxAssets: Infinity,
+    maxClientPortfolios: 10, // Up to 10 client portfolios
+
+    // Price alert limits - unlimited
+    maxActiveAlerts: Infinity,
+
+    // Data freshness - real-time
+    priceDataDelay: 0,
+
+    // Tax reports - full access
+    canExportTaxReports: true,
+
+    // Other features
+    cloudSync: true,
+    emailAlerts: true,
+    smsAlerts: true,
+    advancedAnalytics: true,
+    adFree: true,
+    aiPortfolioAnalysis: true,
+    backtestingAdvanced: true,
+
+    // Advisor features
+    whiteLabelReports: true,
+    clientDashboard: true,
+    complianceExports: true,
+    customBranding: 'basic' as const,
+    apiAccess: false,
+    teamAccess: false,
+  },
+  enterprise: {
+    // Portfolio limits - unlimited
+    maxAssets: Infinity,
+    maxClientPortfolios: Infinity, // Unlimited client portfolios
+
+    // Price alert limits - unlimited
+    maxActiveAlerts: Infinity,
+
+    // Data freshness - real-time
+    priceDataDelay: 0,
+
+    // Tax reports - full access
+    canExportTaxReports: true,
+
+    // Other features
+    cloudSync: true,
+    emailAlerts: true,
+    smsAlerts: true,
+    advancedAnalytics: true,
+    adFree: true,
+    aiPortfolioAnalysis: true,
+    backtestingAdvanced: true,
+
+    // Advisor/Enterprise features
+    whiteLabelReports: true,
+    clientDashboard: true,
+    complianceExports: true,
+    customBranding: 'full' as const,
+    apiAccess: true,
+    teamAccess: true,
   },
 } as const;
 
@@ -56,14 +143,59 @@ export type SubscriptionTier = keyof typeof TIER_LIMITS;
 export type TierLimits = typeof TIER_LIMITS[SubscriptionTier];
 
 /**
+ * Check if subscription is still valid (not expired)
+ */
+function isSubscriptionActive(subscriptionExpiresAt?: string | null): boolean {
+  if (!subscriptionExpiresAt) return true; // No expiry = active
+  const expiresAt = new Date(subscriptionExpiresAt);
+  return expiresAt > new Date();
+}
+
+/**
  * Get limits for a user's subscription tier
  */
 export function getTierLimits(
-  subscriptionStatus?: 'free' | 'premium',
+  subscriptionStatus?: SubscriptionStatus,
   subscriptionExpiresAt?: string | null
 ): TierLimits {
-  const isPremium = hasPremiumAccess(subscriptionStatus, subscriptionExpiresAt);
-  return isPremium ? TIER_LIMITS.premium : TIER_LIMITS.free;
+  // Check if subscription is still active
+  if (!isSubscriptionActive(subscriptionExpiresAt)) {
+    return TIER_LIMITS.free;
+  }
+
+  switch (subscriptionStatus) {
+    case 'enterprise':
+      return TIER_LIMITS.enterprise;
+    case 'advisor':
+      return TIER_LIMITS.advisor;
+    case 'premium':
+      return TIER_LIMITS.premium;
+    case 'free':
+    default:
+      return TIER_LIMITS.free;
+  }
+}
+
+/**
+ * Check if user has advisor-level access or higher
+ */
+export function hasAdvisorAccess(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  if (!isSubscriptionActive(subscriptionExpiresAt)) return false;
+  return subscriptionStatus === 'advisor' || subscriptionStatus === 'enterprise';
+}
+
+/**
+ * Check if user has enterprise-level access
+ */
+export function hasEnterpriseAccess(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  if (!isSubscriptionActive(subscriptionExpiresAt)) return false;
+  return subscriptionStatus === 'enterprise';
 }
 
 /**
@@ -168,6 +300,39 @@ export function hasEmailAlerts(
 ): boolean {
   const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
   return limits.emailAlerts;
+}
+
+/**
+ * Check if user has ad-free experience
+ */
+export function hasAdFree(
+  subscriptionStatus?: 'free' | 'premium',
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.adFree;
+}
+
+/**
+ * Check if user has access to AI portfolio analysis
+ */
+export function hasAIPortfolioAnalysis(
+  subscriptionStatus?: 'free' | 'premium',
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.aiPortfolioAnalysis;
+}
+
+/**
+ * Check if user has access to advanced backtesting
+ */
+export function hasAdvancedBacktesting(
+  subscriptionStatus?: 'free' | 'premium',
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.backtestingAdvanced;
 }
 
 /**

@@ -1,14 +1,42 @@
 // User Types
+export type SubscriptionStatus = 'free' | 'premium' | 'advisor' | 'enterprise';
+
 export interface User {
   id: string;
   email: string;
   created_at: string;
   updated_at: string;
-  subscription_status: 'free' | 'premium';
+  subscription_status: SubscriptionStatus;
   subscription_expires_at?: string;
   preferences: UserPreferences;
   referral_code?: string;
   referred_by?: string;
+  // Advisor/Enterprise specific
+  company_name?: string;
+  branding?: AdvisorBranding;
+}
+
+export interface AdvisorBranding {
+  logo_url?: string;
+  company_name?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  website?: string;
+  disclaimer_text?: string;
+}
+
+export interface AdvisorClient {
+  id: string;
+  advisor_id: string;
+  name: string;
+  email: string;
+  portfolio_id?: string;
+  created_at: string;
+  updated_at: string;
+  notes?: string;
+  status: 'active' | 'inactive';
 }
 
 export interface UserPreferences {
@@ -87,6 +115,14 @@ export interface Exchange {
   cons: string[];
   user_rating: number; // 1-5
   review_count: number;
+  // Sponsored placement fields
+  sponsored?: {
+    is_sponsored: boolean;
+    badge_type: 'featured' | 'recommended' | 'partner';
+    placement_tier?: number; // 1 = top, 2 = high, 3 = standard
+    sponsor_since?: string;
+    monthly_fee?: number; // $500-2000/month
+  };
 }
 
 export interface ExchangeFees {

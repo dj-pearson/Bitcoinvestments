@@ -1,9 +1,53 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Wallet, ArrowRight, Star, Shield, Check, X, ExternalLink } from 'lucide-react';
+import { Building2, Wallet, ArrowRight, Star, Shield, Check, X, ExternalLink, Award, ThumbsUp, Handshake, Info } from 'lucide-react';
 import { exchanges } from '../data/exchanges';
 import { wallets } from '../data/wallets';
 import { cn } from '../lib/utils';
+
+/**
+ * Sponsored badge component with disclosure
+ */
+function SponsoredBadge({ badgeType }: { badgeType: 'featured' | 'recommended' | 'partner' }) {
+  const badgeConfig = {
+    featured: {
+      icon: Award,
+      label: 'Featured',
+      className: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    },
+    recommended: {
+      icon: ThumbsUp,
+      label: 'Recommended',
+      className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    },
+    partner: {
+      icon: Handshake,
+      label: 'Partner',
+      className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    },
+  };
+
+  const config = badgeConfig[badgeType];
+  const Icon = config.icon;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={cn(
+        'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border',
+        config.className
+      )}>
+        <Icon className="w-3.5 h-3.5" />
+        {config.label}
+      </span>
+      <span className="group relative">
+        <Info className="w-4 h-4 text-gray-500 cursor-help" />
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 border border-white/10">
+          Sponsored placement
+        </span>
+      </span>
+    </div>
+  );
+}
 
 type CompareType = 'exchanges' | 'wallets';
 
@@ -58,7 +102,17 @@ export function Compare() {
 function ExchangeComparison() {
   const [sortBy, setSortBy] = useState<'trust_score' | 'fees' | 'user_rating'>('trust_score');
 
+  // Sort exchanges with sponsored ones prioritized by tier, then by selected criteria
   const sortedExchanges = [...exchanges].sort((a, b) => {
+    // Sponsored exchanges come first, sorted by placement tier
+    const aSponsored = a.sponsored?.is_sponsored ? (a.sponsored.placement_tier || 99) : 99;
+    const bSponsored = b.sponsored?.is_sponsored ? (b.sponsored.placement_tier || 99) : 99;
+
+    if (aSponsored !== bSponsored) {
+      return aSponsored - bSponsored;
+    }
+
+    // Then sort by selected criteria
     switch (sortBy) {
       case 'trust_score':
         return b.trust_score - a.trust_score;
@@ -86,10 +140,21 @@ function ExchangeComparison() {
         </select>
       </div>
 
+      {/* Sponsored Disclosure */}
+      <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+        <p className="text-xs text-gray-400">
+          <span className="font-medium text-gray-300">Disclosure:</span> Some exchanges on this page have paid for featured placement.
+          Sponsored placements are clearly labeled. Our ratings and reviews remain independent and are not influenced by sponsorships.
+        </p>
+      </div>
+
       {/* Exchange Cards */}
       <div className="grid gap-6">
         {sortedExchanges.map((exchange, index) => (
-          <div key={exchange.id} className="glass-card p-6">
+          <div key={exchange.id} className={cn(
+            "glass-card p-6",
+            exchange.sponsored?.is_sponsored && "ring-1 ring-white/10"
+          )}>
             <div className="flex flex-col lg:flex-row lg:items-center gap-6">
               {/* Rank & Name */}
               <div className="flex items-center gap-4">
@@ -97,7 +162,12 @@ function ExchangeComparison() {
                   {index + 1}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">{exchange.name}</h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-bold text-white">{exchange.name}</h3>
+                    {exchange.sponsored?.is_sponsored && (
+                      <SponsoredBadge badgeType={exchange.sponsored.badge_type} />
+                    )}
+                  </div>
                   <p className="text-sm text-gray-400">Est. {exchange.year_established}</p>
                 </div>
               </div>

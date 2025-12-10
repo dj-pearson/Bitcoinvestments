@@ -37,6 +37,9 @@ import { AdvisorDashboard } from './pages/AdvisorDashboard';
 import { InfluencerDashboard } from './pages/InfluencerDashboard';
 import { Backtesting } from './pages/Backtesting';
 import { PortfolioAnalysis } from './pages/PortfolioAnalysis';
+import { ResearchReports } from './pages/ResearchReports';
+import { CourseMarketplace } from './pages/CourseMarketplace';
+import { Consultants } from './pages/Consultants';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -69,6 +72,14 @@ function App() {
                   <Route path="affiliate" element={<InfluencerDashboard />} />
                   <Route path="backtesting" element={<Backtesting />} />
                   <Route path="portfolio-analysis" element={<ProtectedRoute><PortfolioAnalysis /></ProtectedRoute>} />
+
+                  {/* Monetization Features */}
+                  <Route path="research" element={<ResearchReports />} />
+                  <Route path="research/:slug" element={<ResearchReports />} />
+                  <Route path="courses" element={<CourseMarketplace />} />
+                  <Route path="courses/:slug" element={<CourseMarketplace />} />
+                  <Route path="consultants" element={<Consultants />} />
+                  <Route path="consultants/:consultantId" element={<Consultants />} />
 
                   {/* Admin Routes - require admin role */}
                   <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

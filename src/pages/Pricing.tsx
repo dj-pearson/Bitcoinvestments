@@ -185,7 +185,7 @@ export function Pricing() {
         <div className="glass-card p-8 flex flex-col border-2 border-gold-500/50 relative">
           {/* Popular Badge */}
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-gold-500 to-yellow-500 text-black px-4 py-1 rounded-full text-sm font-bold">
-            Most Popular
+            2 Months FREE
           </div>
 
           <div className="mb-6">
@@ -195,9 +195,11 @@ export function Pricing() {
               <span className="text-lg text-gray-400">/year</span>
             </div>
             <p className="text-gray-400">
-              {formatPrice(SUBSCRIPTION_TIERS.annual.monthlyEquivalent!)}/month • Save{' '}
-              {formatPrice(savings.savings)} ({savings.savingsPercentage.toFixed(0)}% off)
+              {formatPrice(SUBSCRIPTION_TIERS.annual.monthlyEquivalent!)}/month
             </p>
+            <div className="mt-2 inline-block bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
+              Save {formatPrice(savings.savings)}/year vs monthly
+            </div>
           </div>
 
           <div className="flex-1 mb-6">

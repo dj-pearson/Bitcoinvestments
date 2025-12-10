@@ -87,15 +87,17 @@ export const SUBSCRIPTION_TIERS = {
   annual: {
     id: 'annual',
     name: 'Premium Annual',
-    price: 99.99,
+    price: 99,
     interval: 'year',
     stripePriceId: import.meta.env.VITE_STRIPE_PRICE_ANNUAL || 'price_annual_placeholder',
     tier: 'premium' as const,
-    savings: '17% off',
-    monthlyEquivalent: 8.33,
+    savings: '2 months free',
+    monthlyEquivalent: 8.25,
+    originalMonthlyPrice: 9.99,
+    monthsFree: 2,
     features: [
       '✨ Everything in Premium Monthly, plus:',
-      '💰 Save $20/year (17% off)',
+      '💰 2 months FREE ($99/year vs $119.88)',
       '🎓 Exclusive annual webinars',
       '📖 Year-end crypto tax guide',
       '🏆 VIP community badge',
@@ -304,22 +306,26 @@ export function formatPrice(amount: number, currency: string = 'USD'): string {
 
 /**
  * Calculate savings for annual plan
+ * Annual plan offers 2 months free: $99/year vs $119.88 ($9.99 x 12)
  */
 export function calculateAnnualSavings(): {
   monthlyCost: number;
   annualCost: number;
   savings: number;
   savingsPercentage: number;
+  monthsFree: number;
 } {
-  const monthlyCost = SUBSCRIPTION_TIERS.monthly.price * 12;
-  const annualCost = SUBSCRIPTION_TIERS.annual.price;
-  const savings = monthlyCost - annualCost;
-  const savingsPercentage = (savings / monthlyCost) * 100;
+  const monthlyCost = SUBSCRIPTION_TIERS.monthly.price * 12; // $119.88
+  const annualCost = SUBSCRIPTION_TIERS.annual.price; // $99
+  const savings = monthlyCost - annualCost; // ~$20.88
+  const savingsPercentage = (savings / monthlyCost) * 100; // ~17%
+  const monthsFree = Math.round(savings / SUBSCRIPTION_TIERS.monthly.price); // 2 months
 
   return {
     monthlyCost,
     annualCost,
     savings,
     savingsPercentage,
+    monthsFree,
   };
 }

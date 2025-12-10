@@ -24,6 +24,10 @@ export const TIER_LIMITS = {
     // Free tier gets 15-minute delayed data
     priceDataDelay: 15 * 60 * 1000, // 15 minutes
 
+    // Historical data limits - Free users see 30-day price history
+    historicalDataDays: 30,
+    fullHistoricalAccess: false,
+
     // Tax reports - free users can preview but not export
     canExportTaxReports: false,
 
@@ -35,6 +39,10 @@ export const TIER_LIMITS = {
     adFree: false,
     aiPortfolioAnalysis: false,
     backtestingAdvanced: false,
+
+    // Dashboard customization
+    customDashboard: false,
+    maxDashboards: 1,
 
     // Advisor features
     whiteLabelReports: false,
@@ -55,6 +63,10 @@ export const TIER_LIMITS = {
     // Data freshness - real-time (5 min cache for API efficiency)
     priceDataDelay: 0, // Real-time
 
+    // Historical data - Full access to all historical charts and data
+    historicalDataDays: Infinity,
+    fullHistoricalAccess: true,
+
     // Tax reports - full access
     canExportTaxReports: true,
 
@@ -66,6 +78,10 @@ export const TIER_LIMITS = {
     adFree: true,
     aiPortfolioAnalysis: true,
     backtestingAdvanced: true,
+
+    // Dashboard customization
+    customDashboard: true,
+    maxDashboards: 5,
 
     // Advisor features
     whiteLabelReports: false,
@@ -86,6 +102,10 @@ export const TIER_LIMITS = {
     // Data freshness - real-time
     priceDataDelay: 0,
 
+    // Historical data - Full access
+    historicalDataDays: Infinity,
+    fullHistoricalAccess: true,
+
     // Tax reports - full access
     canExportTaxReports: true,
 
@@ -97,6 +117,10 @@ export const TIER_LIMITS = {
     adFree: true,
     aiPortfolioAnalysis: true,
     backtestingAdvanced: true,
+
+    // Dashboard customization
+    customDashboard: true,
+    maxDashboards: 10,
 
     // Advisor features
     whiteLabelReports: true,
@@ -117,6 +141,10 @@ export const TIER_LIMITS = {
     // Data freshness - real-time
     priceDataDelay: 0,
 
+    // Historical data - Full access
+    historicalDataDays: Infinity,
+    fullHistoricalAccess: true,
+
     // Tax reports - full access
     canExportTaxReports: true,
 
@@ -128,6 +156,10 @@ export const TIER_LIMITS = {
     adFree: true,
     aiPortfolioAnalysis: true,
     backtestingAdvanced: true,
+
+    // Dashboard customization
+    customDashboard: true,
+    maxDashboards: Infinity,
 
     // Advisor/Enterprise features
     whiteLabelReports: true,
@@ -414,4 +446,147 @@ export function isTaxSeasonActive(): boolean {
  */
 export function formatLimit(limit: number): string {
   return limit === Infinity || limit === -1 ? 'Unlimited' : limit.toString();
+}
+
+/**
+ * Historical Data Paywall Configuration
+ * Free users see 30-day price history, premium unlocks full historical charts
+ */
+export const HISTORICAL_DATA_CONFIG = {
+  free: {
+    maxDays: 30,
+    allowedTimeframes: ['24h', '7d', '30d'] as const,
+    description: 'Access 30-day price history',
+  },
+  premium: {
+    maxDays: Infinity,
+    allowedTimeframes: ['24h', '7d', '30d', '90d', '1y', '5y', 'max'] as const,
+    description: 'Access full historical data (years of history)',
+  },
+} as const;
+
+export type HistoricalTimeframe = '24h' | '7d' | '30d' | '90d' | '1y' | '5y' | 'max';
+
+/**
+ * Check if user has full historical data access
+ */
+export function hasFullHistoricalAccess(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.fullHistoricalAccess;
+}
+
+/**
+ * Get maximum historical data days for user's tier
+ */
+export function getMaxHistoricalDays(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): number {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.historicalDataDays;
+}
+
+/**
+ * Check if user can access a specific historical timeframe
+ */
+export function canAccessTimeframe(
+  timeframe: HistoricalTimeframe,
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const hasFullAccess = hasFullHistoricalAccess(subscriptionStatus, subscriptionExpiresAt);
+
+  if (hasFullAccess) return true;
+
+  const freeTimeframes = HISTORICAL_DATA_CONFIG.free.allowedTimeframes;
+  return (freeTimeframes as readonly string[]).includes(timeframe);
+}
+
+/**
+ * Get allowed timeframes for user's tier
+ */
+export function getAllowedTimeframes(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): readonly HistoricalTimeframe[] {
+  const hasFullAccess = hasFullHistoricalAccess(subscriptionStatus, subscriptionExpiresAt);
+
+  if (hasFullAccess) {
+    return HISTORICAL_DATA_CONFIG.premium.allowedTimeframes;
+  }
+
+  return HISTORICAL_DATA_CONFIG.free.allowedTimeframes;
+}
+
+/**
+ * Convert timeframe to days for API calls
+ */
+export function timeframeToDays(timeframe: HistoricalTimeframe): number {
+  switch (timeframe) {
+    case '24h':
+      return 1;
+    case '7d':
+      return 7;
+    case '30d':
+      return 30;
+    case '90d':
+      return 90;
+    case '1y':
+      return 365;
+    case '5y':
+      return 1825;
+    case 'max':
+      return 3650; // ~10 years
+    default:
+      return 30;
+  }
+}
+
+/**
+ * Get timeframe label for display
+ */
+export function getTimeframeLabel(timeframe: HistoricalTimeframe): string {
+  switch (timeframe) {
+    case '24h':
+      return '24 Hours';
+    case '7d':
+      return '7 Days';
+    case '30d':
+      return '30 Days';
+    case '90d':
+      return '90 Days';
+    case '1y':
+      return '1 Year';
+    case '5y':
+      return '5 Years';
+    case 'max':
+      return 'All Time';
+    default:
+      return timeframe;
+  }
+}
+
+/**
+ * Check if user can customize dashboard
+ */
+export function canCustomizeDashboard(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.customDashboard;
+}
+
+/**
+ * Get maximum dashboards for user's tier
+ */
+export function getMaxDashboards(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): number {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.maxDashboards;
 }

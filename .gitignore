@@ -30,3 +30,5 @@ dist-ssr
 # Cloudflare
 .wrangler
 dkim-dns-records.csv
+supabase_backup.dump
+supabase_full_backup.dump

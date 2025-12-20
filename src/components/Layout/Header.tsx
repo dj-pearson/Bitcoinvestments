@@ -33,6 +33,17 @@ const navItems = [
         ],
     },
     {
+        label: 'Tools',
+        href: '/portfolio-analysis',
+        children: [
+            { label: 'Portfolio Analysis', href: '/portfolio-analysis' },
+            { label: 'Backtesting', href: '/backtesting' },
+            { label: 'Tax Reports', href: '/tax-reports' },
+            { label: 'Web3 Features', href: '/web3' },
+            { label: 'Scam Database', href: '/scam-database' },
+        ],
+    },
+    {
         label: 'Learn',
         href: '/learn',
     },
@@ -129,7 +140,7 @@ export function Header() {
 
                                 {userDropdownOpen && (
                                     <div className="absolute top-full right-0 pt-2">
-                                        <div className="glass-card p-2 min-w-[180px] rounded-xl border border-white/10">
+                                        <div className="glass-card p-2 min-w-[200px] rounded-xl border border-white/10">
                                             <div className="px-4 py-2 border-b border-white/10 mb-2">
                                                 <p className="text-sm text-gray-400">Signed in as</p>
                                                 <p className="text-sm text-white font-medium truncate">{user.email}</p>
@@ -146,15 +157,37 @@ export function Header() {
                                             >
                                                 Dashboard
                                             </Link>
+                                            <div className="border-t border-white/10 my-2"></div>
+                                            <Link
+                                                to="/portfolio-analysis"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Portfolio Analysis
+                                            </Link>
+                                            <Link
+                                                to="/backtesting"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Backtesting
+                                            </Link>
+                                            <Link
+                                                to="/tax-reports"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Tax Reports
+                                            </Link>
                                             {/* Admin Dashboard link - only show for admin users */}
                                             {(user.role === 'admin' || user.role === 'super_admin') && (
-                                                <Link
-                                                    to="/admin"
-                                                    className="flex items-center gap-2 px-4 py-2 text-sm text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors"
-                                                >
-                                                    <Shield className="w-4 h-4" />
-                                                    Admin Dashboard
-                                                </Link>
+                                                <>
+                                                    <div className="border-t border-white/10 my-2"></div>
+                                                    <Link
+                                                        to="/admin"
+                                                        className="flex items-center gap-2 px-4 py-2 text-sm text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Shield className="w-4 h-4" />
+                                                        Admin Dashboard
+                                                    </Link>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -239,16 +272,41 @@ export function Header() {
                                     >
                                         Profile Settings
                                     </Link>
+                                    <div className="border-t border-white/10 my-2"></div>
+                                    <Link
+                                        to="/portfolio-analysis"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Portfolio Analysis
+                                    </Link>
+                                    <Link
+                                        to="/backtesting"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Backtesting
+                                    </Link>
+                                    <Link
+                                        to="/tax-reports"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Tax Reports
+                                    </Link>
                                     {/* Mobile Admin Dashboard link */}
                                     {(user.role === 'admin' || user.role === 'super_admin') && (
-                                        <Link
-                                            to="/admin"
-                                            className="flex items-center gap-2 px-4 py-3 text-base font-medium text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <Shield className="w-5 h-5" />
-                                            Admin Dashboard
-                                        </Link>
+                                        <>
+                                            <div className="border-t border-white/10 my-2"></div>
+                                            <Link
+                                                to="/admin"
+                                                className="flex items-center gap-2 px-4 py-3 text-base font-medium text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg"
+                                                onClick={() => setIsMenuOpen(false)}
+                                            >
+                                                <Shield className="w-5 h-5" />
+                                                Admin Dashboard
+                                            </Link>
+                                        </>
                                     )}
                                 </div>
                             ) : (

@@ -30,6 +30,11 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
+                                <Link to="/charts" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
+                                    Price Charts
+                                </Link>
+                            </li>
+                            <li>
                                 <Link to="/compare" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
                                     Compare Exchanges
                                 </Link>
@@ -40,8 +45,8 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/profile" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
-                                    My Account
+                                <Link to="/pricing" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
+                                    Pricing
                                 </Link>
                             </li>
                         </ul>
@@ -62,13 +67,13 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/compare?tab=wallets" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
-                                    Wallet Guide
+                                <Link to="/scam-database" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
+                                    Scam Database
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/calculators?type=tax" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
-                                    Tax Guide
+                                <Link to="/compare?tab=wallets" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
+                                    Wallet Guide
                                 </Link>
                             </li>
                         </ul>

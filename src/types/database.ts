@@ -37,6 +37,11 @@ export type Database = {
           suspended_at: string | null;
           suspended_reason: string | null;
           last_login_at: string | null;
+          // Two-Factor Authentication fields
+          two_factor_enabled: boolean;
+          two_factor_secret: string | null;
+          two_factor_recovery_codes: string[] | null;
+          two_factor_enabled_at: string | null;
         };
         Insert: {
           id: string;
@@ -56,6 +61,11 @@ export type Database = {
           suspended_at?: string | null;
           suspended_reason?: string | null;
           last_login_at?: string | null;
+          // Two-Factor Authentication fields
+          two_factor_enabled?: boolean;
+          two_factor_secret?: string | null;
+          two_factor_recovery_codes?: string[] | null;
+          two_factor_enabled_at?: string | null;
         };
         Update: {
           id?: string;
@@ -75,6 +85,11 @@ export type Database = {
           suspended_at?: string | null;
           suspended_reason?: string | null;
           last_login_at?: string | null;
+          // Two-Factor Authentication fields
+          two_factor_enabled?: boolean;
+          two_factor_secret?: string | null;
+          two_factor_recovery_codes?: string[] | null;
+          two_factor_enabled_at?: string | null;
         };
         Relationships: [];
       };
@@ -954,6 +969,66 @@ export type Database = {
           }
         ];
       };
+      // Platform Reviews table for exchanges, wallets, and tax software
+      platform_reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          platform_type: 'exchange' | 'wallet' | 'tax_software';
+          platform_id: string;
+          rating: number; // 1-5 stars
+          title: string;
+          content: string;
+          pros: string[] | null;
+          cons: string[] | null;
+          verified_user: boolean;
+          helpful_count: number;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          platform_type: 'exchange' | 'wallet' | 'tax_software';
+          platform_id: string;
+          rating: number;
+          title: string;
+          content: string;
+          pros?: string[] | null;
+          cons?: string[] | null;
+          verified_user?: boolean;
+          helpful_count?: number;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          platform_type?: 'exchange' | 'wallet' | 'tax_software';
+          platform_id?: string;
+          rating?: number;
+          title?: string;
+          content?: string;
+          pros?: string[] | null;
+          cons?: string[] | null;
+          verified_user?: boolean;
+          helpful_count?: number;
+          status?: 'pending' | 'approved' | 'rejected';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'platform_reviews_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1035,6 +1110,7 @@ export type Article = Tables<'articles'>;
 export type Advertisement = Tables<'advertisements'>;
 export type NewsletterSubscriber = Tables<'newsletter_subscribers'>;
 export type TaxReportPurchase = Tables<'tax_report_purchases'>;
+export type PlatformReview = Tables<'platform_reviews'>;
 
 // Type for database function calls
 type PublicSchema = Database[Extract<keyof Database, 'public'>];

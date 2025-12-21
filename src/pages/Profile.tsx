@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getCurrentUser, signOut, updateUserProfile, getUserProfile, type AuthUser } from '../services/auth';
 import { PriceAlerts } from '../components/PriceAlerts';
+import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { createCustomerPortalSession, hasPremiumAccess, getSubscriptionTier, formatPrice, type SubscriptionTierId } from '../services/stripe';
 import type { User } from '../types/database';
 
@@ -10,7 +11,7 @@ export function Profile() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'alerts' | 'preferences'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'security' | 'alerts' | 'preferences'>('profile');
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
 
@@ -151,6 +152,16 @@ export function Profile() {
           }`}
         >
           Subscription
+        </button>
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            activeTab === 'security'
+              ? 'bg-gray-700 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Security
         </button>
         <button
           onClick={() => setActiveTab('alerts')}
@@ -458,6 +469,40 @@ export function Profile() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Security Tab */}
+      {activeTab === 'security' && (
+        <div className="space-y-6">
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h2 className="text-xl font-semibold text-white mb-6">Account Security</h2>
+            <p className="text-gray-400 mb-6">
+              Manage your account security settings to keep your account safe.
+            </p>
+          </div>
+
+          {/* Two-Factor Authentication */}
+          {user && (
+            <TwoFactorSetup
+              userId={user.id}
+              userEmail={user.email}
+            />
+          )}
+
+          {/* Password Section */}
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h3 className="text-lg font-semibold text-white mb-4">Password</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              We recommend using a strong, unique password that you don't use anywhere else.
+            </p>
+            <button
+              onClick={() => navigate('/forgot-password')}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm font-medium"
+            >
+              Change Password
+            </button>
+          </div>
         </div>
       )}
 

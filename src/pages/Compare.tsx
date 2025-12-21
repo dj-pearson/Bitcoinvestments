@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Building2, Wallet, ArrowRight, Star, Shield, Check, X, ExternalLink, Award, ThumbsUp, Handshake, Info } from 'lucide-react';
-import { exchanges } from '../data/exchanges';
-import { wallets } from '../data/wallets';
+import { Link, useParams } from 'react-router-dom';
+import { Building2, Wallet, ArrowRight, Star, Shield, Check, X, ExternalLink, Award, ThumbsUp, Handshake, Info, ArrowLeft, Globe, Smartphone, Lock } from 'lucide-react';
+import { exchanges, getExchangeById } from '../data/exchanges';
+import { wallets, getWalletById } from '../data/wallets';
+import { ReviewSection } from '../components/reviews';
 import { cn } from '../lib/utils';
 
 /**
@@ -52,7 +53,33 @@ function SponsoredBadge({ badgeType }: { badgeType: 'featured' | 'recommended' |
 type CompareType = 'exchanges' | 'wallets';
 
 export function Compare() {
+  const { type, id } = useParams<{ type?: string; id?: string }>();
   const [activeTab, setActiveTab] = useState<CompareType>('exchanges');
+
+  // If we have type and id, show detail view
+  if (type && id) {
+    if (type === 'exchange') {
+      const exchange = getExchangeById(id);
+      if (exchange) {
+        return <ExchangeDetail exchange={exchange} />;
+      }
+    }
+    if (type === 'wallet') {
+      const wallet = getWalletById(id);
+      if (wallet) {
+        return <WalletDetail wallet={wallet} />;
+      }
+    }
+    // Platform not found
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold text-white mb-4">Platform Not Found</h1>
+        <Link to="/compare" className="text-orange-500 hover:text-orange-400">
+          Back to Compare
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -236,7 +263,7 @@ function ExchangeComparison() {
                   to={`/compare/exchange/${exchange.id}`}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-medium transition-colors"
                 >
-                  View Details <ArrowRight className="w-4 h-4" />
+                  View Details & Reviews <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
@@ -355,7 +382,7 @@ function WalletComparison() {
                 to={`/compare/wallet/${wallet.id}`}
                 className="flex-1 text-center py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-medium transition-colors"
               >
-                Details
+                Details & Reviews
               </Link>
               <a
                 href={wallet.url}
@@ -368,6 +395,372 @@ function WalletComparison() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// Exchange Detail Component
+import type { Exchange } from '../types';
+
+function ExchangeDetail({ exchange }: { exchange: Exchange }) {
+  return (
+    <div className="container mx-auto px-4 py-12">
+      {/* Back Link */}
+      <Link
+        to="/compare"
+        className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Compare
+      </Link>
+
+      {/* Header */}
+      <div className="glass-card p-8 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-4">
+              <h1 className="text-3xl font-bold text-white">{exchange.name}</h1>
+              {exchange.sponsored?.is_sponsored && (
+                <SponsoredBadge badgeType={exchange.sponsored.badge_type} />
+              )}
+            </div>
+            <p className="text-gray-400 mb-4">{exchange.description}</p>
+            <div className="flex flex-wrap gap-4">
+              <span className="flex items-center gap-2 text-sm text-gray-300">
+                <Globe className="w-4 h-4" />
+                {exchange.country}
+              </span>
+              <span className="text-sm text-gray-300">Est. {exchange.year_established}</span>
+              {exchange.mobile_app && (
+                <span className="flex items-center gap-2 text-sm text-gray-300">
+                  <Smartphone className="w-4 h-4" />
+                  Mobile App Available
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <a
+              href={exchange.affiliate_url || exchange.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors text-center"
+            >
+              Visit {exchange.name}
+            </a>
+            <p className="text-xs text-gray-500 text-center">
+              {exchange.affiliate_url ? 'Affiliate link' : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="glass-card p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Shield className="w-6 h-6 text-green-400" />
+            <span className="text-3xl font-bold text-white">{exchange.trust_score}</span>
+            <span className="text-gray-400">/10</span>
+          </div>
+          <p className="text-sm text-gray-400">Trust Score</p>
+        </div>
+        <div className="glass-card p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+            <span className="text-3xl font-bold text-white">{exchange.user_rating}</span>
+          </div>
+          <p className="text-sm text-gray-400">{exchange.review_count.toLocaleString()} Reviews</p>
+        </div>
+        <div className="glass-card p-6 text-center">
+          <span className="text-3xl font-bold text-white">{(exchange.fees.taker_fee * 100).toFixed(2)}%</span>
+          <p className="text-sm text-gray-400">Taker Fee</p>
+        </div>
+        <div className="glass-card p-6 text-center">
+          <span className="text-3xl font-bold text-white">{exchange.supported_cryptocurrencies}+</span>
+          <p className="text-sm text-gray-400">Cryptocurrencies</p>
+        </div>
+      </div>
+
+      {/* Features & Pros/Cons */}
+      <div className="grid md:grid-cols-2 gap-8 mb-12">
+        {/* Features */}
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-bold text-white mb-4">Features</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(exchange.features).map(([key, value]) => (
+              <div key={key} className="flex items-center gap-2">
+                {value ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <X className="w-4 h-4 text-red-400" />
+                )}
+                <span className={cn('text-sm', value ? 'text-gray-300' : 'text-gray-500')}>
+                  {key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Pros & Cons */}
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-bold text-white mb-4">Pros & Cons</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-green-400 mb-2">Pros</h3>
+              <ul className="space-y-2">
+                {exchange.pros.map((pro, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                    <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    {pro}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-red-400 mb-2">Cons</h3>
+              <ul className="space-y-2">
+                {exchange.cons.map((con, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                    <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    {con}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Fees Section */}
+      <div className="glass-card p-6 mb-12">
+        <h2 className="text-xl font-bold text-white mb-4">Fee Structure</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Maker Fee</p>
+            <p className="text-lg font-bold text-white">{(exchange.fees.maker_fee * 100).toFixed(2)}%</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Taker Fee</p>
+            <p className="text-lg font-bold text-white">{(exchange.fees.taker_fee * 100).toFixed(2)}%</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">BTC Withdrawal</p>
+            <p className="text-lg font-bold text-white">
+              {exchange.fees.withdrawal_fee_btc === 0 ? 'Free' : `${exchange.fees.withdrawal_fee_btc} BTC`}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">ETH Withdrawal</p>
+            <p className="text-lg font-bold text-white">
+              {exchange.fees.withdrawal_fee_eth === 0 ? 'Free' : `${exchange.fees.withdrawal_fee_eth} ETH`}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Fiat Deposit</p>
+            <p className="text-lg font-bold text-white">
+              {exchange.fees.deposit_fee_fiat === 0 ? 'Free' : `$${exchange.fees.deposit_fee_fiat}`}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-1">Fiat Withdrawal</p>
+            <p className="text-lg font-bold text-white">
+              {exchange.fees.withdrawal_fee_fiat === 0 ? 'Free' : `$${exchange.fees.withdrawal_fee_fiat}`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* User Reviews Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white mb-6">User Reviews</h2>
+        <ReviewSection
+          platformType="exchange"
+          platformId={exchange.id}
+          platformName={exchange.name}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Wallet Detail Component
+import type { Wallet } from '../types';
+
+function WalletDetail({ wallet }: { wallet: Wallet }) {
+  return (
+    <div className="container mx-auto px-4 py-12">
+      {/* Back Link */}
+      <Link
+        to="/compare"
+        className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Compare
+      </Link>
+
+      {/* Header */}
+      <div className="glass-card p-8 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-4">
+              <span className={cn(
+                'px-3 py-1 rounded text-sm font-medium',
+                wallet.type === 'hardware' ? 'bg-orange-500/20 text-orange-400' :
+                wallet.type === 'software' ? 'bg-blue-500/20 text-blue-400' :
+                'bg-green-500/20 text-green-400'
+              )}>
+                {wallet.type.toUpperCase()} WALLET
+              </span>
+              {wallet.price ? (
+                <span className="text-2xl font-bold text-orange-400">${wallet.price}</span>
+              ) : (
+                <span className="text-lg text-green-400 font-medium">Free</span>
+              )}
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-4">{wallet.name}</h1>
+            <p className="text-gray-400">{wallet.description}</p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <a
+              href={wallet.affiliate_url || wallet.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors text-center"
+            >
+              {wallet.price ? 'Buy Now' : 'Get ' + wallet.name}
+            </a>
+            <p className="text-xs text-gray-500 text-center">
+              {wallet.affiliate_url ? 'Affiliate link' : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="glass-card p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+            <span className="text-3xl font-bold text-white">{wallet.user_rating}</span>
+          </div>
+          <p className="text-sm text-gray-400">{wallet.review_count.toLocaleString()} Reviews</p>
+        </div>
+        <div className="glass-card p-6 text-center">
+          <span className="text-3xl font-bold text-white">{wallet.ease_of_use}</span>
+          <span className="text-gray-400">/10</span>
+          <p className="text-sm text-gray-400">Ease of Use</p>
+        </div>
+        <div className="glass-card p-6 text-center">
+          <span className="text-3xl font-bold text-white">{wallet.supported_cryptocurrencies.toLocaleString()}+</span>
+          <p className="text-sm text-gray-400">Supported Coins</p>
+        </div>
+        <div className="glass-card p-6 text-center">
+          <span className="text-3xl font-bold text-white">{wallet.supported_chains.length}</span>
+          <p className="text-sm text-gray-400">Blockchains</p>
+        </div>
+      </div>
+
+      {/* Security & Features */}
+      <div className="grid md:grid-cols-2 gap-8 mb-12">
+        {/* Security Features */}
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <Lock className="w-5 h-5 text-green-400" />
+            Security Features
+          </h2>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(wallet.security_features).map(([key, value]) => (
+              <div key={key} className="flex items-center gap-2">
+                {value ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <X className="w-4 h-4 text-red-400" />
+                )}
+                <span className={cn('text-sm', value ? 'text-gray-300' : 'text-gray-500')}>
+                  {key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Wallet Features */}
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-bold text-white mb-4">Features</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(wallet.features).map(([key, value]) => (
+              <div key={key} className="flex items-center gap-2">
+                {value ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <X className="w-4 h-4 text-red-400" />
+                )}
+                <span className={cn('text-sm', value ? 'text-gray-300' : 'text-gray-500')}>
+                  {key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Pros & Cons */}
+      <div className="glass-card p-6 mb-12">
+        <h2 className="text-xl font-bold text-white mb-4">Pros & Cons</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-sm font-medium text-green-400 mb-3">Pros</h3>
+            <ul className="space-y-2">
+              {wallet.pros.map((pro, index) => (
+                <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                  <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                  {pro}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-red-400 mb-3">Cons</h3>
+            <ul className="space-y-2">
+              {wallet.cons.map((con, index) => (
+                <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                  <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  {con}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Supported Chains */}
+      <div className="glass-card p-6 mb-12">
+        <h2 className="text-xl font-bold text-white mb-4">Supported Blockchains</h2>
+        <div className="flex flex-wrap gap-2">
+          {wallet.supported_chains.map((chain, index) => (
+            <span
+              key={index}
+              className="px-3 py-1 rounded-full bg-white/5 text-gray-300 text-sm"
+            >
+              {chain}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* User Reviews Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white mb-6">User Reviews</h2>
+        <ReviewSection
+          platformType="wallet"
+          platformId={wallet.id}
+          platformName={wallet.name}
+        />
       </div>
     </div>
   );

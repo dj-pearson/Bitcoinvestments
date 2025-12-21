@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signIn } from '../services/auth';
+import { Shield, Key, AlertTriangle } from 'lucide-react';
+import { signIn, signInWithTwoFactor } from '../services/auth';
 
 export function Login() {
   const navigate = useNavigate();
@@ -9,15 +10,29 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // 2FA state
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { user, error: signInError } = await signIn(email, password);
+    const { user, requires2FA: needs2FA, userId, error: signInError } = await signIn(email, password);
 
     if (signInError) {
       setError(signInError);
+      setLoading(false);
+      return;
+    }
+
+    // Check if 2FA is required
+    if (needs2FA && userId) {
+      setRequires2FA(true);
+      setPendingUserId(userId);
       setLoading(false);
       return;
     }
@@ -28,6 +43,133 @@ export function Login() {
     setLoading(false);
   };
 
+  const handle2FASubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    if (!pendingUserId) {
+      setError('Session expired. Please try logging in again.');
+      setRequires2FA(false);
+      setLoading(false);
+      return;
+    }
+
+    const { user, error: verifyError } = await signInWithTwoFactor(
+      pendingUserId,
+      twoFactorCode,
+      useRecoveryCode
+    );
+
+    if (verifyError) {
+      setError(verifyError);
+      setLoading(false);
+      return;
+    }
+
+    if (user) {
+      navigate('/dashboard');
+    }
+    setLoading(false);
+  };
+
+  const handleBack = () => {
+    setRequires2FA(false);
+    setTwoFactorCode('');
+    setPendingUserId(null);
+    setUseRecoveryCode(false);
+    setError(null);
+  };
+
+  // 2FA Verification Screen
+  if (requires2FA) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4">
+        <div className="max-w-md w-full">
+          <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-orange-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-2">
+                {useRecoveryCode ? 'Enter Recovery Code' : 'Two-Factor Authentication'}
+              </h1>
+              <p className="text-gray-400">
+                {useRecoveryCode
+                  ? 'Enter one of your recovery codes to sign in.'
+                  : 'Enter the 6-digit code from your authenticator app.'}
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handle2FASubmit} className="space-y-6">
+              <div>
+                <label htmlFor="2fa-code" className="block text-sm font-medium text-gray-300 mb-2">
+                  {useRecoveryCode ? 'Recovery Code' : 'Verification Code'}
+                </label>
+                {useRecoveryCode ? (
+                  <input
+                    type="text"
+                    id="2fa-code"
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value.toUpperCase())}
+                    required
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-center font-mono text-lg tracking-wider placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="XXXXXXXX"
+                    maxLength={8}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    id="2fa-code"
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    required
+                    className="w-full px-4 py-4 bg-gray-700 border border-gray-600 rounded-lg text-white text-center font-mono text-2xl tracking-widest placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="000000"
+                    maxLength={6}
+                    autoFocus
+                  />
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || (useRecoveryCode ? twoFactorCode.length < 8 : twoFactorCode.length !== 6)}
+                className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+              >
+                {loading ? 'Verifying...' : 'Verify'}
+              </button>
+            </form>
+
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => setUseRecoveryCode(!useRecoveryCode)}
+                className="w-full text-center text-sm text-orange-400 hover:text-orange-300"
+              >
+                {useRecoveryCode ? 'Use authenticator app instead' : 'Use a recovery code'}
+              </button>
+
+              <button
+                onClick={handleBack}
+                className="w-full text-center text-sm text-gray-400 hover:text-white"
+              >
+                Back to login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Standard Login Screen
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="max-w-md w-full">

@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Json } from '../types/database';
 import type { UserRole } from '../types/admin-database';
+import { verifyTOTP, useRecoveryCode as useRecoveryCodeService } from './twoFactor';
 
 export interface AuthUser {
   id: string;
@@ -8,6 +9,13 @@ export interface AuthUser {
   created_at: string;
   role?: UserRole;
   is_suspended?: boolean;
+}
+
+export interface SignInResult {
+  user: AuthUser | null;
+  error: string | null;
+  requires2FA?: boolean;
+  userId?: string;
 }
 
 /**
@@ -65,11 +73,12 @@ export async function signUp(
 
 /**
  * Sign in with email and password
+ * Returns requires2FA: true if user has 2FA enabled
  */
 export async function signIn(
   email: string,
   password: string
-): Promise<{ user: AuthUser | null; error: string | null }> {
+): Promise<SignInResult> {
   if (!isSupabaseConfigured()) {
     return { user: null, error: 'Authentication is not configured' };
   }
@@ -84,7 +93,7 @@ export async function signIn(
   }
 
   if (data.user) {
-    // Fetch user profile to get role
+    // Fetch user profile to get role and 2FA status
     const profile = await getUserProfile(data.user.id);
 
     // Check if user is suspended
@@ -93,6 +102,19 @@ export async function signIn(
       return {
         user: null,
         error: profile.suspended_reason || 'Your account has been suspended. Please contact support.'
+      };
+    }
+
+    // Check if 2FA is enabled
+    if (profile?.two_factor_enabled) {
+      // Don't complete the sign-in yet - require 2FA verification
+      // Sign out temporarily until 2FA is verified
+      await signOut();
+      return {
+        user: null,
+        error: null,
+        requires2FA: true,
+        userId: data.user.id,
       };
     }
 
@@ -115,6 +137,69 @@ export async function signIn(
   }
 
   return { user: null, error: 'Failed to sign in' };
+}
+
+/**
+ * Complete sign in with 2FA verification
+ */
+export async function signInWithTwoFactor(
+  userId: string,
+  code: string,
+  isRecoveryCode: boolean = false
+): Promise<{ user: AuthUser | null; error: string | null }> {
+  if (!isSupabaseConfigured()) {
+    return { user: null, error: 'Authentication is not configured' };
+  }
+
+  // Get user profile to verify 2FA
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile) {
+    return { user: null, error: 'User not found' };
+  }
+
+  if (!profile.two_factor_enabled || !profile.two_factor_secret) {
+    return { user: null, error: '2FA is not enabled for this account' };
+  }
+
+  let isValid = false;
+
+  if (isRecoveryCode) {
+    // Verify recovery code
+    const result = await useRecoveryCodeService(userId, code);
+    isValid = result.success;
+    if (result.error) {
+      return { user: null, error: result.error };
+    }
+  } else {
+    // Verify TOTP code
+    isValid = await verifyTOTP(profile.two_factor_secret, code);
+  }
+
+  if (!isValid) {
+    return { user: null, error: 'Invalid verification code' };
+  }
+
+  // Update last login
+  await supabase
+    .from('users')
+    .update({ last_login_at: new Date().toISOString() })
+    .eq('id', userId);
+
+  return {
+    user: {
+      id: userId,
+      email: profile.email,
+      created_at: profile.created_at,
+      role: (profile.role as UserRole) || 'user',
+      is_suspended: profile.is_suspended || false,
+    },
+    error: null,
+  };
 }
 
 /**

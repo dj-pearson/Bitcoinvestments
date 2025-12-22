@@ -1,6 +1,17 @@
 -- Interactive Courses Tables
 -- Structured learning paths with modules, lessons, and quizzes
 
+-- Drop existing tables if they exist (cascade to avoid FK issues)
+DROP TABLE IF EXISTS course_ratings CASCADE;
+DROP TABLE IF EXISTS quiz_attempts CASCADE;
+DROP TABLE IF EXISTS lesson_progress CASCADE;
+DROP TABLE IF EXISTS course_enrollments CASCADE;
+DROP TABLE IF EXISTS course_quizzes CASCADE;
+DROP TABLE IF EXISTS course_lessons CASCADE;
+DROP TABLE IF EXISTS course_modules CASCADE;
+DROP TABLE IF EXISTS courses CASCADE;
+DROP TABLE IF EXISTS instructors CASCADE;
+
 -- Create instructors table
 CREATE TABLE IF NOT EXISTS instructors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -241,24 +252,49 @@ CREATE POLICY "Users can update own enrollments"
     USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own lesson progress"
-    ON public.lesson_progress FOR SELECT
-    USING (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
+    ON lesson_progress FOR SELECT
+    USING (
+        enrollment_id IN (
+            SELECT id FROM course_enrollments 
+            WHERE user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can update own lesson progress"
-    ON public.lesson_progress FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
+    ON lesson_progress FOR INSERT
+    WITH CHECK (
+        enrollment_id IN (
+            SELECT id FROM course_enrollments 
+            WHERE user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can upsert own lesson progress"
-    ON public.lesson_progress FOR UPDATE
-    USING (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
+    ON lesson_progress FOR UPDATE
+    USING (
+        enrollment_id IN (
+            SELECT id FROM course_enrollments 
+            WHERE user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can view own quiz attempts"
-    ON public.quiz_attempts FOR SELECT
-    USING (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
+    ON quiz_attempts FOR SELECT
+    USING (
+        enrollment_id IN (
+            SELECT id FROM course_enrollments 
+            WHERE user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can submit quiz attempts"
-    ON public.quiz_attempts FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
+    ON quiz_attempts FOR INSERT
+    WITH CHECK (
+        enrollment_id IN (
+            SELECT id FROM course_enrollments 
+            WHERE user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can view course ratings"
     ON course_ratings FOR SELECT

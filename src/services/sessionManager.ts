@@ -125,7 +125,9 @@ export async function createSession(userId: string): Promise<{ sessionId: string
 
     if (insertError) {
       // If table doesn't exist, store session locally only
-      if (insertError.code === '42P01') {
+      // PGRST116 = relation not found (Supabase REST API)
+      // 42P01 = relation does not exist (PostgreSQL)
+      if (insertError.code === '42P01' || insertError.code === 'PGRST116' || insertError.code === '404' || insertError.message?.includes('not found')) {
         console.warn('user_sessions table not found, using local session only');
         storeLocalSession(sessionId);
         return { sessionId, error: null };
@@ -256,7 +258,17 @@ export async function isSessionValid(userId: string): Promise<boolean> {
       .eq('user_id', userId)
       .single();
 
-    if (error || !data) {
+    if (error) {
+      // If table doesn't exist, trust local session
+      if (error.code === 'PGRST116' || error.code === '42P01' || error.code === '404') {
+        console.warn('user_sessions table not found, trusting local session');
+        return true;
+      }
+      // Session not found in database
+      return false;
+    }
+
+    if (!data) {
       // Session not found in database
       return false;
     }

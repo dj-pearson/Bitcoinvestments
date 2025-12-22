@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS certificates (
     certificate_number VARCHAR(50) UNIQUE NOT NULL,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     user_name VARCHAR(200) NOT NULL,
-    enrollment_id UUID REFERENCES course_enrollments(id) ON DELETE SET NULL,
-    course_id UUID REFERENCES courses(id) ON DELETE SET NULL,
+    enrollment_id UUID, -- Foreign key will be added after course_enrollments table exists
+    course_id UUID, -- Foreign key will be added after courses table exists
     course_name VARCHAR(300) NOT NULL,
     instructor_name VARCHAR(200),
     issue_date TIMESTAMPTZ DEFAULT NOW(),
@@ -108,6 +108,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Function to issue certificate on course completion
+-- NOTE: This function will only work after course_enrollments table exists
+-- Run the 20241222_create_interactive_courses.sql migration first
 CREATE OR REPLACE FUNCTION auto_issue_certificate()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -195,11 +197,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-DROP TRIGGER IF EXISTS trigger_auto_issue_certificate ON course_enrollments;
-CREATE TRIGGER trigger_auto_issue_certificate
-    AFTER UPDATE ON course_enrollments
-    FOR EACH ROW
-    EXECUTE FUNCTION auto_issue_certificate();
+-- Only create trigger if course_enrollments table exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'course_enrollments') THEN
+        DROP TRIGGER IF EXISTS trigger_auto_issue_certificate ON course_enrollments;
+        CREATE TRIGGER trigger_auto_issue_certificate
+            AFTER UPDATE ON course_enrollments
+            FOR EACH ROW
+            EXECUTE FUNCTION auto_issue_certificate();
+    END IF;
+END $$;
 
 -- Function to revoke certificate
 CREATE OR REPLACE FUNCTION revoke_certificate(p_certificate_id UUID, p_reason TEXT)

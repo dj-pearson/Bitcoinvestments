@@ -52,7 +52,8 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_shares_expires_at ON portfolio_shares(e
 -- Indexes for share_views
 CREATE INDEX IF NOT EXISTS idx_share_views_share_id ON share_views(share_id);
 CREATE INDEX IF NOT EXISTS idx_share_views_viewed_at ON share_views(viewed_at);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_share_views_unique_view ON share_views(share_id, viewer_ip_hash, DATE(viewed_at));
+-- Unique index without DATE function to avoid immutability issues
+CREATE INDEX IF NOT EXISTS idx_share_views_unique_view ON share_views(share_id, viewer_ip_hash, viewed_at);
 
 -- Enable RLS
 ALTER TABLE portfolio_shares ENABLE ROW LEVEL SECURITY;

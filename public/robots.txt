@@ -1,0 +1,30 @@
+# Robots.txt for Bitcoinvestments
+# https://bitcoinvestments.com
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://bitcoinvestments.com/sitemap.xml
+
+# Block sensitive paths
+Disallow: /admin/
+Disallow: /api/
+Disallow: /profile
+Disallow: /affiliate-stats
+Disallow: /ad-manager
+Disallow: /tax-reports
+
+# Block search result pages with parameters
+Disallow: /search?*
+
+# Allow important pages
+Allow: /learn/
+Allow: /course/
+Allow: /glossary
+Allow: /compare/
+Allow: /calculators
+Allow: /charts
+
+# Crawl delay for courtesy
+Crawl-delay: 1

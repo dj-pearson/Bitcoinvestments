@@ -2,6 +2,7 @@
 // Live educational sessions with cryptocurrency experts
 
 import { supabase, db } from '../lib/supabase';
+// Note: supabase is used for auth, db is used for untyped tables
 
 export type WebinarStatus = 'upcoming' | 'live' | 'ended' | 'cancelled';
 export type WebinarCategory = 'trading' | 'investing' | 'defi' | 'security' | 'tax' | 'fundamentals' | 'technical_analysis' | 'market_outlook';
@@ -280,7 +281,7 @@ export async function getWebinars(filters: WebinarFilters = {}): Promise<{
       };
     }
 
-    let query = supabase
+    let query = db
       .from('webinars')
       .select('*, host:webinar_hosts(*)', { count: 'exact' })
       .neq('status', 'cancelled');
@@ -305,7 +306,7 @@ export async function getWebinars(filters: WebinarFilters = {}): Promise<{
 
     if (error) throw error;
 
-    return { webinars: data || [], total: count || 0, error: null };
+    return { webinars: (data as Webinar[]) || [], total: count || 0, error: null };
   } catch (err) {
     console.error('Error fetching webinars:', err);
     return { webinars: DEMO_WEBINARS, total: DEMO_WEBINARS.length, error: null };
@@ -329,7 +330,7 @@ export async function getWebinar(idOrSlug: string): Promise<{
       };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('webinars')
       .select('*, host:webinar_hosts(*)')
       .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
@@ -337,7 +338,7 @@ export async function getWebinar(idOrSlug: string): Promise<{
 
     if (error) throw error;
 
-    return { webinar: data, error: null };
+    return { webinar: data as Webinar, error: null };
   } catch (err) {
     console.error('Error fetching webinar:', err);
     return {
@@ -359,7 +360,7 @@ export async function registerForWebinar(userId: string, webinarId: string): Pro
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('webinar_registrations')
       .upsert({
         user_id: userId,
@@ -369,7 +370,7 @@ export async function registerForWebinar(userId: string, webinarId: string): Pro
 
     if (error) throw error;
 
-    await supabase.rpc('increment_webinar_attendees', { webinar_id: webinarId });
+    await db.rpc('increment_webinar_attendees', { webinar_id: webinarId });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -390,7 +391,7 @@ export async function getUserWebinarRegistrations(userId: string): Promise<{
       return { registrations: [], error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('webinar_registrations')
       .select('*, webinar:webinars(*, host:webinar_hosts(*))')
       .eq('user_id', userId)
@@ -398,7 +399,7 @@ export async function getUserWebinarRegistrations(userId: string): Promise<{
 
     if (error) throw error;
 
-    return { registrations: data || [], error: null };
+    return { registrations: (data as WebinarRegistration[]) || [], error: null };
   } catch (err) {
     return { registrations: [], error: null };
   }
@@ -426,7 +427,7 @@ export async function rateWebinar(
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('webinar_ratings')
       .upsert({
         user_id: userId,

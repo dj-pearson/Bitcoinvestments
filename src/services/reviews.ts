@@ -4,7 +4,7 @@
  * Manages user reviews for exchanges, wallets, and tax software
  */
 
-import { isSupabaseConfigured, db } from '../lib/db';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 import type { PlatformReview } from '../types/database';
 
 export type PlatformType = 'exchange' | 'wallet' | 'tax_software';

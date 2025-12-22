@@ -10,7 +10,7 @@
  * - Risk scoring for approvals
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface TokenApproval {
   id: string;
@@ -161,7 +161,7 @@ export async function fetchTokenApprovals(
     // For now, we'll use stored approvals from the database
 
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('token_approvals')
         .select('*')
         .eq('wallet_address', walletAddress.toLowerCase())
@@ -173,7 +173,7 @@ export async function fetchTokenApprovals(
         throw error;
       }
 
-      const approvals: TokenApproval[] = (data || []).map((approval) => {
+      const approvals: TokenApproval[] = ((data || []) as any[]).map((approval) => {
         const knownProtocol = getKnownProtocol(approval.spender_address);
         const baseApproval = {
           id: approval.id,
@@ -185,8 +185,8 @@ export async function fetchTokenApprovals(
           spenderAddress: approval.spender_address,
           spenderName: knownProtocol?.name || approval.spender_name,
           spenderLogo: knownProtocol?.logo,
-          allowance: approval.allowance,
-          allowanceFormatted: formatAllowance(approval.allowance, approval.token_decimals || 18),
+          allowance: approval.allowance || '0',
+          allowanceFormatted: formatAllowance(approval.allowance || '0', approval.token_decimals || 18),
           isUnlimited: approval.is_unlimited,
           approvalTxHash: approval.approval_tx_hash,
           approvedAt: approval.approved_at,
@@ -313,7 +313,7 @@ export async function markApprovalRevoked(
   }
 
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('token_approvals')
       .update({
         is_revoked: true,
@@ -367,7 +367,7 @@ export function getRiskLevelStyles(level: TokenApproval['riskLevel']): {
 /**
  * Demo approvals for testing
  */
-function getDemoApprovals(walletAddress: string): TokenApproval[] {
+function getDemoApprovals(_walletAddress: string): TokenApproval[] {
   return [
     {
       id: '1',

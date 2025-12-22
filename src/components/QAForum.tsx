@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   MessageSquare,
-  ThumbsUp,
-  ThumbsDown,
   Check,
   Eye,
   Clock,
@@ -12,7 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
-  Tag,
   Pin,
   Lock,
   X,
@@ -25,7 +22,6 @@ import {
   createAnswer,
   vote,
   acceptAnswer,
-  addComment,
   getForumStats,
   CATEGORY_INFO,
   POPULAR_TAGS,

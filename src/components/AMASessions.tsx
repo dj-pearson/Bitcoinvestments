@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getAMASessions,
   getAMASession,
   registerForAMA,
   submitQuestion,
   upvoteQuestion,
+} from '../services/amaSessions';
+import type {
   AMASession,
   AMAQuestion,
   AMAFilters
@@ -554,8 +556,11 @@ export default function AMASessions({ userId, isPremiumUser = false }: AMASessio
   }
 
   function renderSessionsList() {
-    const upcomingSessions = sessions.filter(s => s.status === 'scheduled');
-    const pastSessions = sessions.filter(s => s.status === 'ended');
+    const _upcomingSessions = sessions.filter(s => s.status === 'scheduled');
+    const _pastSessions = sessions.filter(s => s.status === 'ended');
+    // TODO: Use upcomingSessions and pastSessions in UI sections
+    void _upcomingSessions;
+    void _pastSessions;
 
     return (
       <div>

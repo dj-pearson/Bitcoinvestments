@@ -11,7 +11,7 @@
  * - Related videos
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface Video {
   id: string;
@@ -108,7 +108,7 @@ export async function getVideos(
 ): Promise<{ videos: Video[]; total: number; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      let query = supabase
+      let query = db
         .from('video_tutorials')
         .select('*, instructors(*)', { count: 'exact' });
 
@@ -175,7 +175,7 @@ export async function getVideo(
 ): Promise<{ video: Video | null; related: Video[]; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('video_tutorials')
         .select('*, instructors(*)')
         .eq('id', videoId)
@@ -184,16 +184,16 @@ export async function getVideo(
       if (error) throw error;
 
       // Increment view count
-      await supabase
+      await db
         .from('video_tutorials')
-        .update({ views: (data.views || 0) + 1 })
+        .update({ views: ((data as any).views || 0) + 1 })
         .eq('id', videoId);
 
       // Get related videos
-      const { data: relatedData } = await supabase
+      const { data: relatedData } = await db
         .from('video_tutorials')
         .select('*, instructors(*)')
-        .eq('category', data.category)
+        .eq('category', (data as any).category)
         .neq('id', videoId)
         .limit(4);
 
@@ -226,7 +226,7 @@ export async function getVideo(
  */
 export async function getFeaturedVideos(): Promise<Video[]> {
   if (isSupabaseConfigured()) {
-    const { data } = await supabase
+    const { data } = await db
       .from('video_tutorials')
       .select('*, instructors(*)')
       .eq('is_featured', true)
@@ -244,7 +244,7 @@ export async function getFeaturedVideos(): Promise<Video[]> {
  */
 export async function getPlaylists(): Promise<Playlist[]> {
   if (isSupabaseConfigured()) {
-    const { data } = await supabase
+    const { data } = await db
       .from('video_playlists')
       .select('*, playlist_videos(video_tutorials(*, instructors(*)))')
       .order('created_at', { ascending: false });
@@ -264,12 +264,12 @@ export async function getUserProgress(
   const progressMap = new Map<string, UserVideoProgress>();
 
   if (isSupabaseConfigured()) {
-    const { data } = await supabase
+    const { data } = await db
       .from('user_video_progress')
       .select('*')
       .eq('user_id', userId);
 
-    for (const item of data || []) {
+    for (const item of (data || []) as any[]) {
       progressMap.set(item.video_id, {
         videoId: item.video_id,
         userId: item.user_id,
@@ -301,7 +301,7 @@ export async function updateProgress(
 
     const completed = watchedSeconds >= videoDuration * 0.9;
 
-    const { error } = await supabase.from('user_video_progress').upsert(
+    const { error } = await db.from('user_video_progress').upsert(
       {
         user_id: userId,
         video_id: videoId,
@@ -336,16 +336,16 @@ export async function toggleBookmark(
       return { bookmarked: true, error: null };
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('user_video_progress')
       .select('bookmarked')
       .eq('user_id', userId)
       .eq('video_id', videoId)
       .single();
 
-    const newValue = !(existing?.bookmarked || false);
+    const newValue = !((existing as any)?.bookmarked || false);
 
-    const { error } = await supabase.from('user_video_progress').upsert(
+    const { error } = await db.from('user_video_progress').upsert(
       {
         user_id: userId,
         video_id: videoId,
@@ -379,16 +379,16 @@ export async function toggleLike(
       return { liked: true, error: null };
     }
 
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('user_video_progress')
       .select('liked')
       .eq('user_id', userId)
       .eq('video_id', videoId)
       .single();
 
-    const newValue = !(existing?.liked || false);
+    const newValue = !((existing as any)?.liked || false);
 
-    const { error } = await supabase.from('user_video_progress').upsert(
+    const { error } = await db.from('user_video_progress').upsert(
       {
         user_id: userId,
         video_id: videoId,
@@ -401,7 +401,7 @@ export async function toggleLike(
     if (error) throw error;
 
     // Update like count on video
-    await supabase.rpc('update_video_likes', { v_id: videoId, increment: newValue ? 1 : -1 });
+    await db.rpc('update_video_likes', { v_id: videoId, increment: newValue ? 1 : -1 });
 
     return { liked: newValue, error: null };
   } catch (error) {
@@ -418,13 +418,13 @@ export async function toggleLike(
  */
 export async function getBookmarkedVideos(userId: string): Promise<Video[]> {
   if (isSupabaseConfigured()) {
-    const { data } = await supabase
+    const { data } = await db
       .from('user_video_progress')
       .select('video_id, video_tutorials(*, instructors(*))')
       .eq('user_id', userId)
       .eq('bookmarked', true);
 
-    return (data || [])
+    return ((data || []) as any[])
       .map((item) => item.video_tutorials)
       .filter(Boolean)
       .map(mapVideoFromDB);
@@ -438,7 +438,7 @@ export async function getBookmarkedVideos(userId: string): Promise<Video[]> {
  */
 export async function getWatchHistory(userId: string): Promise<Video[]> {
   if (isSupabaseConfigured()) {
-    const { data } = await supabase
+    const { data } = await db
       .from('user_video_progress')
       .select('video_id, video_tutorials(*, instructors(*))')
       .eq('user_id', userId)
@@ -446,7 +446,7 @@ export async function getWatchHistory(userId: string): Promise<Video[]> {
       .order('last_watched_at', { ascending: false })
       .limit(20);
 
-    return (data || [])
+    return ((data || []) as any[])
       .map((item) => item.video_tutorials)
       .filter(Boolean)
       .map(mapVideoFromDB);

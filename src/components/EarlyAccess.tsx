@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getEarlyAccessFeatures,
   getFeature,
   enrollInBeta,
   leaveBeta,
   submitFeedback,
-  EarlyAccessFeature,
-  FeatureCategory,
   FEATURE_CATEGORY_LABELS,
   STATUS_LABELS,
   STATUS_COLORS,
   isFeatureAvailable
+} from '../services/earlyAccess';
+import type {
+  EarlyAccessFeature,
+  FeatureCategory
 } from '../services/earlyAccess';
 
 // Icons

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Key, AlertTriangle } from 'lucide-react';
+import { Shield, AlertTriangle } from 'lucide-react';
 import { signIn, signInWithTwoFactor } from '../services/auth';
 
 export function Login() {

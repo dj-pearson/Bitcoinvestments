@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { db } from '../lib/supabase';
 
 // Types
 export type ConversationRole = 'user' | 'assistant' | 'system';
@@ -385,7 +385,7 @@ const topicSuggestions: Record<LearningTopic, string[]> = {
 // Conversation Functions
 export async function getConversations(userId: string): Promise<Conversation[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('ai_conversations')
       .select('*')
       .eq('user_id', userId)
@@ -401,7 +401,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
 
 export async function getConversation(conversationId: string): Promise<Conversation | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('ai_conversations')
       .select('*')
       .eq('id', conversationId)
@@ -427,7 +427,7 @@ export async function createConversation(userId: string, title: string): Promise
   };
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('ai_conversations')
       .insert({
         id: newConversation.id,
@@ -464,7 +464,7 @@ export async function sendMessage(
 
   try {
     // Update conversation with new messages
-    await supabase.rpc('append_conversation_messages', {
+    await db.rpc('append_conversation_messages', {
       conversation_id: conversationId,
       new_messages: [userMessage, aiResponse]
     });
@@ -577,9 +577,10 @@ What would you like to learn about?`;
 }
 
 // Learning Path Functions
-export async function getLearningPaths(userId: string): Promise<LearningPath[]> {
+export async function getLearningPaths(_userId: string): Promise<LearningPath[]> {
+  void _userId; // Reserved for user-specific learning paths
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('learning_paths')
       .select(`
         *,
@@ -588,7 +589,7 @@ export async function getLearningPaths(userId: string): Promise<LearningPath[]> 
       .eq('is_active', true);
 
     if (error) throw error;
-    return data || demoLearningPaths;
+    return (data as LearningPath[]) || demoLearningPaths;
   } catch (error) {
     console.error('Error fetching learning paths:', error);
     return demoLearningPaths;
@@ -605,12 +606,12 @@ export async function completeModule(
   moduleId: string
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('learning_path_progress')
       .upsert({
         user_id: userId,
         path_id: pathId,
-        completed_modules: supabase.rpc('array_append_unique', {
+        completed_modules: db.rpc('array_append_unique', {
           arr: [],
           elem: moduleId
         })
@@ -625,12 +626,13 @@ export async function completeModule(
 }
 
 export async function submitQuizAnswer(
-  userId: string,
+  _userId: string,
   pathId: string,
   moduleId: string,
   questionId: string,
   answerIndex: number
 ): Promise<{ correct: boolean; explanation: string }> {
+  void _userId; // Reserved for user progress tracking
   // Find the question in demo data
   const path = demoLearningPaths.find(p => p.id === pathId);
   const module = path?.modules.find(m => m.id === moduleId);
@@ -647,14 +649,14 @@ export async function submitQuizAnswer(
 // Progress Functions
 export async function getUserProgress(userId: string): Promise<UserProgress> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('user_learning_progress')
       .select('*')
       .eq('user_id', userId)
       .single();
 
     if (error) throw error;
-    return data || demoProgress;
+    return (data as UserProgress) || demoProgress;
   } catch (error) {
     console.error('Error fetching user progress:', error);
     return demoProgress;
@@ -663,12 +665,12 @@ export async function getUserProgress(userId: string): Promise<UserProgress> {
 
 export async function updateStreak(userId: string): Promise<number> {
   try {
-    const { data, error } = await supabase.rpc('update_learning_streak', {
+    const { data, error } = await db.rpc('update_learning_streak', {
       p_user_id: userId
     });
 
     if (error) throw error;
-    return data || demoProgress.streakDays;
+    return (data as number) || demoProgress.streakDays;
   } catch (error) {
     console.error('Error updating streak:', error);
     return demoProgress.streakDays;
@@ -696,7 +698,7 @@ export function getAllTopics(): { topic: LearningTopic; label: string; icon: str
 // Delete conversation
 export async function deleteConversation(conversationId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('ai_conversations')
       .delete()
       .eq('id', conversationId);

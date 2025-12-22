@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '../Logo';
-import { Menu, X, ChevronDown, User, Shield } from 'lucide-react';
+import { Menu, X, ChevronDown, User, Shield, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
+import { GlobalSearch, MobileSearchTrigger } from '../GlobalSearch';
 
 const navItems = [
     {
@@ -121,6 +122,9 @@ export function Header() {
                             </div>
                         ))}
 
+                        {/* Search Bar */}
+                        <GlobalSearch className="hidden lg:block" />
+
                         {/* Auth Section */}
                         {user ? (
                             <div
@@ -211,13 +215,16 @@ export function Header() {
                         )}
                     </nav>
 
-                    {/* Mobile Menu Button */}
-                    <button
-                        className="md:hidden p-2 text-gray-300 hover:text-white"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        {isMenuOpen ? <X /> : <Menu />}
-                    </button>
+                    {/* Mobile Search & Menu */}
+                    <div className="flex items-center gap-2 md:hidden">
+                        <MobileSearchTrigger />
+                        <button
+                            className="p-2 text-gray-300 hover:text-white"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            {isMenuOpen ? <X /> : <Menu />}
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 import { getPortfolioSummary, type PortfolioSummary } from './multiPortfolio';
 
 /**
@@ -212,7 +212,7 @@ export async function getPortfolioShare(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('portfolio_shares')
       .select('*')
       .eq('portfolio_id', portfolioId)
@@ -226,7 +226,7 @@ export async function getPortfolioShare(
       throw error;
     }
 
-    return { share: data, error: null };
+    return { share: data as SharedPortfolio, error: null };
   } catch (error) {
     console.error('Error fetching portfolio share:', error);
     return {
@@ -263,7 +263,7 @@ export async function updatePortfolioShare(
       updateData.expires_at = new Date(Date.now() + updates.expiresInDays * 24 * 60 * 60 * 1000).toISOString();
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('portfolio_shares')
       .update(updateData)
       .eq('id', shareId);
@@ -291,7 +291,7 @@ export async function deletePortfolioShare(
   }
 
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('portfolio_shares')
       .update({
         is_active: false,
@@ -322,7 +322,7 @@ export async function getPublicPortfolio(
     let share: SharedPortfolio | null = null;
 
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('portfolio_shares')
         .select('*')
         .eq('share_code', shareCode)
@@ -371,7 +371,7 @@ export async function getPublicPortfolio(
 
     // Increment view count
     if (isSupabaseConfigured()) {
-      await supabase
+      await db
         .from('portfolio_shares')
         .update({
           view_count: share.view_count + 1,
@@ -472,7 +472,7 @@ export async function getShareStats(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('portfolio_shares')
       .select('is_active, view_count')
       .eq('user_id', userId);
@@ -484,10 +484,10 @@ export async function getShareStats(
       throw error;
     }
 
-    const shares = data || [];
+    const shares = (data || []) as Array<{ is_active: boolean; view_count: number }>;
     const stats = {
       totalShares: shares.length,
-      totalViews: shares.reduce((sum, s) => sum + (s.view_count || 0), 0),
+      totalViews: shares.reduce((sum: number, s) => sum + (s.view_count || 0), 0),
       activeShares: shares.filter((s) => s.is_active).length,
     };
 

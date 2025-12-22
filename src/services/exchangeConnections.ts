@@ -454,7 +454,19 @@ export async function syncConnection(
       })
       .eq('id', connectionId);
 
-    return { success: true, balances, transactions };
+    // Add connectionId and exchangeId to the results
+    const fullBalances: ExchangeBalance[] = balances.map(b => ({
+      ...b,
+      connectionId,
+      exchangeId: connection.exchange_id,
+    }));
+    const fullTransactions: ExchangeTransaction[] = transactions.map(t => ({
+      ...t,
+      connectionId,
+      exchangeId: connection.exchange_id,
+    }));
+
+    return { success: true, balances: fullBalances, transactions: fullTransactions };
   } catch (error) {
     console.error('Error syncing connection:', error);
 

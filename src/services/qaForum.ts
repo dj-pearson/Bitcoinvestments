@@ -11,7 +11,7 @@
  * - Reputation integration
  */
 
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 import { awardPoints } from './userReputation';
 
 export interface Question {
@@ -117,7 +117,7 @@ export async function getQuestions(
 ): Promise<{ questions: Question[]; total: number; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      let query = supabase
+      let query = db
         .from('forum_questions')
         .select('*, forum_votes(vote_type)', { count: 'exact' });
 
@@ -182,7 +182,7 @@ export async function getQuestion(
   try {
     if (isSupabaseConfigured()) {
       // Get question
-      const { data: questionData, error: questionError } = await supabase
+      const { data: questionData, error: questionError } = await db
         .from('forum_questions')
         .select('*')
         .eq('id', questionId)
@@ -191,13 +191,13 @@ export async function getQuestion(
       if (questionError) throw questionError;
 
       // Increment view count
-      await supabase
+      await db
         .from('forum_questions')
         .update({ views: (questionData.views || 0) + 1 })
         .eq('id', questionId);
 
       // Get answers
-      const { data: answersData, error: answersError } = await supabase
+      const { data: answersData, error: answersError } = await db
         .from('forum_answers')
         .select('*, forum_comments(*)')
         .eq('question_id', questionId)
@@ -247,7 +247,7 @@ export async function createQuestion(
       return { question: null, error: 'Database not configured' };
     }
 
-    const { data: question, error } = await supabase
+    const { data: question, error } = await db
       .from('forum_questions')
       .insert({
         user_id: userId,
@@ -287,7 +287,7 @@ export async function createAnswer(
       return { answer: null, error: 'Database not configured' };
     }
 
-    const { data: answer, error } = await supabase
+    const { data: answer, error } = await db
       .from('forum_answers')
       .insert({
         question_id: questionId,
@@ -330,7 +330,7 @@ export async function vote(
     }
 
     // Check existing vote
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('forum_votes')
       .select('*')
       .eq('user_id', userId)
@@ -341,13 +341,13 @@ export async function vote(
     if (existing) {
       if (existing.vote_type === voteType) {
         // Remove vote
-        await supabase
+        await db
           .from('forum_votes')
           .delete()
           .eq('id', existing.id);
       } else {
         // Change vote
-        await supabase
+        await db
           .from('forum_votes')
           .update({ vote_type: voteType })
           .eq('id', existing.id);
@@ -389,7 +389,7 @@ export async function acceptAnswer(
     }
 
     // Verify user owns the question
-    const { data: question } = await supabase
+    const { data: question } = await db
       .from('forum_questions')
       .select('user_id')
       .eq('id', questionId)
@@ -400,13 +400,13 @@ export async function acceptAnswer(
     }
 
     // Unaccept any existing accepted answer
-    await supabase
+    await db
       .from('forum_answers')
       .update({ is_accepted: false })
       .eq('question_id', questionId);
 
     // Accept the new answer
-    const { error } = await supabase
+    const { error } = await db
       .from('forum_answers')
       .update({ is_accepted: true })
       .eq('id', answerId);
@@ -414,13 +414,13 @@ export async function acceptAnswer(
     if (error) throw error;
 
     // Update question
-    await supabase
+    await db
       .from('forum_questions')
       .update({ accepted_answer_id: answerId })
       .eq('id', questionId);
 
     // Award points to answer author
-    const { data: answer } = await supabase
+    const { data: answer } = await db
       .from('forum_answers')
       .select('user_id')
       .eq('id', answerId)
@@ -454,7 +454,7 @@ export async function addComment(
       return { comment: null, error: 'Database not configured' };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('forum_comments')
       .insert({
         parent_id: parentId,
@@ -517,17 +517,18 @@ export async function getForumStats(): Promise<ForumStats> {
 
 // Helper functions
 async function updateVoteCounts(targetId: string, targetType: 'question' | 'answer') {
-  const { data: votes } = await supabase
+  const { data: votes } = await db
     .from('forum_votes')
     .select('vote_type')
     .eq('target_id', targetId)
     .eq('target_type', targetType);
 
-  const upvotes = votes?.filter((v) => v.vote_type === 'up').length || 0;
-  const downvotes = votes?.filter((v) => v.vote_type === 'down').length || 0;
+  const typedVotes = (votes || []) as Array<{ vote_type: string }>;
+  const upvotes = typedVotes.filter((v) => v.vote_type === 'up').length;
+  const downvotes = typedVotes.filter((v) => v.vote_type === 'down').length;
 
   const table = targetType === 'question' ? 'forum_questions' : 'forum_answers';
-  await supabase.from(table).update({ upvotes, downvotes }).eq('id', targetId);
+  await db.from(table).update({ upvotes, downvotes }).eq('id', targetId);
 }
 
 function mapQuestionFromDB(data: Record<string, unknown>): Question {

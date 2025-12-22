@@ -3,9 +3,19 @@
  *
  * This function creates a Stripe Checkout session for premium subscriptions.
  * It's called from the frontend when a user clicks "Subscribe" on the pricing page.
+ * Includes comprehensive input validation and sanitization.
  */
 
 import Stripe from 'stripe';
+import {
+  parseAndValidateBody,
+  validateEmail,
+  validateUuid,
+  validateStripePriceId,
+  validateUrl,
+  jsonError,
+  jsonSuccess,
+} from '../lib/validation';
 
 interface Env {
   STRIPE_SECRET_KEY: string;
@@ -23,16 +33,28 @@ interface CheckoutRequest {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    // Parse request body
-    const body = await context.request.json() as CheckoutRequest;
+    // Parse and validate request body
+    const { data: body, error: parseError } = await parseAndValidateBody<CheckoutRequest>(
+      context.request,
+      ['priceId', 'userId', 'userEmail']
+    );
+
+    if (parseError || !body) {
+      return jsonError(parseError || 'Invalid request body', 400);
+    }
+
     const { priceId, userId, userEmail, successUrl, cancelUrl } = body;
 
-    // Validate required fields
-    if (!priceId || !userId || !userEmail) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: priceId, userId, userEmail' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+    // Validate user email
+    const emailValidation = validateEmail(userEmail);
+    if (!emailValidation.isValid) {
+      return jsonError(emailValidation.error || 'Invalid email', 400);
+    }
+
+    // Validate user ID (should be a UUID)
+    const userIdValidation = validateUuid(userId, 'User ID');
+    if (!userIdValidation.isValid) {
+      return jsonError(userIdValidation.error || 'Invalid user ID', 400);
     }
 
     // Initialize Stripe
@@ -44,19 +66,38 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const validPriceIds = [
       context.env.VITE_STRIPE_PRICE_MONTHLY,
       context.env.VITE_STRIPE_PRICE_ANNUAL,
-    ];
+    ].filter(Boolean);
 
-    if (!validPriceIds.includes(priceId)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid price ID' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+    const priceValidation = validateStripePriceId(priceId, validPriceIds);
+    if (!priceValidation.isValid) {
+      return jsonError(priceValidation.error || 'Invalid price ID', 400);
+    }
+
+    // Validate optional URLs if provided
+    const requestOrigin = new URL(context.request.url).origin;
+
+    let validatedSuccessUrl = `${requestOrigin}/profile?session_id={CHECKOUT_SESSION_ID}`;
+    if (successUrl) {
+      const successUrlValidation = validateUrl(successUrl, { requireHttps: true });
+      if (!successUrlValidation.isValid) {
+        return jsonError('Invalid success URL', 400);
+      }
+      validatedSuccessUrl = successUrl;
+    }
+
+    let validatedCancelUrl = `${requestOrigin}/pricing`;
+    if (cancelUrl) {
+      const cancelUrlValidation = validateUrl(cancelUrl, { requireHttps: true });
+      if (!cancelUrlValidation.isValid) {
+        return jsonError('Invalid cancel URL', 400);
+      }
+      validatedCancelUrl = cancelUrl;
     }
 
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
-      customer_email: userEmail,
-      client_reference_id: userId, // Used to link subscription to user
+      customer_email: userEmail.trim().toLowerCase(),
+      client_reference_id: userId,
       line_items: [
         {
           price: priceId,
@@ -64,8 +105,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         },
       ],
       mode: 'subscription',
-      success_url: successUrl || `${new URL(context.request.url).origin}/profile?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${new URL(context.request.url).origin}/pricing`,
+      success_url: validatedSuccessUrl,
+      cancel_url: validatedCancelUrl,
       metadata: {
         userId: userId,
       },
@@ -74,37 +115,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           userId: userId,
         },
       },
-      allow_promotion_codes: true, // Allow discount codes
+      allow_promotion_codes: true,
       billing_address_collection: 'auto',
       tax_id_collection: {
-        enabled: true, // Collect tax IDs for business customers
+        enabled: true,
       },
     });
 
-    return new Response(
-      JSON.stringify({
-        sessionId: session.id,
-        url: session.url // Return the full checkout URL
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*', // Adjust for production
-        }
-      }
-    );
+    return jsonSuccess({
+      sessionId: session.id,
+      url: session.url,
+    });
   } catch (error) {
     console.error('Error creating checkout session:', error);
 
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'Failed to create checkout session'
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+    return jsonError(
+      error instanceof Error ? error.message : 'Failed to create checkout session',
+      500
     );
   }
 };

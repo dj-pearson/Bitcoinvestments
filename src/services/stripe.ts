@@ -145,6 +145,35 @@ export const SUBSCRIPTION_TIERS = {
     ],
     popular: true,
   },
+  lifetime: {
+    id: 'lifetime',
+    name: 'Lifetime Premium',
+    price: 299,
+    originalPrice: 499,
+    interval: 'lifetime',
+    stripePriceId: import.meta.env.VITE_STRIPE_PRICE_LIFETIME || 'price_lifetime_placeholder',
+    tier: 'lifetime' as const,
+    isOneTime: true,
+    limitedOffer: true,
+    maxPurchases: 500,
+    savings: '40% off',
+    features: [
+      '⭐ Lifetime access to ALL Premium features',
+      '💰 One-time payment - never pay again',
+      '🚫 Ad-free experience forever',
+      '💾 Unlimited cloud portfolio sync',
+      '📊 Unlimited watchlist items',
+      '📈 Premium research reports',
+      '📄 All export formats (PDF, Excel, Tax)',
+      '🔔 Unlimited price alerts',
+      '📧 Monthly performance reports',
+      '🧮 Advanced calculator features',
+      '⚡ Priority support',
+      '🎁 All future premium features included',
+    ],
+    popular: false,
+    badge: 'Best Value',
+  },
 } as const;
 
 export type SubscriptionTierId = keyof typeof SUBSCRIPTION_TIERS;
@@ -271,11 +300,28 @@ export function getSubscriptionTierByPriceId(priceId: string): SubscriptionTierI
 
 /**
  * Check if user has premium access
+ * Includes both recurring premium subscribers and lifetime members
  */
 export function hasPremiumAccess(
-  subscriptionStatus?: 'free' | 'premium',
+  subscriptionStatus?: 'free' | 'premium' | 'lifetime' | 'advisor' | 'enterprise',
   subscriptionExpiresAt?: string | null
 ): boolean {
+  // Lifetime members always have access (no expiration)
+  if (subscriptionStatus === 'lifetime') {
+    return true;
+  }
+
+  // Advisor and Enterprise also have premium access
+  if (subscriptionStatus === 'advisor' || subscriptionStatus === 'enterprise') {
+    // Check if subscription is still active
+    if (subscriptionExpiresAt) {
+      const expiresAt = new Date(subscriptionExpiresAt);
+      const now = new Date();
+      return expiresAt > now;
+    }
+    return true;
+  }
+
   if (subscriptionStatus !== 'premium') {
     return false;
   }
@@ -289,6 +335,15 @@ export function hasPremiumAccess(
 
   // If no expiry date, assume active
   return true;
+}
+
+/**
+ * Check if user has lifetime access
+ */
+export function hasLifetimeAccess(
+  subscriptionStatus?: 'free' | 'premium' | 'lifetime' | 'advisor' | 'enterprise'
+): boolean {
+  return subscriptionStatus === 'lifetime';
 }
 
 /**
@@ -321,5 +376,138 @@ export function calculateAnnualSavings(): {
     annualCost,
     savings,
     savingsPercentage,
+  };
+}
+
+/**
+ * Calculate lifetime deal savings
+ */
+export function calculateLifetimeSavings(): {
+  lifetimePrice: number;
+  originalPrice: number;
+  savings: number;
+  savingsPercentage: number;
+  yearsToBreakEven: number;
+  monthlyEquivalentCost: number;
+} {
+  const lifetimePrice = SUBSCRIPTION_TIERS.lifetime.price;
+  const originalPrice = SUBSCRIPTION_TIERS.lifetime.originalPrice;
+  const annualPrice = SUBSCRIPTION_TIERS.annual.price;
+
+  // Calculate break-even compared to annual subscription
+  const yearsToBreakEven = lifetimePrice / annualPrice;
+
+  // If user stays for 5 years, what's the monthly equivalent cost
+  const monthlyEquivalentCost = lifetimePrice / (5 * 12);
+
+  // Savings vs original price
+  const savings = originalPrice - lifetimePrice;
+  const savingsPercentage = (savings / originalPrice) * 100;
+
+  return {
+    lifetimePrice,
+    originalPrice,
+    savings,
+    savingsPercentage,
+    yearsToBreakEven: Math.round(yearsToBreakEven * 10) / 10,
+    monthlyEquivalentCost: Math.round(monthlyEquivalentCost * 100) / 100,
+  };
+}
+
+/**
+ * Create checkout session for lifetime deal (one-time payment)
+ */
+export async function createLifetimeCheckoutSession(
+  userId: string,
+  userEmail: string,
+  successUrl: string = window.location.origin + '/profile?session_id={CHECKOUT_SESSION_ID}&lifetime=true',
+  cancelUrl: string = window.location.origin + '/pricing'
+): Promise<{ sessionId: string | null; url: string | null; error: string | null }> {
+  const priceId = SUBSCRIPTION_TIERS.lifetime.stripePriceId;
+
+  if (!priceId || priceId === 'price_lifetime_placeholder') {
+    return {
+      sessionId: null,
+      url: null,
+      error: 'Lifetime deal is not configured. Please contact support.',
+    };
+  }
+
+  try {
+    // Call backend API to create one-time checkout session
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        priceId,
+        userId,
+        userEmail,
+        successUrl,
+        cancelUrl,
+        mode: 'payment', // One-time payment instead of subscription
+        metadata: {
+          type: 'lifetime',
+          tier: 'lifetime',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create checkout session');
+    }
+
+    const { sessionId, url } = await response.json();
+    return { sessionId, url, error: null };
+  } catch (error) {
+    console.error('Error creating lifetime checkout session:', error);
+    return {
+      sessionId: null,
+      url: null,
+      error: error instanceof Error ? error.message : 'Failed to start checkout',
+    };
+  }
+}
+
+/**
+ * Redirect to lifetime checkout
+ */
+export async function redirectToLifetimeCheckout(
+  userId: string,
+  userEmail: string
+): Promise<{ error: string | null }> {
+  if (!isStripeConfigured()) {
+    return { error: 'Stripe is not configured' };
+  }
+
+  const { url, error } = await createLifetimeCheckoutSession(userId, userEmail);
+
+  if (error || !url) {
+    return { error: error || 'Failed to create checkout session' };
+  }
+
+  window.location.href = url;
+  return { error: null };
+}
+
+/**
+ * Get all available subscription plans for display
+ */
+export function getDisplayPlans(): {
+  individual: typeof SUBSCRIPTION_TIERS[keyof Pick<typeof SUBSCRIPTION_TIERS, 'free' | 'monthly' | 'annual' | 'lifetime'>][];
+  professional: typeof SUBSCRIPTION_TIERS[keyof Pick<typeof SUBSCRIPTION_TIERS, 'advisor' | 'enterprise'>][];
+} {
+  return {
+    individual: [
+      SUBSCRIPTION_TIERS.free,
+      SUBSCRIPTION_TIERS.monthly,
+      SUBSCRIPTION_TIERS.annual,
+      SUBSCRIPTION_TIERS.lifetime,
+    ],
+    professional: [
+      SUBSCRIPTION_TIERS.advisor,
+      SUBSCRIPTION_TIERS.enterprise,
+    ],
   };
 }

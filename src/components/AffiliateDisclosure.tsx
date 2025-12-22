@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { Info, ExternalLink, AlertCircle } from 'lucide-react';
+import { trackAffiliateClick } from '../services/analytics';
 
 interface AffiliateDisclosureBannerProps {
   variant?: 'default' | 'compact' | 'prominent';
@@ -163,6 +164,7 @@ interface AffiliateLinkProps {
   href: string;
   children: React.ReactNode;
   platform?: string;
+  type?: 'exchange' | 'wallet';
   showBadge?: boolean;
   showInlineDisclosure?: boolean;
   onClick?: () => void;
@@ -180,6 +182,7 @@ export function AffiliateLink({
   href,
   children,
   platform,
+  type = 'exchange',
   showBadge = true,
   showInlineDisclosure = false,
   onClick,
@@ -189,8 +192,12 @@ export function AffiliateLink({
   rel = 'noopener noreferrer sponsored',
 }: AffiliateLinkProps) {
   const handleClick = () => {
-    // Track affiliate click if tracking function exists
-    if (typeof window !== 'undefined' && onClick) {
+    // Track affiliate click
+    if (platform) {
+      trackAffiliateClick(type, platform, href);
+    }
+    // Call custom onClick handler if provided
+    if (onClick) {
       onClick();
     }
   };

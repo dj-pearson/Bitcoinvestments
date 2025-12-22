@@ -29,6 +29,7 @@ import {
 } from '../services/search';
 import { GlobalSearch } from '../components/GlobalSearch';
 import { cn } from '../lib/utils';
+import { trackSearch, trackSearchResultClick } from '../services/analytics';
 
 // Get icon for result type
 function getResultIcon(type: SearchResultType) {
@@ -79,6 +80,8 @@ export function SearchResults() {
           types: activeFilters.length > 0 ? activeFilters : undefined,
         });
         setResults(searchResults);
+        // Track search query
+        trackSearch(query, searchResults.totalCount);
       } catch (error) {
         console.error('Search error:', error);
         setResults({
@@ -280,7 +283,7 @@ export function SearchResults() {
                   </div>
                   <div className="space-y-3">
                     {typeResults.slice(0, 5).map((result) => (
-                      <SearchResultCard key={`${result.type}-${result.id}`} result={result} />
+                      <SearchResultCard key={`${result.type}-${result.id}`} result={result} query={query} />
                     ))}
                   </div>
                   {typeResults.length > 5 && (
@@ -297,7 +300,7 @@ export function SearchResults() {
             ) : (
               <div className="space-y-3">
                 {results.results.map((result) => (
-                  <SearchResultCard key={`${result.type}-${result.id}`} result={result} />
+                  <SearchResultCard key={`${result.type}-${result.id}`} result={result} query={query} />
                 ))}
               </div>
             )}
@@ -311,12 +314,17 @@ export function SearchResults() {
 /**
  * Individual search result card
  */
-function SearchResultCard({ result }: { result: SearchResult }) {
+function SearchResultCard({ result, query }: { result: SearchResult; query: string }) {
   const Icon = getResultIcon(result.type);
+
+  const handleClick = () => {
+    trackSearchResultClick(query, result.type, result.title);
+  };
 
   return (
     <Link
       to={result.url}
+      onClick={handleClick}
       className="block p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
     >
       <div className="flex items-start gap-4">

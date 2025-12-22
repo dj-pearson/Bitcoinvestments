@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getCurrentUser, signOut, updateUserProfile, getUserProfile, type AuthUser } from '../services/auth';
+import { getCurrentUser, updateUserProfile, getUserProfile, type AuthUser } from '../services/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { PriceAlerts } from '../components/PriceAlerts';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
+import { SessionsManager } from '../components/SessionsManager';
 import { createCustomerPortalSession, hasPremiumAccess, getSubscriptionTier, formatPrice, type SubscriptionTierId } from '../services/stripe';
 import type { User } from '../types/database';
 
 export function Profile() {
   const navigate = useNavigate();
+  const { signOut, signOutAllDevices } = useAuth();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'security' | 'alerts' | 'preferences'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'security' | 'sessions' | 'alerts' | 'preferences'>('profile');
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
 
@@ -52,6 +55,9 @@ export function Profile() {
     await signOut();
     navigate('/');
   };
+
+  // handleSignOutAllDevices is available but unused in main UI - used by SessionsManager component
+  void signOutAllDevices; // Acknowledge availability for component use
 
   const handleSavePreferences = async () => {
     if (!user) return;
@@ -162,6 +168,16 @@ export function Profile() {
           }`}
         >
           Security
+        </button>
+        <button
+          onClick={() => setActiveTab('sessions')}
+          className={`px-4 py-2 rounded-md font-medium transition-colors ${
+            activeTab === 'sessions'
+              ? 'bg-gray-700 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Sessions
         </button>
         <button
           onClick={() => setActiveTab('alerts')}
@@ -505,6 +521,9 @@ export function Profile() {
           </div>
         </div>
       )}
+
+      {/* Sessions Tab */}
+      {activeTab === 'sessions' && <SessionsManager />}
 
       {/* Alerts Tab */}
       {activeTab === 'alerts' && <PriceAlerts />}

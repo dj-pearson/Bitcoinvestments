@@ -8,14 +8,18 @@ import {
   TrendingUp,
   BarChart3,
   Bot,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { getUserStats, getScamDatabaseStats } from '../services/admin';
+import { SubscriptionAnalytics } from '../components/admin/SubscriptionAnalytics';
 import type { UserStats, ScamStats } from '../types/admin-database';
 
 export function AdminDashboard() {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [scamStats, setScamStats] = useState<ScamStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showSubscriptionAnalytics, setShowSubscriptionAnalytics] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
@@ -248,6 +252,36 @@ export function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Subscription Analytics Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+          <button
+            onClick={() => setShowSubscriptionAnalytics(!showSubscriptionAnalytics)}
+            className="w-full px-6 py-4 flex items-center justify-between text-left"
+          >
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Subscription Analytics
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  MRR, churn rate, LTV, and subscriber metrics
+                </p>
+              </div>
+            </div>
+            {showSubscriptionAnalytics ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
+          </button>
+          {showSubscriptionAnalytics && (
+            <div className="px-6 pb-6">
+              <SubscriptionAnalytics />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -8,6 +8,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AnalyticsProvider, PageTracker } from './components/AnalyticsProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
+import { SessionExpiredModal } from './components/SessionExpiredModal';
+import { SessionActivityTracker } from './components/SessionActivityTracker';
 import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { Calculators } from './pages/Calculators';
@@ -52,6 +54,8 @@ function App() {
             <AnalyticsProvider domain="bitcoinvestments.com">
               <PageTracker />
               <AuthProvider>
+                <SessionExpiredModal />
+                <SessionActivityTracker />
                 <Routes>
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Home />} />

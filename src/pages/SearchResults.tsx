@@ -350,18 +350,18 @@ function SearchResultCard({ result, query }: { result: SearchResult; query: stri
             {result.metadata?.readTime && (
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Clock className="w-3 h-3" />
-                {result.metadata.readTime} min read
+                {String(result.metadata.readTime)} min read
               </span>
             )}
             {result.metadata?.userRating && (
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Star className="w-3 h-3 text-yellow-400" />
-                {result.metadata.userRating as number}
+                {String(result.metadata.userRating)}
               </span>
             )}
             {result.metadata?.difficulty && (
               <span className="text-xs text-gray-500">
-                {result.metadata.difficulty as string}
+                {String(result.metadata.difficulty)}
               </span>
             )}
           </div>

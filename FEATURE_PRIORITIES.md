@@ -56,7 +56,7 @@ A comprehensive breakdown of features categorized by priority level for platform
 | Platform Comparison | ✅ Complete | Exchange/wallet comparisons | High |
 | Investment Calculators | ✅ Complete | DCA, fees, tax, staking calculators | High |
 | User Reviews System | ✅ Complete | Platform reviews and ratings | Medium |
-| Search Functionality | ❌ Not Started | Global site search | Medium |
+| Search Functionality | ✅ Complete | Global site search with autocomplete | Medium |
 | Breadcrumb Navigation | ❌ Not Started | Context-aware navigation | Low |
 
 ### Monetization
@@ -88,7 +88,7 @@ A comprehensive breakdown of features categorized by priority level for platform
 |---------|--------|-------------|----------|
 | Welcome Emails | ✅ Complete | Automated onboarding emails | High |
 | Price Alert Emails | ✅ Complete | Automated price notifications | High |
-| Weekly Newsletter | ⚠️ Partial | Automated weekly digest | Medium |
+| Weekly Newsletter | ✅ Complete | Automated weekly digest via cron | Medium |
 | Transaction Emails | ❌ Not Started | Subscription confirmations | Medium |
 
 ### Admin & Moderation
@@ -202,8 +202,8 @@ A comprehensive breakdown of features categorized by priority level for platform
 
 ### Short-Term (First 30 Days Post-Launch)
 
-1. **Search Functionality** - Users expect to search
-2. **Weekly Newsletter Automation** - Complete the cron job
+1. ~~**Search Functionality**~~ ✅ - Global search with autocomplete
+2. ~~**Weekly Newsletter Automation**~~ ✅ - Cron job every Monday 9AM EST
 3. **Analytics Integration** - Understand user behavior
 4. **SEO Optimization** - Meta tags, sitemap, schema markup
 

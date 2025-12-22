@@ -1,5 +1,5 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { mainnet, polygon, arbitrum, optimism } from 'wagmi/chains';
+import { mainnet, polygon, arbitrum, optimism } from 'viem/chains';
 import { http } from 'wagmi';
 
 // Get API keys from environment variables

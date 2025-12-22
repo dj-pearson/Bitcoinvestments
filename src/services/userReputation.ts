@@ -11,7 +11,7 @@
  * - Streaks and multipliers
  */
 
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface UserReputation {
   userId: string;
@@ -310,7 +310,7 @@ export async function getUserReputation(
 ): Promise<{ reputation: UserReputation | null; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('user_reputation')
         .select('*')
         .eq('user_id', userId)
@@ -321,21 +321,22 @@ export async function getUserReputation(
       }
 
       if (data) {
-        const level = getLevelFromPoints(data.points);
+        const typedData = data as any;
+        const level = getLevelFromPoints(typedData.points);
         return {
           reputation: {
-            userId: data.user_id,
-            points: data.points,
+            userId: typedData.user_id,
+            points: typedData.points,
             level: level.level,
             levelName: level.name,
-            levelProgress: calculateLevelProgress(data.points, level),
-            pointsToNextLevel: level.maxPoints - data.points,
-            badges: data.badges || [],
-            streak: data.streak || { current: 0, longest: 0, lastActivityDate: '' },
-            stats: data.stats || getDefaultStats(),
-            rank: data.rank,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
+            levelProgress: calculateLevelProgress(typedData.points, level),
+            pointsToNextLevel: level.maxPoints - typedData.points,
+            badges: typedData.badges || [],
+            streak: typedData.streak || { current: 0, longest: 0, lastActivityDate: '' },
+            stats: typedData.stats || getDefaultStats(),
+            rank: typedData.rank,
+            createdAt: typedData.created_at,
+            updatedAt: typedData.updated_at,
           },
           error: null,
         };
@@ -371,12 +372,13 @@ export async function awardPoints(
 
     if (isSupabaseConfigured()) {
       // Get current reputation
-      const { data: current } = await supabase
+      const { data: currentData } = await db
         .from('user_reputation')
         .select('*')
         .eq('user_id', userId)
         .single();
 
+      const current = currentData as any;
       const currentPoints = current?.points || 0;
       const currentStats = current?.stats || getDefaultStats();
       const currentBadges = current?.badges || [];
@@ -433,11 +435,11 @@ export async function awardPoints(
  */
 export async function getLeaderboard(
   limit: number = 10,
-  timeframe: 'all' | 'month' | 'week' = 'all'
+  _timeframe: 'all' | 'month' | 'week' = 'all'
 ): Promise<{ leaderboard: LeaderboardEntry[]; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('user_reputation')
         .select('user_id, points, badges, stats')
         .order('points', { ascending: false })
@@ -445,7 +447,7 @@ export async function getLeaderboard(
 
       if (error) throw error;
 
-      const leaderboard: LeaderboardEntry[] = (data || []).map((entry, index) => ({
+      const leaderboard: LeaderboardEntry[] = ((data || []) as any[]).map((entry, index) => ({
         rank: index + 1,
         userId: entry.user_id,
         points: entry.points,
@@ -575,7 +577,7 @@ function updateStatsForAction(stats: UserStats, action: ActionType): UserStats {
 function checkForNewBadges(
   stats: UserStats,
   existingBadges: Badge[],
-  points: number
+  _points: number
 ): Badge[] {
   const earnedBadgeIds = new Set(existingBadges.map((b) => b.id));
   const newBadges: Badge[] = [];

@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Support Ticket Service
@@ -189,7 +189,7 @@ export async function getUserTickets(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('support_tickets')
       .select('*')
       .eq('user_id', userId)
@@ -202,7 +202,7 @@ export async function getUserTickets(
       throw error;
     }
 
-    return { tickets: data || [], error: null };
+    return { tickets: (data as SupportTicket[]) || [], error: null };
   } catch (error) {
     console.error('Error fetching user tickets:', error);
     return {
@@ -225,7 +225,7 @@ export async function getAllTickets(
   try {
     const { limit = 50, offset = 0 } = filters;
 
-    let query = supabase
+    let query = db
       .from('support_tickets')
       .select('*', { count: 'exact' })
       .order('is_premium', { ascending: false }) // Premium first
@@ -299,7 +299,7 @@ export async function updateTicketStatus(
       updates.assigned_at = new Date().toISOString();
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('support_tickets')
       .update(updates)
       .eq('id', ticketId);
@@ -350,7 +350,7 @@ export async function addTicketMessage(params: {
 
       // Update first response time if this is an agent reply
       if (params.senderType === 'agent') {
-        await supabase
+        await db
           .from('support_tickets')
           .update({
             first_response_at: new Date().toISOString(),
@@ -382,7 +382,7 @@ export async function getTicketMessages(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('ticket_messages')
       .select('*')
       .eq('ticket_id', ticketId)
@@ -429,37 +429,37 @@ export async function getSupportStats(): Promise<{
     today.setHours(0, 0, 0, 0);
 
     // Get open tickets
-    const { count: openTickets } = await supabase
+    const { count: openTickets } = await db
       .from('support_tickets')
       .select('*', { count: 'exact', head: true })
       .in('status', ['open', 'in_progress', 'waiting_on_user']);
 
     // Get premium open tickets
-    const { count: premiumOpen } = await supabase
+    const { count: premiumOpen } = await db
       .from('support_tickets')
       .select('*', { count: 'exact', head: true })
       .in('status', ['open', 'in_progress', 'waiting_on_user'])
       .eq('is_premium', true);
 
     // Get tickets created today
-    const { count: ticketsToday } = await supabase
+    const { count: ticketsToday } = await db
       .from('support_tickets')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', today.toISOString());
 
     // Get resolved today
-    const { count: resolvedToday } = await supabase
+    const { count: resolvedToday } = await db
       .from('support_tickets')
       .select('*', { count: 'exact', head: true })
       .gte('resolved_at', today.toISOString());
 
     // Get SLA compliance
-    const { count: totalResolved } = await supabase
+    const { count: totalResolved } = await db
       .from('support_tickets')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'resolved');
 
-    const { count: slaBreached } = await supabase
+    const { count: slaBreached } = await db
       .from('support_tickets')
       .select('*', { count: 'exact', head: true })
       .eq('sla_breached', true);

@@ -41,6 +41,9 @@ import { InfluencerDashboard } from './pages/InfluencerDashboard';
 import { Backtesting } from './pages/Backtesting';
 import { PortfolioAnalysis } from './pages/PortfolioAnalysis';
 import { SearchResults } from './pages/SearchResults';
+import { ApiPricing } from './pages/ApiPricing';
+import { DeveloperPortal } from './pages/DeveloperPortal';
+import { AdvertiserDashboard } from './pages/AdvertiserDashboard';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -95,6 +98,10 @@ function App() {
                   <Route path="terms" element={<Terms />} />
                   <Route path="disclaimer" element={<Terms />} />
                   <Route path="pricing" element={<Pricing />} />
+                  <Route path="developers/pricing" element={<ApiPricing />} />
+                  <Route path="developers/portal" element={<ProtectedRoute><DeveloperPortal /></ProtectedRoute>} />
+                  <Route path="developers/docs" element={<ApiPricing />} />
+                  <Route path="advertiser" element={<ProtectedRoute><AdvertiserDashboard /></ProtectedRoute>} />
                   <Route path="start" element={<Learn />} />
                   <Route path="prices" element={<Dashboard />} />
                   <Route path="*" element={<Home />} />

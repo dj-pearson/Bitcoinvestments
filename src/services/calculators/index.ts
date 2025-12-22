@@ -35,3 +35,18 @@ export {
   estimateQuarterlyPayment,
   getStateTaxInfo,
 } from './taxCalculator';
+
+// Premium Calculator Features exports
+export {
+  checkFeatureAccess,
+  runMonteCarloSimulation,
+  compareMultipleAssets,
+  analyzeTaxOptimization,
+  analyzePortfolioRisk,
+  getAvailablePremiumFeatures,
+  type MonteCarloResult,
+  type MultiAssetComparison,
+  type TaxOptimizationResult,
+  type RiskAnalysisResult,
+  type PremiumCalculatorError,
+} from './premiumCalculatorFeatures';

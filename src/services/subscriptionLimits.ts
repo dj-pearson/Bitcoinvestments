@@ -17,6 +17,9 @@ export const TIER_LIMITS = {
     maxAssets: 10,
     maxClientPortfolios: 0,
 
+    // Watchlist limits
+    maxWatchlistItems: 5,
+
     // Price alert limits
     maxActiveAlerts: 3,
 
@@ -26,6 +29,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - free users can preview but not export
     canExportTaxReports: false,
+
+    // Export formats
+    exportFormats: {
+      csv: true,
+      pdf: false,
+      excel: false,
+      taxSoftware: false,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: false,
+
+    // Research reports
+    premiumResearchReports: false,
+
+    // Calculator features
+    calculatorFeatures: {
+      basic: true,
+      advanced: false,
+      projections: false,
+      comparisons: false,
+      taxOptimization: false,
+    },
 
     // Other features
     cloudSync: false,
@@ -49,6 +75,9 @@ export const TIER_LIMITS = {
     maxAssets: Infinity,
     maxClientPortfolios: 0,
 
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
     // Price alert limits - unlimited
     maxActiveAlerts: Infinity,
 
@@ -57,6 +86,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - full access
     canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
 
     // Other features
     cloudSync: true,
@@ -80,6 +132,9 @@ export const TIER_LIMITS = {
     maxAssets: Infinity,
     maxClientPortfolios: 10, // Up to 10 client portfolios
 
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
     // Price alert limits - unlimited
     maxActiveAlerts: Infinity,
 
@@ -88,6 +143,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - full access
     canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
 
     // Other features
     cloudSync: true,
@@ -111,6 +189,9 @@ export const TIER_LIMITS = {
     maxAssets: Infinity,
     maxClientPortfolios: Infinity, // Unlimited client portfolios
 
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
     // Price alert limits - unlimited
     maxActiveAlerts: Infinity,
 
@@ -119,6 +200,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - full access
     canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
 
     // Other features
     cloudSync: true,
@@ -136,6 +240,65 @@ export const TIER_LIMITS = {
     customBranding: 'full' as const,
     apiAccess: true,
     teamAccess: true,
+  },
+
+  // Lifetime deal - same as premium but one-time payment
+  lifetime: {
+    // Portfolio limits - unlimited for self
+    maxAssets: Infinity,
+    maxClientPortfolios: 0,
+
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
+    // Price alert limits - unlimited
+    maxActiveAlerts: Infinity,
+
+    // Data freshness - real-time
+    priceDataDelay: 0,
+
+    // Tax reports - full access
+    canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
+
+    // Other features
+    cloudSync: true,
+    emailAlerts: true,
+    smsAlerts: true,
+    advancedAnalytics: true,
+    adFree: true,
+    aiPortfolioAnalysis: true,
+    backtestingAdvanced: true,
+
+    // Advisor features
+    whiteLabelReports: false,
+    clientDashboard: false,
+    complianceExports: false,
+    customBranding: false,
+    apiAccess: false,
+    teamAccess: false,
   },
 } as const;
 
@@ -158,8 +321,8 @@ export function getTierLimits(
   subscriptionStatus?: SubscriptionStatus,
   subscriptionExpiresAt?: string | null
 ): TierLimits {
-  // Check if subscription is still active
-  if (!isSubscriptionActive(subscriptionExpiresAt)) {
+  // Check if subscription is still active (lifetime never expires)
+  if (subscriptionStatus !== 'lifetime' && !isSubscriptionActive(subscriptionExpiresAt)) {
     return TIER_LIMITS.free;
   }
 
@@ -170,6 +333,8 @@ export function getTierLimits(
       return TIER_LIMITS.advisor;
     case 'premium':
       return TIER_LIMITS.premium;
+    case 'lifetime':
+      return TIER_LIMITS.lifetime;
     case 'free':
     default:
       return TIER_LIMITS.free;
@@ -415,3 +580,164 @@ export function isTaxSeasonActive(): boolean {
 export function formatLimit(limit: number): string {
   return limit === Infinity || limit === -1 ? 'Unlimited' : limit.toString();
 }
+
+// ==================== Watchlist Limits ====================
+
+/**
+ * Check if user can add more items to watchlist
+ */
+export function canAddToWatchlist(
+  currentWatchlistCount: number,
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): { allowed: boolean; limit: number; remaining: number } {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  const remaining = Math.max(0, limits.maxWatchlistItems - currentWatchlistCount);
+
+  return {
+    allowed: currentWatchlistCount < limits.maxWatchlistItems,
+    limit: limits.maxWatchlistItems === Infinity ? -1 : limits.maxWatchlistItems,
+    remaining: limits.maxWatchlistItems === Infinity ? -1 : remaining,
+  };
+}
+
+/**
+ * Get watchlist limit for a subscription tier
+ */
+export function getWatchlistLimit(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): number {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.maxWatchlistItems;
+}
+
+// ==================== Export Format Limits ====================
+
+export type ExportFormat = 'csv' | 'pdf' | 'excel' | 'taxSoftware';
+
+/**
+ * Check if user can use a specific export format
+ */
+export function canUseExportFormat(
+  format: ExportFormat,
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.exportFormats[format];
+}
+
+/**
+ * Get all available export formats for a user
+ */
+export function getAvailableExportFormats(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): ExportFormat[] {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  const formats: ExportFormat[] = [];
+
+  if (limits.exportFormats.csv) formats.push('csv');
+  if (limits.exportFormats.pdf) formats.push('pdf');
+  if (limits.exportFormats.excel) formats.push('excel');
+  if (limits.exportFormats.taxSoftware) formats.push('taxSoftware');
+
+  return formats;
+}
+
+// ==================== Premium Features ====================
+
+/**
+ * Check if user has access to monthly performance reports
+ */
+export function hasMonthlyPerformanceReport(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.monthlyPerformanceReport;
+}
+
+/**
+ * Check if user has access to premium research reports
+ */
+export function hasPremiumResearchReports(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.premiumResearchReports;
+}
+
+// ==================== Calculator Features ====================
+
+export type CalculatorFeature = 'basic' | 'advanced' | 'projections' | 'comparisons' | 'taxOptimization';
+
+/**
+ * Check if user can access a specific calculator feature
+ */
+export function canUseCalculatorFeature(
+  feature: CalculatorFeature,
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.calculatorFeatures[feature];
+}
+
+/**
+ * Get all available calculator features for a user
+ */
+export function getAvailableCalculatorFeatures(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): CalculatorFeature[] {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  const features: CalculatorFeature[] = [];
+
+  if (limits.calculatorFeatures.basic) features.push('basic');
+  if (limits.calculatorFeatures.advanced) features.push('advanced');
+  if (limits.calculatorFeatures.projections) features.push('projections');
+  if (limits.calculatorFeatures.comparisons) features.push('comparisons');
+  if (limits.calculatorFeatures.taxOptimization) features.push('taxOptimization');
+
+  return features;
+}
+
+/**
+ * Check if user has lifetime access
+ */
+export function hasLifetimeAccess(
+  subscriptionStatus?: SubscriptionStatus
+): boolean {
+  return subscriptionStatus === 'lifetime';
+}
+
+// ==================== Lifetime Deal Configuration ====================
+
+export const LIFETIME_DEAL = {
+  id: 'lifetime-premium',
+  name: 'Lifetime Premium Access',
+  description: 'One-time payment for lifetime access to all premium features',
+  price: 299,
+  originalPrice: 499, // Show savings
+  currency: 'USD',
+  features: [
+    'Lifetime access to all Premium features',
+    'Never pay a subscription again',
+    'Ad-free experience forever',
+    'Unlimited portfolio assets',
+    'Unlimited watchlist items',
+    'All export formats (PDF, Excel, Tax Software)',
+    'Monthly performance reports',
+    'Premium research reports',
+    'Advanced calculator features',
+    'Cloud sync & email alerts',
+    'Priority support',
+    'All future premium features included',
+  ],
+  stripePriceId: import.meta.env.VITE_STRIPE_PRICE_LIFETIME || 'price_lifetime_placeholder',
+  limitedOffer: true,
+  maxPurchases: 500, // Limited quantity
+} as const;

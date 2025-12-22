@@ -6,12 +6,10 @@ import {
   ThumbsUp,
   Bookmark,
   BookmarkCheck,
-  Filter,
   Search,
   ChevronRight,
   Lock,
   CheckCircle,
-  X,
   RefreshCw,
   List,
   Grid3X3,
@@ -627,16 +625,8 @@ function VideoPlayer({
     setIsLoading(false);
   };
 
-  const handleProgress = async (seconds: number) => {
-    if (!userId || !video) return;
-    progressRef.current = seconds;
-
-    // Update every 10 seconds
-    if (seconds % 10 === 0) {
-      await updateProgress(userId, videoId, seconds, video.duration);
-      onProgressUpdate();
-    }
-  };
+  // Progress handler for video playback - reserved for future use
+  void progressRef;
 
   const handleBookmark = async () => {
     if (!userId) return;

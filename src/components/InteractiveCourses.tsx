@@ -549,7 +549,7 @@ export default function InteractiveCourses({ userId }: InteractiveCoursesProps) 
                   </div>
 
                   <div className="divide-y">
-                    {module.lessons.map((lesson, lessonIndex) => {
+                    {module.lessons.map((lesson) => {
                       const isLocked = !currentEnrollment && !lesson.isFree;
 
                       return (

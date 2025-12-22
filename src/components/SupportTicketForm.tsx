@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import {
   createSupportTicket,
-  formatCategory,
   type TicketCategory,
   type TicketPriority,
 } from '../services/supportTickets';
@@ -51,7 +50,7 @@ export function SupportTicketForm({ onSuccess, onCancel }: SupportTicketFormProp
   const [success, setSuccess] = useState<string | null>(null);
 
   // Check if user is premium (you would check this from your subscription system)
-  const isPremium = user?.subscription?.status === 'active';
+  const isPremium = (user as { subscription?: { status: string } } | null)?.subscription?.status === 'active';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +71,7 @@ export function SupportTicketForm({ onSuccess, onCancel }: SupportTicketFormProp
     const result = await createSupportTicket({
       userId: user.id,
       userEmail: user.email,
-      userName: user.name,
+      userName: (user as { name?: string }).name ?? 'User',
       isPremium,
       subject: subject.trim(),
       description: description.trim(),

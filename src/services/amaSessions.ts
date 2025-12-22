@@ -1,11 +1,7 @@
 // Expert AMA Sessions Service
 // Live Q&A sessions with cryptocurrency experts
 
-import { supabase } from '../lib/supabase';
-
-// Type assertion helper for tables not in the schema
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
+import { supabase, db } from '../lib/supabase';
 
 export type AMAStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
 export type QuestionStatus = 'pending' | 'approved' | 'answered' | 'rejected';

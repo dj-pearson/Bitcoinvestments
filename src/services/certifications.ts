@@ -1,11 +1,7 @@
 // Certification Program Service
 // Issue verifiable certificates for course completions
 
-import { supabase } from '../lib/supabase';
-
-// Type assertion helper for tables not in the schema
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
+import { supabase, db } from '../lib/supabase';
 
 export type CertificateStatus = 'pending' | 'issued' | 'revoked' | 'expired';
 

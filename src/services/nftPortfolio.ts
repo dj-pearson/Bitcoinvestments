@@ -1,17 +1,287 @@
 /**
- * NFT Portfolio Service
+ * NFT Portfolio Service (Premium)
  *
- * Fetches and manages NFT holdings for connected wallets.
+ * Track NFT holdings with floor price monitoring and rarity analytics.
+ * Premium feature: $14.99/month add-on or bundled
  *
  * Features:
  * - Fetch NFTs by wallet address
  * - Support for multiple chains (Ethereum, Polygon, etc.)
  * - Collection grouping and statistics
- * - Floor price tracking
+ * - Floor price tracking and alerts
  * - Rarity data integration
+ * - Premium subscription management
  */
 
-import { isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db, supabase } from '../lib/supabase';
+import type {
+  NFTPortfolioSubscription,
+  NFTPriceAlert,
+  NFTAlertType,
+  NFTAlertCondition,
+} from '../types/monetization';
+
+// ============================================
+// PREMIUM SUBSCRIPTION MANAGEMENT
+// ============================================
+
+export const NFT_SUBSCRIPTION_PRICING = {
+  monthly: 14.99,
+  yearly: 149.99,
+};
+
+/**
+ * Get user's NFT portfolio subscription
+ */
+export async function getNFTSubscription(userId: string): Promise<NFTPortfolioSubscription | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase
+    .from('nft_portfolio_subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+}
+
+/**
+ * Check if user has active NFT premium subscription
+ */
+export async function hasNFTPremiumAccess(userId: string): Promise<boolean> {
+  const subscription = await getNFTSubscription(userId);
+  if (!subscription) return false;
+
+  return (
+    subscription.status === 'active' &&
+    (!subscription.expires_at || new Date(subscription.expires_at) > new Date())
+  );
+}
+
+/**
+ * Create NFT portfolio subscription (called after Stripe payment)
+ */
+export async function createNFTSubscription(
+  userId: string,
+  stripeSubscriptionId: string,
+  type: 'monthly' | 'yearly' = 'monthly'
+): Promise<NFTPortfolioSubscription> {
+  const price = type === 'monthly' ? NFT_SUBSCRIPTION_PRICING.monthly : NFT_SUBSCRIPTION_PRICING.yearly;
+  const expiresAt = new Date();
+  expiresAt.setMonth(expiresAt.getMonth() + (type === 'yearly' ? 12 : 1));
+
+  const { data, error } = await supabase
+    .from('nft_portfolio_subscriptions')
+    .upsert(
+      {
+        user_id: userId,
+        subscription_type: type,
+        status: 'active',
+        price_paid: price,
+        stripe_subscription_id: stripeSubscriptionId,
+        expires_at: expiresAt.toISOString(),
+        max_wallets: 5,
+        max_collections_tracked: 50,
+        rarity_analytics: true,
+        floor_alerts: true,
+      },
+      { onConflict: 'user_id' }
+    )
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Cancel NFT subscription
+ */
+export async function cancelNFTSubscription(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('nft_portfolio_subscriptions')
+    .update({
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+// ============================================
+// NFT PRICE ALERTS (Premium Feature)
+// ============================================
+
+/**
+ * Get user's NFT price alerts
+ */
+export async function getNFTPriceAlerts(userId: string): Promise<NFTPriceAlert[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const { data, error } = await supabase
+    .from('nft_price_alerts')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Create NFT floor price alert
+ */
+export async function createNFTPriceAlert(
+  userId: string,
+  collectionId: string,
+  alertType: NFTAlertType,
+  condition: NFTAlertCondition,
+  targetPrice?: number,
+  targetPercent?: number
+): Promise<NFTPriceAlert> {
+  // Check if user has premium access
+  const hasPremium = await hasNFTPremiumAccess(userId);
+  if (!hasPremium) {
+    throw new Error('NFT price alerts require a premium subscription');
+  }
+
+  const { data, error } = await supabase
+    .from('nft_price_alerts')
+    .insert({
+      user_id: userId,
+      collection_id: collectionId,
+      alert_type: alertType,
+      condition,
+      target_price: targetPrice,
+      target_percent: targetPercent,
+      is_active: true,
+      notify_email: true,
+      notify_push: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Update NFT price alert
+ */
+export async function updateNFTPriceAlert(
+  alertId: string,
+  userId: string,
+  updates: Partial<NFTPriceAlert>
+): Promise<NFTPriceAlert> {
+  const { data, error } = await supabase
+    .from('nft_price_alerts')
+    .update(updates)
+    .eq('id', alertId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete NFT price alert
+ */
+export async function deleteNFTPriceAlert(alertId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('nft_price_alerts')
+    .delete()
+    .eq('id', alertId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+}
+
+/**
+ * Get active alerts count for user
+ */
+export async function getActiveAlertsCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('nft_price_alerts')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  if (error) throw error;
+  return count || 0;
+}
+
+// ============================================
+// PREMIUM RARITY ANALYTICS
+// ============================================
+
+/**
+ * Get rarity distribution for a collection (Premium)
+ */
+export async function getCollectionRarityDistribution(
+  contractAddress: string,
+  chain: string = 'ethereum'
+): Promise<{
+  trait: string;
+  values: { value: string; count: number; percentage: number }[];
+}[]> {
+  // In production, this would fetch from a rarity service like Rarity Sniper
+  // For now, return demo data
+  return [
+    {
+      trait: 'Background',
+      values: [
+        { value: 'Orange', count: 1250, percentage: 12.5 },
+        { value: 'Blue', count: 1800, percentage: 18.0 },
+        { value: 'Yellow', count: 950, percentage: 9.5 },
+      ],
+    },
+    {
+      trait: 'Fur',
+      values: [
+        { value: 'Brown', count: 2200, percentage: 22.0 },
+        { value: 'Golden', count: 450, percentage: 4.5 },
+        { value: 'Zombie', count: 150, percentage: 1.5 },
+      ],
+    },
+  ];
+}
+
+/**
+ * Get floor price history for a collection (Premium)
+ */
+export async function getFloorPriceHistory(
+  contractAddress: string,
+  days: number = 30
+): Promise<{ date: string; floor: number; volume: number }[]> {
+  // In production, this would fetch historical data
+  const history: { date: string; floor: number; volume: number }[] = [];
+  const today = new Date();
+
+  for (let i = days; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+
+    // Generate somewhat realistic looking data
+    const baseFloor = 25 + Math.sin(i * 0.2) * 5;
+    const noise = (Math.random() - 0.5) * 2;
+
+    history.push({
+      date: date.toISOString().split('T')[0],
+      floor: Math.round((baseFloor + noise) * 100) / 100,
+      volume: Math.round(100 + Math.random() * 500),
+    });
+  }
+
+  return history;
+}
+
+// ============================================
+// ORIGINAL NFT PORTFOLIO SERVICE
+// ============================================
 
 export interface NFT {
   id: string;

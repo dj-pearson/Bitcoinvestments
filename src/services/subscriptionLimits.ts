@@ -741,3 +741,270 @@ export const LIFETIME_DEAL = {
   limitedOffer: true,
   maxPurchases: 500, // Limited quantity
 } as const;
+
+// ==================== Premium Add-On Features ====================
+// These are standalone subscriptions separate from the main tier system
+
+/**
+ * Influencer Verification Program
+ * - Users pay $2.99/month for transparency access
+ * - Influencers pay $49/month for verified badge
+ */
+export const INFLUENCER_VERIFICATION_PRICING = {
+  user_transparency: {
+    id: 'influencer-transparency',
+    name: 'Influencer Transparency Access',
+    description: 'See verified performance data for crypto influencers',
+    price_monthly: 2.99,
+    price_yearly: 29.99,
+    currency: 'USD',
+    features: [
+      'View verified win rates and returns',
+      'Compare claimed vs actual performance',
+      'Access accuracy scores and trust ratings',
+      'See on-chain verified trades',
+      'Monthly performance reports',
+    ],
+    stripePriceId: {
+      monthly: import.meta.env.VITE_STRIPE_INFLUENCER_TRANSPARENCY_MONTHLY || 'price_influencer_transparency_monthly',
+      yearly: import.meta.env.VITE_STRIPE_INFLUENCER_TRANSPARENCY_YEARLY || 'price_influencer_transparency_yearly',
+    },
+  },
+  influencer_badge: {
+    id: 'influencer-verified-badge',
+    name: 'Verified Influencer Badge',
+    description: 'Get verified status and prove your track record',
+    price_monthly: 49.00,
+    currency: 'USD',
+    features: [
+      'Verified badge on profile',
+      'Increased visibility in search',
+      'Trust score display',
+      'Wallet verification support',
+      'Performance analytics dashboard',
+      'Priority review for trade claims',
+    ],
+    stripePriceId: import.meta.env.VITE_STRIPE_INFLUENCER_BADGE || 'price_influencer_badge_monthly',
+  },
+} as const;
+
+/**
+ * NFT Portfolio Premium
+ * $14.99/month add-on or bundled
+ */
+export const NFT_PORTFOLIO_PRICING = {
+  id: 'nft-portfolio-premium',
+  name: 'NFT Portfolio Premium',
+  description: 'Advanced NFT tracking with floor price monitoring and rarity analytics',
+  price_monthly: 14.99,
+  price_yearly: 149.99,
+  currency: 'USD',
+  features: [
+    'Track unlimited NFT holdings',
+    'Real-time floor price monitoring',
+    'Rarity analytics and rankings',
+    'Floor price alerts',
+    'Collection performance tracking',
+    'Multi-wallet support (up to 5)',
+    'Historical price charts',
+    'P&L tracking with cost basis',
+  ],
+  limits: {
+    max_wallets: 5,
+    max_collections_tracked: 50,
+    max_alerts: 20,
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_NFT_PORTFOLIO_MONTHLY || 'price_nft_portfolio_monthly',
+    yearly: import.meta.env.VITE_STRIPE_NFT_PORTFOLIO_YEARLY || 'price_nft_portfolio_yearly',
+  },
+} as const;
+
+/**
+ * Social Trading / Copy Portfolio
+ * $9.99/month default, creators earn 20%
+ */
+export const SOCIAL_TRADING_PRICING = {
+  id: 'social-trading',
+  name: 'Copy Trading Subscription',
+  description: 'Copy successful trader portfolios automatically',
+  default_price: 9.99,
+  creator_share_percent: 20,
+  platform_share_percent: 80,
+  currency: 'USD',
+  min_copy_amount: 100,
+  features: {
+    follower: [
+      'Follow unlimited portfolios for free',
+      'See portfolio allocations',
+      'Get trade notifications',
+    ],
+    copier: [
+      'Auto-copy portfolio allocations',
+      'Proportional or fixed amount copying',
+      'Real-time trade mirroring',
+      'Performance tracking',
+      'Customizable copy settings',
+    ],
+    creator: [
+      'Publish your portfolio',
+      'Earn 20% of subscriber fees',
+      'Performance analytics',
+      'Follower insights',
+      'Verified badge eligibility',
+    ],
+  },
+  stripePriceId: import.meta.env.VITE_STRIPE_COPY_TRADING || 'price_copy_trading_base',
+} as const;
+
+/**
+ * On-Chain Analytics
+ * Free: Basic metrics
+ * Pro: $29.99/month
+ * Enterprise: Custom pricing
+ */
+export const ONCHAIN_ANALYTICS_PRICING = {
+  tiers: {
+    basic: {
+      id: 'onchain-basic',
+      name: 'On-Chain Analytics Basic',
+      description: 'Essential on-chain metrics for free',
+      price: 0,
+      currency: 'USD',
+      features: [
+        'Active addresses',
+        'Transaction count',
+        'Transaction volume',
+        'Daily data only',
+        '30 days historical',
+        '3 alerts max',
+      ],
+      limits: {
+        metrics: ['active_addresses', 'transaction_count', 'transaction_volume'],
+        aggregation_periods: ['daily'],
+        historical_days: 30,
+        max_alerts: 3,
+        api_access: false,
+        custom_dashboards: false,
+        export_enabled: false,
+      },
+    },
+    pro: {
+      id: 'onchain-pro',
+      name: 'On-Chain Analytics Pro',
+      description: 'Full access to all on-chain metrics and alerts',
+      price_monthly: 29.99,
+      price_yearly: 299.99,
+      currency: 'USD',
+      features: [
+        'All 20+ on-chain metrics',
+        'Exchange flows analysis',
+        'Miner metrics',
+        'Valuation indicators (NVT, MVRV, SOPR)',
+        'Holder behavior analytics',
+        'Hourly/Daily/Weekly data',
+        '365 days historical',
+        '20 custom alerts',
+        'Custom dashboards',
+        'Data export (CSV/JSON)',
+        'API access',
+      ],
+      limits: {
+        metrics: 'all',
+        aggregation_periods: ['hourly', 'daily', 'weekly', 'monthly'],
+        historical_days: 365,
+        max_alerts: 20,
+        api_access: true,
+        custom_dashboards: true,
+        export_enabled: true,
+      },
+      stripePriceId: {
+        monthly: import.meta.env.VITE_STRIPE_ONCHAIN_PRO_MONTHLY || 'price_onchain_pro_monthly',
+        yearly: import.meta.env.VITE_STRIPE_ONCHAIN_PRO_YEARLY || 'price_onchain_pro_yearly',
+      },
+    },
+    enterprise: {
+      id: 'onchain-enterprise',
+      name: 'On-Chain Analytics Enterprise',
+      description: 'Enterprise-grade analytics with dedicated support',
+      price: 'custom',
+      currency: 'USD',
+      features: [
+        'Everything in Pro',
+        '5 years historical data',
+        '100 custom alerts',
+        'Team access',
+        'Dedicated account manager',
+        'Custom metrics development',
+        'Priority data feeds',
+        'SLA guarantees',
+      ],
+      limits: {
+        metrics: 'all',
+        aggregation_periods: ['hourly', 'daily', 'weekly', 'monthly'],
+        historical_days: 1825,
+        max_alerts: 100,
+        api_access: true,
+        custom_dashboards: true,
+        export_enabled: true,
+        team_access: true,
+      },
+    },
+  },
+} as const;
+
+/**
+ * Lending Comparison (Free with Affiliate)
+ * Affiliate commissions: $500-5000 per referred depositor
+ */
+export const LENDING_AFFILIATE_CONFIG = {
+  id: 'lending-affiliate',
+  name: 'Lending Platform Comparison',
+  description: 'Compare lending rates across DeFi and CeFi platforms',
+  pricing: 'free',
+  revenue_model: 'affiliate',
+  commission_range: {
+    min: 500,
+    max: 5000,
+    currency: 'USD',
+  },
+  cookie_duration_days: 30,
+} as const;
+
+// ==================== Add-On Access Helpers ====================
+
+/**
+ * Check if user has NFT Portfolio Premium access
+ */
+export function hasNFTPortfolioPremium(
+  nftSubscriptionStatus?: 'active' | 'inactive' | 'cancelled'
+): boolean {
+  return nftSubscriptionStatus === 'active';
+}
+
+/**
+ * Check if user has On-Chain Analytics Pro access
+ */
+export function hasOnChainAnalyticsPro(
+  onchainTier?: 'basic' | 'pro' | 'enterprise'
+): boolean {
+  return onchainTier === 'pro' || onchainTier === 'enterprise';
+}
+
+/**
+ * Check if user has influencer transparency access
+ */
+export function hasInfluencerTransparencyAccess(
+  transparencySubscriptionStatus?: 'active' | 'inactive' | 'cancelled'
+): boolean {
+  return transparencySubscriptionStatus === 'active';
+}
+
+/**
+ * Check if user can copy trade a portfolio
+ */
+export function hasCopyTradingAccess(
+  copySubscriptionStatus?: 'active' | 'paused' | 'cancelled'
+): boolean {
+  return copySubscriptionStatus === 'active';
+}

@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from '../lib/supabase';
 
 // Types
 export type ConversationRole = 'user' | 'assistant' | 'system';
@@ -577,7 +577,8 @@ What would you like to learn about?`;
 }
 
 // Learning Path Functions
-export async function getLearningPaths(userId: string): Promise<LearningPath[]> {
+export async function getLearningPaths(_userId: string): Promise<LearningPath[]> {
+  void _userId; // Reserved for user-specific learning paths
   try {
     const { data, error } = await supabase
       .from('learning_paths')
@@ -625,12 +626,13 @@ export async function completeModule(
 }
 
 export async function submitQuizAnswer(
-  userId: string,
+  _userId: string,
   pathId: string,
   moduleId: string,
   questionId: string,
   answerIndex: number
 ): Promise<{ correct: boolean; explanation: string }> {
+  void _userId; // Reserved for user progress tracking
   // Find the question in demo data
   const path = demoLearningPaths.find(p => p.id === pathId);
   const module = path?.modules.find(m => m.id === moduleId);

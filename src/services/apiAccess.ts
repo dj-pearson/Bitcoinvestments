@@ -1,4 +1,5 @@
-import { db } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
+void db; // Reserved for future use with untyped tables
 
 // Types
 export type ApiKeyStatus = 'active' | 'suspended' | 'revoked' | 'expired';

@@ -4,7 +4,7 @@
  * Manages user reviews for exchanges, wallets, and tax software
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/db';
 import type { PlatformReview } from '../types/database';
 
 export type PlatformType = 'exchange' | 'wallet' | 'tax_software';
@@ -55,7 +55,7 @@ export async function getReviews(
 
   const { limit = 10, offset = 0, sortBy = 'newest', status = 'approved' } = options || {};
 
-  let query = supabase
+  let query = db
     .from('platform_reviews')
     .select('*, users!platform_reviews_user_id_fkey(email, subscription_status)', { count: 'exact' })
     .eq('platform_type', platformType)
@@ -114,7 +114,7 @@ export async function getReviewStats(
     return null;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('platform_reviews')
     .select('rating')
     .eq('platform_type', platformType)
@@ -153,7 +153,7 @@ export async function submitReview(
   }
 
   // Check if user has already reviewed this platform
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('platform_reviews')
     .select('id')
     .eq('user_id', userId)
@@ -166,7 +166,7 @@ export async function submitReview(
   }
 
   // Check if user is premium (for verified badge)
-  const { data: userProfile } = await supabase
+  const { data: userProfile } = await db
     .from('users')
     .select('subscription_status')
     .eq('id', userId)
@@ -174,7 +174,7 @@ export async function submitReview(
 
   const verifiedUser = userProfile?.subscription_status === 'premium';
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('platform_reviews')
     .insert({
       user_id: userId,
@@ -213,7 +213,7 @@ export async function updateReview(
   }
 
   // Verify ownership
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('platform_reviews')
     .select('user_id')
     .eq('id', reviewId)
@@ -244,7 +244,7 @@ export async function updateReview(
     updateData.cons = updates.cons.filter(c => c.trim());
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from('platform_reviews')
     .update(updateData)
     .eq('id', reviewId);
@@ -268,7 +268,7 @@ export async function deleteReview(
   }
 
   // Verify ownership
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('platform_reviews')
     .select('user_id')
     .eq('id', reviewId)
@@ -278,7 +278,7 @@ export async function deleteReview(
     return { error: 'Review not found or access denied' };
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from('platform_reviews')
     .delete()
     .eq('id', reviewId);
@@ -295,27 +295,27 @@ export async function deleteReview(
  */
 export async function markReviewHelpful(
   reviewId: string,
-  userId?: string
+  _userId?: string
 ): Promise<{ error: string | null }> {
   if (!isSupabaseConfigured()) {
     return { error: 'Database is not configured' };
   }
 
   // Increment helpful count
-  const { error } = await supabase.rpc('increment_review_helpful', {
+  const { error } = await db.rpc('increment_review_helpful', {
     review_id: reviewId,
   });
 
   if (error) {
     // Fallback: manually increment
-    const { data: review } = await supabase
+    const { data: review } = await db
       .from('platform_reviews')
       .select('helpful_count')
       .eq('id', reviewId)
       .single();
 
     if (review) {
-      await supabase
+      await db
         .from('platform_reviews')
         .update({ helpful_count: (review.helpful_count || 0) + 1 })
         .eq('id', reviewId);
@@ -335,7 +335,7 @@ export async function getUserReviews(
     return { reviews: [], error: 'Database is not configured' };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('platform_reviews')
     .select('*')
     .eq('user_id', userId)
@@ -359,7 +359,7 @@ export async function moderateReview(
     return { error: 'Database is not configured' };
   }
 
-  const { error } = await supabase
+  const { error } = await db
     .from('platform_reviews')
     .update({
       status,
@@ -384,7 +384,7 @@ export async function getPendingReviews(
     return { reviews: [], error: 'Database is not configured' };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('platform_reviews')
     .select('*, users!platform_reviews_user_id_fkey(email, subscription_status)')
     .eq('status', 'pending')

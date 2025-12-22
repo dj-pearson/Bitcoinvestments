@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Push Notifications Service
@@ -87,7 +87,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 /**
  * Convert VAPID key from base64 to Uint8Array
  */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
@@ -98,7 +98,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
 
-  return outputArray;
+  return outputArray.buffer.slice(outputArray.byteOffset, outputArray.byteOffset + outputArray.byteLength);
 }
 
 /**
@@ -181,7 +181,7 @@ export async function unsubscribeFromPush(): Promise<{ success: boolean; error?:
     if (subscription) {
       // Remove from database
       if (isSupabaseConfigured()) {
-        await supabase
+        await db
           .from('push_subscriptions')
           .delete()
           .eq('endpoint', subscription.endpoint);
@@ -228,7 +228,7 @@ export async function getUserSubscriptions(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('push_subscriptions')
       .select('*')
       .eq('user_id', userId)
@@ -241,7 +241,7 @@ export async function getUserSubscriptions(
       throw error;
     }
 
-    return { subscriptions: data || [], error: null };
+    return { subscriptions: (data as PushSubscription[]) || [], error: null };
   } catch (error) {
     console.error('Error fetching subscriptions:', error);
     return {
@@ -262,7 +262,7 @@ export async function getNotificationPreferences(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('notification_preferences')
       .select('*')
       .eq('user_id', userId)
@@ -285,7 +285,7 @@ export async function getNotificationPreferences(
       throw error;
     }
 
-    return { preferences: data, error: null };
+    return { preferences: data as NotificationPreferences, error: null };
   } catch (error) {
     console.error('Error fetching preferences:', error);
     return {
@@ -307,7 +307,7 @@ export async function updateNotificationPreferences(
   }
 
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('notification_preferences')
       .upsert({
         user_id: userId,
@@ -349,9 +349,8 @@ export async function showLocalNotification(
     await registration.showNotification(title, {
       icon: '/icons/icon-192x192.png',
       badge: '/icons/badge-72x72.png',
-      vibrate: [200, 100, 200],
       ...options,
-    });
+    } as NotificationOptions);
   } catch (error) {
     console.error('Error showing notification:', error);
   }

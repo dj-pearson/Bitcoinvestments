@@ -11,7 +11,7 @@
  * - Rarity data integration
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface NFT {
   id: string;
@@ -120,7 +120,7 @@ export async function fetchWalletNFTs(
     // For now, check if we have cached data in the database
 
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('wallet_nfts')
         .select('*')
         .eq('wallet_address', walletAddress.toLowerCase())
@@ -132,7 +132,7 @@ export async function fetchWalletNFTs(
       }
 
       if (data && data.length > 0) {
-        const nfts: NFT[] = data.map(mapDatabaseNFT);
+        const nfts: NFT[] = (data as any[]).map(mapDatabaseNFT);
         return { nfts, error: null };
       }
     }
@@ -264,7 +264,7 @@ export async function getNFTDetails(
 ): Promise<{ nft: NFT | null; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('wallet_nfts')
         .select('*')
         .eq('contract_address', contractAddress.toLowerCase())
@@ -277,7 +277,7 @@ export async function getNFTDetails(
       }
 
       if (data) {
-        return { nft: mapDatabaseNFT(data), error: null };
+        return { nft: mapDatabaseNFT(data as Record<string, unknown>), error: null };
       }
     }
 

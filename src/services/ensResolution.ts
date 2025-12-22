@@ -190,7 +190,13 @@ async function computeNamehash(name: string): Promise<string> {
 
   for (let i = labels.length - 1; i >= 0; i--) {
     const labelHash = await sha3(labels[i]);
-    node = await sha3(hexToBytes(node) + hexToBytes(labelHash));
+    // Concatenate the two byte arrays
+    const nodeBytes = hexToBytes(node);
+    const labelBytes = hexToBytes(labelHash);
+    const combined = new Uint8Array(nodeBytes.length + labelBytes.length);
+    combined.set(nodeBytes, 0);
+    combined.set(labelBytes, nodeBytes.length);
+    node = await sha3(combined);
   }
 
   return node;
@@ -206,7 +212,10 @@ async function sha3(input: string | Uint8Array): Promise<string> {
 
   // Use keccak256 if available from a library, otherwise use SHA-256 as fallback
   // Note: In production, you should use a proper keccak256 implementation
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  // Create a new ArrayBuffer copy to ensure proper typing
+  const buffer = new ArrayBuffer(data.byteLength);
+  new Uint8Array(buffer).set(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }

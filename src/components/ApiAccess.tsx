@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getApiKeys,
   createApiKey,
   revokeApiKey,
-  updateApiKeySettings,
   getApiEndpoints,
   getApiUsageStats,
   getApiTiers,
-  getPermissionLabel,
   API_PERMISSIONS,
+} from '../services/apiAccess';
+import type {
   ApiKey,
   ApiEndpoint,
   ApiUsageStats,

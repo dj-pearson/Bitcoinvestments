@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getAMASessions,
   getAMASession,
   registerForAMA,
   submitQuestion,
   upvoteQuestion,
+} from '../services/amaSessions';
+import type {
   AMASession,
   AMAQuestion,
   AMAFilters

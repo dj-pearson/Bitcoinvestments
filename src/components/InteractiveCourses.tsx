@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getCourses,
   getCourse,
   enrollInCourse,
   getUserEnrollments,
   completeLesson,
+  CATEGORY_LABELS,
+  LEVEL_LABELS,
+  LEVEL_COLORS
+} from '../services/interactiveCourses';
+import type {
   Course,
   Module,
   Lesson,
   UserEnrollment,
   CourseFilters,
   CourseCategory,
-  CourseLevel,
-  CATEGORY_LABELS,
-  LEVEL_LABELS,
-  LEVEL_COLORS
+  CourseLevel
 } from '../services/interactiveCourses';
 
 // Icons

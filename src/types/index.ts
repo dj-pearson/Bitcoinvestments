@@ -1,5 +1,5 @@
 // User Types
-export type SubscriptionStatus = 'free' | 'premium' | 'advisor' | 'enterprise';
+export type SubscriptionStatus = 'free' | 'premium' | 'advisor' | 'enterprise' | 'lifetime';
 
 export interface User {
   id: string;

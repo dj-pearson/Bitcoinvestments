@@ -14,7 +14,6 @@ import {
 import {
   getUserReputation,
   getLeaderboard,
-  LEVELS,
   BADGES,
   getRarityColor,
   type UserReputation as UserReputationType,
@@ -296,7 +295,6 @@ function ActivityRow({
 // Badges Tab
 function BadgesTab({ badges }: { badges: Badge[] }) {
   const allBadgeIds = Object.keys(BADGES);
-  const earnedIds = new Set(badges.map((b) => b.id));
 
   // Group badges by category
   const categories = ['portfolio', 'learning', 'community', 'streak', 'special'] as const;

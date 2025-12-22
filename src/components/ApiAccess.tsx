@@ -440,7 +440,8 @@ const DocumentationTab: React.FC<{
 const UsageTab: React.FC<{
   stats: ApiUsageStats | null;
   apiKeys: ApiKey[];
-}> = ({ stats, apiKeys }) => {
+}> = ({ stats, apiKeys: _apiKeys }) => {
+  void _apiKeys; // Reserved for future use
   if (!stats) {
     return (
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">

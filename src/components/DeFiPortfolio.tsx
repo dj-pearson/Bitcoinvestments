@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Layers,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Gift,
   ExternalLink,
@@ -13,7 +11,6 @@ import {
   DollarSign,
   Percent,
   Shield,
-  Coins,
 } from 'lucide-react';
 import {
   fetchDeFiPositions,
@@ -22,10 +19,8 @@ import {
   formatPositionType,
   getRiskColor,
   getHealthColor,
-  PROTOCOLS,
   POSITION_TYPE_LABELS,
   type DeFiPosition,
-  type DeFiPortfolioSummary,
   type PositionType,
 } from '../services/defiProtocols';
 

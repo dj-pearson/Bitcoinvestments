@@ -6,9 +6,14 @@ import {
   getCurrentSessionId,
   isSessionValid,
 } from '../services/sessionManager';
+import { supabase } from '../lib/supabase';
+import type { Database } from '../types/database';
 
-interface AuthContextType {
+type UserProfile = Database['public']['Tables']['users']['Row'];
+
+export interface AuthContextType {
   user: AuthUser | null;
+  profile: UserProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
   signOutAllDevices: () => Promise<void>;
@@ -26,8 +31,19 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Fetch user profile from database
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    setProfile(data);
+  }, []);
 
   // Check if existing session is still valid
   const validateExistingSession = useCallback(async (authUser: AuthUser): Promise<boolean> => {
@@ -60,17 +76,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const sessionValid = await validateExistingSession(currentUser);
           if (sessionValid) {
             setUser(currentUser);
+            await fetchProfile(currentUser.id);
           } else {
             // Session expired, sign out
             await authSignOut();
             setUser(null);
+            setProfile(null);
           }
         } else {
           setUser(null);
+          setProfile(null);
         }
       } catch (error) {
         console.error('Auth check error:', error);
         setUser(null);
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -84,9 +104,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const sessionValid = await validateExistingSession(authUser);
         if (sessionValid) {
           setUser(authUser);
+          await fetchProfile(authUser.id);
         }
       } else {
         setUser(null);
+        setProfile(null);
       }
       setLoading(false);
     });
@@ -94,7 +116,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       unsubscribe();
     };
-  }, [validateExistingSession]);
+  }, [validateExistingSession, fetchProfile]);
 
   // Initialize a new session (called after login)
   const initializeSession = useCallback(async (userId: string) => {
@@ -115,6 +137,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     await authSignOut();
     setUser(null);
+    setProfile(null);
     setSessionExpired(false);
   }, [user]);
 
@@ -125,13 +148,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     await authSignOut();
     setUser(null);
+    setProfile(null);
     setSessionExpired(false);
   }, [user]);
 
   const refreshUser = useCallback(async () => {
     const currentUser = await getCurrentUser();
     setUser(currentUser);
-  }, []);
+    if (currentUser) {
+      await fetchProfile(currentUser.id);
+    } else {
+      setProfile(null);
+    }
+  }, [fetchProfile]);
 
   const clearSessionExpired = useCallback(() => {
     setSessionExpired(false);
@@ -141,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     <AuthContext.Provider
       value={{
         user,
+        profile,
         loading,
         signOut,
         signOutAllDevices,

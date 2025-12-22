@@ -17,7 +17,7 @@
  * - Multi-exchange aggregation
  */
 
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface Exchange {
   id: string;
@@ -86,6 +86,34 @@ export interface SyncResult {
   balances?: ExchangeBalance[];
   transactions?: ExchangeTransaction[];
   error?: string;
+}
+
+// Database representation types
+interface DbExchangeConnection {
+  id: string;
+  user_id: string;
+  exchange_id: string;
+  exchange_name: string;
+  status: string;
+  last_sync_at?: string;
+  last_error?: string;
+  permissions: string[];
+  encrypted_credentials?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbExchangeBalance {
+  id: string;
+  connection_id: string;
+  exchange_id: string;
+  asset: string;
+  asset_name?: string;
+  free: number;
+  locked: number;
+  total: number;
+  usd_value: number;
+  updated_at: string;
 }
 
 // Supported exchanges
@@ -183,7 +211,7 @@ export async function getConnections(
 ): Promise<{ connections: ExchangeConnection[]; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('exchange_connections')
         .select('*')
         .eq('user_id', userId)
@@ -192,7 +220,7 @@ export async function getConnections(
       if (error) throw error;
 
       return {
-        connections: (data || []).map(mapConnectionFromDB),
+        connections: ((data || []) as DbExchangeConnection[]).map(mapConnectionFromDB),
         error: null,
       };
     }
@@ -231,7 +259,7 @@ export async function connectExchangeWithApiKey(
 
     if (isSupabaseConfigured()) {
       // Encrypt and store credentials
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('exchange_connections')
         .insert({
           user_id: userId,
@@ -248,9 +276,10 @@ export async function connectExchangeWithApiKey(
       if (error) throw error;
 
       // Trigger initial sync
-      await syncConnection(data.id, userId);
+      const dbConn = data as DbExchangeConnection;
+      await syncConnection(dbConn.id, userId);
 
-      return { connection: mapConnectionFromDB(data), error: null };
+      return { connection: mapConnectionFromDB(dbConn), error: null };
     }
 
     // Demo connection
@@ -315,7 +344,7 @@ export async function completeOAuthConnection(
     // This is a placeholder - actual implementation would call the OAuth token endpoint
 
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('exchange_connections')
         .insert({
           user_id: userId,
@@ -331,9 +360,10 @@ export async function completeOAuthConnection(
 
       if (error) throw error;
 
-      await syncConnection(data.id, userId);
+      const dbConn = data as DbExchangeConnection;
+      await syncConnection(dbConn.id, userId);
 
-      return { connection: mapConnectionFromDB(data), error: null };
+      return { connection: mapConnectionFromDB(dbConn), error: null };
     }
 
     return { connection: null, error: 'Database not configured' };
@@ -359,33 +389,35 @@ export async function syncConnection(
     }
 
     // Update status to syncing
-    await supabase
+    await db
       .from('exchange_connections')
       .update({ status: 'syncing' })
       .eq('id', connectionId)
       .eq('user_id', userId);
 
     // Get connection details
-    const { data: connection } = await supabase
+    const { data: connectionData } = await db
       .from('exchange_connections')
       .select('*')
       .eq('id', connectionId)
       .single();
 
-    if (!connection) {
+    if (!connectionData) {
       return { success: false, error: 'Connection not found' };
     }
+
+    const connection = connectionData as DbExchangeConnection;
 
     // Fetch balances from exchange
     const balances = await fetchExchangeBalances(
       connection.exchange_id,
-      decryptCredentials(connection.encrypted_credentials)
+      decryptCredentials(connection.encrypted_credentials || '')
     );
 
     // Fetch transactions
     const transactions = await fetchExchangeTransactions(
       connection.exchange_id,
-      decryptCredentials(connection.encrypted_credentials)
+      decryptCredentials(connection.encrypted_credentials || '')
     );
 
     // Store balances
@@ -413,7 +445,7 @@ export async function syncConnection(
     }
 
     // Update sync status
-    await supabase
+    await db
       .from('exchange_connections')
       .update({
         status: 'active',
@@ -428,7 +460,7 @@ export async function syncConnection(
 
     // Update error status
     if (isSupabaseConfigured()) {
-      await supabase
+      await db
         .from('exchange_connections')
         .update({
           status: 'error',
@@ -452,7 +484,7 @@ export async function getAllBalances(
 ): Promise<{ balances: ExchangeBalance[]; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('exchange_balances')
         .select('*, exchange_connections!inner(user_id)')
         .eq('exchange_connections.user_id', userId);
@@ -460,7 +492,7 @@ export async function getAllBalances(
       if (error) throw error;
 
       return {
-        balances: (data || []).map((b) => ({
+        balances: ((data || []) as DbExchangeBalance[]).map((b) => ({
           connectionId: b.connection_id,
           exchangeId: b.exchange_id,
           asset: b.asset,
@@ -497,7 +529,7 @@ export async function disconnectExchange(
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('exchange_connections')
       .delete()
       .eq('id', connectionId)
@@ -516,18 +548,18 @@ export async function disconnectExchange(
 }
 
 // Helper functions
-function mapConnectionFromDB(data: Record<string, unknown>): ExchangeConnection {
+function mapConnectionFromDB(data: DbExchangeConnection): ExchangeConnection {
   return {
-    id: data.id as string,
-    userId: data.user_id as string,
-    exchangeId: data.exchange_id as string,
-    exchangeName: data.exchange_name as string,
+    id: data.id,
+    userId: data.user_id,
+    exchangeId: data.exchange_id,
+    exchangeName: data.exchange_name,
     status: data.status as ExchangeConnection['status'],
-    lastSyncAt: data.last_sync_at as string | undefined,
-    lastError: data.last_error as string | undefined,
-    permissions: (data.permissions as string[]) || [],
-    createdAt: data.created_at as string,
-    updatedAt: data.updated_at as string,
+    lastSyncAt: data.last_sync_at,
+    lastError: data.last_error,
+    permissions: data.permissions || [],
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
   };
 }
 
@@ -563,7 +595,7 @@ function decryptCredentials(encrypted: string): Record<string, unknown> {
 }
 
 async function fetchExchangeBalances(
-  exchangeId: string,
+  _exchangeId: string,
   credentials: Record<string, unknown>
 ): Promise<Omit<ExchangeBalance, 'connectionId' | 'exchangeId'>[]> {
   // In production, this would call the actual exchange API
@@ -579,7 +611,7 @@ async function fetchExchangeBalances(
 }
 
 async function fetchExchangeTransactions(
-  exchangeId: string,
+  _exchangeId: string,
   credentials: Record<string, unknown>
 ): Promise<Omit<ExchangeTransaction, 'connectionId' | 'exchangeId'>[]> {
   // In production, this would call the actual exchange API

@@ -325,7 +325,7 @@ export async function verifyCertificate(certificateNumber: string): Promise<Veri
       };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('certificates')
       .select('*')
       .eq('certificate_number', certificateNumber)
@@ -339,25 +339,26 @@ export async function verifyCertificate(certificateNumber: string): Promise<Veri
       };
     }
 
-    if (data.status === 'revoked') {
+    const cert = data as Certificate;
+    if (cert.status === 'revoked') {
       return {
         isValid: false,
-        certificate: data,
+        certificate: cert,
         message: 'This certificate has been revoked'
       };
     }
 
-    if (data.status === 'expired') {
+    if (cert.status === 'expired') {
       return {
         isValid: false,
-        certificate: data,
+        certificate: cert,
         message: 'This certificate has expired'
       };
     }
 
     return {
       isValid: true,
-      certificate: data,
+      certificate: cert,
       message: 'Certificate verified successfully'
     };
   } catch (err) {

@@ -10,7 +10,7 @@
  * - Default layouts for new users
  */
 
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface WidgetPosition {
   x: number;
@@ -282,7 +282,7 @@ export async function getDashboardLayout(
 ): Promise<{ layout: DashboardLayout | null; error: string | null }> {
   try {
     if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('dashboard_layouts')
         .select('*')
         .eq('user_id', userId)
@@ -294,15 +294,16 @@ export async function getDashboardLayout(
       }
 
       if (data) {
+        const layoutData = data as { id: string; user_id: string; name: string; widgets: WidgetConfig[]; is_default: boolean; created_at: string; updated_at: string };
         return {
           layout: {
-            id: data.id,
-            userId: data.user_id,
-            name: data.name,
-            widgets: data.widgets || [],
-            isDefault: data.is_default,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
+            id: layoutData.id,
+            userId: layoutData.user_id,
+            name: layoutData.name,
+            widgets: layoutData.widgets || [],
+            isDefault: layoutData.is_default,
+            createdAt: layoutData.created_at,
+            updatedAt: layoutData.updated_at,
           },
           error: null,
         };

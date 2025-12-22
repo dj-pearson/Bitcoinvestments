@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getUserCertificates,
   verifyCertificate,
   getLinkedInShareUrl,
   getShareableUrl,
+} from '../services/certifications';
+import type {
   Certificate,
   VerificationResult
 } from '../services/certifications';

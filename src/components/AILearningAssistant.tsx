@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getConversations,
   createConversation,
@@ -8,6 +8,8 @@ import {
   getUserProgress,
   getTopicSuggestions,
   getAllTopics,
+} from '../services/aiLearningAssistant';
+import type {
   Conversation,
   ChatMessage,
   LearningPath,

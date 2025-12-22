@@ -300,7 +300,7 @@ export async function getStories(filters: StoryFilters = {}): Promise<{
       };
     }
 
-    let query = supabase
+    let query = db
       .from('success_stories')
       .select('*', { count: 'exact' })
       .in('status', ['approved', 'featured']);
@@ -334,7 +334,7 @@ export async function getStories(filters: StoryFilters = {}): Promise<{
 
     if (error) throw error;
 
-    return { stories: data || [], total: count || 0, error: null };
+    return { stories: (data as SuccessStory[]) || [], total: count || 0, error: null };
   } catch (err) {
     console.error('Error fetching stories:', err);
     return { stories: DEMO_STORIES, total: DEMO_STORIES.length, error: null };
@@ -355,7 +355,7 @@ export async function getStory(idOrSlug: string): Promise<{
       return { story: demoStory || null, error: demoStory ? null : 'Story not found' };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('success_stories')
       .select('*')
       .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
@@ -364,9 +364,9 @@ export async function getStory(idOrSlug: string): Promise<{
     if (error) throw error;
 
     // Increment view count
-    await supabase.rpc('increment_story_views', { story_id: data.id });
+    await db.rpc('increment_story_views', { story_id: data.id });
 
-    return { story: data, error: null };
+    return { story: data as SuccessStory, error: null };
   } catch (err) {
     console.error('Error fetching story:', err);
     return { story: demoStory || null, error: demoStory ? null : 'Story not found' };
@@ -427,7 +427,7 @@ export async function submitStory(
 
     const slug = story.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('success_stories')
       .insert({
         user_id: userId,
@@ -452,7 +452,7 @@ export async function submitStory(
 
     if (error) throw error;
 
-    return { story: data, error: null };
+    return { story: data as SuccessStory, error: null };
   } catch (err: any) {
     console.error('Error submitting story:', err);
     return { story: null, error: err.message || 'Failed to submit story' };
@@ -472,7 +472,7 @@ export async function likeStory(userId: string, storyId: string): Promise<{
     }
 
     await db.from('story_likes').upsert({ user_id: userId, story_id: storyId });
-    await supabase.rpc('update_story_likes', { story_id: storyId });
+    await db.rpc('update_story_likes', { story_id: storyId });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -492,7 +492,7 @@ export async function getStoryComments(storyId: string): Promise<{
       return { comments: [], error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('story_comments')
       .select('*')
       .eq('story_id', storyId)
@@ -500,7 +500,7 @@ export async function getStoryComments(storyId: string): Promise<{
 
     if (error) throw error;
 
-    return { comments: data || [], error: null };
+    return { comments: (data as StoryComment[]) || [], error: null };
   } catch (err) {
     return { comments: [], error: null };
   }
@@ -519,13 +519,13 @@ export async function addStoryComment(
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('story_comments')
       .insert({ user_id: userId, story_id: storyId, content });
 
     if (error) throw error;
 
-    await supabase.rpc('increment_story_comments', { story_id: storyId });
+    await db.rpc('increment_story_comments', { story_id: storyId });
 
     return { success: true, error: null };
   } catch (err: any) {

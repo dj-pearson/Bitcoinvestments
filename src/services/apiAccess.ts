@@ -1,4 +1,8 @@
-import { supabase } from './supabase';
+import { supabase } from '../lib/supabase';
+
+// Type assertion helper for tables not in the schema
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 // Types
 export type ApiKeyStatus = 'active' | 'suspended' | 'revoked' | 'expired';

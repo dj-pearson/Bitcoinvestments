@@ -457,7 +457,7 @@ export async function getUserRegistrations(userId: string): Promise<{
       return { registrations: [], error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('ama_registrations')
       .select('*, session:ama_sessions(*, expert:ama_experts(*))')
       .eq('user_id', userId)
@@ -465,7 +465,7 @@ export async function getUserRegistrations(userId: string): Promise<{
 
     if (error) throw error;
 
-    return { registrations: data || [], error: null };
+    return { registrations: (data as AMARegistration[]) || [], error: null };
   } catch (err) {
     return { registrations: [], error: null };
   }
@@ -480,12 +480,12 @@ export async function getExperts(): Promise<AMAExpert[]> {
       return DEMO_EXPERTS;
     }
 
-    const { data } = await supabase
+    const { data } = await db
       .from('ama_experts')
       .select('*')
       .order('total_sessions', { ascending: false });
 
-    return data || DEMO_EXPERTS;
+    return (data as AMAExpert[]) || DEMO_EXPERTS;
   } catch (err) {
     return DEMO_EXPERTS;
   }

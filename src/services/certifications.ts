@@ -3,6 +3,10 @@
 
 import { supabase } from '../lib/supabase';
 
+// Type assertion helper for tables not in the schema
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 export type CertificateStatus = 'pending' | 'issued' | 'revoked' | 'expired';
 
 export interface Certificate {
@@ -182,7 +186,7 @@ export async function issueCertificate(
     const { data: user } = await supabase.auth.getUser();
 
     // Get course and enrollment info
-    const { data: enrollment, error: enrollmentError } = await supabase
+    const { data: enrollment, error: enrollmentError } = await db
       .from('course_enrollments')
       .select(`
         *,
@@ -199,45 +203,48 @@ export async function issueCertificate(
       throw new Error('Enrollment not found');
     }
 
-    if (!enrollment.completed_at) {
+    const enrollmentData = enrollment as { completed_at?: string; course: { category: string; title: string; instructor?: { name: string }; estimated_hours: number; learning_outcomes?: string[] } };
+    if (!enrollmentData.completed_at) {
       return { certificate: null, error: 'Course not completed yet' };
     }
 
     // Check if certificate already exists
-    const { data: existingCert } = await supabase
+    const { data: existingCert } = await db
       .from('certificates')
       .select('*')
       .eq('enrollment_id', enrollmentId)
       .single();
 
     if (existingCert) {
-      return { certificate: existingCert, error: null };
+      return { certificate: existingCert as Certificate, error: null };
     }
 
     // Get quiz scores
-    const { data: quizAttempts } = await supabase
+    const { data: quizAttempts } = await db
       .from('quiz_attempts')
       .select('score')
       .eq('enrollment_id', enrollmentId)
       .eq('passed', true);
 
-    const averageScore = quizAttempts && quizAttempts.length > 0
-      ? Math.round(quizAttempts.reduce((sum, a) => sum + a.score, 0) / quizAttempts.length)
+    const attempts = quizAttempts as { score: number }[] | null;
+    const averageScore = attempts && attempts.length > 0
+      ? Math.round(attempts.reduce((sum: number, a: { score: number }) => sum + a.score, 0) / attempts.length)
       : 85;
 
     // Get lesson count
-    const { count: lessonsCompleted } = await supabase
+    const { count: lessonsCompleted } = await db
       .from('lesson_progress')
       .select('*', { count: 'exact' })
       .eq('enrollment_id', enrollmentId)
       .eq('is_completed', true);
+    void lessonsCompleted; // Used for future completion tracking
 
     // Generate certificate number
-    const coursePrefix = enrollment.course.category.toUpperCase().slice(0, 3);
+    const coursePrefix = enrollmentData.course.category.toUpperCase().slice(0, 3);
     const certificateNumber = generateCertificateNumber(coursePrefix);
 
     // Create certificate
-    const { data: certificate, error } = await supabase
+    const { data: certificate, error } = await db
       .from('certificates')
       .insert({
         certificate_number: certificateNumber,
@@ -245,14 +252,14 @@ export async function issueCertificate(
         user_name: user?.user?.user_metadata?.full_name || user?.user?.email?.split('@')[0] || 'Student',
         enrollment_id: enrollmentId,
         course_id: courseId,
-        course_name: enrollment.course.title,
-        instructor_name: enrollment.course.instructor?.name || 'Unknown',
+        course_name: enrollmentData.course.title,
+        instructor_name: enrollmentData.course.instructor?.name || 'Unknown',
         issue_date: new Date().toISOString(),
         status: 'issued',
         grade: getGrade(averageScore),
         score: averageScore,
-        completion_time: enrollment.course.estimated_hours,
-        skills: enrollment.course.learning_outcomes || [],
+        completion_time: enrollmentData.course.estimated_hours,
+        skills: enrollmentData.course.learning_outcomes || [],
         verification_url: `https://bitcoinvestments.com/verify/${certificateNumber}`,
         metadata: {
           lessonsCompleted: lessonsCompleted || 0,
@@ -265,7 +272,7 @@ export async function issueCertificate(
 
     if (error) throw error;
 
-    return { certificate, error: null };
+    return { certificate: certificate as Certificate, error: null };
   } catch (err: any) {
     console.error('Error issuing certificate:', err);
     return { certificate: null, error: err.message || 'Failed to issue certificate' };
@@ -284,7 +291,7 @@ export async function getUserCertificates(userId: string): Promise<{
       return { certificates: DEMO_CERTIFICATES, error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('certificates')
       .select('*')
       .eq('user_id', userId)
@@ -292,7 +299,7 @@ export async function getUserCertificates(userId: string): Promise<{
 
     if (error) throw error;
 
-    return { certificates: data || [], error: null };
+    return { certificates: (data as Certificate[]) || [], error: null };
   } catch (err) {
     console.error('Error fetching certificates:', err);
     return { certificates: DEMO_CERTIFICATES, error: null };

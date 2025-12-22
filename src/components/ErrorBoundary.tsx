@@ -6,9 +6,37 @@
  */
 
 import React from 'react';
-import { ErrorBoundary as SentryErrorBoundary } from '@sentry/react';
 import { RefreshCw, AlertTriangle, Home, ChevronLeft } from 'lucide-react';
 import { captureException, addBreadcrumb } from '../services/errorLogging';
+
+// Fallback error boundary when Sentry is not available
+class SentryErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: any; onError?: any; showDialog?: boolean },
+  { hasError: boolean; error: any }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo.componentStack, 'no-id');
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      const FallbackComponent = this.props.fallback;
+      return <FallbackComponent error={this.state.error} resetError={() => this.setState({ hasError: false })} componentStack="" eventId="" />;
+    }
+    return this.props.children;
+  }
+}
 
 interface ErrorFallbackProps {
   error: unknown;

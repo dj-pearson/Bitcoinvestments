@@ -64,9 +64,19 @@ ALTER TABLE portfolios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_holdings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_transactions ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own portfolios" ON portfolios;
+DROP POLICY IF EXISTS "Users can create own portfolios" ON portfolios;
+DROP POLICY IF EXISTS "Users can update own portfolios" ON portfolios;
+DROP POLICY IF EXISTS "Users can delete own portfolios" ON portfolios;
+DROP POLICY IF EXISTS "Users can view holdings of own portfolios" ON portfolio_holdings;
+DROP POLICY IF EXISTS "Users can manage holdings of own portfolios" ON portfolio_holdings;
+DROP POLICY IF EXISTS "Users can view transactions of own portfolios" ON portfolio_transactions;
+DROP POLICY IF EXISTS "Users can manage transactions of own portfolios" ON portfolio_transactions;
+
 -- Portfolio policies
 CREATE POLICY "Users can view own portfolios"
-    ON portfolios
+    ON public.portfolios
     FOR SELECT
     USING (auth.uid() = user_id OR is_public = true);
 
@@ -87,47 +97,47 @@ CREATE POLICY "Users can delete own portfolios"
 
 -- Holdings policies
 CREATE POLICY "Users can view holdings of own portfolios"
-    ON portfolio_holdings
+    ON public.portfolio_holdings
     FOR SELECT
     USING (
         EXISTS (
-            SELECT 1 FROM portfolios
-            WHERE portfolios.id = portfolio_holdings.portfolio_id
-            AND (portfolios.user_id = auth.uid() OR portfolios.is_public = true)
+            SELECT 1 FROM public.portfolios p
+            WHERE p.id = portfolio_id
+            AND (p.user_id = auth.uid() OR p.is_public = true)
         )
     );
 
 CREATE POLICY "Users can manage holdings of own portfolios"
-    ON portfolio_holdings
+    ON public.portfolio_holdings
     FOR ALL
     USING (
         EXISTS (
-            SELECT 1 FROM portfolios
-            WHERE portfolios.id = portfolio_holdings.portfolio_id
-            AND portfolios.user_id = auth.uid()
+            SELECT 1 FROM public.portfolios p
+            WHERE p.id = portfolio_id
+            AND p.user_id = auth.uid()
         )
     );
 
 -- Transaction policies
 CREATE POLICY "Users can view transactions of own portfolios"
-    ON portfolio_transactions
+    ON public.portfolio_transactions
     FOR SELECT
     USING (
         EXISTS (
-            SELECT 1 FROM portfolios
-            WHERE portfolios.id = portfolio_transactions.portfolio_id
-            AND (portfolios.user_id = auth.uid() OR portfolios.is_public = true)
+            SELECT 1 FROM public.portfolios p
+            WHERE p.id = portfolio_id
+            AND (p.user_id = auth.uid() OR p.is_public = true)
         )
     );
 
 CREATE POLICY "Users can manage transactions of own portfolios"
-    ON portfolio_transactions
+    ON public.portfolio_transactions
     FOR ALL
     USING (
         EXISTS (
-            SELECT 1 FROM portfolios
-            WHERE portfolios.id = portfolio_transactions.portfolio_id
-            AND portfolios.user_id = auth.uid()
+            SELECT 1 FROM public.portfolios p
+            WHERE p.id = portfolio_id
+            AND p.user_id = auth.uid()
         )
     );
 

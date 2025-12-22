@@ -184,6 +184,24 @@ ALTER TABLE lesson_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE course_ratings ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Public can view instructors" ON instructors;
+DROP POLICY IF EXISTS "Public can view published courses" ON courses;
+DROP POLICY IF EXISTS "Public can view course modules" ON course_modules;
+DROP POLICY IF EXISTS "Public can view course lessons" ON course_lessons;
+DROP POLICY IF EXISTS "Public can view quizzes" ON course_quizzes;
+DROP POLICY IF EXISTS "Users can view own enrollments" ON course_enrollments;
+DROP POLICY IF EXISTS "Users can enroll in courses" ON course_enrollments;
+DROP POLICY IF EXISTS "Users can update own enrollments" ON course_enrollments;
+DROP POLICY IF EXISTS "Users can view own lesson progress" ON lesson_progress;
+DROP POLICY IF EXISTS "Users can update own lesson progress" ON lesson_progress;
+DROP POLICY IF EXISTS "Users can upsert own lesson progress" ON lesson_progress;
+DROP POLICY IF EXISTS "Users can view own quiz attempts" ON quiz_attempts;
+DROP POLICY IF EXISTS "Users can submit quiz attempts" ON quiz_attempts;
+DROP POLICY IF EXISTS "Users can view course ratings" ON course_ratings;
+DROP POLICY IF EXISTS "Users can rate courses" ON course_ratings;
+DROP POLICY IF EXISTS "Users can update own ratings" ON course_ratings;
+
 -- Public read access for courses
 CREATE POLICY "Public can view instructors"
     ON instructors FOR SELECT
@@ -223,24 +241,24 @@ CREATE POLICY "Users can update own enrollments"
     USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own lesson progress"
-    ON lesson_progress FOR SELECT
-    USING (EXISTS (SELECT 1 FROM course_enrollments WHERE id = enrollment_id AND user_id = auth.uid()));
+    ON public.lesson_progress FOR SELECT
+    USING (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
 
 CREATE POLICY "Users can update own lesson progress"
-    ON lesson_progress FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM course_enrollments WHERE id = enrollment_id AND user_id = auth.uid()));
+    ON public.lesson_progress FOR INSERT
+    WITH CHECK (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
 
 CREATE POLICY "Users can upsert own lesson progress"
-    ON lesson_progress FOR UPDATE
-    USING (EXISTS (SELECT 1 FROM course_enrollments WHERE id = enrollment_id AND user_id = auth.uid()));
+    ON public.lesson_progress FOR UPDATE
+    USING (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
 
 CREATE POLICY "Users can view own quiz attempts"
-    ON quiz_attempts FOR SELECT
-    USING (EXISTS (SELECT 1 FROM course_enrollments WHERE id = enrollment_id AND user_id = auth.uid()));
+    ON public.quiz_attempts FOR SELECT
+    USING (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
 
 CREATE POLICY "Users can submit quiz attempts"
-    ON quiz_attempts FOR INSERT
-    WITH CHECK (EXISTS (SELECT 1 FROM course_enrollments WHERE id = enrollment_id AND user_id = auth.uid()));
+    ON public.quiz_attempts FOR INSERT
+    WITH CHECK (EXISTS (SELECT 1 FROM public.course_enrollments ce WHERE ce.id = enrollment_id AND ce.user_id = auth.uid()));
 
 CREATE POLICY "Users can view course ratings"
     ON course_ratings FOR SELECT
@@ -285,13 +303,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Trigger to update course lesson/quiz counts
 CREATE OR REPLACE FUNCTION update_course_counts()
 RETURNS TRIGGER AS $$
+DECLARE
+    target_course_id UUID;
 BEGIN
+    -- Get course_id from NEW or OLD record
+    IF TG_OP = 'DELETE' THEN
+        target_course_id := OLD.course_id;
+    ELSE
+        target_course_id := NEW.course_id;
+    END IF;
+
+    -- Update course counts
     UPDATE courses c
-    SET total_lessons = (SELECT COUNT(*) FROM course_lessons WHERE course_id = c.id),
-        total_quizzes = (SELECT COUNT(*) FROM course_lessons WHERE course_id = c.id AND type = 'quiz'),
+    SET total_lessons = (SELECT COUNT(*) FROM course_lessons WHERE course_id = target_course_id),
+        total_quizzes = (SELECT COUNT(*) FROM course_lessons WHERE course_id = target_course_id AND type = 'quiz'),
         updated_at = NOW()
-    WHERE c.id = COALESCE(NEW.course_id, OLD.course_id);
-    RETURN COALESCE(NEW, OLD);
+    WHERE c.id = target_course_id;
+    
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    ELSE
+        RETURN NEW;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 

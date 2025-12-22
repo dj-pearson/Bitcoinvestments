@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   DEMO_PUBLISHED_PORTFOLIOS,
-  getDemoLeaderboard,
   SOCIAL_TRADING_CONFIG,
 } from '../services/socialTrading';
-import type { PublishedPortfolio, SocialTradingLeaderboard } from '../types/monetization';
+import type { PublishedPortfolio } from '../types/monetization';
 
 const SocialTrading: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'discover' | 'following' | 'my-portfolios'>('discover');
   const [sortBy, setSortBy] = useState<'copiers' | 'returns' | 'followers'>('copiers');
   const [riskFilter, setRiskFilter] = useState<string>('all');
-  const [portfolios, setPortfolios] = useState<Partial<PublishedPortfolio>[]>(DEMO_PUBLISHED_PORTFOLIOS);
-  const [leaderboard, setLeaderboard] = useState<SocialTradingLeaderboard>(getDemoLeaderboard());
+  const [portfolios] = useState<Partial<PublishedPortfolio>[]>(DEMO_PUBLISHED_PORTFOLIOS);
   const [selectedPortfolio, setSelectedPortfolio] = useState<Partial<PublishedPortfolio> | null>(null);
 
   const getRiskLevelColor = (risk: string | null) => {

@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  getVerifiedInfluencers,
-  getTopInfluencersByAccuracy,
-  getTrendingInfluencers,
   hasTransparencyAccess,
   DEMO_INFLUENCERS,
   DEMO_TRADE_CLAIMS,
 } from '../services/influencerVerification';
-import type { VerifiedInfluencer, InfluencerTradeClaim } from '../types/monetization';
+import type { VerifiedInfluencer } from '../types/monetization';
 
 const InfluencerVerification: React.FC = () => {
   const { user } = useAuth();
-  const [influencers, setInfluencers] = useState<Partial<VerifiedInfluencer>[]>(DEMO_INFLUENCERS);
+  const [influencers] = useState<Partial<VerifiedInfluencer>[]>(DEMO_INFLUENCERS);
   const [selectedInfluencer, setSelectedInfluencer] = useState<Partial<VerifiedInfluencer> | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'accuracy' | 'trending'>('all');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) {

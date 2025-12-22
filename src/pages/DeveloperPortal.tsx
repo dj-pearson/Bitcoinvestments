@@ -5,10 +5,8 @@ import {
   getApiKeys,
   createApiKey,
   revokeApiKey,
-  updateApiKeySettings,
   getApiEndpoints,
   getApiUsageStats,
-  getApiTiers,
   getTierDetails,
   API_PERMISSIONS,
   getPermissionLabel,
@@ -96,7 +94,6 @@ export function DeveloperPortal() {
   };
 
   const tierDetails = getTierDetails(currentUserTier);
-  const tiers = getApiTiers();
 
   const categories = ['all', ...new Set(endpoints.map(e => e.category))];
   const filteredEndpoints = selectedCategory === 'all'
@@ -498,22 +495,22 @@ export function DeveloperPortal() {
           <div className="glass-card p-6 mt-8">
             <h3 className="text-lg font-semibold mb-4">Daily Request Volume (Last 30 Days)</h3>
             <div className="flex items-end gap-1 h-40">
-              {usageStats.requestsByDay.map((day, index) => {
-                const maxCount = Math.max(...usageStats.requestsByDay.map(d => d.count));
-                const height = (day.count / maxCount) * 100;
-                return (
-                  <div
-                    key={day.date}
-                    className="flex-1 bg-purple-500/50 hover:bg-purple-500 transition-colors rounded-t cursor-pointer group relative"
-                    style={{ height: `${height}%` }}
-                    title={`${day.date}: ${day.count.toLocaleString()} requests`}
-                  >
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      {day.count.toLocaleString()}
-                    </div>
+            {usageStats.requestsByDay.map((day) => {
+              const maxCount = Math.max(...usageStats.requestsByDay.map(d => d.count));
+              const height = (day.count / maxCount) * 100;
+              return (
+                <div
+                  key={day.date}
+                  className="flex-1 bg-purple-500/50 hover:bg-purple-500 transition-colors rounded-t cursor-pointer group relative"
+                  style={{ height: `${height}%` }}
+                  title={`${day.date}: ${day.count.toLocaleString()} requests`}
+                >
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    {day.count.toLocaleString()}
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
             </div>
           </div>
         </div>

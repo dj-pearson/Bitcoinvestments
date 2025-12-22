@@ -124,7 +124,7 @@ A comprehensive breakdown of features categorized by priority level for platform
 | Video Tutorial Library | ❌ Not Started | YouTube embeds or hosted videos | Visual learning preference |
 | Interactive Courses | ❌ Not Started | Structured learning paths | Premium content opportunity |
 | Certification Program | ❌ Not Started | Completion certificates | Perceived value, shareable |
-| Risk Assessment Quiz | ❌ Not Started | Personalized recommendations | Onboarding enhancement |
+| Risk Assessment Quiz | ✅ Complete | Personalized recommendations | 10-question quiz with risk profiles |
 | AI Learning Assistant | ❌ Not Started | Chatbot for questions | Reduces support burden |
 
 ### Advanced Tools
@@ -134,7 +134,7 @@ A comprehensive breakdown of features categorized by priority level for platform
 | Backtesting Tool | ✅ Complete | Historical DCA simulation | Already implemented |
 | Tax Report Generation | ✅ Complete | Exportable tax reports | Already implemented |
 | API Connections | ❌ Not Started | Exchange API for auto-sync | Premium feature |
-| Multi-Portfolio Support | ❌ Not Started | Multiple portfolios per user | Power user feature |
+| Multi-Portfolio Support | ✅ Complete | Multiple portfolios per user | Portfolio creation, holdings, transactions |
 | Custom Dashboard Widgets | ❌ Not Started | Drag-and-drop dashboard | Personalization |
 | Advanced Technical Indicators | ❌ Not Started | RSI, MACD, Bollinger Bands | Trader-focused |
 | Portfolio Sharing | ❌ Not Started | Public portfolio links | Social features |
@@ -145,10 +145,10 @@ A comprehensive breakdown of features categorized by priority level for platform
 |---------|--------|-------------|-------|
 | Wallet Connection | ✅ Complete | MetaMask, WalletConnect | Already implemented |
 | Multi-chain Support | ✅ Complete | 7+ blockchain networks | Already implemented |
-| ENS Resolution | ❌ Not Started | .eth name support | Nice-to-have |
+| ENS Resolution | ✅ Complete | .eth name support | Resolve names, lookup addresses, avatars |
 | NFT Portfolio Display | ❌ Not Started | Show NFT holdings | Expanding market |
 | DeFi Protocol Integration | ❌ Not Started | Show LP, staking positions | Complex implementation |
-| Token Approval Manager | ❌ Not Started | Revoke token approvals | Security feature |
+| Token Approval Manager | ✅ Complete | Revoke token approvals | Risk scoring, known protocols, revoke UI |
 
 ### Mobile & Apps
 
@@ -239,8 +239,9 @@ A comprehensive breakdown of features categorized by priority level for platform
 | Mobile & Apps | 2 | 0 | 2 |
 | Premium | 1 | 0 | 4 |
 | Performance | 5 | 0 | 0 |
-| Advanced Tools | 2 | 0 | 5 |
-| Web3 | 2 | 0 | 4 |
+| Advanced Tools | 3 | 0 | 4 |
+| Advanced Education | 1 | 0 | 4 |
+| Web3 | 4 | 0 | 2 |
 
 ### Estimated Effort Levels
 

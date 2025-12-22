@@ -1,7 +1,7 @@
 // Early Access Features Service
 // Beta access to new tools and features for premium users
 
-import { supabase } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
 
 export type FeatureStatus = 'alpha' | 'beta' | 'stable' | 'deprecated';
 export type FeatureCategory = 'trading' | 'portfolio' | 'analytics' | 'social' | 'tools' | 'integrations';

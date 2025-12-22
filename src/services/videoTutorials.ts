@@ -11,7 +11,7 @@
  * - Related videos
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface Video {
   id: string;
@@ -301,7 +301,7 @@ export async function updateProgress(
 
     const completed = watchedSeconds >= videoDuration * 0.9;
 
-    const { error } = await supabase.from('user_video_progress').upsert(
+    const { error } = await db.from('user_video_progress').upsert(
       {
         user_id: userId,
         video_id: videoId,
@@ -345,7 +345,7 @@ export async function toggleBookmark(
 
     const newValue = !(existing?.bookmarked || false);
 
-    const { error } = await supabase.from('user_video_progress').upsert(
+    const { error } = await db.from('user_video_progress').upsert(
       {
         user_id: userId,
         video_id: videoId,
@@ -388,7 +388,7 @@ export async function toggleLike(
 
     const newValue = !(existing?.liked || false);
 
-    const { error } = await supabase.from('user_video_progress').upsert(
+    const { error } = await db.from('user_video_progress').upsert(
       {
         user_id: userId,
         video_id: videoId,

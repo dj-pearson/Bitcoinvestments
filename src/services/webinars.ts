@@ -1,7 +1,7 @@
 // Expert Webinars Service
 // Live educational sessions with cryptocurrency experts
 
-import { supabase } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
 
 export type WebinarStatus = 'upcoming' | 'live' | 'ended' | 'cancelled';
 export type WebinarCategory = 'trading' | 'investing' | 'defi' | 'security' | 'tax' | 'fundamentals' | 'technical_analysis' | 'market_outlook';

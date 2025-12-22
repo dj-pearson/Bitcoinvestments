@@ -1,7 +1,7 @@
 // Success Stories Service
 // User-submitted crypto investment journeys
 
-import { supabase } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
 
 export type StoryCategory = 'first_investment' | 'portfolio_growth' | 'learning_journey' | 'trading_success' | 'defi_experience' | 'mistake_learned' | 'hodl_story' | 'retirement_planning';
 export type StoryStatus = 'pending' | 'approved' | 'featured' | 'rejected';
@@ -471,7 +471,7 @@ export async function likeStory(userId: string, storyId: string): Promise<{
       return { success: true, error: null };
     }
 
-    await supabase.from('story_likes').upsert({ user_id: userId, story_id: storyId });
+    await db.from('story_likes').upsert({ user_id: userId, story_id: storyId });
     await supabase.rpc('update_story_likes', { story_id: storyId });
 
     return { success: true, error: null };

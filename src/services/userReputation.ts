@@ -11,7 +11,7 @@
  * - Streaks and multipliers
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface UserReputation {
   userId: string;
@@ -393,7 +393,7 @@ export async function awardPoints(
       const streak = updateStreak(current?.streak);
 
       // Upsert reputation
-      const { error } = await supabase.from('user_reputation').upsert(
+      const { error } = await db.from('user_reputation').upsert(
         {
           user_id: userId,
           points: newPoints,
@@ -408,7 +408,7 @@ export async function awardPoints(
       if (error) throw error;
 
       // Log the action
-      await supabase.from('reputation_history').insert({
+      await db.from('reputation_history').insert({
         user_id: userId,
         action,
         points: pointsAwarded,

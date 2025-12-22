@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 import { getPortfolioSummary, type PortfolioSummary } from './multiPortfolio';
 
 /**
@@ -184,7 +184,7 @@ export async function createPortfolioShare(
     };
 
     if (isSupabaseConfigured()) {
-      const { error } = await supabase.from('portfolio_shares').insert(share);
+      const { error } = await db.from('portfolio_shares').insert(share);
 
       if (error && error.code !== '42P01') {
         throw error;

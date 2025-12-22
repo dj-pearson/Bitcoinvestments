@@ -10,7 +10,7 @@
  * - Default layouts for new users
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface WidgetPosition {
   x: number;
@@ -336,7 +336,7 @@ export async function saveDashboardLayout(
       return { success: true, error: null };
     }
 
-    const { error } = await supabase.from('dashboard_layouts').upsert(
+    const { error } = await db.from('dashboard_layouts').upsert(
       {
         id: layout.id,
         user_id: layout.userId,

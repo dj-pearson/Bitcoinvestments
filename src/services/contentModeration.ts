@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Content Moderation Service
@@ -251,7 +251,7 @@ async function logModerationAction(log: Omit<ModerationLog, 'id' | 'created_at'>
   if (!isSupabaseConfigured()) return;
 
   try {
-    await supabase.from('moderation_logs').insert({
+    await db.from('moderation_logs').insert({
       id: crypto.randomUUID(),
       ...log,
       created_at: new Date().toISOString(),

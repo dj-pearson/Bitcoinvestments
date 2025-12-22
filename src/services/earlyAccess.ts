@@ -220,7 +220,7 @@ export async function getEarlyAccessFeatures(category?: FeatureCategory): Promis
       return { features: filtered, error: null };
     }
 
-    let query = supabase
+    let query = db
       .from('early_access_features')
       .select('*')
       .neq('status', 'deprecated');
@@ -233,7 +233,7 @@ export async function getEarlyAccessFeatures(category?: FeatureCategory): Promis
 
     if (error) throw error;
 
-    return { features: data || [], error: null };
+    return { features: (data as EarlyAccessFeature[]) || [], error: null };
   } catch (err) {
     console.error('Error fetching features:', err);
     return { features: DEMO_FEATURES, error: null };
@@ -254,7 +254,7 @@ export async function getFeature(idOrSlug: string): Promise<{
       return { feature: demoFeature || null, error: demoFeature ? null : 'Feature not found' };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('early_access_features')
       .select('*')
       .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
@@ -262,7 +262,7 @@ export async function getFeature(idOrSlug: string): Promise<{
 
     if (error) throw error;
 
-    return { feature: data, error: null };
+    return { feature: data as EarlyAccessFeature, error: null };
   } catch (err) {
     return { feature: demoFeature || null, error: demoFeature ? null : 'Feature not found' };
   }
@@ -280,7 +280,7 @@ export async function enrollInBeta(userId: string, featureId: string): Promise<{
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('beta_enrollments')
       .upsert({
         user_id: userId,
@@ -290,7 +290,7 @@ export async function enrollInBeta(userId: string, featureId: string): Promise<{
 
     if (error) throw error;
 
-    await supabase.rpc('increment_beta_users', { feature_id: featureId });
+    await db.rpc('increment_beta_users', { feature_id: featureId });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -310,7 +310,7 @@ export async function leaveBeta(userId: string, featureId: string): Promise<{
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('beta_enrollments')
       .update({ is_active: false })
       .eq('user_id', userId)
@@ -318,7 +318,7 @@ export async function leaveBeta(userId: string, featureId: string): Promise<{
 
     if (error) throw error;
 
-    await supabase.rpc('decrement_beta_users', { feature_id: featureId });
+    await db.rpc('decrement_beta_users', { feature_id: featureId });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -338,7 +338,7 @@ export async function getUserEnrollments(userId: string): Promise<{
       return { enrollments: [], error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('beta_enrollments')
       .select('*, feature:early_access_features(*)')
       .eq('user_id', userId)
@@ -346,7 +346,7 @@ export async function getUserEnrollments(userId: string): Promise<{
 
     if (error) throw error;
 
-    return { enrollments: data || [], error: null };
+    return { enrollments: (data as BetaEnrollment[]) || [], error: null };
   } catch (err) {
     return { enrollments: [], error: null };
   }
@@ -367,7 +367,7 @@ export async function submitFeedback(
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('feature_feedback')
       .insert({
         user_id: userId,
@@ -380,10 +380,10 @@ export async function submitFeedback(
     if (error) throw error;
 
     // Update feature stats
-    await supabase.rpc('update_feature_feedback_stats', { feature_id: featureId });
+    await db.rpc('update_feature_feedback_stats', { feature_id: featureId });
 
     // Mark enrollment as feedback provided
-    await supabase
+    await db
       .from('beta_enrollments')
       .update({ feedback_provided: true })
       .eq('user_id', userId)
@@ -404,14 +404,14 @@ export async function isUserEnrolled(userId: string, featureId: string): Promise
       return false;
     }
 
-    const { data } = await supabase
+    const { data } = await db
       .from('beta_enrollments')
       .select('is_active')
       .eq('user_id', userId)
       .eq('feature_id', featureId)
       .single();
 
-    return data?.is_active || false;
+    return (data as { is_active?: boolean })?.is_active || false;
   } catch {
     return false;
   }

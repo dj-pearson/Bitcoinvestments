@@ -1,5 +1,4 @@
-import { supabase, db } from '../lib/supabase';
-void db; // Reserved for future use with untyped tables
+import { db } from '../lib/supabase';
 
 // Types
 export type ApiKeyStatus = 'active' | 'suspended' | 'revoked' | 'expired';
@@ -404,14 +403,14 @@ const demoTiers: ApiTierDetails[] = [
 // API Key Functions
 export async function getApiKeys(userId: string): Promise<ApiKey[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('api_keys')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || demoApiKeys;
+    return (data as ApiKey[]) || demoApiKeys;
   } catch (error) {
     console.error('Error fetching API keys:', error);
     return demoApiKeys;
@@ -429,7 +428,7 @@ export async function createApiKey(
     const keyPrefix = secretKey.substring(0, 15);
     const keyHash = await hashKey(secretKey);
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('api_keys')
       .insert({
         user_id: userId,
@@ -444,7 +443,7 @@ export async function createApiKey(
       .single();
 
     if (error) throw error;
-    return { key: data, secretKey };
+    return { key: data as ApiKey, secretKey };
   } catch (error) {
     console.error('Error creating API key:', error);
     return null;
@@ -453,7 +452,7 @@ export async function createApiKey(
 
 export async function revokeApiKey(keyId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('api_keys')
       .update({ status: 'revoked', updated_at: new Date().toISOString() })
       .eq('id', keyId);
@@ -476,7 +475,7 @@ export async function updateApiKeySettings(
   }
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('api_keys')
       .update({
         ...settings,
@@ -495,13 +494,13 @@ export async function updateApiKeySettings(
 // Endpoint Functions
 export async function getApiEndpoints(): Promise<ApiEndpoint[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('api_endpoints')
       .select('*')
       .order('category', { ascending: true });
 
     if (error) throw error;
-    return data || demoEndpoints;
+    return (data as ApiEndpoint[]) || demoEndpoints;
   } catch (error) {
     console.error('Error fetching endpoints:', error);
     return demoEndpoints;
@@ -516,11 +515,11 @@ export async function getEndpointsByCategory(category: EndpointCategory): Promis
 // Usage Functions
 export async function getApiUsageStats(keyId: string, period: string = '30d'): Promise<ApiUsageStats> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .rpc('get_api_usage_stats', { key_id: keyId, time_period: period });
 
     if (error) throw error;
-    return data;
+    return data as ApiUsageStats;
   } catch (error) {
     console.error('Error fetching usage stats:', error);
     return {
@@ -548,7 +547,7 @@ export async function getApiUsageStats(keyId: string, period: string = '30d'): P
 
 export async function getRecentApiLogs(keyId: string, limit: number = 50): Promise<ApiUsageLog[]> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('api_usage_logs')
       .select('*')
       .eq('api_key_id', keyId)
@@ -556,7 +555,7 @@ export async function getRecentApiLogs(keyId: string, limit: number = 50): Promi
       .limit(limit);
 
     if (error) throw error;
-    return data || [];
+    return (data as ApiUsageLog[]) || [];
   } catch (error) {
     console.error('Error fetching API logs:', error);
     return [];
@@ -574,7 +573,7 @@ export function getTierDetails(tier: ApiTier): ApiTierDetails | undefined {
 
 export async function upgradeTier(userId: string, newTier: ApiTier): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('api_subscriptions')
       .upsert({
         user_id: userId,

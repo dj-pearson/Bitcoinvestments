@@ -62,7 +62,8 @@ export async function getModerationQueue(
     return { items: [], error: 'Database not configured' };
   }
 
-  const { contentType, status = 'pending', limit = 50, offset = 0 } = options;
+  const { contentType: _contentType, status = 'pending', limit = 50, offset = 0 } = options;
+  void _contentType; // Reserved for future use to filter by content type
 
   try {
     // For now, we'll query platform_reviews as the main moderation target
@@ -72,7 +73,8 @@ export async function getModerationQueue(
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (status) {
+    // Only filter by status if it's a valid platform_reviews status
+    if (status && (status === 'pending' || status === 'approved' || status === 'rejected')) {
       query = query.eq('status', status);
     }
 
@@ -213,7 +215,7 @@ export async function moderateContent(
     }
 
     // Update content status
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from(table)
       .update({
         status: newStatus,
@@ -274,7 +276,7 @@ export async function getModerationHistory(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('moderation_logs')
       .select('*')
       .eq('content_type', contentType)
@@ -288,7 +290,7 @@ export async function getModerationHistory(
       throw error;
     }
 
-    return { logs: data || [], error: null };
+    return { logs: (data as ModerationLog[]) || [], error: null };
   } catch (error) {
     console.error('Error fetching moderation history:', error);
     return {

@@ -4,6 +4,7 @@ import { GraduationCap, Clock, BookOpen, ChevronRight, Target } from 'lucide-rea
 import { getPublishedArticles } from '../services/database';
 import { Newsletter } from '../components/Newsletter';
 import { getAllCourses } from '../data/courses';
+import { SEO, generateBreadcrumbSchema } from '../components/SEO';
 import type { Article } from '../types/database';
 
 // Static beginner guides (can be moved to database later)
@@ -129,13 +130,35 @@ export function Learn() {
       ? BEGINNER_GUIDES
       : BEGINNER_GUIDES.filter((g) => g.category === selectedCategory);
 
+  // Breadcrumb schema for SEO
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Learn', url: '/learn' },
+  ]);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Hero Section */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Learn Crypto Investing
-        </h1>
+    <>
+      <SEO
+        title="Learn Crypto Investing - Free Guides & Courses"
+        description="Learn how to invest in cryptocurrency with our beginner-friendly guides and courses. Topics include Bitcoin basics, wallet security, DCA strategies, and more."
+        keywords={[
+          'learn cryptocurrency',
+          'Bitcoin guide',
+          'crypto investing course',
+          'cryptocurrency for beginners',
+          'how to invest in Bitcoin',
+          'crypto education',
+          'DCA strategy',
+          'wallet security',
+        ]}
+        schema={breadcrumbSchema}
+      />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Learn Crypto Investing
+          </h1>
         <p className="text-xl text-gray-400 max-w-2xl mx-auto">
           From complete beginner to confident investor. Our guides make crypto simple.
         </p>
@@ -369,6 +392,7 @@ export function Learn() {
           </Link>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

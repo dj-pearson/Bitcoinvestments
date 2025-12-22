@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Building2, Wallet, ArrowRight, Star, Shield, Check, X, ExternalLink, Award, ThumbsUp, Handshake, Info, ArrowLeft, Globe, Smartphone, Lock } from 'lucide-react';
+import { Building2, Wallet as WalletIcon, ArrowRight, Star, Shield, Check, X, ExternalLink, Award, ThumbsUp, Handshake, Info, ArrowLeft, Globe, Smartphone, Lock } from 'lucide-react';
 import { exchanges, getExchangeById } from '../data/exchanges';
 import { wallets, getWalletById } from '../data/wallets';
 import { ReviewSection } from '../components/reviews';
 import { cn } from '../lib/utils';
+import {
+  AffiliateDisclosureBanner,
+  AffiliateBadge,
+  AffiliateCardFooter,
+} from '../components/AffiliateDisclosure';
+import type { Exchange, Wallet as WalletType } from '../types';
 
 /**
  * Sponsored badge component with disclosure
@@ -115,7 +121,7 @@ export function Compare() {
               : 'glass hover:bg-white/10 text-gray-300'
           )}
         >
-          <Wallet className="w-5 h-5" />
+          <WalletIcon className="w-5 h-5" />
           Wallets
         </button>
       </div>
@@ -167,13 +173,8 @@ function ExchangeComparison() {
         </select>
       </div>
 
-      {/* Sponsored Disclosure */}
-      <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
-        <p className="text-xs text-gray-400">
-          <span className="font-medium text-gray-300">Disclosure:</span> Some exchanges on this page have paid for featured placement.
-          Sponsored placements are clearly labeled. Our ratings and reviews remain independent and are not influenced by sponsorships.
-        </p>
-      </div>
+      {/* Affiliate & Sponsored Disclosure */}
+      <AffiliateDisclosureBanner variant="prominent" className="mb-6" />
 
       {/* Exchange Cards */}
       <div className="grid gap-6">
@@ -285,7 +286,7 @@ function WalletComparison() {
   return (
     <div>
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-6">
         {(['all', 'hardware', 'software', 'mobile'] as const).map((type) => (
           <button
             key={type}
@@ -301,6 +302,9 @@ function WalletComparison() {
           </button>
         ))}
       </div>
+
+      {/* Affiliate Disclosure for Wallets */}
+      <AffiliateDisclosureBanner variant="compact" className="mb-6" />
 
       {/* Wallet Cards */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -376,6 +380,11 @@ function WalletComparison() {
               )}
             </div>
 
+            {/* Affiliate Footer */}
+            {wallet.affiliate_url && (
+              <AffiliateCardFooter isAffiliate={true} className="mb-4" />
+            )}
+
             {/* Actions */}
             <div className="flex gap-2 mt-auto pt-4 border-t border-white/10">
               <Link
@@ -385,12 +394,14 @@ function WalletComparison() {
                 Details & Reviews
               </Link>
               <a
-                href={wallet.url}
+                href={wallet.affiliate_url || wallet.url}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel={wallet.affiliate_url ? "noopener noreferrer sponsored" : "noopener noreferrer"}
                 className="flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm transition-colors"
+                title={wallet.affiliate_url ? "Affiliate link - we may earn a commission" : "Visit website"}
               >
                 <ExternalLink className="w-4 h-4" />
+                {wallet.affiliate_url && <AffiliateBadge showTooltip={false} className="ml-1" />}
               </a>
             </div>
           </div>
@@ -401,8 +412,6 @@ function WalletComparison() {
 }
 
 // Exchange Detail Component
-import type { Exchange } from '../types';
-
 function ExchangeDetail({ exchange }: { exchange: Exchange }) {
   return (
     <div className="container mx-auto px-4 py-12">
@@ -445,14 +454,19 @@ function ExchangeDetail({ exchange }: { exchange: Exchange }) {
             <a
               href={exchange.affiliate_url || exchange.url}
               target="_blank"
-              rel="noopener noreferrer"
+              rel={exchange.affiliate_url ? "noopener noreferrer sponsored" : "noopener noreferrer"}
               className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors text-center"
             >
               Visit {exchange.name}
             </a>
-            <p className="text-xs text-gray-500 text-center">
-              {exchange.affiliate_url ? 'Affiliate link' : ''}
-            </p>
+            {exchange.affiliate_url && (
+              <div className="flex flex-col items-center gap-1">
+                <AffiliateBadge />
+                <p className="text-xs text-gray-500 text-center max-w-[200px]">
+                  We may earn a commission at no extra cost to you
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -588,9 +602,7 @@ function ExchangeDetail({ exchange }: { exchange: Exchange }) {
 }
 
 // Wallet Detail Component
-import type { Wallet } from '../types';
-
-function WalletDetail({ wallet }: { wallet: Wallet }) {
+function WalletDetail({ wallet }: { wallet: WalletType }) {
   return (
     <div className="container mx-auto px-4 py-12">
       {/* Back Link */}
@@ -629,14 +641,19 @@ function WalletDetail({ wallet }: { wallet: Wallet }) {
             <a
               href={wallet.affiliate_url || wallet.url}
               target="_blank"
-              rel="noopener noreferrer"
+              rel={wallet.affiliate_url ? "noopener noreferrer sponsored" : "noopener noreferrer"}
               className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors text-center"
             >
               {wallet.price ? 'Buy Now' : 'Get ' + wallet.name}
             </a>
-            <p className="text-xs text-gray-500 text-center">
-              {wallet.affiliate_url ? 'Affiliate link' : ''}
-            </p>
+            {wallet.affiliate_url && (
+              <div className="flex flex-col items-center gap-1">
+                <AffiliateBadge />
+                <p className="text-xs text-gray-500 text-center max-w-[200px]">
+                  We may earn a commission at no extra cost to you
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -331,16 +331,19 @@ BEGIN
             ELSE 0
         END,
         'unique_users', COUNT(DISTINCT user_id),
-        'by_device', jsonb_object_agg(
-            COALESCE(device_type, 'unknown'),
-            cnt
-        ) FROM (
-            SELECT device_type, COUNT(*) as cnt
-            FROM sponsored_content_events
-            WHERE campaign_id = p_campaign_id
-              AND created_at::DATE BETWEEN p_start_date AND p_end_date
-            GROUP BY device_type
-        ) device_stats,
+        'by_device', (
+            SELECT jsonb_object_agg(
+                COALESCE(device_type, 'unknown'),
+                cnt
+            )
+            FROM (
+                SELECT device_type, COUNT(*) as cnt
+                FROM sponsored_content_events
+                WHERE campaign_id = p_campaign_id
+                  AND created_at::DATE BETWEEN p_start_date AND p_end_date
+                GROUP BY device_type
+            ) device_stats
+        ),
         'by_day', (
             SELECT jsonb_agg(jsonb_build_object(
                 'date', day,

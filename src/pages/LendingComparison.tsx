@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   DEMO_LENDING_PLATFORMS,
   DEMO_LENDING_RATES,
-  getDemoRatesComparison,
   trackAffiliateClick,
 } from '../services/lendingComparison';
-import type { LendingPlatform, LendingRateComparison } from '../types/monetization';
+import type { LendingPlatform } from '../types/monetization';
 
 const LendingComparison: React.FC = () => {
   const [selectedAsset, setSelectedAsset] = useState('USDC');
   const [selectedType, setSelectedType] = useState<'all' | 'cefi' | 'defi'>('all');
-  const [comparisons, setComparisons] = useState<LendingRateComparison[]>(getDemoRatesComparison());
-  const [platforms, setPlatforms] = useState<LendingPlatform[]>(DEMO_LENDING_PLATFORMS);
+  const [platforms] = useState<LendingPlatform[]>(DEMO_LENDING_PLATFORMS);
 
   const popularAssets = ['USDC', 'ETH', 'BTC', 'DAI', 'USDT'];
 

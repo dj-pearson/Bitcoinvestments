@@ -296,7 +296,7 @@ export function AdvertiserDashboard() {
               <p className="text-gray-400">No active campaigns</p>
             ) : (
               <div className="space-y-4">
-                {campaigns.filter(c => c.status === 'active').slice(0, 5).map((campaign) => (
+                {campaigns.filter(c => c.status === 'active').slice(0, 5).map((campaign, campaignIndex) => (
                   <div key={campaign.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                     <div>
                       <p className="font-medium">{campaign.name}</p>

@@ -33,6 +33,16 @@ export async function getVerifiedInfluencers(options?: {
 }): Promise<InfluencerSearchResult> {
   const { search, tier, sortBy = 'followers', page = 1, perPage = 20 } = options || {};
 
+  // TODO: Enable once migration is run
+  // Returning demo data for now since table doesn't exist yet
+  return {
+    influencers: DEMO_INFLUENCERS as VerifiedInfluencer[],
+    total: DEMO_INFLUENCERS.length,
+    page,
+    per_page: perPage,
+  };
+
+  /* 
   let query = supabase
     .from('verified_influencers')
     .select('*', { count: 'exact' })
@@ -78,12 +88,18 @@ export async function getVerifiedInfluencers(options?: {
     page,
     per_page: perPage,
   };
+  */
 }
 
 /**
  * Get influencer by slug
  */
 export async function getInfluencerBySlug(slug: string): Promise<VerifiedInfluencer | null> {
+  // TODO: Enable once migration is run
+  // Return demo data for now
+  return DEMO_INFLUENCERS.find(i => i.slug === slug) as VerifiedInfluencer || null;
+
+  /*
   const { data, error } = await supabase
     .from('verified_influencers')
     .select('*')
@@ -92,12 +108,19 @@ export async function getInfluencerBySlug(slug: string): Promise<VerifiedInfluen
 
   if (error && error.code !== 'PGRST116') throw error;
   return data;
+  */
 }
 
 /**
  * Get influencer by user ID
  */
 export async function getInfluencerByUserId(userId: string): Promise<VerifiedInfluencer | null> {
+  // TODO: Enable once migration is run
+  // Return demo data for now
+  void userId;
+  return null;
+
+  /*
   const { data, error } = await supabase
     .from('verified_influencers')
     .select('*')
@@ -106,6 +129,7 @@ export async function getInfluencerByUserId(userId: string): Promise<VerifiedInf
 
   if (error && error.code !== 'PGRST116') throw error;
   return data;
+  */
 }
 
 /**
@@ -115,6 +139,12 @@ export async function updateInfluencerProfile(
   userId: string,
   updates: Partial<VerifiedInfluencer>
 ): Promise<VerifiedInfluencer> {
+  // TODO: Enable once migration is run
+  void userId;
+  void updates;
+  throw new Error('Not implemented - migration required');
+
+  /*
   const { data, error } = await supabase
     .from('verified_influencers')
     .update(updates)
@@ -124,6 +154,7 @@ export async function updateInfluencerProfile(
 
   if (error) throw error;
   return data;
+  */
 }
 
 // ============================================
@@ -137,6 +168,12 @@ export async function submitVerificationRequest(
   userId: string,
   request: Omit<InfluencerVerificationRequest, 'id' | 'user_id' | 'status' | 'created_at' | 'updated_at'>
 ): Promise<InfluencerVerificationRequest> {
+  // TODO: Enable once migration is run
+  void userId;
+  void request;
+  throw new Error('Not implemented - migration required');
+
+  /*
   // Check if user already has a pending request
   const { data: existing } = await supabase
     .from('influencer_verification_requests')
@@ -161,6 +198,7 @@ export async function submitVerificationRequest(
 
   if (error) throw error;
   return data;
+  */
 }
 
 /**
@@ -169,6 +207,11 @@ export async function submitVerificationRequest(
 export async function getUserVerificationRequests(
   userId: string
 ): Promise<InfluencerVerificationRequest[]> {
+  // TODO: Enable once migration is run
+  void userId;
+  return [];
+
+  /*
   const { data, error } = await supabase
     .from('influencer_verification_requests')
     .select('*')
@@ -177,12 +220,17 @@ export async function getUserVerificationRequests(
 
   if (error) throw error;
   return data || [];
+  */
 }
 
 /**
  * Admin: Get pending verification requests
  */
 export async function getPendingVerificationRequests(): Promise<InfluencerVerificationRequest[]> {
+  // TODO: Enable once migration is run
+  return [];
+
+  /*
   const { data, error } = await supabase
     .from('influencer_verification_requests')
     .select('*')
@@ -191,6 +239,7 @@ export async function getPendingVerificationRequests(): Promise<InfluencerVerifi
 
   if (error) throw error;
   return data || [];
+  */
 }
 
 /**
@@ -201,6 +250,13 @@ export async function approveVerificationRequest(
   reviewerId: string,
   tier: 'standard' | 'professional' | 'elite' = 'standard'
 ): Promise<void> {
+  // TODO: Enable once migration is run
+  void requestId;
+  void reviewerId;
+  void tier;
+  throw new Error('Not implemented - migration required');
+
+  /*
   // Get the request
   const { data: request, error: fetchError } = await supabase
     .from('influencer_verification_requests')
@@ -244,6 +300,7 @@ export async function approveVerificationRequest(
     .eq('id', requestId);
 
   if (updateError) throw updateError;
+  */
 }
 
 /**
@@ -254,6 +311,13 @@ export async function rejectVerificationRequest(
   reviewerId: string,
   reason: string
 ): Promise<void> {
+  // TODO: Enable once migration is run
+  void requestId;
+  void reviewerId;
+  void reason;
+  throw new Error('Not implemented - migration required');
+
+  /*
   const { error } = await supabase
     .from('influencer_verification_requests')
     .update({
@@ -265,6 +329,7 @@ export async function rejectVerificationRequest(
     .eq('id', requestId);
 
   if (error) throw error;
+  */
 }
 
 // ============================================

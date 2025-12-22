@@ -36,6 +36,11 @@ export const NFT_SUBSCRIPTION_PRICING = {
 export async function getNFTSubscription(userId: string): Promise<NFTPortfolioSubscription | null> {
   if (!isSupabaseConfigured()) return null;
 
+  // TODO: Enable once migration is run
+  void userId;
+  return null;
+
+  /*
   const { data, error } = await supabase
     .from('nft_portfolio_subscriptions')
     .select('*')
@@ -44,6 +49,7 @@ export async function getNFTSubscription(userId: string): Promise<NFTPortfolioSu
 
   if (error && error.code !== 'PGRST116') throw error;
   return data;
+  */
 }
 
 /**
@@ -67,6 +73,13 @@ export async function createNFTSubscription(
   stripeSubscriptionId: string,
   type: 'monthly' | 'yearly' = 'monthly'
 ): Promise<NFTPortfolioSubscription> {
+  // TODO: Enable once migration is run
+  void userId;
+  void stripeSubscriptionId;
+  void type;
+  throw new Error('Not implemented - migration required');
+
+  /*
   const price = type === 'monthly' ? NFT_SUBSCRIPTION_PRICING.monthly : NFT_SUBSCRIPTION_PRICING.yearly;
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + (type === 'yearly' ? 12 : 1));
@@ -93,12 +106,18 @@ export async function createNFTSubscription(
 
   if (error) throw error;
   return data;
+  */
 }
 
 /**
  * Cancel NFT subscription
  */
 export async function cancelNFTSubscription(userId: string): Promise<void> {
+  // TODO: Enable once migration is run
+  void userId;
+  throw new Error('Not implemented - migration required');
+
+  /*
   const { error } = await supabase
     .from('nft_portfolio_subscriptions')
     .update({
@@ -108,6 +127,7 @@ export async function cancelNFTSubscription(userId: string): Promise<void> {
     .eq('user_id', userId);
 
   if (error) throw error;
+  */
 }
 
 // ============================================
@@ -120,6 +140,11 @@ export async function cancelNFTSubscription(userId: string): Promise<void> {
 export async function getNFTPriceAlerts(userId: string): Promise<NFTPriceAlert[]> {
   if (!isSupabaseConfigured()) return [];
 
+  // TODO: Enable once migration is run
+  void userId;
+  return [];
+
+  /*
   const { data, error } = await supabase
     .from('nft_price_alerts')
     .select('*')
@@ -128,6 +153,7 @@ export async function getNFTPriceAlerts(userId: string): Promise<NFTPriceAlert[]
 
   if (error) throw error;
   return data || [];
+  */
 }
 
 /**
@@ -141,6 +167,16 @@ export async function createNFTPriceAlert(
   targetPrice?: number,
   targetPercent?: number
 ): Promise<NFTPriceAlert> {
+  // TODO: Enable once migration is run
+  void userId;
+  void collectionId;
+  void alertType;
+  void condition;
+  void targetPrice;
+  void targetPercent;
+  throw new Error('Not implemented - migration required');
+
+  /*
   // Check if user has premium access
   const hasPremium = await hasNFTPremiumAccess(userId);
   if (!hasPremium) {
@@ -165,6 +201,7 @@ export async function createNFTPriceAlert(
 
   if (error) throw error;
   return data;
+  */
 }
 
 /**
@@ -175,6 +212,13 @@ export async function updateNFTPriceAlert(
   userId: string,
   updates: Partial<NFTPriceAlert>
 ): Promise<NFTPriceAlert> {
+  // TODO: Enable once migration is run
+  void alertId;
+  void userId;
+  void updates;
+  throw new Error('Not implemented - migration required');
+
+  /*
   const { data, error } = await supabase
     .from('nft_price_alerts')
     .update(updates)
@@ -185,12 +229,19 @@ export async function updateNFTPriceAlert(
 
   if (error) throw error;
   return data;
+  */
 }
 
 /**
  * Delete NFT price alert
  */
 export async function deleteNFTPriceAlert(alertId: string, userId: string): Promise<void> {
+  // TODO: Enable once migration is run
+  void alertId;
+  void userId;
+  throw new Error('Not implemented - migration required');
+
+  /*
   const { error } = await supabase
     .from('nft_price_alerts')
     .delete()
@@ -198,12 +249,18 @@ export async function deleteNFTPriceAlert(alertId: string, userId: string): Prom
     .eq('user_id', userId);
 
   if (error) throw error;
+  */
 }
 
 /**
  * Get active alerts count for user
  */
 export async function getActiveAlertsCount(userId: string): Promise<number> {
+  // TODO: Enable once migration is run
+  void userId;
+  return 0;
+
+  /*
   const { count, error } = await supabase
     .from('nft_price_alerts')
     .select('*', { count: 'exact', head: true })
@@ -212,6 +269,7 @@ export async function getActiveAlertsCount(userId: string): Promise<number> {
 
   if (error) throw error;
   return count || 0;
+  */
 }
 
 // ============================================
@@ -230,6 +288,8 @@ export async function getCollectionRarityDistribution(
 }[]> {
   // In production, this would fetch from a rarity service like Rarity Sniper
   // For now, return demo data
+  void contractAddress;
+  void chain;
   return [
     {
       trait: 'Background',
@@ -258,6 +318,7 @@ export async function getFloorPriceHistory(
   days: number = 30
 ): Promise<{ date: string; floor: number; volume: number }[]> {
   // In production, this would fetch historical data
+  void contractAddress;
   const history: { date: string; floor: number; volume: number }[] = [];
   const today = new Date();
 

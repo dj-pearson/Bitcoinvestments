@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import {
   generateDemoMetrics,
-  ONCHAIN_ANALYTICS_CONFIG,
   FREE_METRICS,
-  DEMO_DASHBOARD_WIDGETS,
 } from '../services/onchainAnalytics';
 import { ON_CHAIN_METRIC_CATEGORIES } from '../types/monetization';
 import type { OnChainMetric, OnChainMetricType, OnChainTier } from '../types/monetization';
 
 const OnChainAnalytics: React.FC = () => {
-  const { user } = useAuth();
   const [selectedAsset, setSelectedAsset] = useState('BTC');
   const [selectedMetric, setSelectedMetric] = useState<OnChainMetricType>('active_addresses');
   const [timeframe, setTimeframe] = useState('30d');
-  const [userTier, setUserTier] = useState<OnChainTier>('basic');
+  const [userTier] = useState<OnChainTier>('basic');
   const [metrics, setMetrics] = useState<OnChainMetric[]>([]);
 
   useEffect(() => {
@@ -265,7 +261,7 @@ const OnChainAnalytics: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {metrics.slice(0, 10).map((metric, index) => (
+                    {metrics.slice(0, 10).map((metric) => (
                       <tr key={metric.id} className="border-t border-gray-700">
                         <td className="p-4 text-gray-300">
                           {new Date(metric.timestamp).toLocaleDateString()}

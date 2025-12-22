@@ -48,6 +48,10 @@ export async function exportPortfolioToExcel(
   portfolio: Portfolio,
   options: Partial<ExportOptions> = {}
 ): Promise<ExportResult> {
+  // TODO: Install xlsx package: npm install xlsx @types/xlsx
+  throw new Error('XLSX export not available - install xlsx package first with: npm install xlsx');
+  
+  /* XLSX functionality temporarily disabled
   try {
     // Dynamically import xlsx library
     const XLSX = await import('xlsx');
@@ -182,6 +186,7 @@ export async function exportPortfolioToExcel(
       error: error instanceof Error ? error.message : 'Failed to export to Excel',
     };
   }
+  */ // End XLSX functionality
 }
 
 /**
@@ -192,6 +197,11 @@ export async function exportTaxReportToExcel(
   report: TaxReport,
   _options: Partial<ExportOptions> = {}
 ): Promise<ExportResult> {
+  // TODO: Install xlsx package: npm install xlsx @types/xlsx
+  void report;
+  throw new Error('XLSX export not available - install xlsx package first with: npm install xlsx');
+  
+  /* XLSX functionality temporarily disabled
   try {
     const XLSX = await import('xlsx');
     const workbook = XLSX.utils.book_new();
@@ -324,6 +334,7 @@ export async function exportTaxReportToExcel(
       error: error instanceof Error ? error.message : 'Failed to export tax report to Excel',
     };
   }
+  */ // End XLSX functionality
 }
 
 // ==================== Enhanced PDF Export ====================

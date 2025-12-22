@@ -49,12 +49,6 @@ export default defineConfig({
     sourcemap: false,
     // Minification settings
     minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
     rollupOptions: {
       // Handle missing modules gracefully
       onwarn(warning, warn) {

@@ -1029,6 +1029,48 @@ export type Database = {
           }
         ];
       };
+      // User Sessions table for session management
+      user_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          device_info: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+          last_activity_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          device_info?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+          last_activity_at?: string;
+          expires_at: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          device_info?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+          last_activity_at?: string;
+          expires_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_sessions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -1111,6 +1153,7 @@ export type Advertisement = Tables<'advertisements'>;
 export type NewsletterSubscriber = Tables<'newsletter_subscribers'>;
 export type TaxReportPurchase = Tables<'tax_report_purchases'>;
 export type PlatformReview = Tables<'platform_reviews'>;
+export type UserSession = Tables<'user_sessions'>;
 
 // Type for database function calls
 type PublicSchema = Database[Extract<keyof Database, 'public'>];

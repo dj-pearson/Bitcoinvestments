@@ -347,19 +347,19 @@ function SearchResultCard({ result, query }: { result: SearchResult; query: stri
             {result.category && (
               <span className="text-xs text-gray-500">{result.category}</span>
             )}
-            {result.metadata?.readTime && (
+            {'readTime' in (result.metadata || {}) && result.metadata?.readTime !== undefined && (
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Clock className="w-3 h-3" />
                 {String(result.metadata.readTime)} min read
               </span>
             )}
-            {result.metadata?.userRating && (
+            {'userRating' in (result.metadata || {}) && result.metadata?.userRating !== undefined && (
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Star className="w-3 h-3 text-yellow-400" />
                 {String(result.metadata.userRating)}
               </span>
             )}
-            {result.metadata?.difficulty && (
+            {'difficulty' in (result.metadata || {}) && result.metadata?.difficulty !== undefined && (
               <span className="text-xs text-gray-500">
                 {String(result.metadata.difficulty)}
               </span>

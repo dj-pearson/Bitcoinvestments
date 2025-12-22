@@ -4,8 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   SUBSCRIPTION_TIERS,
   redirectToCheckout,
+  redirectToLifetimeCheckout,
   formatPrice,
   calculateAnnualSavings,
+  calculateLifetimeSavings,
   isStripeConfigured,
 } from '../services/stripe';
 import { TAX_PACKAGE, isTaxSeasonActive } from '../services/subscriptionLimits';
@@ -19,8 +21,34 @@ export function Pricing() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('individual');
   const savings = calculateAnnualSavings();
+  const lifetimeSavings = calculateLifetimeSavings();
   const stripeConfigured = isStripeConfigured();
   const taxSeasonActive = isTaxSeasonActive();
+
+  const handleLifetimePurchase = async () => {
+    if (!user) {
+      navigate('/login?redirect=/pricing');
+      return;
+    }
+
+    if (!stripeConfigured) {
+      setError('Payment system is not configured. Please contact support.');
+      return;
+    }
+
+    setLoading('lifetime');
+    setError(null);
+
+    const { error: checkoutError } = await redirectToLifetimeCheckout(
+      user.id,
+      user.email || ''
+    );
+
+    if (checkoutError) {
+      setError(checkoutError);
+      setLoading(null);
+    }
+  };
 
   const handleSubscribe = async (priceId: string | null, tierId: string) => {
     if (!priceId) {
@@ -97,8 +125,10 @@ export function Pricing() {
     { feature: 'Educational Content', free: true, premium: true, advisor: true, enterprise: true },
     { feature: 'Basic Calculators', free: true, premium: true, advisor: true, enterprise: true },
     { feature: 'Portfolio Tracker', free: '10 assets', premium: 'Unlimited', advisor: 'Unlimited', enterprise: 'Unlimited' },
+    { feature: 'Watchlist Items', free: '5 items', premium: 'Unlimited', advisor: 'Unlimited', enterprise: 'Unlimited' },
     { feature: 'Price Alerts', free: '3 alerts', premium: 'Unlimited', advisor: 'Unlimited', enterprise: 'Unlimited' },
     { feature: 'Price Data', free: '15-min delay', premium: 'Real-time', advisor: 'Real-time', enterprise: 'Real-time' },
+    { feature: 'Export Formats', free: 'CSV only', premium: 'CSV, PDF, Excel', advisor: 'All formats', enterprise: 'All formats' },
     { feature: 'Ad-Free Experience', free: false, premium: true, advisor: true, enterprise: true },
     { feature: 'Cloud Portfolio Sync', free: false, premium: true, advisor: true, enterprise: true },
     { feature: 'Email Alerts', free: false, premium: true, advisor: true, enterprise: true },
@@ -107,7 +137,13 @@ export function Pricing() {
     { feature: 'AI Portfolio Analysis', free: false, premium: true, advisor: true, enterprise: true },
     { feature: 'Advanced Backtesting', free: false, premium: true, advisor: true, enterprise: true },
     { feature: 'Tax Report Export', free: false, premium: true, advisor: true, enterprise: true },
+    { feature: 'Tax Software Integration', free: false, premium: true, advisor: true, enterprise: true },
+    { feature: 'Monthly Performance Reports', free: false, premium: true, advisor: true, enterprise: true },
     { feature: 'Premium Research Reports', free: false, premium: true, advisor: true, enterprise: true },
+    { feature: 'Advanced Calculator Features', free: false, premium: true, advisor: true, enterprise: true },
+    { feature: 'Monte Carlo Projections', free: false, premium: true, advisor: true, enterprise: true },
+    { feature: 'Tax Optimization Tools', free: false, premium: true, advisor: true, enterprise: true },
+    { feature: 'Risk Analysis', free: false, premium: true, advisor: true, enterprise: true },
     { feature: 'Priority Support', free: false, premium: true, advisor: true, enterprise: true },
     { feature: 'Client Portfolios', free: false, premium: false, advisor: '10 clients', enterprise: 'Unlimited' },
     { feature: 'White-Label Reports', free: false, premium: false, advisor: true, enterprise: true },
@@ -184,7 +220,7 @@ export function Pricing() {
 
       {/* Individual Plans */}
       {viewMode === 'individual' && (
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-16">
           {/* Free Tier */}
           <div className="glass-card p-8 flex flex-col">
             <div className="mb-6">
@@ -355,6 +391,82 @@ export function Pricing() {
               {loading === SUBSCRIPTION_TIERS.annual.id
                 ? 'Loading...'
                 : 'Subscribe Annual'}
+            </button>
+          </div>
+
+          {/* Lifetime Deal */}
+          <div className="glass-card p-8 flex flex-col border-2 border-orange-500/50 relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1 rounded-full text-sm font-bold">
+              Best Value
+            </div>
+            <div className="absolute top-4 right-4">
+              <span className="inline-block px-2 py-1 bg-orange-500/20 text-orange-400 text-xs font-medium rounded">
+                Limited Offer
+              </span>
+            </div>
+
+            <div className="mb-6 mt-4">
+              <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.lifetime.name}</h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-bold">
+                  {formatPrice(SUBSCRIPTION_TIERS.lifetime.price)}
+                </span>
+                <span className="text-lg text-gray-500 line-through">
+                  {formatPrice(SUBSCRIPTION_TIERS.lifetime.originalPrice)}
+                </span>
+              </div>
+              <p className="text-gray-400">
+                One-time payment • {lifetimeSavings.savingsPercentage.toFixed(0)}% off
+              </p>
+              <p className="text-sm text-orange-400 mt-1">
+                Pay once, own forever
+              </p>
+            </div>
+
+            <div className="flex-1 mb-6">
+              <h4 className="font-semibold mb-3">All Premium features forever:</h4>
+              <ul className="space-y-2">
+                {SUBSCRIPTION_TIERS.lifetime.features.slice(0, 8).map((feature, index) => (
+                  <li key={index} className="flex items-start">
+                    <svg
+                      className="w-5 h-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-gray-500 mt-3">
+                + {SUBSCRIPTION_TIERS.lifetime.features.length - 8} more features
+              </p>
+            </div>
+
+            <div className="bg-gray-800/50 rounded-lg p-3 mb-4 text-center">
+              <p className="text-sm text-gray-400">
+                Break even in just <span className="text-orange-400 font-semibold">{lifetimeSavings.yearsToBreakEven} years</span>
+              </p>
+              <p className="text-xs text-gray-500">
+                vs annual subscription
+              </p>
+            </div>
+
+            <button
+              onClick={handleLifetimePurchase}
+              disabled={loading === 'lifetime' || !stripeConfigured}
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+            >
+              {loading === 'lifetime'
+                ? 'Loading...'
+                : 'Get Lifetime Access'}
             </button>
           </div>
         </div>
@@ -687,6 +799,16 @@ export function Pricing() {
             <p className="text-gray-400">
               Yes! We offer one-time purchases like the Tax Report Package that don't require a
               subscription. These are perfect if you only need specific features occasionally.
+            </p>
+          </div>
+
+          <div className="glass-card p-6">
+            <h3 className="text-xl font-semibold mb-2">What is the Lifetime Premium deal?</h3>
+            <p className="text-gray-400">
+              The Lifetime Premium is a one-time payment of $299 that gives you permanent access to
+              all premium features - forever. No recurring payments, no renewals. You break even
+              compared to annual billing in just 3 years, and enjoy all future premium features at no
+              additional cost. It's a limited offer with only 500 spots available.
             </p>
           </div>
 

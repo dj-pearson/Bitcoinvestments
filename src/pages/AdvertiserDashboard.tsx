@@ -296,7 +296,7 @@ export function AdvertiserDashboard() {
               <p className="text-gray-400">No active campaigns</p>
             ) : (
               <div className="space-y-4">
-                {campaigns.filter(c => c.status === 'active').slice(0, 5).map((campaign, campaignIndex) => (
+                {campaigns.filter(c => c.status === 'active').slice(0, 5).map((campaign) => (
                   <div key={campaign.id} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
                     <div>
                       <p className="font-medium">{campaign.name}</p>
@@ -322,7 +322,7 @@ export function AdvertiserDashboard() {
             <h2 className="text-lg font-bold mb-4">Performance (Last 7 Days)</h2>
             {analytics && (
               <div className="flex items-end gap-1 h-40">
-                {analytics.byDay.slice(-7).map((day, index) => {
+                {analytics.byDay.slice(-7).map((day) => {
                   const maxImpressions = Math.max(...analytics.byDay.slice(-7).map(d => d.impressions));
                   const height = maxImpressions > 0 ? (day.impressions / maxImpressions) * 100 : 0;
                   return (

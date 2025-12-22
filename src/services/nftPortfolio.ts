@@ -13,7 +13,7 @@
  * - Premium subscription management
  */
 
-import { isSupabaseConfigured, db, supabase } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 import type {
   NFTPortfolioSubscription,
   NFTPriceAlert,

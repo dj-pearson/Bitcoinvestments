@@ -6,7 +6,7 @@
  * - Influencers pay $49/month for verified badge
  */
 
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/supabase';
 import type {
   VerifiedInfluencer,
   InfluencerVerificationRequest,
@@ -14,7 +14,6 @@ import type {
   InfluencerTransparencySubscription,
   InfluencerTradeClaim,
   InfluencerSearchResult,
-  MONETIZATION_PRICING,
 } from '../types/monetization';
 
 // ============================================
@@ -31,7 +30,7 @@ export async function getVerifiedInfluencers(options?: {
   page?: number;
   perPage?: number;
 }): Promise<InfluencerSearchResult> {
-  const { search, tier, sortBy = 'followers', page = 1, perPage = 20 } = options || {};
+  const { page = 1, perPage = 20 } = options || {};
 
   // TODO: Enable once migration is run
   // Returning demo data for now since table doesn't exist yet
@@ -100,7 +99,7 @@ export async function getInfluencerBySlug(slug: string): Promise<VerifiedInfluen
   return DEMO_INFLUENCERS.find(i => i.slug === slug) as VerifiedInfluencer || null;
 
   /*
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('verified_influencers')
     .select('*')
     .eq('slug', slug)
@@ -121,7 +120,7 @@ export async function getInfluencerByUserId(userId: string): Promise<VerifiedInf
   return null;
 
   /*
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('verified_influencers')
     .select('*')
     .eq('user_id', userId)
@@ -145,7 +144,7 @@ export async function updateInfluencerProfile(
   throw new Error('Not implemented - migration required');
 
   /*
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('verified_influencers')
     .update(updates)
     .eq('user_id', userId)
@@ -175,7 +174,7 @@ export async function submitVerificationRequest(
 
   /*
   // Check if user already has a pending request
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('influencer_verification_requests')
     .select('id, status')
     .eq('user_id', userId)
@@ -186,7 +185,7 @@ export async function submitVerificationRequest(
     throw new Error('You already have a pending verification request');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('influencer_verification_requests')
     .insert({
       user_id: userId,
@@ -212,7 +211,7 @@ export async function getUserVerificationRequests(
   return [];
 
   /*
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('influencer_verification_requests')
     .select('*')
     .eq('user_id', userId)
@@ -231,7 +230,7 @@ export async function getPendingVerificationRequests(): Promise<InfluencerVerifi
   return [];
 
   /*
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('influencer_verification_requests')
     .select('*')
     .in('status', ['pending', 'under_review'])
@@ -258,7 +257,7 @@ export async function approveVerificationRequest(
 
   /*
   // Get the request
-  const { data: request, error: fetchError } = await supabase
+  const { data: request, error: fetchError } = await db
     .from('influencer_verification_requests')
     .select('*')
     .eq('id', requestId)
@@ -272,7 +271,7 @@ export async function approveVerificationRequest(
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
-  const { error: insertError } = await supabase.from('verified_influencers').insert({
+  const { error: insertError } = await db.from('verified_influencers').insert({
     user_id: request.user_id,
     display_name: request.display_name,
     slug: `${slug}-${Date.now().toString(36)}`,
@@ -290,7 +289,7 @@ export async function approveVerificationRequest(
   if (insertError) throw insertError;
 
   // Update the request
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from('influencer_verification_requests')
     .update({
       status: 'approved',
@@ -318,7 +317,7 @@ export async function rejectVerificationRequest(
   throw new Error('Not implemented - migration required');
 
   /*
-  const { error } = await supabase
+  const { error } = await db
     .from('influencer_verification_requests')
     .update({
       status: 'rejected',
@@ -346,7 +345,7 @@ export async function getInfluencerPerformance(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('influencer_performance_snapshots')
     .select('*')
     .eq('influencer_id', influencerId)
@@ -354,7 +353,7 @@ export async function getInfluencerPerformance(
     .order('snapshot_date', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as InfluencerPerformanceSnapshot[];
 }
 
 /**
@@ -367,7 +366,7 @@ export async function getInfluencerTradeClaims(
     limit?: number;
   }
 ): Promise<InfluencerTradeClaim[]> {
-  let query = supabase
+  let query = db
     .from('influencer_trade_claims')
     .select('*')
     .eq('influencer_id', influencerId)
@@ -383,7 +382,7 @@ export async function getInfluencerTradeClaims(
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  return (data || []) as InfluencerTradeClaim[];
 }
 
 /**
@@ -393,7 +392,7 @@ export async function submitTradeClaim(
   influencerId: string,
   claim: Omit<InfluencerTradeClaim, 'id' | 'influencer_id' | 'verification_status' | 'created_at'>
 ): Promise<InfluencerTradeClaim> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('influencer_trade_claims')
     .insert({
       influencer_id: influencerId,
@@ -419,7 +418,7 @@ export async function getInfluencerAccuracyStats(influencerId: string): Promise<
   avg_verified_return: number;
   discrepancy: number;
 }> {
-  const { data: claims, error } = await supabase
+  const { data: claims, error } = await db
     .from('influencer_trade_claims')
     .select('*')
     .eq('influencer_id', influencerId);
@@ -427,7 +426,7 @@ export async function getInfluencerAccuracyStats(influencerId: string): Promise<
   if (error) throw error;
 
   const total_claims = claims?.length || 0;
-  const verified = claims?.filter((c) => c.verification_status === 'verified') || [];
+  const verified = (claims as InfluencerTradeClaim[] | null)?.filter((c) => c.verification_status === 'verified') || [];
   const verified_claims = verified.length;
 
   // Claims within 5% of actual are considered accurate
@@ -440,7 +439,7 @@ export async function getInfluencerAccuracyStats(influencerId: string): Promise<
 
   const accuracy_rate = verified_claims > 0 ? (accurate_claims / verified_claims) * 100 : 0;
 
-  const avg_claimed = claims?.reduce((sum, c) => sum + (c.claimed_return_percent || 0), 0) / (total_claims || 1);
+  const avg_claimed = ((claims as InfluencerTradeClaim[] | null)?.reduce((sum, c) => sum + (c.claimed_return_percent || 0), 0) || 0) / (total_claims || 1);
   const avg_verified = verified.reduce((sum, c) => sum + (c.verified_return_percent || 0), 0) / (verified_claims || 1);
 
   return {
@@ -464,14 +463,14 @@ export async function getInfluencerAccuracyStats(influencerId: string): Promise<
 export async function getTransparencySubscription(
   userId: string
 ): Promise<InfluencerTransparencySubscription | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('influencer_transparency_subscriptions')
     .select('*')
     .eq('user_id', userId)
     .single();
 
   if (error && error.code !== 'PGRST116') throw error;
-  return data;
+  return data as InfluencerTransparencySubscription | null;
 }
 
 /**
@@ -499,7 +498,7 @@ export async function createTransparencySubscription(
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + (type === 'yearly' ? 12 : 1));
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('influencer_transparency_subscriptions')
     .upsert(
       {
@@ -516,14 +515,14 @@ export async function createTransparencySubscription(
     .single();
 
   if (error) throw error;
-  return data;
+  return data as InfluencerTransparencySubscription;
 }
 
 /**
  * Cancel transparency subscription
  */
 export async function cancelTransparencySubscription(userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('influencer_transparency_subscriptions')
     .update({
       status: 'cancelled',
@@ -548,7 +547,7 @@ export async function activateInfluencerSubscription(
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-  const { error } = await supabase
+  const { error } = await db
     .from('verified_influencers')
     .update({
       subscription_status: 'active',
@@ -564,7 +563,7 @@ export async function activateInfluencerSubscription(
  * Cancel influencer subscription
  */
 export async function cancelInfluencerSubscription(userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('verified_influencers')
     .update({
       subscription_status: 'cancelled',
@@ -582,7 +581,7 @@ export async function cancelInfluencerSubscription(userId: string): Promise<void
  * Get top influencers by accuracy
  */
 export async function getTopInfluencersByAccuracy(limit: number = 10): Promise<VerifiedInfluencer[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('verified_influencers')
     .select('*')
     .eq('verification_status', 'verified')
@@ -592,14 +591,14 @@ export async function getTopInfluencersByAccuracy(limit: number = 10): Promise<V
     .limit(limit);
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as VerifiedInfluencer[];
 }
 
 /**
  * Get top influencers by verified returns
  */
 export async function getTopInfluencersByReturns(limit: number = 10): Promise<VerifiedInfluencer[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('verified_influencers')
     .select('*')
     .eq('verification_status', 'verified')
@@ -609,14 +608,14 @@ export async function getTopInfluencersByReturns(limit: number = 10): Promise<Ve
     .limit(limit);
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as VerifiedInfluencer[];
 }
 
 /**
  * Get trending influencers (most followed recently)
  */
 export async function getTrendingInfluencers(limit: number = 10): Promise<VerifiedInfluencer[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('verified_influencers')
     .select('*')
     .eq('verification_status', 'verified')
@@ -625,7 +624,7 @@ export async function getTrendingInfluencers(limit: number = 10): Promise<Verifi
     .limit(limit);
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as VerifiedInfluencer[];
 }
 
 // ============================================

@@ -139,7 +139,7 @@ export function TwoFactorSetup({ userId, userEmail, onComplete }: TwoFactorSetup
   }
 
   // 2FA is already enabled
-  if (settings?.is_enabled && step === 'initial') {
+  if (settings?.is_enabled && (step === 'initial' || step === 'disable')) {
     return (
       <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
         <div className="flex items-start gap-4">

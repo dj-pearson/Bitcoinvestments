@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users,
@@ -9,9 +9,7 @@ import {
   TrendingUp,
   Gift,
   AlertCircle,
-  ExternalLink,
   Award,
-  BarChart3,
   Clock,
   CheckCircle,
 } from 'lucide-react';
@@ -21,7 +19,6 @@ import {
   generateAffiliateLink,
   formatEarnings,
   getConversionRate,
-  getTierForReferrals,
   type InfluencerProfile,
   type InfluencerApplication,
   validateApplication,
@@ -33,7 +30,7 @@ const mockInfluencerProfile: InfluencerProfile | null = null; // Set to profile 
 
 export function InfluencerDashboard() {
   const { user, profile } = useAuth();
-  const [influencer, setInfluencer] = useState<InfluencerProfile | null>(mockInfluencerProfile);
+  const [influencer] = useState<InfluencerProfile | null>(mockInfluencerProfile);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'referrals' | 'payouts'>('overview');
   const [showApplication, setShowApplication] = useState(false);

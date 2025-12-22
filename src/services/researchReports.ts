@@ -1,7 +1,7 @@
 // Research Reports Service
 // Premium weekly crypto analysis and research reports
 
-import { supabase } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
 
 export type ReportType = 'weekly_market' | 'token_analysis' | 'defi_deep_dive' | 'macro_outlook' | 'sector_report' | 'special_report';
 export type ReportStatus = 'draft' | 'scheduled' | 'published' | 'archived';
@@ -329,7 +329,7 @@ export async function getReports(filters: ReportFilters = {}): Promise<{
       };
     }
 
-    let query = supabase
+    let query = db
       .from('research_reports')
       .select('*, author:authors(*)', { count: 'exact' })
       .eq('status', 'published');
@@ -364,7 +364,7 @@ export async function getReports(filters: ReportFilters = {}): Promise<{
     if (error) throw error;
 
     return {
-      reports: data || [],
+      reports: (data as ResearchReport[]) || [],
       total: count || 0,
       error: null
     };
@@ -392,7 +392,7 @@ export async function getReport(idOrSlug: string): Promise<{
       };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('research_reports')
       .select('*, author:authors(*)')
       .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
@@ -401,9 +401,9 @@ export async function getReport(idOrSlug: string): Promise<{
     if (error) throw error;
 
     // Increment view count
-    await supabase.rpc('increment_report_views', { report_id: data.id });
+    await db.rpc('increment_report_views', { report_id: data.id });
 
-    return { report: data, error: null };
+    return { report: data as ResearchReport, error: null };
   } catch (err) {
     console.error('Error fetching report:', err);
     const demoReport = DEMO_REPORTS.find(r => r.id === idOrSlug || r.slug === idOrSlug);
@@ -426,14 +426,14 @@ export async function likeReport(userId: string, reportId: string): Promise<{
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('report_likes')
       .upsert({ user_id: userId, report_id: reportId });
 
     if (error) throw error;
 
     // Increment like count
-    await supabase.rpc('update_report_likes', { report_id: reportId });
+    await db.rpc('update_report_likes', { report_id: reportId });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -461,20 +461,20 @@ export async function downloadReport(userId: string, reportId: string): Promise<
     }
 
     // Log download
-    await supabase
+    await db
       .from('report_downloads')
       .insert({ user_id: userId, report_id: reportId });
 
     // Increment download count
-    await supabase.rpc('increment_report_downloads', { report_id: reportId });
+    await db.rpc('increment_report_downloads', { report_id: reportId });
 
-    const { data } = await supabase
+    const { data } = await db
       .from('research_reports')
       .select('pdf_url')
       .eq('id', reportId)
       .single();
 
-    return { url: data?.pdf_url || null, error: null };
+    return { url: (data as { pdf_url?: string })?.pdf_url || null, error: null };
   } catch (err: any) {
     console.error('Error downloading report:', err);
     return { url: null, error: err.message };
@@ -493,7 +493,7 @@ export async function getReportComments(reportId: string): Promise<{
       return { comments: [], error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('report_comments')
       .select('*, user:users(raw_user_meta_data)')
       .eq('report_id', reportId)
@@ -501,7 +501,7 @@ export async function getReportComments(reportId: string): Promise<{
 
     if (error) throw error;
 
-    return { comments: data || [], error: null };
+    return { comments: (data as ReportComment[]) || [], error: null };
   } catch (err) {
     console.error('Error fetching comments:', err);
     return { comments: [], error: null };
@@ -521,7 +521,7 @@ export async function addReportComment(
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('report_comments')
       .insert({
         user_id: userId,
@@ -555,7 +555,7 @@ export async function subscribeToResearch(email: string): Promise<{
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('research_subscribers')
       .upsert({ email, subscribed_at: new Date().toISOString() });
 

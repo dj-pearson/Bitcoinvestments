@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getApiKeys,
   createApiKey,
   revokeApiKey,
-  updateApiKeySettings,
   getApiEndpoints,
   getApiUsageStats,
   getApiTiers,
-  getPermissionLabel,
   API_PERMISSIONS,
+} from '../services/apiAccess';
+import type {
   ApiKey,
   ApiEndpoint,
   ApiUsageStats,
@@ -440,7 +440,8 @@ const DocumentationTab: React.FC<{
 const UsageTab: React.FC<{
   stats: ApiUsageStats | null;
   apiKeys: ApiKey[];
-}> = ({ stats, apiKeys }) => {
+}> = ({ stats, apiKeys: _apiKeys }) => {
+  void _apiKeys; // Reserved for future use
   if (!stats) {
     return (
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">

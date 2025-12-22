@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '../Logo';
-import { Menu, X, ChevronDown, User, Shield, Search } from 'lucide-react';
+import { Menu, X, ChevronDown, User, Shield } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
 import { GlobalSearch, MobileSearchTrigger } from '../GlobalSearch';

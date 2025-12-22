@@ -84,7 +84,6 @@ export async function getSubscriptionAnalytics(): Promise<{
 
     const now = new Date();
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     // Calculate active subscribers
     const activeSubscribers = (users || []).filter((user) => {

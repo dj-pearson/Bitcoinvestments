@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getWebinars,
   getWebinar,
   registerForWebinar,
-  Webinar,
-  WebinarFilters,
-  WebinarCategory,
   WEBINAR_CATEGORY_LABELS,
   WEBINAR_CATEGORY_COLORS
+} from '../services/webinars';
+import type {
+  Webinar,
+  WebinarFilters,
+  WebinarCategory
 } from '../services/webinars';
 
 // Icons

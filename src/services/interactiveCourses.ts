@@ -497,7 +497,7 @@ export async function getCourses(filters: CourseFilters = {}): Promise<{
       };
     }
 
-    let query = supabase
+    let query = db
       .from('courses')
       .select('*, instructor:instructors(*)', { count: 'exact' })
       .eq('is_published', true);
@@ -542,7 +542,7 @@ export async function getCourses(filters: CourseFilters = {}): Promise<{
     if (error) throw error;
 
     return {
-      courses: data || [],
+      courses: (data as Course[]) || [],
       total: count || 0,
       error: null
     };
@@ -575,7 +575,7 @@ export async function getCourse(courseIdOrSlug: string): Promise<{
       return { course: null, modules: [], error: 'Course not found' };
     }
 
-    const { data: course, error: courseError } = await supabase
+    const { data: courseData, error: courseError } = await db
       .from('courses')
       .select('*, instructor:instructors(*)')
       .or(`id.eq.${courseIdOrSlug},slug.eq.${courseIdOrSlug}`)
@@ -583,7 +583,9 @@ export async function getCourse(courseIdOrSlug: string): Promise<{
 
     if (courseError) throw courseError;
 
-    const { data: modules, error: modulesError } = await supabase
+    const course = courseData as Course;
+
+    const { data: modulesData, error: modulesError } = await db
       .from('course_modules')
       .select('*, lessons:course_lessons(*)')
       .eq('course_id', course.id)
@@ -593,7 +595,7 @@ export async function getCourse(courseIdOrSlug: string): Promise<{
 
     return {
       course,
-      modules: modules || [],
+      modules: (modulesData as Module[]) || [],
       error: null
     };
   } catch (err) {
@@ -628,7 +630,7 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
       return { enrollment: newEnrollment, error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('course_enrollments')
       .insert({
         user_id: userId,
@@ -648,7 +650,7 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
     // Increment enrollment count
     await db.rpc('increment_enrollment_count', { course_id: courseId });
 
-    return { enrollment: data, error: null };
+    return { enrollment: data as UserEnrollment, error: null };
   } catch (err: any) {
     console.error('Error enrolling in course:', err);
     return { enrollment: null, error: err.message || 'Failed to enroll' };
@@ -672,7 +674,7 @@ export async function getUserEnrollments(userId: string): Promise<{
       return { enrollments: enriched, error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('course_enrollments')
       .select('*, course:courses(*, instructor:instructors(*))')
       .eq('user_id', userId)
@@ -680,7 +682,7 @@ export async function getUserEnrollments(userId: string): Promise<{
 
     if (error) throw error;
 
-    return { enrollments: data || [], error: null };
+    return { enrollments: (data as (UserEnrollment & { course: Course })[]) || [], error: null };
   } catch (err) {
     console.error('Error fetching enrollments:', err);
     const enriched = DEMO_ENROLLMENTS.map(e => ({
@@ -706,7 +708,7 @@ export async function completeLesson(
     }
 
     // Upsert lesson progress
-    const { error: progressError } = await supabase
+    const { error: progressError } = await db
       .from('lesson_progress')
       .upsert({
         enrollment_id: enrollmentId,
@@ -719,22 +721,24 @@ export async function completeLesson(
     if (progressError) throw progressError;
 
     // Calculate new course progress
-    const { data: enrollment } = await supabase
+    const { data: enrollmentData } = await db
       .from('course_enrollments')
       .select('course_id')
       .eq('id', enrollmentId)
       .single();
 
-    if (!enrollment) throw new Error('Enrollment not found');
+    if (!enrollmentData) throw new Error('Enrollment not found');
+
+    const enrollment = enrollmentData as { course_id: string };
 
     // Count completed lessons vs total lessons
-    const { count: completedCount } = await supabase
+    const { count: completedCount } = await db
       .from('lesson_progress')
       .select('*', { count: 'exact' })
       .eq('enrollment_id', enrollmentId)
       .eq('is_completed', true);
 
-    const { count: totalCount } = await supabase
+    const { count: totalCount } = await db
       .from('course_lessons')
       .select('*', { count: 'exact' })
       .eq('course_id', enrollment.course_id);
@@ -742,7 +746,7 @@ export async function completeLesson(
     const newProgress = Math.round((completedCount || 0) / (totalCount || 1) * 100);
 
     // Update enrollment progress
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from('course_enrollments')
       .update({
         progress: newProgress,
@@ -791,7 +795,7 @@ export async function submitQuizAttempt(
     }
 
     // Get quiz to calculate score
-    const { data: quiz, error: quizError } = await supabase
+    const { data: quizData, error: quizError } = await db
       .from('course_quizzes')
       .select('*')
       .eq('id', quizId)
@@ -799,9 +803,11 @@ export async function submitQuizAttempt(
 
     if (quizError) throw quizError;
 
+    const quiz = quizData as { questions: QuizQuestion[]; passing_score: number };
+
     // Calculate score
     let correctAnswers = 0;
-    const questions = quiz.questions as QuizQuestion[];
+    const questions = quiz.questions;
 
     for (const question of questions) {
       const userAnswer = answers[question.id];
@@ -813,7 +819,7 @@ export async function submitQuizAttempt(
     const score = Math.round((correctAnswers / questions.length) * 100);
     const passed = score >= quiz.passing_score;
 
-    const { data: attempt, error } = await supabase
+    const { data: attempt, error } = await db
       .from('quiz_attempts')
       .insert({
         enrollment_id: enrollmentId,
@@ -829,7 +835,7 @@ export async function submitQuizAttempt(
 
     if (error) throw error;
 
-    return { attempt, error: null };
+    return { attempt: attempt as QuizAttempt, error: null };
   } catch (err: any) {
     console.error('Error submitting quiz:', err);
     return { attempt: null, error: err.message || 'Failed to submit quiz' };
@@ -850,11 +856,11 @@ export async function getCourseProgress(enrollmentId: string): Promise<{
     }
 
     const [lessonsResult, quizzesResult] = await Promise.all([
-      supabase
+      db
         .from('lesson_progress')
         .select('*')
         .eq('enrollment_id', enrollmentId),
-      supabase
+      db
         .from('quiz_attempts')
         .select('*')
         .eq('enrollment_id', enrollmentId)
@@ -862,8 +868,8 @@ export async function getCourseProgress(enrollmentId: string): Promise<{
     ]);
 
     return {
-      lessonProgress: lessonsResult.data || [],
-      quizAttempts: quizzesResult.data || [],
+      lessonProgress: (lessonsResult.data as LessonProgress[]) || [],
+      quizAttempts: (quizzesResult.data as QuizAttempt[]) || [],
       error: null
     };
   } catch (err) {
@@ -886,7 +892,7 @@ export async function rateCourse(
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('course_ratings')
       .upsert({
         user_id: userId,

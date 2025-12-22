@@ -11,7 +11,7 @@
  * - Reputation integration
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 import { awardPoints } from './userReputation';
 
 export interface Question {
@@ -300,7 +300,7 @@ export async function createAnswer(
     if (error) throw error;
 
     // Update answer count
-    await supabase.rpc('increment_answer_count', { q_id: questionId });
+    await db.rpc('increment_answer_count', { q_id: questionId });
 
     // Award points for answering
     await awardPoints(userId, 'answer_question');
@@ -354,7 +354,7 @@ export async function vote(
       }
     } else {
       // New vote
-      await supabase.from('forum_votes').insert({
+      await db.from('forum_votes').insert({
         user_id: userId,
         target_id: targetId,
         target_type: targetType,
@@ -494,9 +494,9 @@ export async function addComment(
 export async function getForumStats(): Promise<ForumStats> {
   if (isSupabaseConfigured()) {
     const [questions, answers, unanswered] = await Promise.all([
-      supabase.from('forum_questions').select('id', { count: 'exact', head: true }),
-      supabase.from('forum_answers').select('id', { count: 'exact', head: true }),
-      supabase.from('forum_questions').select('id', { count: 'exact', head: true }).eq('answer_count', 0),
+      db.from('forum_questions').select('id', { count: 'exact', head: true }),
+      db.from('forum_answers').select('id', { count: 'exact', head: true }),
+      db.from('forum_questions').select('id', { count: 'exact', head: true }).eq('answer_count', 0),
     ]);
 
     return {

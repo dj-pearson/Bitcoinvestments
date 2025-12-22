@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Support Ticket Service
@@ -158,7 +158,7 @@ export async function createSupportTicket(params: {
     };
 
     if (isSupabaseConfigured()) {
-      const { error } = await supabase.from('support_tickets').insert(ticket);
+      const { error } = await db.from('support_tickets').insert(ticket);
 
       if (error && error.code !== '42P01') {
         throw error;
@@ -342,7 +342,7 @@ export async function addTicketMessage(params: {
     };
 
     if (isSupabaseConfigured()) {
-      const { error } = await supabase.from('ticket_messages').insert(ticketMessage);
+      const { error } = await db.from('ticket_messages').insert(ticketMessage);
 
       if (error && error.code !== '42P01') {
         throw error;

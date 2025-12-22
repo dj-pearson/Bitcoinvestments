@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Invoicing Service
@@ -172,7 +172,7 @@ export async function generateInvoice(
 
     // Save to database if configured
     if (isSupabaseConfigured()) {
-      const { error } = await supabase.from('invoices').insert({
+      const { error } = await db.from('invoices').insert({
         id: invoice.id,
         invoice_number: invoice.invoice_number,
         advertiser_id: invoice.advertiser_id,

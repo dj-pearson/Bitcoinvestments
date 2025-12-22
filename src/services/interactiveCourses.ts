@@ -1,7 +1,7 @@
 // Interactive Courses Service
 // Structured learning paths with lessons, quizzes, and progress tracking
 
-import { supabase } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
 
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 export type CourseCategory = 'bitcoin' | 'ethereum' | 'defi' | 'trading' | 'security' | 'investing' | 'technical_analysis' | 'fundamentals';
@@ -646,7 +646,7 @@ export async function enrollInCourse(userId: string, courseId: string): Promise<
     }
 
     // Increment enrollment count
-    await supabase.rpc('increment_enrollment_count', { course_id: courseId });
+    await db.rpc('increment_enrollment_count', { course_id: courseId });
 
     return { enrollment: data, error: null };
   } catch (err: any) {
@@ -899,7 +899,7 @@ export async function rateCourse(
     if (error) throw error;
 
     // Update course average rating
-    await supabase.rpc('update_course_rating', { course_id: courseId });
+    await db.rpc('update_course_rating', { course_id: courseId });
 
     return { success: true, error: null };
   } catch (err: any) {

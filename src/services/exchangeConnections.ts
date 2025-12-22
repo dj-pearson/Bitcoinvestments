@@ -17,7 +17,7 @@
  * - Multi-exchange aggregation
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 export interface Exchange {
   id: string;
@@ -390,7 +390,7 @@ export async function syncConnection(
 
     // Store balances
     for (const balance of balances) {
-      await supabase.from('exchange_balances').upsert(
+      await db.from('exchange_balances').upsert(
         {
           connection_id: connectionId,
           exchange_id: connection.exchange_id,
@@ -402,7 +402,7 @@ export async function syncConnection(
 
     // Store transactions
     for (const tx of transactions) {
-      await supabase.from('exchange_transactions').upsert(
+      await db.from('exchange_transactions').upsert(
         {
           connection_id: connectionId,
           exchange_id: connection.exchange_id,

@@ -1,7 +1,7 @@
 // Research Reports Service
 // Premium weekly crypto analysis and research reports
 
-import { supabase } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
 
 export type ReportType = 'weekly_market' | 'token_analysis' | 'defi_deep_dive' | 'macro_outlook' | 'sector_report' | 'special_report';
 export type ReportStatus = 'draft' | 'scheduled' | 'published' | 'archived';

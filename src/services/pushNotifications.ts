@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Push Notifications Service
@@ -140,7 +140,7 @@ export async function subscribeToPush(
     const subscriptionJson = subscription.toJSON();
 
     if (isSupabaseConfigured()) {
-      const { error } = await supabase.from('push_subscriptions').upsert({
+      const { error } = await db.from('push_subscriptions').upsert({
         user_id: userId,
         endpoint: subscriptionJson.endpoint,
         keys: subscriptionJson.keys,

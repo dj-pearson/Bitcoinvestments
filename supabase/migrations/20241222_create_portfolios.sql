@@ -59,6 +59,16 @@ CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_portfolio ON portfolio_tra
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_date ON portfolio_transactions(transaction_date DESC);
 CREATE INDEX IF NOT EXISTS idx_portfolio_transactions_coin ON portfolio_transactions(portfolio_id, coin_id);
 
+-- Ensure columns exist (for existing tables)
+DO $$
+BEGIN
+    -- Add is_public column if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name = 'portfolios' AND column_name = 'is_public') THEN
+        ALTER TABLE portfolios ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT false;
+    END IF;
+END $$;
+
 -- Enable Row Level Security
 ALTER TABLE portfolios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolio_holdings ENABLE ROW LEVEL SECURITY;
@@ -78,22 +88,22 @@ DROP POLICY IF EXISTS "Users can manage transactions of own portfolios" ON portf
 CREATE POLICY "Users can view own portfolios"
     ON public.portfolios
     FOR SELECT
-    USING (auth.uid() = user_id OR is_public = true);
+    USING (auth.uid() = portfolios.user_id OR portfolios.is_public = true);
 
 CREATE POLICY "Users can create own portfolios"
     ON portfolios
     FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (auth.uid() = portfolios.user_id);
 
 CREATE POLICY "Users can update own portfolios"
     ON portfolios
     FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = portfolios.user_id);
 
 CREATE POLICY "Users can delete own portfolios"
     ON portfolios
     FOR DELETE
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = portfolios.user_id);
 
 -- Holdings policies
 CREATE POLICY "Users can view holdings of own portfolios"

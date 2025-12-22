@@ -1,0 +1,37 @@
+# Cloudflare Worker for Scheduled Weekly Newsletter
+# This worker runs on a schedule to send the weekly newsletter
+
+name = "weekly-newsletter-cron"
+main = "workers/weekly-newsletter-cron.ts"
+compatibility_date = "2024-11-20"
+
+# Run every Monday at 9:00 AM UTC
+# Cron expression: minute hour day-of-month month day-of-week
+# - "0 9 * * 1" = Every Monday at 9:00 AM UTC
+# - "0 14 * * 1" = Every Monday at 2:00 PM UTC (9:00 AM EST)
+# - "0 17 * * 1" = Every Monday at 5:00 PM UTC (9:00 AM PST)
+# Adjust the schedule as needed for your target audience timezone
+[triggers]
+crons = ["0 14 * * 1"]  # Every Monday at 2:00 PM UTC (9:00 AM EST)
+
+# Environment variables
+# Set these in Cloudflare Dashboard for security
+[env.production]
+vars = { PAGES_URL = "https://bitcoinvestments.net" }
+
+[env.staging]
+vars = { PAGES_URL = "https://staging.bitcoinvestments.net" }
+
+# Required secrets (set in Cloudflare Dashboard):
+# - SUPABASE_SERVICE_ROLE_KEY
+#
+# To deploy:
+# npx wrangler deploy --config wrangler-newsletter.toml
+#
+# To test manually:
+# curl -X POST https://weekly-newsletter-cron.YOUR_SUBDOMAIN.workers.dev \
+#   -H "Authorization: Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"
+#
+# Or trigger via the Pages function directly:
+# curl -X POST https://bitcoinvestments.net/api/send-newsletter \
+#   -H "Authorization: Bearer YOUR_SUPABASE_SERVICE_ROLE_KEY"

@@ -15,13 +15,17 @@
     "deploy:cron": "npx wrangler deploy --config wrangler-cron.toml",
     "cron:tail": "npx wrangler tail price-alerts-cron",
     "cron:test": "curl -X POST https://bitcoinvestments.net/api/check-price-alerts -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"",
-    "deploy:all": "npm run build && npm run cf:deploy && npm run deploy:cron"
+    "deploy:newsletter": "npx wrangler deploy --config wrangler-newsletter.toml",
+    "newsletter:tail": "npx wrangler tail weekly-newsletter-cron",
+    "newsletter:test": "curl -X POST https://bitcoinvestments.net/api/send-newsletter -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"",
+    "deploy:all": "npm run build && npm run cf:deploy && npm run deploy:cron && npm run deploy:newsletter"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@rainbow-me/rainbowkit": "^2.1.6",
     "@react-three/drei": "^9.92.7",
     "@react-three/fiber": "^8.15.12",
+    "@sentry/react": "^10.32.1",
     "@solana/web3.js": "^1.98.4",
     "@stripe/stripe-js": "^8.5.3",
     "@supabase/supabase-js": "^2.86.2",

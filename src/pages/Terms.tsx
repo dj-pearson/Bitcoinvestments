@@ -71,7 +71,7 @@ export function Terms() {
             </ul>
           </section>
 
-          <section>
+          <section id="affiliate-disclosure">
             <h2>Affiliate Disclosure</h2>
             <p>
               Some links on our website may be affiliate links. This means we may earn a
@@ -81,6 +81,15 @@ export function Terms() {
             <p>
               Our recommendations are based on our genuine assessment of the products and
               services. We only recommend platforms we believe provide value to our readers.
+            </p>
+            <p>
+              <strong>How Affiliate Links Work:</strong> When you click on an affiliate link and make a purchase or sign up, the company tracks that you came from our site. If you complete a qualifying action (like signing up or making a purchase), we receive a small commission. This never affects the price you pay.
+            </p>
+            <p>
+              <strong>Our Commitment:</strong> We maintain editorial independence. Affiliate relationships do not influence our ratings, reviews, or recommendations. We only partner with platforms we genuinely believe provide value to our users.
+            </p>
+            <p>
+              <strong>Identification:</strong> We clearly label affiliate links throughout our site with "Affiliate" badges. Sponsored content and paid placements are separately labeled.
             </p>
           </section>
 

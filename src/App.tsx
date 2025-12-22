@@ -5,6 +5,7 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { Layout } from './components/Layout/Layout';
 import { AuthProvider } from './contexts/AuthContext';
+import { AnalyticsProvider, PageTracker } from './components/AnalyticsProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { Home } from './pages/Home';
@@ -37,6 +38,7 @@ import { AdvisorDashboard } from './pages/AdvisorDashboard';
 import { InfluencerDashboard } from './pages/InfluencerDashboard';
 import { Backtesting } from './pages/Backtesting';
 import { PortfolioAnalysis } from './pages/PortfolioAnalysis';
+import { SearchResults } from './pages/SearchResults';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -47,8 +49,10 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <BrowserRouter>
-            <AuthProvider>
-              <Routes>
+            <AnalyticsProvider domain="bitcoinvestments.com">
+              <PageTracker />
+              <AuthProvider>
+                <Routes>
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Home />} />
                   <Route path="dashboard" element={<Dashboard />} />
@@ -76,6 +80,7 @@ function App() {
                   <Route path="admin/scam-database" element={<AdminRoute><ScamDatabase /></AdminRoute>} />
                   <Route path="admin/ai-settings" element={<AdminRoute><AdminAISettings /></AdminRoute>} />
 
+                  <Route path="search" element={<SearchResults />} />
                   <Route path="learn" element={<Learn />} />
                   <Route path="learn/:guideId" element={<GuideDetail />} />
                   <Route path="course/:courseId" element={<CourseLanding />} />
@@ -91,7 +96,8 @@ function App() {
                   <Route path="*" element={<Home />} />
                 </Route>
               </Routes>
-            </AuthProvider>
+              </AuthProvider>
+            </AnalyticsProvider>
           </BrowserRouter>
         </RainbowKitProvider>
       </QueryClientProvider>

@@ -103,14 +103,16 @@ function formatSlug(slug: string): string {
 
 /**
  * Get the parent path for a given path
+ * Reserved for future use in nested breadcrumb navigation
  */
-function getParentPath(path: string): string | null {
+function _getParentPath(path: string): string | null {
   const segments = path.split('/').filter(Boolean);
   if (segments.length <= 1) {
     return '/';
   }
   return '/' + segments.slice(0, -1).join('/');
 }
+void _getParentPath;
 
 /**
  * Hook to generate breadcrumbs based on current route

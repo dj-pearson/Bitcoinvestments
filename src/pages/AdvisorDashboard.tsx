@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
   Users,
@@ -11,16 +11,13 @@ import {
   TrendingDown,
   Building2,
   AlertCircle,
-  Check,
-  X,
   Edit2,
-  Trash2,
   Eye,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hasAdvisorAccess, getTierLimits } from '../services/subscriptionLimits';
 import { cn } from '../lib/utils';
-import type { AdvisorClient, AdvisorBranding } from '../types';
+import type { AdvisorClient } from '../types';
 
 // Mock data for clients (in production, this would come from database)
 const mockClients: AdvisorClient[] = [

@@ -20,7 +20,6 @@ import {
   getFeaturedVideos,
   getPlaylists,
   getUserProgress,
-  updateProgress,
   toggleBookmark,
   toggleLike,
   formatDuration,
@@ -587,7 +586,7 @@ function VideoPlayer({
   isPremium,
   userProgress,
   onBack,
-  onProgressUpdate,
+  onProgressUpdate: _onProgressUpdate,
 }: {
   videoId: string;
   userId?: string;
@@ -596,6 +595,7 @@ function VideoPlayer({
   onBack: () => void;
   onProgressUpdate: () => void;
 }) {
+  void _onProgressUpdate; // Reserved for progress tracking feature
   const [video, setVideo] = useState<Video | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);

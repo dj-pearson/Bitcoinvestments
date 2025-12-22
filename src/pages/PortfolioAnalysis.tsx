@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Brain,
   Shield,
   PieChart,
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle,
   Lightbulb,

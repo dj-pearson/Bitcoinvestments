@@ -1,108 +1,221 @@
-import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
-
 /**
  * Content Moderation Service
- *
- * Provides moderation tools for user-generated content:
- * - Review queue for pending content
- * - Approval/rejection workflow
- * - Moderation history
- * - Content flagging
+ * 
+ * Handles flagged content review, moderation actions, and content policies
  */
 
-export type ContentType = 'review' | 'comment' | 'scam_report' | 'article';
-export type ModerationStatus = 'pending' | 'approved' | 'rejected' | 'flagged';
-export type ModerationAction = 'approve' | 'reject' | 'flag' | 'unflag' | 'delete';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-export interface ModerationItem {
+export interface FlaggedContent {
   id: string;
-  content_type: ContentType;
-  content_id: string;
-  content_preview: string;
+  type: 'review' | 'comment' | 'report';
+  content: string;
   author_id: string;
   author_email?: string;
-  status: ModerationStatus;
-  flagged_reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  flagged: boolean;
+  flag_reason?: string;
+  flagged_by?: string;
   moderated_by?: string;
   moderated_at?: string;
   created_at: string;
+  updated_at: string;
 }
 
-export interface ModerationLog {
-  id: string;
-  content_type: ContentType;
-  content_id: string;
-  action: ModerationAction;
-  performed_by: string;
-  reason?: string;
-  metadata?: Record<string, unknown>;
-  created_at: string;
-}
-
-export interface ModerationStats {
-  pending_count: number;
-  approved_today: number;
-  rejected_today: number;
-  flagged_count: number;
-  by_type: Record<ContentType, number>;
+interface GetFlaggedContentParams {
+  type?: 'review' | 'comment' | 'report';
+  status?: 'pending' | 'approved' | 'rejected';
+  page?: number;
+  limit?: number;
 }
 
 /**
- * Get moderation queue
+ * Get flagged content for moderation
  */
-export async function getModerationQueue(
-  options: {
-    contentType?: ContentType;
-    status?: ModerationStatus;
-    limit?: number;
-    offset?: number;
-  } = {}
-): Promise<{ items: ModerationItem[]; error: string | null }> {
+export async function getFlaggedContent(params?: GetFlaggedContentParams): Promise<{
+  content: FlaggedContent[];
+  total: number;
+  error: string | null;
+}> {
   if (!isSupabaseConfigured()) {
-    return { items: [], error: 'Database not configured' };
+    // Return mock data for development
+    const mockContent: FlaggedContent[] = [
+      {
+        id: '1',
+        type: 'review',
+        content: 'This exchange platform has been incredibly reliable for my trading needs. Highly recommended!',
+        author_id: 'user_1',
+        author_email: 'john@example.com',
+        status: 'pending',
+        flagged: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        type: 'comment',
+        content: 'Great article! I learned a lot about DCA strategies.',
+        author_id: 'user_2',
+        author_email: 'sarah@example.com',
+        status: 'pending',
+        flagged: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: '3',
+        type: 'review',
+        content: 'This content contains inappropriate language and should be reviewed.',
+        author_id: 'user_3',
+        author_email: 'flagged@example.com',
+        status: 'pending',
+        flagged: true,
+        flag_reason: 'Inappropriate language',
+        flagged_by: 'auto_moderation',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: '4',
+        type: 'report',
+        content: 'User reported suspicious activity from another account.',
+        author_id: 'user_4',
+        author_email: 'reporter@example.com',
+        status: 'pending',
+        flagged: true,
+        flag_reason: 'User report',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ];
+
+    let filtered = mockContent;
+
+    if (params?.type) {
+      filtered = filtered.filter((c) => c.type === params.type);
+    }
+    if (params?.status) {
+      filtered = filtered.filter((c) => c.status === params.status);
+    }
+
+    return {
+      content: filtered,
+      total: filtered.length,
+      error: null,
+    };
   }
 
-  const { contentType: _contentType, status = 'pending', limit = 50, offset = 0 } = options;
-  void _contentType; // Reserved for future use to filter by content type
+  try {
+    // Use any to bypass type checking for untyped table
+    const client = supabase as any;
+    let query = client
+      .from('moderation_queue')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    if (params?.type) {
+      query = query.eq('type', params.type);
+    }
+    if (params?.status) {
+      query = query.eq('status', params.status);
+    }
+
+    const page = params?.page || 1;
+    const limit = params?.limit || 20;
+    const offset = (page - 1) * limit;
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) throw error;
+
+    return {
+      content: (data as FlaggedContent[]) || [],
+      total: count || 0,
+      error: null,
+    };
+  } catch (error: any) {
+    console.error('Error fetching flagged content:', error);
+    return {
+      content: [],
+      total: 0,
+      error: error.message || 'Failed to fetch content',
+    };
+  }
+}
+
+/**
+ * Moderate content (approve or reject)
+ */
+export async function moderateContent(
+  contentId: string,
+  action: 'approve' | 'reject',
+  moderatorId?: string,
+  reason?: string
+): Promise<{ success: boolean; error: string | null }> {
+  if (!isSupabaseConfigured()) {
+    // Mock success for development
+    return { success: true, error: null };
+  }
 
   try {
-    // For now, we'll query platform_reviews as the main moderation target
-    let query = supabase
-      .from('platform_reviews')
-      .select('id, user_id, platform_type, platform_id, title, content, status, created_at')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Use any to bypass type checking for untyped table
+    const client = supabase as any;
+    const { error } = await client
+      .from('moderation_queue')
+      .update({
+        status: action === 'approve' ? 'approved' : 'rejected',
+        moderated_by: moderatorId,
+        moderated_at: new Date().toISOString(),
+        rejection_reason: action === 'reject' ? reason : null,
+      })
+      .eq('id', contentId);
 
-    // Only filter by status if it's a valid platform_reviews status
-    if (status && (status === 'pending' || status === 'approved' || status === 'rejected')) {
-      query = query.eq('status', status);
-    }
+    if (error) throw error;
 
-    const { data: reviews, error } = await query;
-
-    if (error) {
-      if (error.code === '42P01') {
-        return { items: [], error: null };
-      }
-      throw error;
-    }
-
-    const items: ModerationItem[] = (reviews || []).map((review) => ({
-      id: `review-${review.id}`,
-      content_type: 'review' as ContentType,
-      content_id: review.id,
-      content_preview: `${review.title}: ${review.content.substring(0, 200)}...`,
-      author_id: review.user_id,
-      status: review.status as ModerationStatus,
-      created_at: review.created_at,
-    }));
-
-    return { items, error: null };
-  } catch (error) {
-    console.error('Error fetching moderation queue:', error);
+    return { success: true, error: null };
+  } catch (error: any) {
+    console.error('Error moderating content:', error);
     return {
-      items: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch queue',
+      success: false,
+      error: error.message || 'Failed to moderate content',
+    };
+  }
+}
+
+/**
+ * Flag content for review
+ */
+export async function flagContent(
+  contentId: string,
+  reason: string,
+  flaggedBy: string
+): Promise<{ success: boolean; error: string | null }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true, error: null };
+  }
+
+  try {
+    // Use any to bypass type checking for untyped table
+    const client = supabase as any;
+    const { error } = await client
+      .from('moderation_queue')
+      .update({
+        flagged: true,
+        flag_reason: reason,
+        flagged_by: flaggedBy,
+        status: 'pending',
+      })
+      .eq('id', contentId);
+
+    if (error) throw error;
+
+    return { success: true, error: null };
+  } catch (error: any) {
+    console.error('Error flagging content:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to flag content',
     };
   }
 }
@@ -111,271 +224,68 @@ export async function getModerationQueue(
  * Get moderation statistics
  */
 export async function getModerationStats(): Promise<{
-  stats: ModerationStats | null;
+  stats: {
+    pending: number;
+    approved_today: number;
+    rejected_today: number;
+    flagged: number;
+  };
   error: string | null;
 }> {
   if (!isSupabaseConfigured()) {
-    return { stats: null, error: 'Database not configured' };
+    return {
+      stats: {
+        pending: 12,
+        approved_today: 24,
+        rejected_today: 3,
+        flagged: 5,
+      },
+      error: null,
+    };
   }
 
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get pending reviews count
-    const { count: pendingCount } = await supabase
-      .from('platform_reviews')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
+    // Use any to bypass type checking for untyped table
+    const client = supabase as any;
+    const [pending, approvedToday, rejectedToday, flagged] = await Promise.all([
+      client
+        .from('moderation_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending'),
+      client
+        .from('moderation_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'approved')
+        .gte('moderated_at', today.toISOString()),
+      client
+        .from('moderation_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'rejected')
+        .gte('moderated_at', today.toISOString()),
+      client
+        .from('moderation_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('flagged', true)
+        .eq('status', 'pending'),
+    ]);
 
-    // Get approved today
-    const { count: approvedToday } = await supabase
-      .from('platform_reviews')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'approved')
-      .gte('updated_at', today.toISOString());
-
-    // Get rejected today
-    const { count: rejectedToday } = await supabase
-      .from('platform_reviews')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'rejected')
-      .gte('updated_at', today.toISOString());
-
-    // Get pending scam reports
-    const { count: pendingScams } = await supabase
-      .from('scam_reports')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending');
-
-    const stats: ModerationStats = {
-      pending_count: (pendingCount || 0) + (pendingScams || 0),
-      approved_today: approvedToday || 0,
-      rejected_today: rejectedToday || 0,
-      flagged_count: 0, // Would need separate flagged column
-      by_type: {
-        review: pendingCount || 0,
-        comment: 0,
-        scam_report: pendingScams || 0,
-        article: 0,
+    return {
+      stats: {
+        pending: pending.count || 0,
+        approved_today: approvedToday.count || 0,
+        rejected_today: rejectedToday.count || 0,
+        flagged: flagged.count || 0,
       },
+      error: null,
     };
-
-    return { stats, error: null };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching moderation stats:', error);
     return {
-      stats: null,
-      error: error instanceof Error ? error.message : 'Failed to fetch stats',
+      stats: { pending: 0, approved_today: 0, rejected_today: 0, flagged: 0 },
+      error: error.message || 'Failed to fetch stats',
     };
   }
-}
-
-/**
- * Moderate content (approve, reject, flag)
- */
-export async function moderateContent(
-  contentType: ContentType,
-  contentId: string,
-  action: ModerationAction,
-  moderatorId: string,
-  reason?: string
-): Promise<{ success: boolean; error: string | null }> {
-  if (!isSupabaseConfigured()) {
-    return { success: false, error: 'Database not configured' };
-  }
-
-  try {
-    let table = '';
-    let newStatus = '';
-
-    switch (contentType) {
-      case 'review':
-        table = 'platform_reviews';
-        break;
-      case 'scam_report':
-        table = 'scam_reports';
-        break;
-      default:
-        return { success: false, error: `Unknown content type: ${contentType}` };
-    }
-
-    switch (action) {
-      case 'approve':
-        newStatus = 'approved';
-        break;
-      case 'reject':
-        newStatus = 'rejected';
-        break;
-      case 'flag':
-        newStatus = 'flagged';
-        break;
-      default:
-        return { success: false, error: `Unknown action: ${action}` };
-    }
-
-    // Update content status
-    const { error: updateError } = await db
-      .from(table)
-      .update({
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', contentId);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    // Log the moderation action
-    await logModerationAction({
-      content_type: contentType,
-      content_id: contentId,
-      action,
-      performed_by: moderatorId,
-      reason,
-    });
-
-    return { success: true, error: null };
-  } catch (error) {
-    console.error('Error moderating content:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to moderate content',
-    };
-  }
-}
-
-/**
- * Log moderation action
- */
-async function logModerationAction(log: Omit<ModerationLog, 'id' | 'created_at'>): Promise<void> {
-  if (!isSupabaseConfigured()) return;
-
-  try {
-    await db.from('moderation_logs').insert({
-      id: crypto.randomUUID(),
-      ...log,
-      created_at: new Date().toISOString(),
-    });
-  } catch (error) {
-    // Log but don't fail - moderation logs are non-critical
-    console.warn('Failed to log moderation action:', error);
-  }
-}
-
-/**
- * Get moderation history for a content item
- */
-export async function getModerationHistory(
-  contentType: ContentType,
-  contentId: string
-): Promise<{ logs: ModerationLog[]; error: string | null }> {
-  if (!isSupabaseConfigured()) {
-    return { logs: [], error: 'Database not configured' };
-  }
-
-  try {
-    const { data, error } = await db
-      .from('moderation_logs')
-      .select('*')
-      .eq('content_type', contentType)
-      .eq('content_id', contentId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      if (error.code === '42P01') {
-        return { logs: [], error: null };
-      }
-      throw error;
-    }
-
-    return { logs: (data as ModerationLog[]) || [], error: null };
-  } catch (error) {
-    console.error('Error fetching moderation history:', error);
-    return {
-      logs: [],
-      error: error instanceof Error ? error.message : 'Failed to fetch history',
-    };
-  }
-}
-
-/**
- * Bulk moderate content
- */
-export async function bulkModerate(
-  items: Array<{ contentType: ContentType; contentId: string }>,
-  action: ModerationAction,
-  moderatorId: string,
-  reason?: string
-): Promise<{ success: boolean; errors: string[] }> {
-  const errors: string[] = [];
-
-  for (const item of items) {
-    const result = await moderateContent(
-      item.contentType,
-      item.contentId,
-      action,
-      moderatorId,
-      reason
-    );
-
-    if (!result.success && result.error) {
-      errors.push(`${item.contentId}: ${result.error}`);
-    }
-  }
-
-  return {
-    success: errors.length === 0,
-    errors,
-  };
-}
-
-/**
- * Check content for prohibited patterns
- */
-export function checkContentForViolations(content: string): {
-  hasViolations: boolean;
-  violations: string[];
-} {
-  const violations: string[] = [];
-
-  // Check for common spam patterns
-  const spamPatterns = [
-    /buy\s+now\s+cheap/i,
-    /click\s+here\s+to\s+win/i,
-    /free\s+money/i,
-    /guaranteed\s+returns/i,
-    /double\s+your\s+(money|bitcoin|crypto)/i,
-    /send\s+\d+\s+(btc|eth|crypto)/i,
-  ];
-
-  for (const pattern of spamPatterns) {
-    if (pattern.test(content)) {
-      violations.push('Potential spam detected');
-      break;
-    }
-  }
-
-  // Check for excessive caps
-  const capsRatio = (content.match(/[A-Z]/g) || []).length / content.length;
-  if (capsRatio > 0.5 && content.length > 20) {
-    violations.push('Excessive use of capital letters');
-  }
-
-  // Check for repeated characters
-  if (/(.)\1{5,}/.test(content)) {
-    violations.push('Repeated character spam detected');
-  }
-
-  // Check for too many links
-  const linkCount = (content.match(/https?:\/\//gi) || []).length;
-  if (linkCount > 3) {
-    violations.push('Too many links');
-  }
-
-  return {
-    hasViolations: violations.length > 0,
-    violations,
-  };
 }

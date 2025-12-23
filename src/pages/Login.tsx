@@ -1,10 +1,19 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { signIn, signInWithTwoFactor } from '../services/auth';
+import { useAuth } from '../contexts/AuthContext';
+import type { UserRole } from '../types/admin-database';
+
+interface LocationState {
+  from?: string | { pathname: string };
+  isAdmin?: boolean;
+}
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, loading: authLoading, initializeSession } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -15,6 +24,46 @@ export function Login() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+
+  // Get the redirect location from state (if coming from a protected route)
+  const locationState = location.state as LocationState | null;
+  // Handle both string and Location object from different route types
+  const fromPath = typeof locationState?.from === 'string' 
+    ? locationState.from 
+    : locationState?.from?.pathname;
+  const wasAdminRedirect = locationState?.isAdmin;
+
+  /**
+   * Determine where to redirect after successful login based on user role and origin
+   */
+  const getRedirectPath = (userRole?: UserRole): string => {
+    // If user came from an admin route, send them back there
+    if (fromPath && fromPath.startsWith('/admin')) {
+      return fromPath;
+    }
+
+    // If user is admin/super_admin, redirect to admin dashboard
+    if (userRole === 'admin' || userRole === 'super_admin') {
+      return '/admin';
+    }
+
+    // If user came from another protected route, send them back
+    if (fromPath && fromPath !== '/login') {
+      return fromPath;
+    }
+
+    // Default for regular users
+    return '/dashboard';
+  };
+
+  // Redirect already logged-in users
+  useEffect(() => {
+    if (!authLoading && user) {
+      const userRole = (user as any).role;
+      const redirectPath = getRedirectPath(userRole);
+      navigate(redirectPath, { replace: true });
+    }
+  }, [user, authLoading, navigate, fromPath, wasAdminRedirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,12 +82,16 @@ export function Login() {
     if (needs2FA && userId) {
       setRequires2FA(true);
       setPendingUserId(userId);
+      // Store the role for redirect after 2FA (we'll get it from the user object later)
       setLoading(false);
       return;
     }
 
     if (user) {
-      navigate('/dashboard');
+      // Initialize the session for the user
+      await initializeSession(user.id);
+      const redirectPath = getRedirectPath(user.role);
+      navigate(redirectPath, { replace: true });
     }
     setLoading(false);
   };
@@ -68,7 +121,10 @@ export function Login() {
     }
 
     if (user) {
-      navigate('/dashboard');
+      // Initialize the session for the user
+      await initializeSession(user.id);
+      const redirectPath = getRedirectPath(user.role);
+      navigate(redirectPath, { replace: true });
     }
     setLoading(false);
   };
@@ -175,9 +231,22 @@ export function Login() {
       <div className="max-w-md w-full">
         <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-gray-400">Sign in to your account</p>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {wasAdminRedirect ? 'Admin Login' : 'Welcome Back'}
+            </h1>
+            <p className="text-gray-400">
+              {wasAdminRedirect 
+                ? 'Sign in to access the admin panel' 
+                : 'Sign in to your account'}
+            </p>
           </div>
+
+          {wasAdminRedirect && (
+            <div className="mb-6 p-4 bg-orange-900/30 border border-orange-700/50 rounded-lg text-orange-300 text-sm flex items-center gap-2">
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              <span>Admin credentials required to access this area</span>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">

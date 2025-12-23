@@ -656,7 +656,9 @@ CREATE TABLE IF NOT EXISTS copy_trade_executions (
     copier_user_id UUID NOT NULL REFERENCES auth.users(id),
 
     -- Original trade
-    original_transaction_id UUID REFERENCES transactions(id),
+    -- COMMENTED OUT: transactions table doesn't exist, use portfolio_transactions if needed
+    -- original_transaction_id UUID REFERENCES transactions(id),
+    original_transaction_id UUID,
 
     -- Copy trade details
     trade_type VARCHAR(20) NOT NULL CHECK (trade_type IN ('buy', 'sell', 'rebalance')),

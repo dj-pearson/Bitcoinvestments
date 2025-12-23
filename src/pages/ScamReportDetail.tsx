@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -20,7 +20,6 @@ import {
   Wallet,
   FileCode,
   Mail,
-  Phone,
   Twitter,
   Send,
   AlertCircle,
@@ -33,7 +32,6 @@ import {
   getUserVote,
   getVoteCounts,
   createDispute,
-  getDisputesForReport,
   addToWatchlist,
   removeFromWatchlist,
   isInWatchlist,

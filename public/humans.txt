@@ -1,7 +1,7 @@
 /* TEAM */
 Creator: Bitcoinvestments Team
-Site: https://bitcoinvestments.com
-Contact: support [at] bitcoinvestments.com
+Site: https://bitcoinvestments.net
+Contact: support [at] bitcoinvestments.net
 Location: United States
 
 /* THANKS */

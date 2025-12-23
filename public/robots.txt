@@ -1,5 +1,5 @@
 # Robots.txt for Bitcoinvestments
-# https://bitcoinvestments.com
+# https://bitcoinvestments.net
 # Last updated: 2024-12-23
 
 # ===========================================
@@ -147,5 +147,5 @@ Disallow: /
 # ===========================================
 # Sitemaps
 # ===========================================
-Sitemap: https://bitcoinvestments.com/sitemap.xml
-Sitemap: https://bitcoinvestments.com/sitemap-articles.xml
+Sitemap: https://bitcoinvestments.net/sitemap.xml
+Sitemap: https://bitcoinvestments.net/sitemap-articles.xml

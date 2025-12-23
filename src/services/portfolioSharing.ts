@@ -446,7 +446,7 @@ export function generateEmbedCode(shareCode: string, options: {
   theme?: 'light' | 'dark';
 } = {}): string {
   const { width = 400, height = 300, theme = 'dark' } = options;
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://bitcoinvestments.com';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://bitcoinvestments.net';
 
   return `<iframe
   src="${baseUrl}/embed/portfolio/${shareCode}?theme=${theme}"

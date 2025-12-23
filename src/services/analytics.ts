@@ -38,7 +38,7 @@ export interface AnalyticsConfig {
 
 // Default configuration
 let config: AnalyticsConfig = {
-  domain: 'bitcoinvestments.com',
+  domain: 'bitcoinvestments.net',
   apiHost: 'https://plausible.io',
   trackLocalhost: false,
   enabled: true,

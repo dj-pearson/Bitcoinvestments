@@ -63,8 +63,8 @@ const DEMO_CERTIFICATES: Certificate[] = [
     score: 92,
     completionTime: 4.5,
     skills: ['Bitcoin Basics', 'Wallet Security', 'Transaction Understanding', 'Blockchain Fundamentals'],
-    verificationUrl: 'https://bitcoinvestments.com/verify/BTC-2024-001234',
-    linkedinShareUrl: 'https://www.linkedin.com/sharing/share-offsite/?url=https://bitcoinvestments.com/verify/BTC-2024-001234',
+    verificationUrl: 'https://bitcoinvestments.net/verify/BTC-2024-001234',
+    linkedinShareUrl: 'https://www.linkedin.com/sharing/share-offsite/?url=https://bitcoinvestments.net/verify/BTC-2024-001234',
     metadata: {
       lessonsCompleted: 12,
       quizzesCompleted: 4,
@@ -85,8 +85,8 @@ const DEMO_CERTIFICATES: Certificate[] = [
     score: 98,
     completionTime: 3.2,
     skills: ['Hardware Wallets', 'Operational Security', 'Phishing Prevention', 'Backup Strategies'],
-    verificationUrl: 'https://bitcoinvestments.com/verify/SEC-2024-001235',
-    linkedinShareUrl: 'https://www.linkedin.com/sharing/share-offsite/?url=https://bitcoinvestments.com/verify/SEC-2024-001235',
+    verificationUrl: 'https://bitcoinvestments.net/verify/SEC-2024-001235',
+    linkedinShareUrl: 'https://www.linkedin.com/sharing/share-offsite/?url=https://bitcoinvestments.net/verify/SEC-2024-001235',
     metadata: {
       lessonsCompleted: 10,
       quizzesCompleted: 3,
@@ -168,7 +168,7 @@ export async function issueCertificate(
         score: 90,
         completionTime: 5,
         skills: ['Cryptocurrency', 'Blockchain'],
-        verificationUrl: `https://bitcoinvestments.com/verify/${generateCertificateNumber('DEMO')}`,
+        verificationUrl: `https://bitcoinvestments.net/verify/${generateCertificateNumber('DEMO')}`,
         metadata: {
           lessonsCompleted: 10,
           quizzesCompleted: 3,
@@ -256,7 +256,7 @@ export async function issueCertificate(
         score: averageScore,
         completion_time: enrollmentData.course.estimated_hours,
         skills: enrollmentData.course.learning_outcomes || [],
-        verification_url: `https://bitcoinvestments.com/verify/${certificateNumber}`,
+        verification_url: `https://bitcoinvestments.net/verify/${certificateNumber}`,
         metadata: {
           lessonsCompleted: lessonsCompleted || 0,
           quizzesCompleted: quizAttempts?.length || 0,

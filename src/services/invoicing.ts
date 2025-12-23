@@ -390,7 +390,7 @@ export function generateInvoiceHtml(invoice: Invoice): string {
         <div class="party-label">From</div>
         <div class="party-name">Bitcoin Investments LLC</div>
         <div>Advertising Services</div>
-        <div>support@bitcoinvestments.com</div>
+        <div>support@bitcoinvestments.net</div>
       </div>
       <div class="party">
         <div class="party-label">Bill To</div>
@@ -464,7 +464,7 @@ export function generateInvoiceHtml(invoice: Invoice): string {
 
     <div class="footer">
       <p>Thank you for advertising with Bitcoin Investments!</p>
-      <p>Questions? Contact us at advertising@bitcoinvestments.com</p>
+      <p>Questions? Contact us at advertising@bitcoinvestments.net</p>
     </div>
   </div>
 </body>

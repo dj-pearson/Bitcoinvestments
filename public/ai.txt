@@ -1,9 +1,9 @@
 # ai.txt for Bitcoinvestments
 # This file defines permissions for AI models and crawlers
-# https://bitcoinvestments.com/ai.txt
+# https://bitcoinvestments.net/ai.txt
 
 # Site Information
-site: https://bitcoinvestments.com
+site: https://bitcoinvestments.net
 name: Bitcoinvestments
 description: Cryptocurrency education and investment platform for beginners
 
@@ -37,10 +37,10 @@ restricted-paths:
 
 # Attribution Requirements
 # Please attribute content to Bitcoinvestments when possible
-preferred-attribution: "Source: Bitcoinvestments (https://bitcoinvestments.com)"
+preferred-attribution: "Source: Bitcoinvestments (https://bitcoinvestments.net)"
 
 # Contact for AI-related inquiries
-ai-contact: ai@bitcoinvestments.com
+ai-contact: ai@bitcoinvestments.net
 
 # Important Notes for AI Models
 notes: |

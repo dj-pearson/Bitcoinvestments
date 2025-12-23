@@ -85,7 +85,7 @@ const EMAIL_TEMPLATES: Record<TransactionEmailType, (data: Record<string, unknow
               </ul>
 
               <div style="text-align: center; margin-top: 30px;">
-                <a href="https://bitcoinvestments.com/profile" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Go to Dashboard</a>
+                <a href="https://bitcoinvestments.net/profile" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Go to Dashboard</a>
               </div>
             </td>
           </tr>
@@ -93,7 +93,7 @@ const EMAIL_TEMPLATES: Record<TransactionEmailType, (data: Record<string, unknow
           <tr>
             <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="color: #6b7280; font-size: 14px; margin: 0;">
-                Questions? Contact us at <a href="mailto:support@bitcoinvestments.com" style="color: #f97316;">support@bitcoinvestments.com</a>
+                Questions? Contact us at <a href="mailto:support@bitcoinvestments.net" style="color: #f97316;">support@bitcoinvestments.net</a>
               </p>
             </td>
           </tr>
@@ -171,7 +171,7 @@ const EMAIL_TEMPLATES: Record<TransactionEmailType, (data: Record<string, unknow
                 Changed your mind? You can resubscribe at any time from your profile page.
               </p>
               <div style="text-align: center; margin-top: 20px;">
-                <a href="https://bitcoinvestments.com/pricing" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Resubscribe</a>
+                <a href="https://bitcoinvestments.net/pricing" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Resubscribe</a>
               </div>
             </td>
           </tr>
@@ -249,7 +249,7 @@ const EMAIL_TEMPLATES: Record<TransactionEmailType, (data: Record<string, unknow
                 Please update your payment method to continue enjoying Premium features.
               </p>
               <div style="text-align: center; margin-top: 20px;">
-                <a href="https://bitcoinvestments.com/profile" style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Update Payment Method</a>
+                <a href="https://bitcoinvestments.net/profile" style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Update Payment Method</a>
               </div>
             </td>
           </tr>
@@ -287,7 +287,7 @@ const EMAIL_TEMPLATES: Record<TransactionEmailType, (data: Record<string, unknow
                 Subscribe now to keep enjoying all Premium features.
               </p>
               <div style="text-align: center; margin-top: 20px;">
-                <a href="https://bitcoinvestments.com/pricing" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Subscribe Now</a>
+                <a href="https://bitcoinvestments.net/pricing" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">Subscribe Now</a>
               </div>
             </td>
           </tr>

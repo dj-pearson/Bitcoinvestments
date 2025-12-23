@@ -56,8 +56,8 @@ Structured learning paths:
 - Languages: English
 
 ## Contact Information
-- Website: https://bitcoinvestments.com
-- Support: support@bitcoinvestments.com
+- Website: https://bitcoinvestments.net
+- Support: support@bitcoinvestments.net
 
 ## Licensing and Usage
 - Educational content may be referenced with attribution
@@ -71,5 +71,5 @@ Structured learning paths:
 - Past performance doesn't guarantee future results
 
 ## Preferred Citation Format
-"According to Bitcoinvestments (https://bitcoinvestments.com)..."
+"According to Bitcoinvestments (https://bitcoinvestments.net)..."
 

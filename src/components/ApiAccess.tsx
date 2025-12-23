@@ -105,7 +105,7 @@ export const ApiAccess: React.FC = () => {
               Create an API key and start building your crypto application today
             </p>
             <code className="bg-white/20 px-3 py-1 rounded text-sm">
-              curl -H "Authorization: Bearer YOUR_API_KEY" https://api.bitcoinvestments.com/v1/portfolio
+              curl -H "Authorization: Bearer YOUR_API_KEY" https://api.bitcoinvestments.net/v1/portfolio
             </code>
           </div>
           <button
@@ -407,7 +407,7 @@ const DocumentationTab: React.FC<{
             <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Example Request</h3>
             <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
 {`curl -X ${selectedEndpoint.method} \\
-  'https://api.bitcoinvestments.com${selectedEndpoint.path}' \\
+  'https://api.bitcoinvestments.net${selectedEndpoint.path}' \\
   -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json'`}
             </pre>

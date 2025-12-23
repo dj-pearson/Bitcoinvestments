@@ -51,8 +51,8 @@ export function SystemSettings() {
     await new Promise((resolve) => setTimeout(resolve, 500));
     setSettings({
       site_name: 'BitcoinVestments',
-      site_url: 'https://bitcoinvestments.com',
-      support_email: 'support@bitcoinvestments.com',
+      site_url: 'https://bitcoinvestments.net',
+      support_email: 'support@bitcoinvestments.net',
       maintenance_mode: false,
       registration_enabled: true,
       email_verification: true,
@@ -60,7 +60,7 @@ export function SystemSettings() {
       session_timeout: 30,
       max_login_attempts: 5,
       default_theme: 'dark',
-      stripe_webhook_url: 'https://api.bitcoinvestments.com/api/stripe-webhook',
+      stripe_webhook_url: 'https://api.bitcoinvestments.net/api/stripe-webhook',
       coingecko_rate_limit: 30,
     });
     setLoading(false);

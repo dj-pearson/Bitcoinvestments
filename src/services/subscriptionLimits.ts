@@ -1008,3 +1008,192 @@ export function hasCopyTradingAccess(
 ): boolean {
   return copySubscriptionStatus === 'active';
 }
+
+// ==================== Premium Feature Add-Ons ====================
+
+/**
+ * Hardware Wallet Integration
+ * $14.99/month for tracking cold storage with Ledger/Trezor
+ */
+export const HARDWARE_WALLET_PRICING = {
+  id: 'hardware-wallet-integration',
+  name: 'Hardware Wallet Integration',
+  description: 'Track your cold storage assets across Ledger, Trezor, and other hardware wallets',
+  price_monthly: 14.99,
+  price_yearly: 149.99,
+  currency: 'USD',
+  features: [
+    'Connect up to 5 hardware wallets',
+    'Track 50 addresses per wallet',
+    'Multi-chain support (ETH, BTC, Polygon, etc.)',
+    'Real-time balance tracking',
+    'Transaction history',
+    'Portfolio analytics',
+    'Export reports',
+    'Partner discounts on hardware',
+  ],
+  limits: {
+    free: { max_devices: 0, max_addresses: 0 },
+    basic: { max_devices: 2, max_addresses: 10 },
+    premium: { max_devices: 5, max_addresses: 50 },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_HARDWARE_WALLET_MONTHLY || 'price_hw_monthly',
+    yearly: import.meta.env.VITE_STRIPE_HARDWARE_WALLET_YEARLY || 'price_hw_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has hardware wallet premium access
+ */
+export function hasHardwareWalletAccess(
+  hardwareWalletStatus?: 'active' | 'inactive' | 'cancelled'
+): boolean {
+  return hardwareWalletStatus === 'active';
+}
+
+/**
+ * Gas Fee Optimizer
+ * Free basic, $4.99/month for premium predictions
+ */
+export const GAS_OPTIMIZER_PRICING = {
+  id: 'gas-fee-optimizer',
+  name: 'Gas Fee Optimizer',
+  description: 'Predict optimal times for Ethereum transactions to minimize gas fees',
+  price_monthly: 4.99,
+  price_yearly: 49.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Current gas prices for all chains',
+      'Basic transaction cost estimates',
+      '3 price alerts',
+      '24-hour price history',
+    ],
+    premium: [
+      'Real-time gas price updates',
+      'AI-powered price predictions',
+      'Optimal timing recommendations',
+      '50 price alerts',
+      '30-day price history',
+      'Email & push notifications',
+      'Transaction scheduling',
+    ],
+  },
+  limits: {
+    free: { max_alerts: 3, has_predictions: false, has_realtime: false },
+    premium: { max_alerts: 50, has_predictions: true, has_realtime: true },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_GAS_OPTIMIZER_MONTHLY || 'price_gas_monthly',
+    yearly: import.meta.env.VITE_STRIPE_GAS_OPTIMIZER_YEARLY || 'price_gas_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has gas optimizer premium access
+ */
+export function hasGasOptimizerPremium(
+  gasOptimizerStatus?: 'free' | 'premium'
+): boolean {
+  return gasOptimizerStatus === 'premium';
+}
+
+/**
+ * DeFi Yield Aggregator
+ * Free limited, $19.99/month for full access
+ */
+export const DEFI_YIELD_PRICING = {
+  id: 'defi-yield-aggregator',
+  name: 'DeFi Yield Aggregator',
+  description: 'Compare yield farming opportunities across DeFi protocols',
+  price_monthly: 19.99,
+  price_yearly: 199.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Top 10 pools per chain',
+      'Basic APY information',
+      'Simple IL calculator',
+      'Protocol safety scores',
+    ],
+    premium: [
+      'All pools across all chains',
+      'Real-time APY tracking',
+      'Advanced IL calculator',
+      'Portfolio position tracking',
+      'Yield alerts & notifications',
+      'Historical APY data',
+      'Risk-adjusted rankings',
+      'API access',
+    ],
+  },
+  limits: {
+    free: { pools_per_chain: 10, has_portfolio_tracking: false, has_alerts: false },
+    premium: { pools_per_chain: Infinity, has_portfolio_tracking: true, has_alerts: true },
+  },
+  affiliate_commission_percent: 0.5,
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_DEFI_YIELD_MONTHLY || 'price_defi_monthly',
+    yearly: import.meta.env.VITE_STRIPE_DEFI_YIELD_YEARLY || 'price_defi_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has DeFi yield premium access
+ */
+export function hasDeFiYieldPremium(
+  defiYieldStatus?: 'free' | 'premium'
+): boolean {
+  return defiYieldStatus === 'premium';
+}
+
+/**
+ * Crypto Retirement Calculator
+ * $99/year premium or bundled with main subscription
+ */
+export const RETIREMENT_CALCULATOR_PRICING = {
+  id: 'crypto-retirement-calculator',
+  name: 'Crypto Retirement Calculator',
+  description: 'Model crypto allocation in retirement portfolio with Monte Carlo projections',
+  price_yearly: 99,
+  currency: 'USD',
+  bundled_with_premium: true,
+  features: {
+    free: [
+      'Basic retirement projections',
+      '3 saved scenarios',
+      'Simple crypto allocation',
+      'Basic charts',
+    ],
+    premium: [
+      'Monte Carlo simulations (10,000 runs)',
+      'Unlimited saved scenarios',
+      'Advanced crypto modeling',
+      'Tax optimization strategies',
+      'Roth conversion analysis',
+      'Withdrawal strategy optimization',
+      'PDF export with charts',
+      'Social Security optimization',
+    ],
+  },
+  limits: {
+    free: { max_scenarios: 3, has_monte_carlo: false, has_tax_optimization: false, has_pdf_export: false },
+    premium: { max_scenarios: Infinity, has_monte_carlo: true, has_tax_optimization: true, has_pdf_export: true },
+  },
+  stripePriceId: import.meta.env.VITE_STRIPE_RETIREMENT_YEARLY || 'price_retirement_yearly',
+} as const;
+
+/**
+ * Check if user has retirement calculator premium access
+ */
+export function hasRetirementCalculatorPremium(
+  retirementCalcStatus?: 'free' | 'premium' | 'bundled',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  // Bundled with main premium subscription
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return retirementCalcStatus === 'premium' || retirementCalcStatus === 'bundled';
+}

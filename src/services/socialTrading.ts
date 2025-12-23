@@ -5,7 +5,7 @@
  * Original users earn 20% of subscription. Creates content and retention.
  */
 
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/supabase';
 import type {
   PublishedPortfolio,
   PortfolioFollower,
@@ -47,7 +47,7 @@ export async function getPublishedPortfolios(options?: {
   limit?: number;
   offset?: number;
 }): Promise<PublishedPortfolio[]> {
-  let query = supabase
+  let query = db
     .from('published_portfolios')
     .select('*')
     .eq('is_active', true);
@@ -92,14 +92,14 @@ export async function getPublishedPortfolios(options?: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  return (data || []) as PublishedPortfolio[];
 }
 
 /**
  * Get published portfolio by slug
  */
 export async function getPublishedPortfolioBySlug(slug: string): Promise<PublishedPortfolio | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('published_portfolios')
     .select('*')
     .eq('slug', slug)
@@ -109,20 +109,20 @@ export async function getPublishedPortfolioBySlug(slug: string): Promise<Publish
 
   // Increment view count
   if (data) {
-    await supabase
+    await db
       .from('published_portfolios')
       .update({ views_count: data.views_count + 1 })
       .eq('id', data.id);
   }
 
-  return data;
+  return data as PublishedPortfolio | null;
 }
 
 /**
  * Get user's published portfolios
  */
 export async function getUserPublishedPortfolios(userId: string): Promise<PublishedPortfolio[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('published_portfolios')
     .select('*')
     .eq('user_id', userId)
@@ -159,7 +159,7 @@ export async function publishPortfolio(
     .replace(/(^-|-$)/g, '');
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('published_portfolios')
     .insert({
       user_id: userId,
@@ -194,7 +194,7 @@ export async function updatePublishedPortfolio(
   userId: string,
   updates: Partial<PublishedPortfolio>
 ): Promise<PublishedPortfolio> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('published_portfolios')
     .update(updates)
     .eq('id', portfolioId)
@@ -210,7 +210,7 @@ export async function updatePublishedPortfolio(
  * Unpublish a portfolio
  */
 export async function unpublishPortfolio(portfolioId: string, userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('published_portfolios')
     .update({ is_active: false })
     .eq('id', portfolioId)
@@ -230,7 +230,7 @@ export async function followPortfolio(
   userId: string,
   publishedPortfolioId: string
 ): Promise<PortfolioFollower> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('portfolio_followers')
     .insert({
       follower_user_id: userId,
@@ -248,7 +248,7 @@ export async function followPortfolio(
  * Unfollow a published portfolio
  */
 export async function unfollowPortfolio(userId: string, publishedPortfolioId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('portfolio_followers')
     .delete()
     .eq('follower_user_id', userId)
@@ -261,7 +261,7 @@ export async function unfollowPortfolio(userId: string, publishedPortfolioId: st
  * Check if user follows a portfolio
  */
 export async function isFollowing(userId: string, publishedPortfolioId: string): Promise<boolean> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('portfolio_followers')
     .select('id')
     .eq('follower_user_id', userId)
@@ -276,7 +276,7 @@ export async function isFollowing(userId: string, publishedPortfolioId: string):
  * Get portfolios a user follows
  */
 export async function getFollowedPortfolios(userId: string): Promise<PublishedPortfolio[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('portfolio_followers')
     .select(`
       published_portfolio:published_portfolios(*)
@@ -284,7 +284,7 @@ export async function getFollowedPortfolios(userId: string): Promise<PublishedPo
     .eq('follower_user_id', userId);
 
   if (error) throw error;
-  return (data || []).map((d) => d.published_portfolio).filter(Boolean) as PublishedPortfolio[];
+  return (data || []).map((d: any) => d.published_portfolio).filter(Boolean) as PublishedPortfolio[];
 }
 
 // ============================================
@@ -307,7 +307,7 @@ export async function subscribeToCopyPortfolio(
   } = {}
 ): Promise<CopyTradingSubscription> {
   // Get portfolio details
-  const { data: portfolio, error: portfolioError } = await supabase
+  const { data: portfolio, error: portfolioError } = await db
     .from('published_portfolios')
     .select('user_id, subscription_price')
     .eq('id', publishedPortfolioId)
@@ -318,7 +318,7 @@ export async function subscribeToCopyPortfolio(
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('copy_trading_subscriptions')
     .insert({
       subscriber_user_id: subscriberUserId,
@@ -346,7 +346,7 @@ export async function subscribeToCopyPortfolio(
  * Get user's copy trading subscriptions
  */
 export async function getUserCopySubscriptions(userId: string): Promise<CopyTradingSubscription[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('copy_trading_subscriptions')
     .select(`
       *,
@@ -363,7 +363,7 @@ export async function getUserCopySubscriptions(userId: string): Promise<CopyTrad
  * Get active copiers for a portfolio
  */
 export async function getPortfolioCopiers(publishedPortfolioId: string): Promise<number> {
-  const { count, error } = await supabase
+  const { count, error } = await db
     .from('copy_trading_subscriptions')
     .select('*', { count: 'exact', head: true })
     .eq('published_portfolio_id', publishedPortfolioId)
@@ -377,7 +377,7 @@ export async function getPortfolioCopiers(publishedPortfolioId: string): Promise
  * Cancel copy subscription
  */
 export async function cancelCopySubscription(subscriptionId: string, userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('copy_trading_subscriptions')
     .update({
       status: 'cancelled',
@@ -397,7 +397,7 @@ export async function toggleCopySubscription(
   userId: string,
   pause: boolean
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('copy_trading_subscriptions')
     .update({ status: pause ? 'paused' : 'active' })
     .eq('id', subscriptionId)
@@ -417,7 +417,7 @@ export async function getCopyTradeExecutions(
   subscriptionId: string,
   limit: number = 50
 ): Promise<CopyTradeExecution[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('copy_trade_executions')
     .select('*')
     .eq('subscription_id', subscriptionId)
@@ -432,7 +432,7 @@ export async function getCopyTradeExecutions(
  * Get user's recent copy trades
  */
 export async function getUserCopyTrades(userId: string, limit: number = 20): Promise<CopyTradeExecution[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('copy_trade_executions')
     .select('*')
     .eq('copier_user_id', userId)
@@ -457,7 +457,7 @@ export async function getPortfolioHistory(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('published_portfolio_history')
     .select('*')
     .eq('published_portfolio_id', publishedPortfolioId)
@@ -485,18 +485,18 @@ export async function getCreatorEarnings(
   monthly_earnings: { month: string; earnings: number }[];
 }> {
   // Get all copy subscriptions where user is creator
-  const { data: subscriptions, error: subError } = await supabase
+  const { data: subscriptions, error: subError } = await db
     .from('copy_trading_subscriptions')
     .select('status, price_paid, creator_earnings')
     .eq('creator_user_id', userId);
 
   if (subError) throw subError;
 
-  const activeSubscriptions = subscriptions?.filter((s) => s.status === 'active') || [];
-  const total_earnings = subscriptions?.reduce((sum, s) => sum + (s.creator_earnings || 0), 0) || 0;
+  const activeSubscriptions = subscriptions?.filter((s: any) => s.status === 'active') || [];
+  const total_earnings = subscriptions?.reduce((sum: any, s: any) => sum + (s.creator_earnings || 0), 0) || 0;
 
   // Get earnings history
-  const { data: earnings, error: earnError } = await supabase
+  const { data: earnings, error: earnError } = await db
     .from('creator_earnings')
     .select('*')
     .eq('creator_user_id', userId)
@@ -506,7 +506,7 @@ export async function getCreatorEarnings(
   if (earnError) throw earnError;
 
   const pending_payout =
-    earnings?.filter((e) => e.payout_status === 'pending').reduce((sum, e) => sum + e.creator_earnings, 0) || 0;
+    earnings?.filter((e: any) => e.payout_status === 'pending').reduce((sum: any, e: any) => sum + e.creator_earnings, 0) || 0;
 
   return {
     total_earnings,
@@ -514,7 +514,7 @@ export async function getCreatorEarnings(
     total_subscribers: subscriptions?.length || 0,
     active_subscribers: activeSubscriptions.length,
     monthly_earnings:
-      earnings?.map((e) => ({
+      earnings?.map((e: any) => ({
         month: e.period_start,
         earnings: e.creator_earnings,
       })) || [],
@@ -525,7 +525,7 @@ export async function getCreatorEarnings(
  * Get detailed earnings records
  */
 export async function getCreatorEarningsRecords(userId: string): Promise<CreatorEarnings[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('creator_earnings')
     .select('*')
     .eq('creator_user_id', userId)
@@ -545,7 +545,7 @@ export async function getCreatorEarningsRecords(userId: string): Promise<Creator
 export async function getLeaderboard(): Promise<SocialTradingLeaderboard> {
   const [topPerformers, mostCopied, trending, newCreators] = await Promise.all([
     // Top performers by returns
-    supabase
+    db
       .from('published_portfolios')
       .select('*')
       .eq('is_active', true)
@@ -553,21 +553,21 @@ export async function getLeaderboard(): Promise<SocialTradingLeaderboard> {
       .order('total_return_percent', { ascending: false })
       .limit(10),
     // Most copied
-    supabase
+    db
       .from('published_portfolios')
       .select('*')
       .eq('is_active', true)
       .order('copiers_count', { ascending: false })
       .limit(10),
     // Trending (most new followers in last 7 days - approximated by total followers for now)
-    supabase
+    db
       .from('published_portfolios')
       .select('*')
       .eq('is_active', true)
       .order('followers_count', { ascending: false })
       .limit(10),
     // New creators (recently published)
-    supabase
+    db
       .from('published_portfolios')
       .select('*')
       .eq('is_active', true)
@@ -576,10 +576,10 @@ export async function getLeaderboard(): Promise<SocialTradingLeaderboard> {
   ]);
 
   return {
-    top_performers: topPerformers.data || [],
-    most_copied: mostCopied.data || [],
-    trending: trending.data || [],
-    new_creators: newCreators.data || [],
+    top_performers: (topPerformers.data || []) as PublishedPortfolio[],
+    most_copied: (mostCopied.data || []) as PublishedPortfolio[],
+    trending: (trending.data || []) as PublishedPortfolio[],
+    new_creators: (newCreators.data || []) as PublishedPortfolio[],
   };
 }
 

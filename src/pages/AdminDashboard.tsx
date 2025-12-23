@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { getUserStats, getScamDatabaseStats } from '../services/admin';
 import { SubscriptionAnalytics } from '../components/admin/SubscriptionAnalytics';
+import { AdminPageHeader, AdminCard } from '../components/admin/AdminLayout';
 import type { UserStats, ScamStats } from '../types/admin-database';
 
 export function AdminDashboard() {
@@ -40,10 +41,10 @@ export function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -101,189 +102,194 @@ export function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Admin Dashboard
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Manage users, content, and monitor system health
-          </p>
-        </div>
+    <div>
+      {/* Header */}
+      <AdminPageHeader
+        title="Admin Dashboard"
+        description="Manage users, content, and monitor system health"
+      />
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Link
-                key={stat.name}
-                to={stat.link}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-              >
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          const colorClasses: Record<string, { bg: string; text: string }> = {
+            blue: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
+            green: { bg: 'bg-green-500/10', text: 'text-green-400' },
+            purple: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
+            orange: { bg: 'bg-orange-500/10', text: 'text-orange-400' },
+            red: { bg: 'bg-red-500/10', text: 'text-red-400' },
+            yellow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
+          };
+          const colors = colorClasses[stat.color] || colorClasses.blue;
+          return (
+            <Link
+              key={stat.name}
+              to={stat.link}
+              className="block"
+            >
+              <AdminCard className="hover:border-white/10 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <p className="text-sm font-medium text-gray-400">
                       {stat.name}
                     </p>
-                    <p className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
-                      {stat.value.toLocaleString()}
+                    <p className="mt-2 text-3xl font-semibold text-white">
+                      {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
                     </p>
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    <p className="mt-2 text-sm text-gray-500">
                       {stat.change}
                     </p>
                   </div>
-                  <div className={`p-3 rounded-full bg-${stat.color}-100 dark:bg-${stat.color}-900/20`}>
-                    <Icon className={`w-6 h-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+                  <div className={`p-3 rounded-lg ${colors.bg}`}>
+                    <Icon className={`w-6 h-6 ${colors.text}`} />
                   </div>
                 </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Quick Actions
-            </h2>
-            <div className="space-y-3">
-              <Link
-                to="/admin/users"
-                className="block p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex items-center">
-                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    Manage Users
-                  </span>
-                </div>
-              </Link>
-              <Link
-                to="/admin/scam-database"
-                className="block p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex items-center">
-                  <Shield className="w-5 h-5 text-orange-600 dark:text-orange-400 mr-3" />
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    Review Scam Reports
-                  </span>
-                </div>
-              </Link>
-              <Link
-                to="/admin/audit-logs"
-                className="block p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex items-center">
-                  <Activity className="w-5 h-5 text-green-600 dark:text-green-400 mr-3" />
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    View Audit Logs
-                  </span>
-                </div>
-              </Link>
-              <Link
-                to="/admin/ai-settings"
-                className="block p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-              >
-                <div className="flex items-center">
-                  <Bot className="w-5 h-5 text-purple-600 dark:text-purple-400 mr-3" />
-                  <span className="text-gray-900 dark:text-white font-medium">
-                    AI Model Settings
-                  </span>
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              System Health
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">Database</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    Operational
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">API Services</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    Operational
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">Authentication</span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">
-                    Operational
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">AI Services (Claude)</span>
-                  <Link
-                    to="/admin/ai-settings"
-                    className="text-purple-600 dark:text-purple-400 font-medium hover:underline"
-                  >
-                    Configure
-                  </Link>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: '100%' }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Subscription Analytics Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
-          <button
-            onClick={() => setShowSubscriptionAnalytics(!showSubscriptionAnalytics)}
-            className="w-full px-6 py-4 flex items-center justify-between text-left"
-          >
-            <div className="flex items-center gap-3">
-              <TrendingUp className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Subscription Analytics
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  MRR, churn rate, LTV, and subscriber metrics
-                </p>
-              </div>
-            </div>
-            {showSubscriptionAnalytics ? (
-              <ChevronUp className="w-5 h-5 text-gray-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-gray-500" />
-            )}
-          </button>
-          {showSubscriptionAnalytics && (
-            <div className="px-6 pb-6">
-              <SubscriptionAnalytics />
-            </div>
-          )}
-        </div>
+              </AdminCard>
+            </Link>
+          );
+        })}
       </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <AdminCard>
+          <h2 className="text-xl font-semibold text-white mb-4">
+            Quick Actions
+          </h2>
+          <div className="space-y-3">
+            <Link
+              to="/admin/users"
+              className="block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center">
+                <Users className="w-5 h-5 text-blue-400 mr-3" />
+                <span className="text-white font-medium">
+                  Manage Users
+                </span>
+              </div>
+            </Link>
+            <Link
+              to="/admin/scam-database"
+              className="block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center">
+                <Shield className="w-5 h-5 text-orange-400 mr-3" />
+                <span className="text-white font-medium">
+                  Review Scam Reports
+                </span>
+              </div>
+            </Link>
+            <Link
+              to="/admin/audit-logs"
+              className="block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center">
+                <Activity className="w-5 h-5 text-green-400 mr-3" />
+                <span className="text-white font-medium">
+                  View Audit Logs
+                </span>
+              </div>
+            </Link>
+            <Link
+              to="/admin/ai-settings"
+              className="block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center">
+                <Bot className="w-5 h-5 text-purple-400 mr-3" />
+                <span className="text-white font-medium">
+                  AI Model Settings
+                </span>
+              </div>
+            </Link>
+          </div>
+        </AdminCard>
+
+        <AdminCard>
+          <h2 className="text-xl font-semibold text-white mb-4">
+            System Health
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-400">Database</span>
+                <span className="text-green-400 font-medium">
+                  Operational
+                </span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-400">API Services</span>
+                <span className="text-green-400 font-medium">
+                  Operational
+                </span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-400">Authentication</span>
+                <span className="text-green-400 font-medium">
+                  Operational
+                </span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-400">AI Services (Claude)</span>
+                <Link
+                  to="/admin/ai-settings"
+                  className="text-purple-400 font-medium hover:underline"
+                >
+                  Configure
+                </Link>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-2">
+                <div className="bg-purple-500 h-2 rounded-full" style={{ width: '100%' }}></div>
+              </div>
+            </div>
+          </div>
+        </AdminCard>
+      </div>
+
+      {/* Subscription Analytics Section */}
+      <AdminCard padding="none" className="mb-8">
+        <button
+          onClick={() => setShowSubscriptionAnalytics(!showSubscriptionAnalytics)}
+          className="w-full px-6 py-4 flex items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-3">
+            <TrendingUp className="w-6 h-6 text-orange-400" />
+            <div>
+              <h2 className="text-xl font-semibold text-white">
+                Subscription Analytics
+              </h2>
+              <p className="text-sm text-gray-400">
+                MRR, churn rate, LTV, and subscriber metrics
+              </p>
+            </div>
+          </div>
+          {showSubscriptionAnalytics ? (
+            <ChevronUp className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
+          )}
+        </button>
+        {showSubscriptionAnalytics && (
+          <div className="px-6 pb-6">
+            <SubscriptionAnalytics />
+          </div>
+        )}
+      </AdminCard>
     </div>
   );
 }

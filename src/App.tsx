@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { Layout } from './components/Layout/Layout';
+import { AdminLayout } from './components/admin/AdminLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import { AnalyticsProvider, PageTracker } from './components/AnalyticsProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -96,12 +97,6 @@ function App() {
                   <Route path="backtesting" element={<Backtesting />} />
                   <Route path="portfolio-analysis" element={<ProtectedRoute><PortfolioAnalysis /></ProtectedRoute>} />
 
-                  {/* Admin Routes - require admin role */}
-                  <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                  <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-                  <Route path="admin/scam-database" element={<AdminRoute><ScamDatabase /></AdminRoute>} />
-                  <Route path="admin/ai-settings" element={<AdminRoute><AdminAISettings /></AdminRoute>} />
-
                   <Route path="search" element={<SearchResults />} />
                   <Route path="learn" element={<Learn />} />
                   <Route path="learn/:guideId" element={<GuideDetail />} />
@@ -142,6 +137,14 @@ function App() {
                   <Route path="start" element={<Learn />} />
                   <Route path="prices" element={<Dashboard />} />
                   <Route path="*" element={<Home />} />
+                </Route>
+
+                {/* Admin Routes - require admin role, use AdminLayout */}
+                <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="scam-database" element={<ScamDatabase />} />
+                  <Route path="ai-settings" element={<AdminAISettings />} />
                 </Route>
               </Routes>
               </AuthProvider>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
@@ -19,6 +19,12 @@ import {
   Bookmark,
   ArrowUpDown,
 } from 'lucide-react';
+import {
+  SEO,
+  generateScamDatabaseSchema,
+  generateScamFAQSchema,
+  generateScamSearchActionSchema,
+} from '../components/SEO';
 import {
   searchScamReports,
   checkWalletAddress,
@@ -219,7 +225,42 @@ export function ScamDatabase() {
     filters.min_loss,
   ].filter(Boolean).length;
 
+  // Combine all SEO schemas for rich search results
+  const combinedSchema = useMemo(() => ({
+    '@context': 'https://schema.org',
+    '@graph': [
+      generateScamDatabaseSchema({
+        totalReports: communityStats.totalReports,
+        verifiedReports: communityStats.verifiedReports,
+      }),
+      generateScamFAQSchema(),
+      generateScamSearchActionSchema(),
+    ],
+  }), [communityStats.totalReports, communityStats.verifiedReports]);
+
   return (
+    <>
+      <SEO
+        title="Crypto Scam Database - Check Wallets, Websites & Report Fraud"
+        description="Free community-powered database of cryptocurrency scams. Search wallet addresses, verify websites, report fraud, and protect yourself from phishing, rug pulls, ponzi schemes, and pig butchering scams."
+        keywords={[
+          'crypto scam database',
+          'cryptocurrency scam check',
+          'wallet address scam',
+          'bitcoin scam list',
+          'ethereum scam check',
+          'rug pull checker',
+          'crypto fraud report',
+          'pig butchering scam',
+          'phishing crypto',
+          'fake crypto exchange',
+          'scam wallet address',
+          'report crypto scam',
+          'crypto security',
+          'blockchain scam tracker',
+        ]}
+        schema={combinedSchema}
+      />
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -693,5 +734,6 @@ export function ScamDatabase() {
         </div>
       </div>
     </div>
+    </>
   );
 }

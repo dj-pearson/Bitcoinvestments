@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -25,6 +25,7 @@ import {
   Send,
   AlertCircle,
 } from 'lucide-react';
+import { SEO, generateScamReportSchema, generateBreadcrumbSchema } from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import { getScamReport, getScamReportComments, addScamReportComment } from '../services/scamDatabase';
 import {
@@ -228,7 +229,50 @@ export function ScamReportDetail() {
     );
   }
 
+  // Generate SEO schema for this specific scam report
+  const seoSchema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      generateScamReportSchema({
+        id: report.id,
+        title: report.title,
+        description: report.description,
+        scamType: report.scam_type,
+        severity: report.severity,
+        website: report.website_url,
+        createdAt: report.created_at,
+        victimsCount: report.victims_count,
+        estimatedLoss: report.estimated_loss_usd,
+      }),
+      generateBreadcrumbSchema([
+        { name: 'Home', url: '/' },
+        { name: 'Scam Database', url: '/scam-database' },
+        { name: report.title, url: `/scam/${report.id}` },
+      ]),
+    ],
+  };
+
+  // Create SEO-friendly description
+  const seoDescription = `${report.severity.toUpperCase()} severity ${report.scam_type.replace(/_/g, ' ')} scam alert: ${report.description.slice(0, 120)}${report.description.length > 120 ? '...' : ''} ${report.victims_count > 0 ? `${report.victims_count} victims reported.` : ''} ${report.estimated_loss_usd ? `Est. $${report.estimated_loss_usd.toLocaleString()} lost.` : ''}`.trim();
+
   return (
+    <>
+      <SEO
+        title={`${report.title} - Crypto Scam Alert`}
+        description={seoDescription}
+        keywords={[
+          'crypto scam',
+          'cryptocurrency fraud',
+          report.scam_type.replace(/_/g, ' '),
+          `${report.severity} severity scam`,
+          report.blockchain || 'blockchain scam',
+          report.token_symbol ? `$${report.token_symbol} scam` : 'token scam',
+          'scam warning',
+          'crypto security alert',
+        ].filter(Boolean) as string[]}
+        type="article"
+        schema={seoSchema}
+      />
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
@@ -719,5 +763,6 @@ export function ScamReportDetail() {
         )}
       </div>
     </div>
+    </>
   );
 }

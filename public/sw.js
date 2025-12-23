@@ -8,10 +8,10 @@
  * - Push notification handling
  */
 
-const CACHE_NAME = 'bitcoinvestments-v1';
-const STATIC_CACHE = 'static-v1';
-const DYNAMIC_CACHE = 'dynamic-v1';
-const API_CACHE = 'api-v1';
+const CACHE_NAME = 'bitcoinvestments-v2';
+const STATIC_CACHE = 'static-v2';
+const DYNAMIC_CACHE = 'dynamic-v2';
+const API_CACHE = 'api-v2';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
@@ -88,6 +88,12 @@ self.addEventListener('fetch', (event) => {
   // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) {
     return;
+  }
+
+  // IMPORTANT: Skip SEO files - let them load directly from server
+  // These should never be cached or intercepted by the service worker
+  if (isSEOFile(url)) {
+    return; // Don't intercept, let browser fetch directly
   }
 
   // API requests - network first, cache fallback
@@ -190,6 +196,22 @@ function isApiRequest(url) {
 function isStaticAsset(url) {
   const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.woff', '.woff2'];
   return staticExtensions.some((ext) => url.pathname.endsWith(ext));
+}
+
+// Check if request is for SEO files (should NOT be cached or intercepted)
+function isSEOFile(url) {
+  const seoFiles = [
+    '/sitemap.xml',
+    '/sitemap-articles.xml',
+    '/robots.txt',
+    '/llms.txt',
+    '/ai.txt',
+    '/humans.txt',
+    '/.well-known/security.txt',
+  ];
+  return seoFiles.includes(url.pathname) || 
+         url.pathname.endsWith('.xml') ||
+         url.pathname.startsWith('/.well-known/');
 }
 
 // Push notification handler

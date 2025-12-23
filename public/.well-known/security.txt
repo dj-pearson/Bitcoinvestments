@@ -1,0 +1,17 @@
+# Security.txt for Bitcoinvestments
+# https://bitcoinvestments.com
+# Standard: https://securitytxt.org/
+
+Contact: mailto:security@bitcoinvestments.com
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://bitcoinvestments.com/.well-known/pgp-key.txt
+Acknowledgments: https://bitcoinvestments.com/security/hall-of-fame
+Preferred-Languages: en
+Canonical: https://bitcoinvestments.com/.well-known/security.txt
+Policy: https://bitcoinvestments.com/security-policy
+
+# We take security seriously. If you discover a vulnerability,
+# please report it to security@bitcoinvestments.com
+# We appreciate responsible disclosure and will acknowledge
+# security researchers who help us keep our users safe.
+

@@ -1,0 +1,43 @@
+/* TEAM */
+Creator: Bitcoinvestments Team
+Site: https://bitcoinvestments.com
+Contact: support [at] bitcoinvestments.com
+Location: United States
+
+/* THANKS */
+Thanks to the open source community for the amazing tools and libraries
+that make this platform possible.
+
+/* SITE */
+Last update: 2024-12-23
+Standards: HTML5, CSS3, ES6+
+Language: English
+Doctype: HTML5
+
+/* TECHNOLOGY */
+Framework: React 18
+Build Tool: Vite
+Styling: Tailwind CSS
+Database: Supabase
+Hosting: Cloudflare Pages
+Authentication: Supabase Auth
+Payments: Stripe
+Analytics: Google Analytics
+
+/* COMPONENTS */
+UI Components: Custom + Lucide Icons
+Charts: Recharts
+Crypto Data: CoinGecko API, CoinMarketCap
+Animations: Motion
+
+/* MISSION */
+To make cryptocurrency investing accessible, safe, and 
+understandable for everyone, regardless of their 
+technical background.
+
+/* LEGAL */
+This platform provides educational content only and 
+does not constitute financial advice. Cryptocurrency 
+investments carry significant risk. Always do your 
+own research.
+

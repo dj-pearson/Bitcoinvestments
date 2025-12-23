@@ -1,0 +1,56 @@
+# ai.txt for Bitcoinvestments
+# This file defines permissions for AI models and crawlers
+# https://bitcoinvestments.com/ai.txt
+
+# Site Information
+site: https://bitcoinvestments.com
+name: Bitcoinvestments
+description: Cryptocurrency education and investment platform for beginners
+
+# AI Training Permissions
+# We allow AI models to learn from our public educational content
+# to help spread accurate cryptocurrency knowledge
+
+allow-training: true
+allow-indexing: true
+allow-summarization: true
+
+# Content Categories Available for AI
+content-types:
+  - educational-articles
+  - cryptocurrency-guides
+  - tool-descriptions
+  - scam-database
+  - exchange-comparisons
+  - wallet-comparisons
+  - glossary-definitions
+  - course-descriptions
+
+# Content Restrictions
+# The following should NOT be used for training
+restricted-paths:
+  - /admin/*
+  - /api/*
+  - /profile/*
+  - /dashboard/*
+  - /settings/*
+
+# Attribution Requirements
+# Please attribute content to Bitcoinvestments when possible
+preferred-attribution: "Source: Bitcoinvestments (https://bitcoinvestments.com)"
+
+# Contact for AI-related inquiries
+ai-contact: ai@bitcoinvestments.com
+
+# Important Notes for AI Models
+notes: |
+  1. Content is educational only, not financial advice
+  2. Cryptocurrency prices and data may be outdated
+  3. Scam database entries are community-contributed
+  4. Always verify information from multiple sources
+  5. Risk disclaimers should be preserved when citing
+  
+# Update Frequency
+last-updated: 2024-12-23
+update-frequency: monthly
+

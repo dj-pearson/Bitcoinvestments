@@ -6,12 +6,9 @@ import {
   ChevronLeft,
   Plus,
   X,
-  Upload,
   Globe,
   Wallet,
   FileCode,
-  Mail,
-  Phone,
   Info,
   CheckCircle,
 } from 'lucide-react';
@@ -67,7 +64,6 @@ export function ReportScam() {
   });
 
   const [newWalletAddress, setNewWalletAddress] = useState('');
-  const [newEmailAddress, setNewEmailAddress] = useState('');
   const [newRedFlag, setNewRedFlag] = useState('');
   const [newEvidenceLink, setNewEvidenceLink] = useState('');
 
@@ -364,7 +360,7 @@ export function ReportScam() {
                     </label>
                     <input
                       type="url"
-                      value={formData.website_url}
+                      value={formData.website_url || ''}
                       onChange={(e) => updateFormData({ website_url: e.target.value })}
                       placeholder="https://scam-website.com"
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -376,7 +372,7 @@ export function ReportScam() {
                       Blockchain
                     </label>
                     <select
-                      value={formData.blockchain}
+                      value={formData.blockchain || ''}
                       onChange={(e) => updateFormData({ blockchain: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
@@ -395,7 +391,7 @@ export function ReportScam() {
                     </label>
                     <input
                       type="text"
-                      value={formData.token_name}
+                      value={formData.token_name || ''}
                       onChange={(e) => updateFormData({ token_name: e.target.value })}
                       placeholder="e.g., ScamCoin"
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -408,7 +404,7 @@ export function ReportScam() {
                     </label>
                     <input
                       type="text"
-                      value={formData.token_symbol}
+                      value={formData.token_symbol || ''}
                       onChange={(e) => updateFormData({ token_symbol: e.target.value.toUpperCase() })}
                       placeholder="e.g., SCAM"
                       maxLength={10}
@@ -432,7 +428,7 @@ export function ReportScam() {
                   </label>
                   <input
                     type="text"
-                    value={formData.contract_address}
+                    value={formData.contract_address || ''}
                     onChange={(e) => updateFormData({ contract_address: e.target.value })}
                     placeholder="0x..."
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono"

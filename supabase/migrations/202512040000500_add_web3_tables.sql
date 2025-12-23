@@ -44,16 +44,17 @@ CREATE INDEX IF NOT EXISTS idx_transaction_syncs_status ON transaction_syncs(syn
 
 -- Extend transactions table with blockchain data
 -- Note: This assumes transactions table already exists
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS blockchain_tx_hash TEXT;
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS blockchain_chain TEXT;
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS synced_from_wallet BOOLEAN DEFAULT FALSE;
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS synced_at TIMESTAMP WITH TIME ZONE;
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS gas_fee NUMERIC(20, 8);
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS token_address TEXT;
+-- COMMENTED OUT: transactions table doesn't exist, use portfolio_transactions instead
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS blockchain_tx_hash TEXT;
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS blockchain_chain TEXT;
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS synced_from_wallet BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS synced_at TIMESTAMP WITH TIME ZONE;
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS gas_fee NUMERIC(20, 8);
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS token_address TEXT;
 
 -- Add index for blockchain transaction lookups
-CREATE INDEX IF NOT EXISTS idx_transactions_tx_hash ON transactions(blockchain_tx_hash);
-CREATE INDEX IF NOT EXISTS idx_transactions_chain ON transactions(blockchain_chain);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_tx_hash ON transactions(blockchain_tx_hash);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_chain ON transactions(blockchain_chain);
 
 -- Table: token_approvals
 -- Tracks token approval events for monitoring and revocation

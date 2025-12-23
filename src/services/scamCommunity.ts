@@ -15,12 +15,8 @@ import type {
   DisputeStatus,
 } from '../types/admin-database';
 
-// Type assertion helper for tables not yet in generated types
-// These tables are created by migration 202512230000000_add_community_scam_voting.sql
-// Once the migration runs and types are regenerated, these casts can be removed
-const db = supabase as unknown as {
-  from: (table: string) => ReturnType<typeof supabase.from>;
-};
+// Type-safe client for accessing untyped tables
+const db = supabase as any;
 
 // ==================== VOTING ====================
 
@@ -28,6 +24,7 @@ const db = supabase as unknown as {
  * Get user's vote on a scam report
  */
 export async function getUserVote(scamReportId: string, userId: string) {
+  const { data, error } = await db
   const { data, error } = await db
     .from('scam_report_votes')
     .select('*')
@@ -58,6 +55,7 @@ export async function voteOnScamReport(
     if (existingVote.vote_type === voteType) {
       // Same vote - remove it
       const { error } = await db
+      const { error } = await db
         .from('scam_report_votes')
         .delete()
         .eq('id', existingVote.id);
@@ -68,6 +66,7 @@ export async function voteOnScamReport(
       return { success: true, action: 'removed', error: null };
     } else {
       // Different vote - update it
+      const { error } = await db
       const { error } = await db
         .from('scam_report_votes')
         .update({ vote_type: voteType, updated_at: new Date().toISOString() })
@@ -81,6 +80,7 @@ export async function voteOnScamReport(
   }
 
   // Create new vote
+  const { error } = await db
   const { error } = await db
     .from('scam_report_votes')
     .insert({
@@ -102,6 +102,7 @@ export async function voteOnScamReport(
  */
 export async function getVoteCounts(scamReportId: string) {
   const { data, error } = await db
+  const { data, error } = await db
     .from('scam_reports')
     .select('upvotes, downvotes, trust_score')
     .eq('id', scamReportId)
@@ -113,9 +114,9 @@ export async function getVoteCounts(scamReportId: string) {
 
   const reportData = data as { upvotes?: number; downvotes?: number; trust_score?: number } | null;
   return {
-    upvotes: reportData?.upvotes || 0,
-    downvotes: reportData?.downvotes || 0,
-    trustScore: reportData?.trust_score || 50,
+    upvotes: data?.upvotes || 0,
+    downvotes: data?.downvotes || 0,
+    trustScore: data?.trust_score || 50,
     error: null,
   };
 }
@@ -128,6 +129,7 @@ export async function getVoteCounts(scamReportId: string) {
 export async function createDispute(dispute: InsertScamReportDispute) {
   // Check if user already has a pending dispute for this report
   const { data: existing } = await db
+  const { data: existing } = await db
     .from('scam_report_disputes')
     .select('id')
     .eq('scam_report_id', dispute.scam_report_id)
@@ -139,6 +141,7 @@ export async function createDispute(dispute: InsertScamReportDispute) {
     return { dispute: null, error: 'You already have a pending dispute for this report' };
   }
 
+  const { data, error } = await db
   const { data, error } = await db
     .from('scam_report_disputes')
     .insert(dispute)
@@ -157,6 +160,7 @@ export async function createDispute(dispute: InsertScamReportDispute) {
  */
 export async function getDisputesForReport(scamReportId: string) {
   const { data, error } = await db
+  const { data, error } = await db
     .from('scam_report_disputes')
     .select('*')
     .eq('scam_report_id', scamReportId)
@@ -173,6 +177,7 @@ export async function getDisputesForReport(scamReportId: string) {
  * Get user's disputes
  */
 export async function getUserDisputes(userId: string) {
+  const { data, error } = await db
   const { data, error } = await db
     .from('scam_report_disputes')
     .select('*, scam_report:scam_reports(id, title, status)')
@@ -196,6 +201,7 @@ export async function updateDisputeStatus(
   adminNotes?: string
 ) {
   const { data, error } = await db
+  const { data, error } = await db
     .from('scam_report_disputes')
     .update({
       status,
@@ -215,7 +221,7 @@ export async function updateDisputeStatus(
   // If dispute was overturned, update the scam report status
   if (status === 'overturned') {
     const dispute = data as ScamReportDispute;
-    await supabase
+    await db
       .from('scam_reports')
       .update({ status: 'rejected', updated_at: new Date().toISOString() })
       .eq('id', dispute.scam_report_id);
@@ -230,6 +236,7 @@ export async function updateDisputeStatus(
  * Get user's reputation
  */
 export async function getUserReputation(userId: string) {
+  const { data, error } = await db
   const { data, error } = await db
     .from('scam_reporter_reputation')
     .select('*')
@@ -295,6 +302,7 @@ export async function updateReputationOnVerification(
   }
 
   const { error } = await db
+  const { error } = await db
     .from('scam_reporter_reputation')
     .upsert({
       user_id: userId,
@@ -314,6 +322,7 @@ export async function updateReputationOnVerification(
  * Get top reporters (leaderboard)
  */
 export async function getTopReporters(limit: number = 10) {
+  const { data, error } = await db
   const { data, error } = await db
     .from('scam_reporter_reputation')
     .select('*')
@@ -335,6 +344,7 @@ export async function getTopReporters(limit: number = 10) {
  */
 export async function addToWatchlist(item: InsertScamWatchlistItem) {
   const { data, error } = await db
+  const { data, error } = await db
     .from('scam_watchlist')
     .insert(item)
     .select()
@@ -355,6 +365,7 @@ export async function addToWatchlist(item: InsertScamWatchlistItem) {
  */
 export async function removeFromWatchlist(userId: string, scamReportId: string) {
   const { error } = await db
+  const { error } = await db
     .from('scam_watchlist')
     .delete()
     .eq('user_id', userId)
@@ -372,6 +383,7 @@ export async function removeFromWatchlist(userId: string, scamReportId: string) 
  */
 export async function getUserWatchlist(userId: string) {
   const { data, error } = await db
+  const { data, error } = await db
     .from('scam_watchlist')
     .select('*, scam_report:scam_reports(*)')
     .eq('user_id', userId)
@@ -388,6 +400,7 @@ export async function getUserWatchlist(userId: string) {
  * Check if item is in watchlist
  */
 export async function isInWatchlist(userId: string, scamReportId: string) {
+  const { data, error } = await db
   const { data, error } = await db
     .from('scam_watchlist')
     .select('id')
@@ -414,13 +427,14 @@ export async function getCommunityStats() {
     { count: totalDisputes },
     { data: totalVotes },
   ] = await Promise.all([
-    supabase.from('scam_reports').select('*', { count: 'exact', head: true }),
-    supabase.from('scam_reports').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
+    db.from('scam_reports').select('*', { count: 'exact', head: true }),
+    db.from('scam_reports').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
     db.from('scam_report_disputes').select('*', { count: 'exact', head: true }),
     db.from('scam_report_votes').select('id'),
   ]);
 
   // Get unique contributors
+  const { data: contributors } = await db
   const { data: contributors } = await db
     .from('scam_reporter_reputation')
     .select('id')

@@ -28,14 +28,12 @@ import {
   checkWalletAddress,
   checkContractAddress,
   checkWebsiteUrl,
-  getScamCategories,
   getSearchSuggestions,
   SUPPORTED_BLOCKCHAINS,
 } from '../services/scamDatabase';
 import { getCommunityStats } from '../services/scamCommunity';
 import type {
   ScamReportWithCommunity,
-  ScamCategory,
   ScamSearchFilters,
   ScamType,
   ScamSeverity,
@@ -65,7 +63,6 @@ export function ScamDatabase() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [reports, setReports] = useState<ScamReportWithCommunity[]>([]);
-  const [_categories, setCategories] = useState<ScamCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchType, setSearchType] = useState<'general' | 'wallet' | 'contract' | 'website'>('general');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -89,7 +86,6 @@ export function ScamDatabase() {
   });
 
   useEffect(() => {
-    loadCategories();
     loadCommunityStats();
     loadReports();
   }, []);
@@ -97,11 +93,6 @@ export function ScamDatabase() {
   useEffect(() => {
     loadReports();
   }, [page, filters]);
-
-  async function loadCategories() {
-    const { categories: cats } = await getScamCategories();
-    setCategories(cats);
-  }
 
   async function loadCommunityStats() {
     const stats = await getCommunityStats();

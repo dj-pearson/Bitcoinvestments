@@ -622,3 +622,117 @@ export function getStatusStyles(status: TicketStatus): {
   };
   return styles[status];
 }
+
+/**
+ * Get support tickets for admin view
+ * Alias for getAllTickets with simplified interface
+ */
+export async function getSupportTickets(params?: {
+  status?: string;
+  priority?: string;
+  search?: string;
+}): Promise<{
+  tickets: (SupportTicket & { replies?: Array<{ content: string; is_admin: boolean; created_at: string }> })[];
+  error: string | null;
+}> {
+  if (!isSupabaseConfigured()) {
+    // Return mock data for development
+    const mockTickets = [
+      {
+        id: 'ticket_1',
+        ticket_number: 'TKT-ABC123',
+        user_id: 'user_1',
+        user_email: 'john@example.com',
+        subject: 'Cannot access premium features',
+        description: 'I subscribed yesterday but still cannot access premium features. Please help.',
+        category: 'technical' as TicketCategory,
+        priority: 'high' as TicketPriority,
+        status: 'open' as TicketStatus,
+        is_premium: true,
+        sla_response_hours: 4,
+        sla_resolution_hours: 24,
+        sla_breached: false,
+        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+        replies: [
+          { content: 'We are looking into this issue.', is_admin: true, created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() }
+        ],
+      },
+      {
+        id: 'ticket_2',
+        ticket_number: 'TKT-DEF456',
+        user_id: 'user_2',
+        user_email: 'sarah@example.com',
+        subject: 'Question about API rate limits',
+        description: 'What are the rate limits for the developer API?',
+        category: 'technical' as TicketCategory,
+        priority: 'normal' as TicketPriority,
+        status: 'in_progress' as TicketStatus,
+        is_premium: false,
+        sla_response_hours: 48,
+        sla_resolution_hours: 168,
+        sla_breached: false,
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+        replies: [],
+      },
+      {
+        id: 'ticket_3',
+        ticket_number: 'TKT-GHI789',
+        user_id: 'user_3',
+        user_email: 'mike@example.com',
+        subject: 'Billing issue with annual subscription',
+        description: 'I was charged twice for my annual subscription. Please refund the duplicate charge.',
+        category: 'billing' as TicketCategory,
+        priority: 'urgent' as TicketPriority,
+        status: 'open' as TicketStatus,
+        is_premium: true,
+        sla_response_hours: 4,
+        sla_resolution_hours: 24,
+        sla_breached: false,
+        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+        replies: [],
+      },
+    ];
+
+    let filtered = mockTickets;
+    if (params?.status && params.status !== 'all') {
+      filtered = filtered.filter(t => t.status === params.status);
+    }
+
+    return { tickets: filtered, error: null };
+  }
+
+  const result = await getAllTickets({
+    status: params?.status as TicketStatus,
+    search: params?.search,
+  });
+
+  return {
+    tickets: result.tickets.map(t => ({ ...t, replies: [] })),
+    error: result.error,
+  };
+}
+
+/**
+ * Add a reply to a support ticket
+ */
+export async function addTicketReply(
+  ticketId: string,
+  content: string,
+  adminId: string
+): Promise<{ success: boolean; error: string | null }> {
+  const result = await addTicketMessage({
+    ticketId,
+    senderId: adminId,
+    senderEmail: 'support@bitcoinvestments.com',
+    senderType: 'agent',
+    message: content,
+  });
+
+  return {
+    success: result.message !== null,
+    error: result.error,
+  };
+}

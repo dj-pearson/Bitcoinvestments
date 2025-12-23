@@ -31,7 +31,6 @@ import { AdManager } from './pages/AdManager';
 import { Pricing } from './pages/Pricing';
 import { Charts } from './pages/Charts';
 import { Web3Features } from './pages/Web3Features';
-import { AdminDashboard } from './pages/AdminDashboard';
 import { UserManagement } from './pages/UserManagement';
 import { ScamDatabase } from './pages/ScamDatabase';
 import { ScamReportDetail } from './pages/ScamReportDetail';
@@ -63,6 +62,19 @@ import DCAAutomationPage from './pages/DCAAutomation';
 import SmartAlertBundlesPage from './pages/SmartAlertBundles';
 import { wagmiConfig } from './lib/wagmi';
 
+// Admin Layout and Pages
+import { AdminLayout } from './components/admin/AdminLayout';
+import {
+  AdminOverview,
+  AuditLogs,
+  ContentModeration,
+  SupportTickets,
+  SystemSettings,
+  AdminAnalytics,
+  AdminSubscriptions,
+  AdminNewsletters,
+} from './pages/admin';
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -77,6 +89,21 @@ function App() {
                 <SessionExpiredModal />
                 <SessionActivityTracker />
                 <Routes>
+                  {/* Admin Panel with dedicated layout */}
+                  <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                    <Route index element={<AdminOverview />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="subscriptions" element={<AdminSubscriptions />} />
+                    <Route path="scam-database" element={<ScamDatabase />} />
+                    <Route path="content" element={<ContentModeration />} />
+                    <Route path="support" element={<SupportTickets />} />
+                    <Route path="ai-settings" element={<AdminAISettings />} />
+                    <Route path="audit-logs" element={<AuditLogs />} />
+                    <Route path="newsletters" element={<AdminNewsletters />} />
+                    <Route path="analytics" element={<AdminAnalytics />} />
+                    <Route path="settings" element={<AdminRoute requiredRole="super_admin"><SystemSettings /></AdminRoute>} />
+                  </Route>
+
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Home />} />
                   <Route path="dashboard" element={<Dashboard />} />
@@ -100,11 +127,7 @@ function App() {
                   <Route path="backtesting" element={<Backtesting />} />
                   <Route path="portfolio-analysis" element={<ProtectedRoute><PortfolioAnalysis /></ProtectedRoute>} />
 
-                  {/* Admin Routes - require admin role */}
-                  <Route path="admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                  <Route path="admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
-                  <Route path="admin/scam-database" element={<AdminRoute><ScamDatabase /></AdminRoute>} />
-                  <Route path="admin/ai-settings" element={<AdminRoute><AdminAISettings /></AdminRoute>} />
+                  {/* Legacy Admin Routes - redirect to new admin panel */}
 
                   <Route path="search" element={<SearchResults />} />
                   <Route path="learn" element={<Learn />} />

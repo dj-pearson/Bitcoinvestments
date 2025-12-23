@@ -1,15 +1,21 @@
 -- Video Tutorial Library Tables
 -- Educational video content with progress tracking
 
--- Create instructors table
-CREATE TABLE IF NOT EXISTS instructors (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL,
-    avatar TEXT,
-    bio TEXT,
-    expertise TEXT[] DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- Note: instructors table is created in interactive_courses migration
+-- Add columns to instructors if they don't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'instructors' 
+        AND column_name = 'avatar'
+    ) THEN
+        -- If avatar_url exists, we're using the interactive_courses schema
+        -- No need to add avatar column
+        NULL;
+    END IF;
+END $$;
 
 -- Create video_tutorials table
 CREATE TABLE IF NOT EXISTS video_tutorials (
@@ -156,14 +162,15 @@ CREATE TRIGGER trigger_video_tutorials_updated_at
     EXECUTE FUNCTION update_video_updated_at();
 
 -- Insert sample instructor
-INSERT INTO instructors (id, name, avatar, bio, expertise)
+-- Use avatar_url column from interactive_courses schema
+INSERT INTO instructors (id, name, avatar_url, bio, expertise)
 VALUES (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     'Alex Crypto',
     'https://i.pravatar.cc/150?u=instructor1',
     'Crypto educator with 5+ years of experience in blockchain technology and trading.',
     ARRAY['Bitcoin', 'Trading', 'DeFi', 'Technical Analysis']
-) ON CONFLICT DO NOTHING;
+) ON CONFLICT (id) DO NOTHING;
 
 -- Comments
 COMMENT ON TABLE instructors IS 'Video tutorial instructors';

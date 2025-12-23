@@ -4,8 +4,6 @@ import {
   X,
   Copy,
   Check,
-  Eye,
-  EyeOff,
   Lock,
   Calendar,
   Code,

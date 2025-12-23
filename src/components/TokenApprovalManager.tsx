@@ -82,7 +82,7 @@ export function TokenApprovalManager({
             data: txData.data,
           },
         ],
-      });
+      }) as string;
 
       // Mark as revoked in database
       await markApprovalRevoked(approval.id, txHash);
@@ -460,11 +460,4 @@ function ApprovalCard({
   );
 }
 
-// Add ethereum type to window
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: unknown[] }) => Promise<string>;
-    };
-  }
-}
+// Window.ethereum type is already declared globally

@@ -41,6 +41,17 @@ import { InfluencerDashboard } from './pages/InfluencerDashboard';
 import { Backtesting } from './pages/Backtesting';
 import { PortfolioAnalysis } from './pages/PortfolioAnalysis';
 import { SearchResults } from './pages/SearchResults';
+import { ApiPricing } from './pages/ApiPricing';
+import { DeveloperPortal } from './pages/DeveloperPortal';
+import { AdvertiserDashboard } from './pages/AdvertiserDashboard';
+import InfluencerVerification from './pages/InfluencerVerification';
+import LendingComparison from './pages/LendingComparison';
+import SocialTrading from './pages/SocialTrading';
+import OnChainAnalytics from './pages/OnChainAnalytics';
+import HardwareWallet from './pages/HardwareWallet';
+import GasOptimizer from './pages/GasOptimizer';
+import DeFiYield from './pages/DeFiYield';
+import RetirementCalculator from './pages/RetirementCalculator';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -95,6 +106,23 @@ function App() {
                   <Route path="terms" element={<Terms />} />
                   <Route path="disclaimer" element={<Terms />} />
                   <Route path="pricing" element={<Pricing />} />
+                  <Route path="developers/pricing" element={<ApiPricing />} />
+                  <Route path="developers/portal" element={<ProtectedRoute><DeveloperPortal /></ProtectedRoute>} />
+                  <Route path="developers/docs" element={<ApiPricing />} />
+                  <Route path="advertiser" element={<ProtectedRoute><AdvertiserDashboard /></ProtectedRoute>} />
+
+                  {/* Advanced Monetization Features */}
+                  <Route path="influencer-verification" element={<InfluencerVerification />} />
+                  <Route path="lending" element={<LendingComparison />} />
+                  <Route path="social-trading" element={<SocialTrading />} />
+                  <Route path="onchain-analytics" element={<OnChainAnalytics />} />
+
+                  {/* Premium Crypto Features */}
+                  <Route path="hardware-wallet" element={<HardwareWallet />} />
+                  <Route path="gas-optimizer" element={<GasOptimizer />} />
+                  <Route path="defi-yield" element={<DeFiYield />} />
+                  <Route path="retirement-calculator" element={<RetirementCalculator />} />
+
                   <Route path="start" element={<Learn />} />
                   <Route path="prices" element={<Dashboard />} />
                   <Route path="*" element={<Home />} />

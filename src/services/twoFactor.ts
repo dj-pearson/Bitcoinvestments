@@ -90,15 +90,21 @@ export async function generateTOTP(secret: string, timeStep = 30): Promise<strin
   }
 
   const keyData = base32Decode(secret);
+  // Convert to ArrayBuffer for crypto.subtle compatibility
+  const keyBuffer = new ArrayBuffer(keyData.byteLength);
+  new Uint8Array(keyBuffer).set(keyData);
   const key = await crypto.subtle.importKey(
     'raw',
-    keyData,
+    keyBuffer,
     { name: 'HMAC', hash: 'SHA-1' },
     false,
     ['sign']
   );
 
-  const signature = await crypto.subtle.sign('HMAC', key, counterBytes);
+  // Convert counterBytes to ArrayBuffer
+  const counterBuffer = new ArrayBuffer(counterBytes.byteLength);
+  new Uint8Array(counterBuffer).set(counterBytes);
+  const signature = await crypto.subtle.sign('HMAC', key, counterBuffer);
   const hmac = new Uint8Array(signature);
 
   // Dynamic truncation
@@ -142,15 +148,21 @@ export async function verifyTOTP(
 
     try {
       const keyData = base32Decode(secret);
+      // Convert to ArrayBuffer for crypto.subtle compatibility
+      const keyBuffer = new ArrayBuffer(keyData.byteLength);
+      new Uint8Array(keyBuffer).set(keyData);
       const key = await crypto.subtle.importKey(
         'raw',
-        keyData,
+        keyBuffer,
         { name: 'HMAC', hash: 'SHA-1' },
         false,
         ['sign']
       );
 
-      const signature = await crypto.subtle.sign('HMAC', key, counterBytes);
+      // Convert counterBytes to ArrayBuffer
+      const counterBuffer = new ArrayBuffer(counterBytes.byteLength);
+      new Uint8Array(counterBuffer).set(counterBytes);
+      const signature = await crypto.subtle.sign('HMAC', key, counterBuffer);
       const hmac = new Uint8Array(signature);
 
       const offset = hmac[hmac.length - 1] & 0x0f;

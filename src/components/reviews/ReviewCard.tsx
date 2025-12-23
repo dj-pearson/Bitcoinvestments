@@ -8,7 +8,8 @@ interface ReviewCardProps {
   showPlatformInfo?: boolean;
 }
 
-export function ReviewCard({ review, showPlatformInfo = false }: ReviewCardProps) {
+export function ReviewCard({ review, showPlatformInfo: _showPlatformInfo = false }: ReviewCardProps) {
+  void _showPlatformInfo; // Reserved for future platform info display
   const [helpfulCount, setHelpfulCount] = useState(review.helpful_count);
   const [hasMarkedHelpful, setHasMarkedHelpful] = useState(false);
 

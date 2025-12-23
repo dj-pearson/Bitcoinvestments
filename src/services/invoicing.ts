@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Invoicing Service
@@ -172,7 +172,7 @@ export async function generateInvoice(
 
     // Save to database if configured
     if (isSupabaseConfigured()) {
-      const { error } = await supabase.from('invoices').insert({
+      const { error } = await db.from('invoices').insert({
         id: invoice.id,
         invoice_number: invoice.invoice_number,
         advertiser_id: invoice.advertiser_id,
@@ -220,7 +220,7 @@ export async function getAdvertiserInvoices(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('invoices')
       .select('*')
       .eq('advertiser_id', advertiserId)
@@ -233,7 +233,7 @@ export async function getAdvertiserInvoices(
       throw error;
     }
 
-    return { invoices: data || [], error: null };
+    return { invoices: (data as Invoice[]) || [], error: null };
   } catch (error) {
     console.error('Error fetching invoices:', error);
     return {
@@ -255,7 +255,7 @@ export async function getAllInvoices(): Promise<{
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('invoices')
       .select('*')
       .order('created_at', { ascending: false });
@@ -267,7 +267,7 @@ export async function getAllInvoices(): Promise<{
       throw error;
     }
 
-    return { invoices: data || [], error: null };
+    return { invoices: (data as Invoice[]) || [], error: null };
   } catch (error) {
     console.error('Error fetching invoices:', error);
     return {
@@ -301,7 +301,7 @@ export async function updateInvoiceStatus(
       if (paymentInfo?.reference) updates.payment_reference = paymentInfo.reference;
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('invoices')
       .update(updates)
       .eq('id', invoiceId);

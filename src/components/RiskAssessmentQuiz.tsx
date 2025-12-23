@@ -20,7 +20,6 @@ import {
   getProfileColor,
   type QuizAnswers,
   type QuizResult,
-  type QuizQuestion,
 } from '../services/riskAssessment';
 
 interface RiskAssessmentQuizProps {

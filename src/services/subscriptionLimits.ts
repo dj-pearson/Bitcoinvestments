@@ -1197,3 +1197,446 @@ export function hasRetirementCalculatorPremium(
   }
   return retirementCalcStatus === 'premium' || retirementCalcStatus === 'bundled';
 }
+
+// ==================== Multi-Exchange Portfolio Aggregation ====================
+
+/**
+ * Multi-Exchange Portfolio Aggregation
+ * Free: manual entry only
+ * Premium: unlimited exchanges, auto-sync
+ */
+export const MULTI_EXCHANGE_PRICING = {
+  id: 'multi-exchange-portfolio',
+  name: 'Multi-Exchange Portfolio Sync',
+  description: 'Auto-sync portfolios across Coinbase, Binance, Kraken, and more via API',
+  price_monthly: 14.99,
+  price_yearly: 149.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Manual portfolio entry',
+      'Track holdings across exchanges',
+      'Basic portfolio view',
+    ],
+    premium: [
+      'Connect unlimited exchanges',
+      'Automatic portfolio sync',
+      'Real-time balance updates',
+      'Transaction history import',
+      'Cross-exchange analytics',
+      'Consolidated tax reports',
+      'API key management',
+    ],
+  },
+  limits: {
+    free: { max_exchanges: 0, auto_sync: false, sync_interval_minutes: 0 },
+    premium: { max_exchanges: Infinity, auto_sync: true, sync_interval_minutes: 15 },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_MULTI_EXCHANGE_MONTHLY || 'price_multi_exchange_monthly',
+    yearly: import.meta.env.VITE_STRIPE_MULTI_EXCHANGE_YEARLY || 'price_multi_exchange_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has multi-exchange premium access
+ */
+export function hasMultiExchangeAccess(
+  multiExchangeStatus?: 'free' | 'premium',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  // Bundled with main premium subscription
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return multiExchangeStatus === 'premium';
+}
+
+// ==================== Staking Rewards Calculator ====================
+
+/**
+ * Staking Rewards Calculator
+ * Free: basic calculator, 3 platforms
+ * Premium: all platforms, optimization, auto-compound projections
+ */
+export const STAKING_CALCULATOR_PRICING = {
+  id: 'staking-rewards-calculator',
+  name: 'Staking Rewards Calculator',
+  description: 'Calculate and optimize staking rewards across multiple platforms',
+  price_monthly: 9.99,
+  price_yearly: 99.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Basic staking calculator',
+      'View top 3 staking platforms',
+      'Simple reward projections',
+    ],
+    premium: [
+      'All staking platforms',
+      'APY optimization across platforms',
+      'Auto-compound projections',
+      'Risk-adjusted recommendations',
+      'Historical APY tracking',
+      'Staking alerts',
+      'Tax impact estimates',
+    ],
+  },
+  limits: {
+    free: { max_platforms: 3, has_optimization: false, has_compound_projections: false },
+    premium: { max_platforms: Infinity, has_optimization: true, has_compound_projections: true },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_STAKING_CALC_MONTHLY || 'price_staking_calc_monthly',
+    yearly: import.meta.env.VITE_STRIPE_STAKING_CALC_YEARLY || 'price_staking_calc_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has staking calculator premium access
+ */
+export function hasStakingCalculatorPremium(
+  stakingStatus?: 'free' | 'premium',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return stakingStatus === 'premium';
+}
+
+// ==================== Custom Trading Indicators ====================
+
+/**
+ * Custom Trading Indicators
+ * Free: basic candlestick charts
+ * Premium: RSI, MACD, Bollinger Bands, custom indicators
+ */
+export const TRADING_INDICATORS_PRICING = {
+  id: 'custom-trading-indicators',
+  name: 'Custom Trading Indicators',
+  description: 'Premium charting with RSI, MACD, Bollinger Bands, and custom indicator creation',
+  price_monthly: 12.99,
+  price_yearly: 129.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Basic candlestick charts',
+      'Simple moving average (SMA)',
+      'Price and volume data',
+    ],
+    premium: [
+      'RSI (Relative Strength Index)',
+      'MACD indicator',
+      'Bollinger Bands',
+      'Stochastic Oscillator',
+      'Ichimoku Cloud',
+      'Custom indicator creation',
+      'Trading signals',
+      'Multi-timeframe analysis',
+      'Indicator alerts',
+    ],
+  },
+  limits: {
+    free: { available_indicators: ['sma'], max_custom_indicators: 0, has_signals: false },
+    premium: { available_indicators: 'all', max_custom_indicators: 10, has_signals: true },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_TRADING_INDICATORS_MONTHLY || 'price_trading_indicators_monthly',
+    yearly: import.meta.env.VITE_STRIPE_TRADING_INDICATORS_YEARLY || 'price_trading_indicators_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has trading indicators premium access
+ */
+export function hasTradingIndicatorsPremium(
+  indicatorsStatus?: 'free' | 'premium',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return indicatorsStatus === 'premium';
+}
+
+// ==================== Whale Wallet Tracking ====================
+
+/**
+ * Whale Wallet Tracking
+ * Free: delayed data (24h), 3 alerts, top 10 whales
+ * Premium: real-time, unlimited alerts, all whales, custom tracking
+ */
+export const WHALE_TRACKING_PRICING = {
+  id: 'whale-wallet-tracking',
+  name: 'Whale Wallet Tracking',
+  description: 'Track and get alerts on major wallet movements (whales)',
+  price_monthly: 19.99,
+  price_yearly: 199.99,
+  currency: 'USD',
+  features: {
+    free: [
+      '24-hour delayed whale data',
+      'Top 10 whale wallets',
+      '3 whale alerts',
+      'Basic transaction history',
+    ],
+    premium: [
+      'Real-time whale alerts',
+      'Track unlimited wallets',
+      'Custom wallet watchlists',
+      'Exchange flow analysis',
+      'Accumulation/distribution detection',
+      'Sentiment scoring',
+      'Email & push notifications',
+      'API access',
+    ],
+  },
+  limits: {
+    free: { data_delay_hours: 24, max_alerts: 3, max_tracked_wallets: 10, has_realtime: false },
+    premium: { data_delay_hours: 0, max_alerts: Infinity, max_tracked_wallets: Infinity, has_realtime: true },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_WHALE_TRACKING_MONTHLY || 'price_whale_tracking_monthly',
+    yearly: import.meta.env.VITE_STRIPE_WHALE_TRACKING_YEARLY || 'price_whale_tracking_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has whale tracking premium access
+ */
+export function hasWhaleTrackingPremium(
+  whaleStatus?: 'free' | 'premium',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return whaleStatus === 'premium';
+}
+
+// ==================== Portfolio Rebalancing Alerts ====================
+
+/**
+ * Portfolio Rebalancing Alerts
+ * Free: monthly alerts, 1 portfolio
+ * Premium: real-time, unlimited portfolios, AI optimization
+ */
+export const REBALANCING_ALERTS_PRICING = {
+  id: 'portfolio-rebalancing-alerts',
+  name: 'Portfolio Rebalancing Alerts',
+  description: 'AI-powered alerts when portfolio drifts from target allocation',
+  price_monthly: 9.99,
+  price_yearly: 99.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Monthly rebalancing alerts',
+      '1 portfolio tracking',
+      'Basic drift notifications',
+      'Manual rebalancing guide',
+    ],
+    premium: [
+      'Real-time drift alerts',
+      'Unlimited portfolios',
+      'AI-powered recommendations',
+      'Tax-loss harvesting suggestions',
+      'Automatic trade suggestions',
+      'Multi-exchange execution',
+      'Custom threshold settings',
+      'Historical rebalancing analysis',
+    ],
+  },
+  limits: {
+    free: { max_portfolios: 1, alert_frequency: 'monthly', has_ai_optimization: false },
+    premium: { max_portfolios: Infinity, alert_frequency: 'realtime', has_ai_optimization: true },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_REBALANCING_MONTHLY || 'price_rebalancing_monthly',
+    yearly: import.meta.env.VITE_STRIPE_REBALANCING_YEARLY || 'price_rebalancing_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has rebalancing alerts premium access
+ */
+export function hasRebalancingAlertsPremium(
+  rebalancingStatus?: 'free' | 'premium',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return rebalancingStatus === 'premium';
+}
+
+// ==================== DCA Automation Service ====================
+
+/**
+ * DCA Automation Service
+ * Free: manual DCA only
+ * Basic: 1 schedule, 1% fee, $9.99/month
+ * Premium: unlimited schedules, 0.5% fee, $19.99/month
+ */
+export const DCA_AUTOMATION_PRICING = {
+  id: 'dca-automation-service',
+  name: 'DCA Automation Service',
+  description: 'Automate dollar-cost averaging purchases through integrated exchanges',
+  tiers: {
+    free: {
+      name: 'Manual DCA',
+      price_monthly: 0,
+      max_schedules: 0,
+      fee_percent: 0,
+      features: [
+        'DCA calculator',
+        'Manual purchase reminders',
+        'Performance tracking',
+      ],
+    },
+    basic: {
+      name: 'DCA Basic',
+      price_monthly: 9.99,
+      max_schedules: 1,
+      fee_percent: 1.0,
+      features: [
+        '1 automated DCA schedule',
+        'Daily/weekly/monthly frequency',
+        'Email notifications',
+        'Basic analytics',
+      ],
+    },
+    premium: {
+      name: 'DCA Premium',
+      price_monthly: 19.99,
+      max_schedules: Infinity,
+      fee_percent: 0.5,
+      features: [
+        'Unlimited DCA schedules',
+        'Smart timing optimization',
+        'Multi-asset portfolio DCA',
+        'Lower fees (0.5%)',
+        'Priority execution',
+        'Advanced analytics',
+        'API access',
+      ],
+    },
+  },
+  stripePriceId: {
+    basic_monthly: import.meta.env.VITE_STRIPE_DCA_BASIC_MONTHLY || 'price_dca_basic_monthly',
+    premium_monthly: import.meta.env.VITE_STRIPE_DCA_PREMIUM_MONTHLY || 'price_dca_premium_monthly',
+  },
+} as const;
+
+/**
+ * Check if user has DCA automation access and get tier
+ */
+export function getDCAAutomationTier(
+  dcaStatus?: 'free' | 'basic' | 'premium',
+  mainSubscriptionStatus?: SubscriptionStatus
+): 'free' | 'basic' | 'premium' {
+  // Premium main subscription gets basic DCA access included
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    // Upgrade to premium DCA if they have it, otherwise give basic
+    return dcaStatus === 'premium' ? 'premium' : 'basic';
+  }
+  return dcaStatus || 'free';
+}
+
+/**
+ * Check if user has any DCA automation access
+ */
+export function hasDCAAutomationAccess(
+  dcaStatus?: 'free' | 'basic' | 'premium',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  const tier = getDCAAutomationTier(dcaStatus, mainSubscriptionStatus);
+  return tier === 'basic' || tier === 'premium';
+}
+
+// ==================== Smart Alert Bundles ====================
+
+/**
+ * Smart Alert Bundles
+ * Individual bundles: $4.99-9.99/month per bundle
+ * Free users: 1 free bundle preview
+ */
+export const SMART_ALERT_BUNDLES_PRICING = {
+  id: 'smart-alert-bundles',
+  name: 'Smart Alert Bundles',
+  description: 'Pre-configured alert packages for different trading strategies',
+  bundles: {
+    bull_run_signals: {
+      id: 'bull-run-signals',
+      name: 'Bull Run Signals',
+      price_monthly: 9.99,
+      price_yearly: 99.99,
+    },
+    crash_protection: {
+      id: 'crash-protection',
+      name: 'Crash Protection',
+      price_monthly: 7.99,
+      price_yearly: 79.99,
+    },
+    defi_opportunities: {
+      id: 'defi-opportunities',
+      name: 'DeFi Opportunities',
+      price_monthly: 4.99,
+      price_yearly: 49.99,
+    },
+    whale_tracker: {
+      id: 'whale-tracker',
+      name: 'Whale Activity Tracker',
+      price_monthly: 6.99,
+      price_yearly: 69.99,
+    },
+    technical_signals: {
+      id: 'technical-signals',
+      name: 'Technical Signals Pro',
+      price_monthly: 8.99,
+      price_yearly: 89.99,
+    },
+  },
+  features: {
+    free: [
+      'Preview all bundles',
+      '1 free bundle (limited)',
+      'Basic alerts only',
+    ],
+    subscriber: [
+      'Full bundle access',
+      'Customizable alerts',
+      'Email & push notifications',
+      'Performance tracking',
+      'Historical accuracy data',
+    ],
+  },
+  limits: {
+    free: { max_bundles: 1, can_customize: false, has_performance_tracking: false },
+    subscriber: { max_bundles: Infinity, can_customize: true, has_performance_tracking: true },
+  },
+} as const;
+
+/**
+ * Check if user has access to a specific alert bundle
+ */
+export function hasAlertBundleAccess(
+  bundleId: string,
+  activeBundles?: string[],
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  // Premium subscribers get basic access to all bundles
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return activeBundles?.includes(bundleId) || false;
+}
+
+/**
+ * Get active bundle count for a user
+ */
+export function getActiveBundleCount(
+  activeBundles?: string[]
+): number {
+  return activeBundles?.length || 0;
+}

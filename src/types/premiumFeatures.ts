@@ -654,3 +654,801 @@ export interface RetirementCalculatorResponse {
   };
   saved_projections: RetirementProjection[];
 }
+
+// ============================================
+// 5. MULTI-EXCHANGE PORTFOLIO AGGREGATION
+// ============================================
+
+export type SupportedExchange = 'coinbase' | 'binance' | 'kraken' | 'gemini' | 'kucoin' | 'ftx' | 'bitfinex' | 'huobi' | 'okx' | 'bybit';
+export type ExchangeConnectionStatus = 'connected' | 'disconnected' | 'error' | 'syncing' | 'rate_limited';
+
+export interface ExchangeCredentials {
+  id: string;
+  user_id: string;
+  exchange: SupportedExchange;
+  api_key_encrypted: string;
+  api_secret_encrypted: string;
+  passphrase_encrypted?: string; // Required for some exchanges like Coinbase Pro
+  permissions: ('read' | 'trade' | 'withdraw')[];
+  is_active: boolean;
+  last_synced_at: string | null;
+  connection_status: ExchangeConnectionStatus;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExchangeBalance {
+  id: string;
+  exchange_credential_id: string;
+  exchange: SupportedExchange;
+  asset_symbol: string;
+  asset_name: string;
+  available_balance: number;
+  locked_balance: number;
+  total_balance: number;
+  usd_value: number;
+  btc_value: number;
+  last_updated_at: string;
+}
+
+export interface ExchangeTransaction {
+  id: string;
+  exchange_credential_id: string;
+  exchange: SupportedExchange;
+  transaction_id: string;
+  transaction_type: 'buy' | 'sell' | 'deposit' | 'withdraw' | 'trade' | 'fee' | 'interest' | 'staking_reward';
+  asset_symbol: string;
+  amount: number;
+  price_usd: number | null;
+  fee: number;
+  fee_asset: string;
+  timestamp: string;
+  order_id: string | null;
+  pair: string | null;
+  side: 'buy' | 'sell' | null;
+  created_at: string;
+}
+
+export interface AggregatedPortfolio {
+  total_value_usd: number;
+  total_value_btc: number;
+  total_change_24h: number;
+  total_change_24h_percent: number;
+  exchanges: {
+    exchange: SupportedExchange;
+    total_value_usd: number;
+    percentage: number;
+    connection_status: ExchangeConnectionStatus;
+    last_synced_at: string | null;
+  }[];
+  holdings: {
+    asset_symbol: string;
+    asset_name: string;
+    total_balance: number;
+    total_usd_value: number;
+    percentage: number;
+    by_exchange: {
+      exchange: SupportedExchange;
+      balance: number;
+      usd_value: number;
+    }[];
+  }[];
+  recent_transactions: ExchangeTransaction[];
+}
+
+export interface ExchangeApiConfig {
+  exchange: SupportedExchange;
+  name: string;
+  logo_url: string;
+  requires_passphrase: boolean;
+  supports_trading: boolean;
+  api_docs_url: string;
+  rate_limit_per_minute: number;
+}
+
+export interface MultiExchangeSubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'premium';
+  status: 'active' | 'inactive';
+  // Free: manual entry only, no API sync
+  // Premium: unlimited exchange connections, auto-sync
+  max_exchanges: number;
+  auto_sync_enabled: boolean;
+  sync_interval_minutes: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const SUPPORTED_EXCHANGES: ExchangeApiConfig[] = [
+  { exchange: 'coinbase', name: 'Coinbase', logo_url: '/exchanges/coinbase.svg', requires_passphrase: false, supports_trading: true, api_docs_url: 'https://docs.cloud.coinbase.com/', rate_limit_per_minute: 10000 },
+  { exchange: 'binance', name: 'Binance', logo_url: '/exchanges/binance.svg', requires_passphrase: false, supports_trading: true, api_docs_url: 'https://binance-docs.github.io/apidocs/', rate_limit_per_minute: 1200 },
+  { exchange: 'kraken', name: 'Kraken', logo_url: '/exchanges/kraken.svg', requires_passphrase: false, supports_trading: true, api_docs_url: 'https://docs.kraken.com/rest/', rate_limit_per_minute: 60 },
+  { exchange: 'gemini', name: 'Gemini', logo_url: '/exchanges/gemini.svg', requires_passphrase: false, supports_trading: true, api_docs_url: 'https://docs.gemini.com/', rate_limit_per_minute: 120 },
+  { exchange: 'kucoin', name: 'KuCoin', logo_url: '/exchanges/kucoin.svg', requires_passphrase: true, supports_trading: true, api_docs_url: 'https://docs.kucoin.com/', rate_limit_per_minute: 1800 },
+  { exchange: 'bitfinex', name: 'Bitfinex', logo_url: '/exchanges/bitfinex.svg', requires_passphrase: false, supports_trading: true, api_docs_url: 'https://docs.bitfinex.com/', rate_limit_per_minute: 90 },
+  { exchange: 'huobi', name: 'Huobi', logo_url: '/exchanges/huobi.svg', requires_passphrase: false, supports_trading: true, api_docs_url: 'https://huobiapi.github.io/', rate_limit_per_minute: 100 },
+  { exchange: 'okx', name: 'OKX', logo_url: '/exchanges/okx.svg', requires_passphrase: true, supports_trading: true, api_docs_url: 'https://www.okx.com/docs/', rate_limit_per_minute: 120 },
+  { exchange: 'bybit', name: 'Bybit', logo_url: '/exchanges/bybit.svg', requires_passphrase: false, supports_trading: true, api_docs_url: 'https://bybit-exchange.github.io/docs/', rate_limit_per_minute: 120 },
+];
+
+// ============================================
+// 6. STAKING REWARDS CALCULATOR
+// ============================================
+
+export type StakingPlatformType = 'centralized_exchange' | 'liquid_staking' | 'native_staking' | 'defi_protocol';
+
+export interface StakingPlatform {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  platform_type: StakingPlatformType;
+  website_url: string;
+  is_verified: boolean;
+  tvl_usd: number | null;
+  supported_assets: string[];
+  min_stake_usd: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StakingOpportunity {
+  id: string;
+  platform_id: string;
+  platform_name: string;
+  asset_symbol: string;
+  asset_name: string;
+  apy_base: number;
+  apy_reward: number;
+  apy_total: number;
+  apy_7d_avg: number | null;
+  apy_30d_avg: number | null;
+  reward_token: string;
+  lock_period_days: number | null;
+  unlock_period_days: number | null;
+  min_stake: number;
+  max_stake: number | null;
+  compound_frequency: 'daily' | 'weekly' | 'monthly' | 'manual' | 'auto';
+  slashing_risk: boolean;
+  validator_commission: number | null;
+  tvl_usd: number;
+  is_active: boolean;
+  last_updated_at: string;
+}
+
+export interface StakingCalculatorInputs {
+  asset_symbol: string;
+  stake_amount: number;
+  stake_duration_months: number;
+  apy: number;
+  compound_frequency: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'none';
+  reinvest_rewards: boolean;
+  price_change_assumption: number; // percentage
+}
+
+export interface StakingProjection {
+  month: number;
+  staked_amount: number;
+  rewards_earned: number;
+  cumulative_rewards: number;
+  total_value_usd: number;
+  effective_apy: number;
+}
+
+export interface StakingCalculatorResult {
+  inputs: StakingCalculatorInputs;
+  total_rewards: number;
+  total_rewards_usd: number;
+  final_balance: number;
+  final_balance_usd: number;
+  effective_apy: number;
+  projections: StakingProjection[];
+  comparison?: {
+    platform: string;
+    apy: number;
+    total_rewards: number;
+    difference: number;
+  }[];
+}
+
+export interface OptimalStakingStrategy {
+  recommended_platforms: {
+    platform: StakingPlatform;
+    opportunity: StakingOpportunity;
+    allocation_percent: number;
+    expected_rewards_usd: number;
+    risk_score: number;
+  }[];
+  total_expected_apy: number;
+  total_expected_rewards_usd: number;
+  diversification_score: number;
+  risk_adjusted_score: number;
+  rationale: string[];
+}
+
+export interface StakingSubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'premium';
+  status: 'active' | 'inactive';
+  // Free: basic calculator, 3 platforms
+  // Premium: all platforms, optimization, auto-compound projections
+  max_platforms: number;
+  has_optimization: boolean;
+  has_compound_projections: boolean;
+  has_alerts: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// 7. CUSTOM TRADING INDICATORS
+// ============================================
+
+export type IndicatorType = 'rsi' | 'macd' | 'bollinger_bands' | 'ema' | 'sma' | 'stochastic' | 'atr' | 'obv' | 'vwap' | 'ichimoku' | 'custom';
+export type ChartTimeframe = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w' | '1M';
+
+export interface TradingIndicatorConfig {
+  id: string;
+  user_id: string;
+  name: string;
+  indicator_type: IndicatorType;
+  parameters: Record<string, number | string | boolean>;
+  color: string;
+  line_width: number;
+  is_overlay: boolean; // true = overlay on price, false = separate panel
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IndicatorPreset {
+  id: string;
+  name: string;
+  description: string;
+  indicator_type: IndicatorType;
+  default_parameters: Record<string, number | string | boolean>;
+  is_premium: boolean;
+}
+
+export interface CustomIndicatorFormula {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  formula: string; // Custom formula syntax
+  variables: string[];
+  is_public: boolean;
+  uses_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChartData {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface IndicatorValue {
+  timestamp: number;
+  values: Record<string, number>; // e.g., { rsi: 65, signal: 70 }
+}
+
+export interface TradingSignal {
+  indicator: string;
+  signal_type: 'buy' | 'sell' | 'neutral' | 'overbought' | 'oversold';
+  strength: number; // 0-100
+  timestamp: number;
+  price: number;
+  description: string;
+}
+
+export interface TradingIndicatorsSubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'premium';
+  status: 'active' | 'inactive';
+  // Free: candlestick only
+  // Premium: all indicators, custom formulas, signals
+  available_indicators: IndicatorType[];
+  max_custom_indicators: number;
+  has_signals: boolean;
+  has_alerts: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const INDICATOR_PRESETS: IndicatorPreset[] = [
+  { id: 'rsi-14', name: 'RSI (14)', description: 'Relative Strength Index with 14-period default', indicator_type: 'rsi', default_parameters: { period: 14, overbought: 70, oversold: 30 }, is_premium: true },
+  { id: 'macd-12-26-9', name: 'MACD (12,26,9)', description: 'Moving Average Convergence Divergence', indicator_type: 'macd', default_parameters: { fast: 12, slow: 26, signal: 9 }, is_premium: true },
+  { id: 'bb-20-2', name: 'Bollinger Bands (20,2)', description: 'Bollinger Bands with 20-period SMA and 2 std dev', indicator_type: 'bollinger_bands', default_parameters: { period: 20, stdDev: 2 }, is_premium: true },
+  { id: 'ema-20', name: 'EMA (20)', description: 'Exponential Moving Average 20-period', indicator_type: 'ema', default_parameters: { period: 20 }, is_premium: true },
+  { id: 'sma-50', name: 'SMA (50)', description: 'Simple Moving Average 50-period', indicator_type: 'sma', default_parameters: { period: 50 }, is_premium: false },
+  { id: 'stoch-14-3-3', name: 'Stochastic (14,3,3)', description: 'Stochastic Oscillator', indicator_type: 'stochastic', default_parameters: { kPeriod: 14, dPeriod: 3, smooth: 3 }, is_premium: true },
+  { id: 'atr-14', name: 'ATR (14)', description: 'Average True Range 14-period', indicator_type: 'atr', default_parameters: { period: 14 }, is_premium: true },
+  { id: 'obv', name: 'OBV', description: 'On-Balance Volume', indicator_type: 'obv', default_parameters: {}, is_premium: true },
+  { id: 'vwap', name: 'VWAP', description: 'Volume Weighted Average Price', indicator_type: 'vwap', default_parameters: {}, is_premium: true },
+  { id: 'ichimoku', name: 'Ichimoku Cloud', description: 'Ichimoku Kinko Hyo indicator', indicator_type: 'ichimoku', default_parameters: { tenkan: 9, kijun: 26, senkou: 52 }, is_premium: true },
+];
+
+// ============================================
+// 8. WHALE WALLET TRACKING
+// ============================================
+
+export type WhaleAlertType = 'large_transfer' | 'exchange_deposit' | 'exchange_withdrawal' | 'accumulation' | 'distribution';
+export type WhaleCategory = 'exchange' | 'whale' | 'institution' | 'miner' | 'smart_money' | 'unknown';
+
+export interface WhaleWallet {
+  id: string;
+  address: string;
+  chain: string;
+  label: string | null;
+  category: WhaleCategory;
+  entity_name: string | null;
+  balance_usd: number;
+  balance_btc: number;
+  first_seen_at: string;
+  last_activity_at: string;
+  total_transactions: number;
+  is_tracked: boolean;
+  is_verified: boolean;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WhaleTransaction {
+  id: string;
+  tx_hash: string;
+  chain: string;
+  block_number: number;
+  timestamp: string;
+  from_address: string;
+  from_label: string | null;
+  from_category: WhaleCategory;
+  to_address: string;
+  to_label: string | null;
+  to_category: WhaleCategory;
+  asset_symbol: string;
+  amount: number;
+  amount_usd: number;
+  transaction_type: WhaleAlertType;
+  significance_score: number; // 0-100
+  is_notable: boolean;
+  created_at: string;
+}
+
+export interface WhaleAlert {
+  id: string;
+  user_id: string;
+  chain: string | null; // null = all chains
+  asset_symbol: string | null; // null = all assets
+  alert_type: WhaleAlertType[];
+  min_amount_usd: number;
+  specific_addresses: string[];
+  categories: WhaleCategory[];
+  is_active: boolean;
+  notify_email: boolean;
+  notify_push: boolean;
+  cooldown_minutes: number;
+  triggered_count: number;
+  last_triggered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WhaleActivity {
+  chain: string;
+  total_volume_24h: number;
+  net_exchange_flow: number; // positive = deposits, negative = withdrawals
+  large_transactions_count: number;
+  accumulation_addresses: number;
+  distribution_addresses: number;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  sentiment_score: number; // -100 to 100
+  notable_transactions: WhaleTransaction[];
+}
+
+export interface WhaleTrackingSubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'premium';
+  status: 'active' | 'inactive';
+  // Free: delayed data (24h), 3 alerts, top 10 whales
+  // Premium: real-time, unlimited alerts, all whales, custom tracking
+  data_delay_hours: number;
+  max_alerts: number;
+  max_tracked_wallets: number;
+  has_realtime: boolean;
+  has_custom_tracking: boolean;
+  price_monthly: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// 9. PORTFOLIO REBALANCING ALERTS
+// ============================================
+
+export type RebalanceFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'threshold_only';
+export type RebalanceMethod = 'percent_band' | 'absolute_band' | 'calendar' | 'smart';
+
+export interface TargetAllocation {
+  id: string;
+  portfolio_id: string;
+  asset_symbol: string;
+  asset_name: string;
+  target_percent: number;
+  min_percent: number;
+  max_percent: number;
+  priority: number; // 1 = highest priority for rebalancing
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PortfolioRebalanceConfig {
+  id: string;
+  user_id: string;
+  portfolio_id: string;
+  name: string;
+  is_active: boolean;
+  rebalance_method: RebalanceMethod;
+  check_frequency: RebalanceFrequency;
+  drift_threshold_percent: number; // Trigger when drift exceeds this
+  min_trade_value_usd: number; // Minimum trade size to suggest
+  tax_loss_harvesting: boolean;
+  avoid_short_term_gains: boolean;
+  target_allocations: TargetAllocation[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DriftAnalysis {
+  asset_symbol: string;
+  asset_name: string;
+  target_percent: number;
+  current_percent: number;
+  drift_percent: number;
+  drift_value_usd: number;
+  action_required: 'buy' | 'sell' | 'hold';
+  trade_amount_usd: number;
+  urgency: 'low' | 'medium' | 'high';
+}
+
+export interface RebalanceRecommendation {
+  id: string;
+  config_id: string;
+  portfolio_id: string;
+  generated_at: string;
+  total_drift_percent: number;
+  is_rebalance_recommended: boolean;
+  drift_analysis: DriftAnalysis[];
+  suggested_trades: {
+    asset_symbol: string;
+    action: 'buy' | 'sell';
+    amount: number;
+    amount_usd: number;
+    exchange: string | null;
+    estimated_fee_usd: number;
+  }[];
+  estimated_tax_impact_usd: number;
+  rationale: string;
+  expires_at: string;
+}
+
+export interface RebalanceAlert {
+  id: string;
+  user_id: string;
+  config_id: string;
+  alert_type: 'drift_threshold' | 'scheduled_check' | 'opportunity';
+  triggered_at: string;
+  drift_percent: number;
+  message: string;
+  recommendation_id: string | null;
+  is_read: boolean;
+  is_dismissed: boolean;
+  created_at: string;
+}
+
+export interface RebalancingSubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'premium';
+  status: 'active' | 'inactive';
+  // Free: monthly alerts, 1 portfolio, basic recommendations
+  // Premium: real-time, unlimited portfolios, AI optimization, auto-recommendations
+  max_portfolios: number;
+  alert_frequency: 'monthly' | 'weekly' | 'daily' | 'realtime';
+  has_ai_optimization: boolean;
+  has_tax_optimization: boolean;
+  has_auto_recommendations: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// 10. DCA AUTOMATION SERVICE
+// ============================================
+
+export type DCAFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+export type DCAStatus = 'active' | 'paused' | 'cancelled' | 'completed' | 'failed';
+
+export interface DCASchedule {
+  id: string;
+  user_id: string;
+  exchange_credential_id: string;
+  exchange: SupportedExchange;
+  name: string;
+  asset_symbol: string;
+  asset_name: string;
+  amount_usd: number;
+  frequency: DCAFrequency;
+  day_of_week: number | null; // 0-6 for weekly
+  day_of_month: number | null; // 1-28 for monthly
+  time_utc: string; // HH:MM format
+  status: DCAStatus;
+  next_execution_at: string | null;
+  total_invested_usd: number;
+  total_purchased: number;
+  average_price: number;
+  execution_count: number;
+  failed_count: number;
+  last_executed_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DCAExecution {
+  id: string;
+  schedule_id: string;
+  executed_at: string;
+  status: 'success' | 'failed' | 'partial';
+  amount_usd: number;
+  amount_purchased: number;
+  price_at_execution: number;
+  fee_usd: number;
+  fee_percent: number;
+  order_id: string | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface DCAPerformance {
+  schedule_id: string;
+  total_invested_usd: number;
+  total_purchased: number;
+  current_value_usd: number;
+  total_return_usd: number;
+  total_return_percent: number;
+  average_buy_price: number;
+  current_price: number;
+  total_fees_usd: number;
+  executions: DCAExecution[];
+  monthly_breakdown: {
+    month: string;
+    invested_usd: number;
+    purchased: number;
+    avg_price: number;
+  }[];
+}
+
+export interface DCAPlan {
+  id: string;
+  name: string;
+  description: string;
+  assets: {
+    symbol: string;
+    allocation_percent: number;
+  }[];
+  frequency: DCAFrequency;
+  min_amount_usd: number;
+  is_recommended: boolean;
+}
+
+export interface DCASubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'basic' | 'premium';
+  status: 'active' | 'inactive';
+  // Free: 0 automated DCA (manual only)
+  // Basic: 1 DCA schedule, 1% fee, $9.99/month
+  // Premium: Unlimited schedules, 0.5% fee, $19.99/month
+  max_schedules: number;
+  fee_percent: number;
+  has_smart_timing: boolean;
+  has_portfolio_dca: boolean;
+  subscription_price_monthly: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const DCA_PLANS: DCAPlan[] = [
+  { id: 'btc-only', name: 'Bitcoin Accumulator', description: 'Simple BTC-only DCA strategy', assets: [{ symbol: 'BTC', allocation_percent: 100 }], frequency: 'weekly', min_amount_usd: 10, is_recommended: true },
+  { id: 'btc-eth', name: 'Blue Chip Crypto', description: 'Split between Bitcoin and Ethereum', assets: [{ symbol: 'BTC', allocation_percent: 60 }, { symbol: 'ETH', allocation_percent: 40 }], frequency: 'weekly', min_amount_usd: 25, is_recommended: true },
+  { id: 'diversified', name: 'Diversified Portfolio', description: 'Spread across major cryptocurrencies', assets: [{ symbol: 'BTC', allocation_percent: 40 }, { symbol: 'ETH', allocation_percent: 30 }, { symbol: 'SOL', allocation_percent: 15 }, { symbol: 'LINK', allocation_percent: 15 }], frequency: 'weekly', min_amount_usd: 50, is_recommended: false },
+];
+
+// ============================================
+// 11. SMART ALERT BUNDLES
+// ============================================
+
+export type AlertBundleCategory = 'bull_run' | 'crash_protection' | 'defi_opportunities' | 'whale_activity' | 'technical_signals' | 'custom';
+
+export interface AlertBundle {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: AlertBundleCategory;
+  icon: string;
+  price_monthly: number;
+  price_yearly: number;
+  alerts_included: AlertTemplate[];
+  is_featured: boolean;
+  subscriber_count: number;
+  success_rate: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AlertTemplate {
+  id: string;
+  bundle_id: string;
+  name: string;
+  description: string;
+  alert_type: 'price' | 'volume' | 'technical' | 'whale' | 'news' | 'on_chain';
+  conditions: {
+    metric: string;
+    operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'crosses_above' | 'crosses_below';
+    value: number | string;
+    timeframe?: string;
+  }[];
+  assets: string[] | 'all';
+  notification_channels: ('email' | 'push' | 'sms')[];
+  cooldown_minutes: number;
+  is_configurable: boolean;
+}
+
+export interface UserAlertBundleSubscription {
+  id: string;
+  user_id: string;
+  bundle_id: string;
+  bundle_name: string;
+  status: 'active' | 'paused' | 'cancelled';
+  billing_cycle: 'monthly' | 'yearly';
+  price_paid: number;
+  started_at: string;
+  expires_at: string | null;
+  cancelled_at: string | null;
+  customizations: {
+    alert_id: string;
+    is_enabled: boolean;
+    custom_value?: number | string;
+  }[];
+  alerts_triggered_count: number;
+  last_alert_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BundlePerformance {
+  bundle_id: string;
+  period: '7d' | '30d' | '90d' | 'all';
+  alerts_sent: number;
+  alerts_accurate: number;
+  accuracy_rate: number;
+  avg_response_time_hours: number;
+  notable_alerts: {
+    date: string;
+    alert_name: string;
+    asset: string;
+    price_at_alert: number;
+    price_after_24h: number;
+    was_accurate: boolean;
+  }[];
+}
+
+export interface SmartAlertBundlesSubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'premium';
+  status: 'active' | 'inactive';
+  // Free: preview bundles, 1 free bundle
+  // Premium: unlimited bundles, custom alerts
+  max_bundles: number;
+  can_customize: boolean;
+  has_performance_tracking: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const ALERT_BUNDLES: AlertBundle[] = [
+  {
+    id: 'bull-run-signals',
+    name: 'Bull Run Signals',
+    slug: 'bull-run-signals',
+    description: 'Get alerted to potential bull market signals including golden crosses, volume breakouts, and accumulation patterns.',
+    category: 'bull_run',
+    icon: 'TrendingUp',
+    price_monthly: 9.99,
+    price_yearly: 99.99,
+    alerts_included: [],
+    is_featured: true,
+    subscriber_count: 2547,
+    success_rate: 72.5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'crash-protection',
+    name: 'Crash Protection',
+    slug: 'crash-protection',
+    description: 'Early warning system for market downturns. Tracks death crosses, exchange inflows, and panic selling indicators.',
+    category: 'crash_protection',
+    icon: 'Shield',
+    price_monthly: 7.99,
+    price_yearly: 79.99,
+    alerts_included: [],
+    is_featured: true,
+    subscriber_count: 4123,
+    success_rate: 68.3,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'defi-opportunities',
+    name: 'DeFi Opportunities',
+    slug: 'defi-opportunities',
+    description: 'Discover high-yield DeFi opportunities. Alerts for new pools, APY spikes, and liquidity mining rewards.',
+    category: 'defi_opportunities',
+    icon: 'Layers',
+    price_monthly: 4.99,
+    price_yearly: 49.99,
+    alerts_included: [],
+    is_featured: false,
+    subscriber_count: 1832,
+    success_rate: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'whale-tracker',
+    name: 'Whale Activity Tracker',
+    slug: 'whale-tracker',
+    description: 'Follow the smart money. Real-time alerts when whales move significant amounts on major chains.',
+    category: 'whale_activity',
+    icon: 'Fish',
+    price_monthly: 6.99,
+    price_yearly: 69.99,
+    alerts_included: [],
+    is_featured: true,
+    subscriber_count: 3456,
+    success_rate: 65.8,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'technical-signals',
+    name: 'Technical Signals Pro',
+    slug: 'technical-signals',
+    description: 'Automated technical analysis alerts. RSI extremes, MACD crossovers, and Bollinger Band breakouts.',
+    category: 'technical_signals',
+    icon: 'Activity',
+    price_monthly: 8.99,
+    price_yearly: 89.99,
+    alerts_included: [],
+    is_featured: false,
+    subscriber_count: 2198,
+    success_rate: 61.2,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];

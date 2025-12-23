@@ -61,7 +61,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
 
     // Get the origin for redirect URLs
-    const origin = request.headers.get('Origin') || 'https://bitcoinvestments.com';
+    const origin = request.headers.get('Origin') || 'https://bitcoinvestments.net';
 
     // Create Stripe checkout session for one-time payment
     const session = await stripe.checkout.sessions.create({

@@ -98,7 +98,7 @@ export function Privacy() {
           </ul>
           <p>
             To exercise these rights, please contact us at{' '}
-            <a href="mailto:privacy@bitcoinvestments.com">privacy@bitcoinvestments.com</a>.
+            <a href="mailto:privacy@bitcoinvestments.net">privacy@bitcoinvestments.net</a>.
           </p>
         </section>
 
@@ -123,7 +123,7 @@ export function Privacy() {
           <h2>Contact Us</h2>
           <p>
             If you have questions about this Privacy Policy, please contact us at:{' '}
-            <a href="mailto:privacy@bitcoinvestments.com">privacy@bitcoinvestments.com</a>
+            <a href="mailto:privacy@bitcoinvestments.net">privacy@bitcoinvestments.net</a>
           </p>
         </section>
 

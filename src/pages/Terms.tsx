@@ -120,7 +120,7 @@ export function Terms() {
             <h2>Contact</h2>
             <p>
               If you have questions about this disclaimer, please contact us at{' '}
-              <a href="mailto:legal@bitcoinvestments.com">legal@bitcoinvestments.com</a>.
+              <a href="mailto:legal@bitcoinvestments.net">legal@bitcoinvestments.net</a>.
             </p>
           </section>
 
@@ -272,7 +272,7 @@ export function Terms() {
           <h2>Contact Information</h2>
           <p>
             For questions about these Terms of Service, please contact us at{' '}
-            <a href="mailto:legal@bitcoinvestments.com">legal@bitcoinvestments.com</a>.
+            <a href="mailto:legal@bitcoinvestments.net">legal@bitcoinvestments.net</a>.
           </p>
         </section>
 

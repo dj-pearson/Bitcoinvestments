@@ -364,7 +364,7 @@ export function ApiPricing() {
           <pre className="bg-gray-900/50 p-4 rounded-lg overflow-x-auto text-sm">
             <code className="text-gray-300">
 {`// Get current Bitcoin price
-const response = await fetch('https://api.bitcoinvestments.com/v1/market/prices?symbols=BTC,ETH', {
+const response = await fetch('https://api.bitcoinvestments.net/v1/market/prices?symbols=BTC,ETH', {
   headers: {
     'Authorization': 'Bearer bv_live_your_api_key_here',
     'Content-Type': 'application/json'

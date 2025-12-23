@@ -548,7 +548,7 @@ async function sendTicketNotification(
               </div>
 
               <div style="text-align: center; margin-top: 20px;">
-                <a href="https://bitcoinvestments.com/support/tickets/${ticket.id}" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">View Ticket</a>
+                <a href="https://bitcoinvestments.net/support/tickets/${ticket.id}" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 6px; font-weight: bold;">View Ticket</a>
               </div>
             </td>
           </tr>
@@ -726,7 +726,7 @@ export async function addTicketReply(
   const result = await addTicketMessage({
     ticketId,
     senderId: adminId,
-    senderEmail: 'support@bitcoinvestments.com',
+    senderEmail: 'support@bitcoinvestments.net',
     senderType: 'agent',
     message: content,
   });

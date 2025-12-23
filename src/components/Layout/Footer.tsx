@@ -99,7 +99,7 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <a href="mailto:support@bitcoinvestments.com" className="text-gray-400 hover:text-brand-primary text-sm transition-colors flex items-center gap-1">
+                                <a href="mailto:support@bitcoinvestments.net" className="text-gray-400 hover:text-brand-primary text-sm transition-colors flex items-center gap-1">
                                     <Mail className="w-3 h-3" />
                                     Contact Us
                                 </a>

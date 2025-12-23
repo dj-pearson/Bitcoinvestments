@@ -7,84 +7,84 @@
 
   <!-- ==================== Main Pages ==================== -->
   <url>
-    <loc>https://bitcoinvestments.com/</loc>
+    <loc>https://bitcoinvestments.net/</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn</loc>
+    <loc>https://bitcoinvestments.net/learn</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/scam-database</loc>
+    <loc>https://bitcoinvestments.net/scam-database</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/report-scam</loc>
+    <loc>https://bitcoinvestments.net/report-scam</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/compare</loc>
+    <loc>https://bitcoinvestments.net/compare</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/calculators</loc>
+    <loc>https://bitcoinvestments.net/calculators</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/charts</loc>
+    <loc>https://bitcoinvestments.net/charts</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/glossary</loc>
+    <loc>https://bitcoinvestments.net/glossary</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/web3</loc>
+    <loc>https://bitcoinvestments.net/web3</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/pricing</loc>
+    <loc>https://bitcoinvestments.net/pricing</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/backtesting</loc>
+    <loc>https://bitcoinvestments.net/backtesting</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/onchain-analytics</loc>
+    <loc>https://bitcoinvestments.net/onchain-analytics</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
@@ -92,56 +92,56 @@
 
   <!-- ==================== Educational Guides ==================== -->
   <url>
-    <loc>https://bitcoinvestments.com/learn/what-is-bitcoin</loc>
+    <loc>https://bitcoinvestments.net/learn/what-is-bitcoin</loc>
     <lastmod>2024-12-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn/buying-first-bitcoin</loc>
+    <loc>https://bitcoinvestments.net/learn/buying-first-bitcoin</loc>
     <lastmod>2024-12-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn/wallet-security</loc>
+    <loc>https://bitcoinvestments.net/learn/wallet-security</loc>
     <lastmod>2024-12-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn/dca-strategy</loc>
+    <loc>https://bitcoinvestments.net/learn/dca-strategy</loc>
     <lastmod>2024-12-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn/choosing-exchange</loc>
+    <loc>https://bitcoinvestments.net/learn/choosing-exchange</loc>
     <lastmod>2024-12-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn/understanding-fees</loc>
+    <loc>https://bitcoinvestments.net/learn/understanding-fees</loc>
     <lastmod>2024-12-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn/crypto-taxes</loc>
+    <loc>https://bitcoinvestments.net/learn/crypto-taxes</loc>
     <lastmod>2024-12-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/learn/avoiding-scams</loc>
+    <loc>https://bitcoinvestments.net/learn/avoiding-scams</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -149,21 +149,21 @@
 
   <!-- ==================== Courses ==================== -->
   <url>
-    <loc>https://bitcoinvestments.com/course/bitcoin-fundamentals</loc>
+    <loc>https://bitcoinvestments.net/course/bitcoin-fundamentals</loc>
     <lastmod>2024-12-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/course/crypto-investing-101</loc>
+    <loc>https://bitcoinvestments.net/course/crypto-investing-101</loc>
     <lastmod>2024-12-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/course/defi-basics</loc>
+    <loc>https://bitcoinvestments.net/course/defi-basics</loc>
     <lastmod>2024-12-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -171,21 +171,21 @@
 
   <!-- ==================== Comparison Pages ==================== -->
   <url>
-    <loc>https://bitcoinvestments.com/compare/exchanges</loc>
+    <loc>https://bitcoinvestments.net/compare/exchanges</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/compare/wallets</loc>
+    <loc>https://bitcoinvestments.net/compare/wallets</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/compare/tax-software</loc>
+    <loc>https://bitcoinvestments.net/compare/tax-software</loc>
     <lastmod>2024-12-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -193,21 +193,21 @@
 
   <!-- ==================== Legal Pages ==================== -->
   <url>
-    <loc>https://bitcoinvestments.com/privacy</loc>
+    <loc>https://bitcoinvestments.net/privacy</loc>
     <lastmod>2024-12-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/terms</loc>
+    <loc>https://bitcoinvestments.net/terms</loc>
     <lastmod>2024-12-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/disclaimer</loc>
+    <loc>https://bitcoinvestments.net/disclaimer</loc>
     <lastmod>2024-12-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
@@ -215,14 +215,14 @@
 
   <!-- ==================== Login/Signup (low priority) ==================== -->
   <url>
-    <loc>https://bitcoinvestments.com/login</loc>
+    <loc>https://bitcoinvestments.net/login</loc>
     <lastmod>2024-12-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
 
   <url>
-    <loc>https://bitcoinvestments.com/signup</loc>
+    <loc>https://bitcoinvestments.net/signup</loc>
     <lastmod>2024-12-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

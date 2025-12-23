@@ -29,7 +29,7 @@ interface AnalyticsProviderProps {
  */
 export function AnalyticsProvider({
   children,
-  domain = 'bitcoinvestments.com',
+  domain = 'bitcoinvestments.net',
   enabled = true,
 }: AnalyticsProviderProps) {
   // Initialize analytics on mount

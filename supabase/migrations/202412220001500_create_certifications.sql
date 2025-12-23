@@ -184,7 +184,7 @@ BEGIN
             v_avg_score,
             v_course.estimated_hours,
             v_course.learning_outcomes,
-            'https://bitcoinvestments.com/verify/' || v_cert_number,
+            'https://bitcoinvestments.net/verify/' || v_cert_number,
             jsonb_build_object(
                 'lessonsCompleted', (SELECT COUNT(*) FROM lesson_progress WHERE enrollment_id = NEW.id AND is_completed = true),
                 'quizzesCompleted', (SELECT COUNT(*) FROM quiz_attempts WHERE enrollment_id = NEW.id AND passed = true),

@@ -83,7 +83,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <BrowserRouter>
-            <AnalyticsProvider domain="bitcoinvestments.com">
+            <AnalyticsProvider domain="bitcoinvestments.net">
               <PageTracker />
               <AuthProvider>
                 <SessionExpiredModal />

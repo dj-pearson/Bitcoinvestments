@@ -32,7 +32,7 @@ interface SEOProps {
 
 // Site defaults
 const SITE_NAME = 'Bitcoinvestments';
-const SITE_URL = 'https://bitcoinvestments.com';
+const SITE_URL = 'https://bitcoinvestments.net';
 const DEFAULT_DESCRIPTION =
   'Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners.';
 const DEFAULT_IMAGE = '/og-image.png';
@@ -240,7 +240,7 @@ export function generateOrganizationSchema() {
     ],
     contactPoint: {
       '@type': 'ContactPoint',
-      email: 'support@bitcoinvestments.com',
+      email: 'support@bitcoinvestments.net',
       contactType: 'customer support',
     },
   };

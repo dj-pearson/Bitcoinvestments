@@ -12,10 +12,26 @@ import type {
   ScamCategory,
   ScamReportComment,
   InsertScamReportComment,
+  ScamReportWithCommunity,
+  ScamSearchSuggestion,
 } from '../types/admin-database';
 
+// Available blockchains for filtering
+export const SUPPORTED_BLOCKCHAINS = [
+  'Ethereum',
+  'Bitcoin',
+  'Solana',
+  'Polygon',
+  'BNB Chain',
+  'Avalanche',
+  'Arbitrum',
+  'Optimism',
+  'Fantom',
+  'Base',
+];
+
 /**
- * Search scam reports with filters
+ * Search scam reports with advanced filters
  */
 export async function searchScamReports(
   filters: ScamSearchFilters = {},
@@ -25,14 +41,24 @@ export async function searchScamReports(
   const limit = params?.limit || 20;
   const offset = (page - 1) * limit;
 
+  // Determine sort column and order
+  const sortBy = filters.sort_by || 'created_at';
+  const sortOrder = filters.sort_order === 'asc';
+
   let query = supabase
     .from('scam_reports')
     .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false });
+    .order(sortBy, { ascending: sortOrder });
 
-  // Full-text search
+  // Full-text search with OR for partial matches
   if (filters.query) {
-    query = query.textSearch('search_vector', filters.query);
+    // Try textSearch first, fall back to ilike for partial matches
+    const searchQuery = filters.query.trim();
+    if (searchQuery.length >= 3) {
+      query = query.or(
+        `title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,website_url.ilike.%${searchQuery}%,token_name.ilike.%${searchQuery}%`
+      );
+    }
   }
 
   // Filter by scam type
@@ -66,6 +92,20 @@ export async function searchScamReports(
     query = query.eq('blockchain', filters.blockchain);
   }
 
+  // Filter by source
+  if (filters.source) {
+    if (Array.isArray(filters.source)) {
+      query = query.in('source', filters.source);
+    } else {
+      query = query.eq('source', filters.source);
+    }
+  }
+
+  // Filter by trust score
+  if (filters.min_trust_score !== undefined) {
+    query = query.gte('trust_score', filters.min_trust_score);
+  }
+
   // Filter by loss amount
   if (filters.min_loss) {
     query = query.gte('estimated_loss_usd', filters.min_loss);
@@ -76,10 +116,10 @@ export async function searchScamReports(
 
   // Filter by date
   if (filters.date_from) {
-    query = query.gte('first_reported_date', filters.date_from);
+    query = query.gte('created_at', filters.date_from);
   }
   if (filters.date_to) {
-    query = query.lte('first_reported_date', filters.date_to);
+    query = query.lte('created_at', filters.date_to);
   }
 
   // Apply pagination
@@ -98,12 +138,121 @@ export async function searchScamReports(
   }
 
   return {
-    reports: data as ScamReport[],
+    reports: data as ScamReportWithCommunity[],
     total: count || 0,
     page,
     totalPages: Math.ceil((count || 0) / limit),
     error: null,
   };
+}
+
+/**
+ * Get search suggestions based on partial input
+ */
+export async function getSearchSuggestions(query: string): Promise<ScamSearchSuggestion[]> {
+  if (!query || query.length < 2) return [];
+
+  const suggestions: ScamSearchSuggestion[] = [];
+  const lowerQuery = query.toLowerCase();
+
+  // Check if it looks like an address
+  if (query.startsWith('0x') || query.startsWith('bc1') || query.length > 30) {
+    suggestions.push({
+      type: 'address',
+      value: query,
+      label: `Search for address: ${query.slice(0, 20)}...`,
+    });
+  }
+
+  // Search in recent reports for matching titles
+  const { data: titleMatches } = await supabase
+    .from('scam_reports')
+    .select('title, scam_type')
+    .ilike('title', `%${query}%`)
+    .eq('status', 'verified')
+    .limit(5);
+
+  if (titleMatches) {
+    titleMatches.forEach((match) => {
+      suggestions.push({
+        type: 'keyword',
+        value: match.title,
+        label: match.title,
+      });
+    });
+  }
+
+  // Add scam type suggestions
+  const scamTypes = ['phishing', 'ponzi', 'rug_pull', 'fake_ico', 'impersonation', 'fake_exchange', 'pump_dump'];
+  scamTypes.forEach((type) => {
+    if (type.includes(lowerQuery) || type.replace('_', ' ').includes(lowerQuery)) {
+      suggestions.push({
+        type: 'scam_type',
+        value: type,
+        label: `Type: ${type.replace('_', ' ').toUpperCase()}`,
+      });
+    }
+  });
+
+  // Add blockchain suggestions
+  SUPPORTED_BLOCKCHAINS.forEach((chain) => {
+    if (chain.toLowerCase().includes(lowerQuery)) {
+      suggestions.push({
+        type: 'blockchain',
+        value: chain,
+        label: `Blockchain: ${chain}`,
+      });
+    }
+  });
+
+  return suggestions.slice(0, 8);
+}
+
+/**
+ * Get scam statistics by type
+ */
+export async function getScamStatsByType() {
+  const { data, error } = await supabase
+    .from('scam_reports')
+    .select('scam_type')
+    .eq('status', 'verified');
+
+  if (error || !data) return [];
+
+  const counts: Record<string, number> = {};
+  data.forEach((report) => {
+    counts[report.scam_type] = (counts[report.scam_type] || 0) + 1;
+  });
+
+  return Object.entries(counts).map(([type, count]) => ({
+    type,
+    count,
+    label: type.replace('_', ' ').toUpperCase(),
+  }));
+}
+
+/**
+ * Get scam statistics by blockchain
+ */
+export async function getScamStatsByBlockchain() {
+  const { data, error } = await supabase
+    .from('scam_reports')
+    .select('blockchain')
+    .eq('status', 'verified')
+    .not('blockchain', 'is', null);
+
+  if (error || !data) return [];
+
+  const counts: Record<string, number> = {};
+  data.forEach((report) => {
+    if (report.blockchain) {
+      counts[report.blockchain] = (counts[report.blockchain] || 0) + 1;
+    }
+  });
+
+  return Object.entries(counts)
+    .map(([blockchain, count]) => ({ blockchain, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 /**

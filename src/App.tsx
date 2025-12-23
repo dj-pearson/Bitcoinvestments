@@ -34,6 +34,8 @@ import { Web3Features } from './pages/Web3Features';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserManagement } from './pages/UserManagement';
 import { ScamDatabase } from './pages/ScamDatabase';
+import { ScamReportDetail } from './pages/ScamReportDetail';
+import { ReportScam } from './pages/ReportScam';
 import { AdminAISettings } from './pages/AdminAISettings';
 import TaxReports from './pages/TaxReports';
 import { AdvisorDashboard } from './pages/AdvisorDashboard';
@@ -84,6 +86,8 @@ function App() {
                   <Route path="compare/:type/:id" element={<Compare />} />
                   <Route path="web3" element={<Web3Features />} />
                   <Route path="scam-database" element={<ScamDatabase />} />
+                  <Route path="scam/:id" element={<ScamReportDetail />} />
+                  <Route path="report-scam" element={<ReportScam />} />
                   <Route path="login" element={<Login />} />
                   <Route path="signup" element={<Signup />} />
                   <Route path="forgot-password" element={<ForgotPassword />} />

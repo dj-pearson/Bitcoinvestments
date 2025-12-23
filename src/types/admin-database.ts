@@ -300,4 +300,102 @@ export interface ScamSearchFilters {
   max_loss?: number;
   date_from?: string;
   date_to?: string;
+  source?: ScamSource | ScamSource[];
+  min_trust_score?: number;
+  sort_by?: 'created_at' | 'trust_score' | 'upvotes' | 'victims_count' | 'estimated_loss_usd';
+  sort_order?: 'asc' | 'desc';
+}
+
+// Extended ScamReport with community fields
+export type ScamSource = 'user_reported' | 'cryptoscamdb' | 'etherscamdb' | 'community_import' | 'admin_added';
+
+export interface ScamReportWithCommunity extends ScamReport {
+  source: ScamSource;
+  external_id: string | null;
+  upvotes: number;
+  downvotes: number;
+  dispute_count: number;
+  trust_score: number;
+  last_activity_at: string;
+}
+
+// Community Vote Types
+export type VoteType = 'upvote' | 'downvote';
+
+export interface ScamReportVote {
+  id: string;
+  scam_report_id: string;
+  user_id: string;
+  vote_type: VoteType;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InsertScamReportVote {
+  scam_report_id: string;
+  user_id: string;
+  vote_type: VoteType;
+}
+
+// Dispute Types
+export type DisputeStatus = 'pending' | 'reviewing' | 'upheld' | 'overturned' | 'dismissed';
+
+export interface ScamReportDispute {
+  id: string;
+  scam_report_id: string;
+  user_id: string;
+  reason: string;
+  evidence_links: string[] | null;
+  status: DisputeStatus;
+  admin_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InsertScamReportDispute {
+  scam_report_id: string;
+  user_id: string;
+  reason: string;
+  evidence_links?: string[];
+}
+
+// Reporter Reputation
+export type ReputationBadge = 'newcomer' | 'contributor' | 'trusted' | 'expert' | 'guardian';
+
+export interface ScamReporterReputation {
+  id: string;
+  user_id: string;
+  total_reports: number;
+  verified_reports: number;
+  rejected_reports: number;
+  helpful_votes: number;
+  reputation_score: number;
+  badge: ReputationBadge;
+  created_at: string;
+  updated_at: string;
+}
+
+// Watchlist
+export interface ScamWatchlistItem {
+  id: string;
+  user_id: string;
+  scam_report_id: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface InsertScamWatchlistItem {
+  user_id: string;
+  scam_report_id: string;
+  notes?: string;
+}
+
+// Advanced Search Suggestions
+export interface ScamSearchSuggestion {
+  type: 'scam_type' | 'blockchain' | 'keyword' | 'address';
+  value: string;
+  label: string;
+  count?: number;
 }

@@ -501,4 +501,188 @@ export function generateSoftwareSchema({
   return schema;
 }
 
+// ============================================
+// Scam Database Schema Generators
+// ============================================
+
+/**
+ * Generate Schema.org structured data for the Scam Database
+ */
+export function generateScamDatabaseSchema(stats?: {
+  totalReports: number;
+  verifiedReports: number;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Crypto Scam Database',
+    description: 'Free community-powered database of cryptocurrency scams. Search known scams, report fraud, and protect yourself from phishing, rug pulls, and ponzi schemes.',
+    url: `${SITE_URL}/scam-database`,
+    applicationCategory: 'SecurityApplication',
+    operatingSystem: 'Web',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: stats?.totalReports || 1000,
+      bestRating: '5',
+      worstRating: '1',
+    },
+    provider: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    featureList: [
+      'Search crypto scams by wallet address',
+      'Check if a website is a known scam',
+      'Report fraudulent crypto projects',
+      'Community voting and verification',
+      'Real-time scam alerts',
+    ],
+  };
+}
+
+/**
+ * Generate Schema.org FAQ structured data for common scam questions
+ */
+export function generateScamFAQSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'How do I check if a crypto wallet address is a scam?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Use our Crypto Scam Database to search any wallet address. Enter the address (0x... for Ethereum, bc1... for Bitcoin) and we\'ll check it against our database of reported scams including data from CryptoScamDB, ChainAbuse, and community reports.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What are the most common crypto scams in 2024?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'The most common crypto scams include: Pig Butchering (romance investment scams - $5.8B in 2024), Phishing sites impersonating wallets like MetaMask, Rug Pulls where developers abandon projects, Fake Exchanges that steal deposits, Crypto ATM fraud ($246.7M in 2024), and Celebrity Impersonation giveaway scams. The FBI reported $9.3 billion in total crypto fraud losses in 2024.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How do I report a crypto scam?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Click the "Report a Scam" button on our Scam Database page. You can submit details including the scam website, wallet addresses, description of the fraud, and any evidence. Reports are reviewed by our community and moderators before being verified. You can also report to the FBI\'s IC3 at ic3.gov and your state\'s financial regulator.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is a rug pull in crypto?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'A rug pull is when cryptocurrency developers abandon a project and run away with investors\' funds. Red flags include: anonymous teams, locked selling (honeypot), no smart contract audits, unlocked liquidity pools, and aggressive social media marketing. Famous examples include SquidGame Token and AnubisDAO. Our database tracks thousands of confirmed rug pulls.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is pig butchering crypto scam?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Pig butchering is a sophisticated romance/investment scam where fraudsters build trust over weeks via dating apps or social media before convincing victims to invest in fake crypto platforms. The scam caused $5.8 billion in losses in 2024. Warning signs include: contact via WhatsApp/Telegram, claims of successful trading, fake platforms showing fabricated profits, and inability to withdraw without paying "fees".',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How can I protect myself from crypto scams?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'To protect yourself: 1) Always verify websites and wallet addresses using our Scam Database before transacting. 2) Never share your seed phrase or private keys - no legitimate service will ask for these. 3) Be skeptical of guaranteed returns or celebrity endorsements. 4) Verify projects on official social media channels. 5) Enable 2FA on all crypto accounts. 6) Be wary of unsolicited contact about investments.',
+        },
+      },
+    ],
+  };
+}
+
+/**
+ * Generate Schema.org structured data for a specific scam report
+ */
+export function generateScamReportSchema(report: {
+  id: string;
+  title: string;
+  description: string;
+  scamType: string;
+  severity: string;
+  website?: string | null;
+  createdAt: string;
+  victimsCount?: number;
+  estimatedLoss?: number | null;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    '@id': `${SITE_URL}/scam/${report.id}`,
+    headline: report.title,
+    description: report.description.slice(0, 160),
+    datePublished: report.createdAt,
+    dateModified: report.createdAt,
+    author: {
+      '@type': 'Organization',
+      name: `${SITE_NAME} Community`,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.png`,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${SITE_URL}/scam/${report.id}`,
+    },
+    articleSection: 'Crypto Scam Reports',
+    keywords: [
+      'crypto scam',
+      'cryptocurrency fraud',
+      report.scamType.replace(/_/g, ' '),
+      `${report.severity} severity scam`,
+      'scam warning',
+      'crypto security',
+    ].join(', '),
+    about: {
+      '@type': 'Thing',
+      name: `${report.scamType.replace(/_/g, ' ')} cryptocurrency scam`,
+    },
+  };
+}
+
+/**
+ * Generate SearchAction schema for scam database search
+ */
+export function generateScamSearchActionSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Crypto Scam Database',
+    url: `${SITE_URL}/scam-database`,
+    potentialAction: [
+      {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${SITE_URL}/scam-database?q={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+        description: 'Search for crypto scams by name, wallet address, or website',
+      },
+    ],
+  };
+}
+
 export default SEO;

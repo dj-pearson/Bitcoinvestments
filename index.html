@@ -15,7 +15,7 @@
     <title>Bitcoinvestments | Learn Crypto Investing for Beginners</title>
     <meta name="title" content="Bitcoinvestments | Learn Crypto Investing for Beginners" />
     <meta name="description" content="Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators and portfolio tracking." />
-    <meta name="keywords" content="Bitcoin, cryptocurrency, crypto investment, DCA, dollar cost averaging, crypto education, exchange comparison, wallet comparison, Bitcoin guide, cryptocurrency for beginners" />
+    <meta name="keywords" content="Bitcoin, cryptocurrency, crypto investment, DCA, dollar cost averaging, crypto education, exchange comparison, wallet comparison, Bitcoin guide, cryptocurrency for beginners, crypto scam database, scam checker, wallet address scam, rug pull checker, crypto fraud report, pig butchering scam, phishing crypto, fake exchange, blockchain scam tracker" />
     <meta name="author" content="Bitcoinvestments" />
     <meta name="robots" content="index, follow" />
 
@@ -69,14 +69,71 @@
       "@type": "WebSite",
       "name": "Bitcoinvestments",
       "url": "https://bitcoinvestments.com",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://bitcoinvestments.com/search?q={search_term_string}"
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://bitcoinvestments.com/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
         },
-        "query-input": "required name=search_term_string"
-      }
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://bitcoinvestments.com/scam-database?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string",
+          "description": "Search crypto scam database by wallet address, website, or name"
+        }
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD Site Navigation Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Site Navigation",
+      "itemListElement": [
+        {
+          "@type": "SiteNavigationElement",
+          "position": 1,
+          "name": "Learn Crypto",
+          "description": "Educational guides for cryptocurrency beginners",
+          "url": "https://bitcoinvestments.com/learn"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 2,
+          "name": "Scam Database",
+          "description": "Free crypto scam checker - search wallet addresses, websites, and report fraud",
+          "url": "https://bitcoinvestments.com/scam-database"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 3,
+          "name": "Compare Exchanges",
+          "description": "Compare cryptocurrency exchanges with fees, features, and security ratings",
+          "url": "https://bitcoinvestments.com/compare"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 4,
+          "name": "DCA Calculator",
+          "description": "Dollar cost averaging calculator for Bitcoin and crypto investments",
+          "url": "https://bitcoinvestments.com/calculators"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 5,
+          "name": "Report a Scam",
+          "description": "Report cryptocurrency fraud and scams to protect the community",
+          "url": "https://bitcoinvestments.com/report-scam"
+        }
+      ]
     }
     </script>
   </head>

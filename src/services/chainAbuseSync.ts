@@ -2,10 +2,17 @@
  * ChainAbuse Integration Service
  * Integrates with ChainAbuse API for real-time scam data
  * @see https://docs.chainabuse.com/docs/welcome-to-chainabuse-api
+ *
+ * Environment Variable: CHAINABUSE_API_KEY
+ * Get your API key at: https://chainabuse.com (profile > settings > API key)
+ * Set in Cloudflare Dashboard: Settings > Environment Variables > Add Secret
  */
 
 import { supabase } from '../lib/supabase';
 import type { ScamType, ScamSeverity, InsertScamReport } from '../types/admin-database';
+
+// Environment variable name for ChainAbuse API key
+export const CHAINABUSE_API_KEY_ENV = 'CHAINABUSE_API_KEY';
 
 // ChainAbuse API response structure
 export interface ChainAbuseReport {

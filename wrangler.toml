@@ -40,6 +40,7 @@ VITE_APP_VERSION = "1.0.0"
 # - AMAZON_SMTP_PASSWORD (AWS SES SMTP password)
 # - AMAZON_SMTP_ENDPOINT (email-smtp.us-east-1.amazonaws.com)
 # - VITE_FROM_EMAIL (noreply@yourdomain.com)
+# - CHAINABUSE_API_KEY (API key from https://chainabuse.com - get at profile > settings > API key)
 
 # KV Namespaces for rate limiting
 # Create these in Cloudflare Dashboard: Workers & Pages > KV > Create namespace

@@ -16,8 +16,6 @@ import {
   Database,
   Users,
   X,
-  Bookmark,
-  ArrowUpDown,
 } from 'lucide-react';
 import {
   SEO,
@@ -67,7 +65,7 @@ export function ScamDatabase() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [reports, setReports] = useState<ScamReportWithCommunity[]>([]);
-  const [categories, setCategories] = useState<ScamCategory[]>([]);
+  const [_categories, setCategories] = useState<ScamCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchType, setSearchType] = useState<'general' | 'wallet' | 'contract' | 'website'>('general');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');

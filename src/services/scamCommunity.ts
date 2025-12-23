@@ -25,7 +25,6 @@ const db = supabase as any;
  */
 export async function getUserVote(scamReportId: string, userId: string) {
   const { data, error } = await db
-  const { data, error } = await db
     .from('scam_report_votes')
     .select('*')
     .eq('scam_report_id', scamReportId)
@@ -55,7 +54,6 @@ export async function voteOnScamReport(
     if (existingVote.vote_type === voteType) {
       // Same vote - remove it
       const { error } = await db
-      const { error } = await db
         .from('scam_report_votes')
         .delete()
         .eq('id', existingVote.id);
@@ -66,7 +64,6 @@ export async function voteOnScamReport(
       return { success: true, action: 'removed', error: null };
     } else {
       // Different vote - update it
-      const { error } = await db
       const { error } = await db
         .from('scam_report_votes')
         .update({ vote_type: voteType, updated_at: new Date().toISOString() })
@@ -80,7 +77,6 @@ export async function voteOnScamReport(
   }
 
   // Create new vote
-  const { error } = await db
   const { error } = await db
     .from('scam_report_votes')
     .insert({
@@ -102,7 +98,6 @@ export async function voteOnScamReport(
  */
 export async function getVoteCounts(scamReportId: string) {
   const { data, error } = await db
-  const { data, error } = await db
     .from('scam_reports')
     .select('upvotes, downvotes, trust_score')
     .eq('id', scamReportId)
@@ -112,7 +107,6 @@ export async function getVoteCounts(scamReportId: string) {
     return { upvotes: 0, downvotes: 0, trustScore: 50, error: error.message };
   }
 
-  const reportData = data as { upvotes?: number; downvotes?: number; trust_score?: number } | null;
   return {
     upvotes: data?.upvotes || 0,
     downvotes: data?.downvotes || 0,
@@ -129,7 +123,6 @@ export async function getVoteCounts(scamReportId: string) {
 export async function createDispute(dispute: InsertScamReportDispute) {
   // Check if user already has a pending dispute for this report
   const { data: existing } = await db
-  const { data: existing } = await db
     .from('scam_report_disputes')
     .select('id')
     .eq('scam_report_id', dispute.scam_report_id)
@@ -141,7 +134,6 @@ export async function createDispute(dispute: InsertScamReportDispute) {
     return { dispute: null, error: 'You already have a pending dispute for this report' };
   }
 
-  const { data, error } = await db
   const { data, error } = await db
     .from('scam_report_disputes')
     .insert(dispute)
@@ -160,7 +152,6 @@ export async function createDispute(dispute: InsertScamReportDispute) {
  */
 export async function getDisputesForReport(scamReportId: string) {
   const { data, error } = await db
-  const { data, error } = await db
     .from('scam_report_disputes')
     .select('*')
     .eq('scam_report_id', scamReportId)
@@ -177,7 +168,6 @@ export async function getDisputesForReport(scamReportId: string) {
  * Get user's disputes
  */
 export async function getUserDisputes(userId: string) {
-  const { data, error } = await db
   const { data, error } = await db
     .from('scam_report_disputes')
     .select('*, scam_report:scam_reports(id, title, status)')
@@ -200,7 +190,6 @@ export async function updateDisputeStatus(
   adminId: string,
   adminNotes?: string
 ) {
-  const { data, error } = await db
   const { data, error } = await db
     .from('scam_report_disputes')
     .update({
@@ -236,7 +225,6 @@ export async function updateDisputeStatus(
  * Get user's reputation
  */
 export async function getUserReputation(userId: string) {
-  const { data, error } = await db
   const { data, error } = await db
     .from('scam_reporter_reputation')
     .select('*')
@@ -302,7 +290,6 @@ export async function updateReputationOnVerification(
   }
 
   const { error } = await db
-  const { error } = await db
     .from('scam_reporter_reputation')
     .upsert({
       user_id: userId,
@@ -322,7 +309,6 @@ export async function updateReputationOnVerification(
  * Get top reporters (leaderboard)
  */
 export async function getTopReporters(limit: number = 10) {
-  const { data, error } = await db
   const { data, error } = await db
     .from('scam_reporter_reputation')
     .select('*')
@@ -344,7 +330,6 @@ export async function getTopReporters(limit: number = 10) {
  */
 export async function addToWatchlist(item: InsertScamWatchlistItem) {
   const { data, error } = await db
-  const { data, error } = await db
     .from('scam_watchlist')
     .insert(item)
     .select()
@@ -365,7 +350,6 @@ export async function addToWatchlist(item: InsertScamWatchlistItem) {
  */
 export async function removeFromWatchlist(userId: string, scamReportId: string) {
   const { error } = await db
-  const { error } = await db
     .from('scam_watchlist')
     .delete()
     .eq('user_id', userId)
@@ -383,7 +367,6 @@ export async function removeFromWatchlist(userId: string, scamReportId: string) 
  */
 export async function getUserWatchlist(userId: string) {
   const { data, error } = await db
-  const { data, error } = await db
     .from('scam_watchlist')
     .select('*, scam_report:scam_reports(*)')
     .eq('user_id', userId)
@@ -400,7 +383,6 @@ export async function getUserWatchlist(userId: string) {
  * Check if item is in watchlist
  */
 export async function isInWatchlist(userId: string, scamReportId: string) {
-  const { data, error } = await db
   const { data, error } = await db
     .from('scam_watchlist')
     .select('id')
@@ -434,7 +416,6 @@ export async function getCommunityStats() {
   ]);
 
   // Get unique contributors
-  const { data: contributors } = await db
   const { data: contributors } = await db
     .from('scam_reporter_reputation')
     .select('id')

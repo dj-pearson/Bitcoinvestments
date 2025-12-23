@@ -45,8 +45,8 @@ export interface ExportResult {
  * Premium feature - requires premium/advisor/enterprise subscription
  */
 export async function exportPortfolioToExcel(
-  portfolio: Portfolio,
-  options: Partial<ExportOptions> = {}
+  _portfolio: Portfolio,
+  _options: Partial<ExportOptions> = {}
 ): Promise<ExportResult> {
   // TODO: Install xlsx package: npm install xlsx @types/xlsx
   throw new Error('XLSX export not available - install xlsx package first with: npm install xlsx');

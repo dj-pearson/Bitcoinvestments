@@ -5,7 +5,7 @@
  * Get affiliate commissions when users sign up: $500-5000 per referred depositor
  */
 
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/supabase';
 import type {
   LendingPlatform,
   LendingRate,
@@ -26,7 +26,7 @@ export async function getLendingPlatforms(options?: {
   type?: 'cefi' | 'defi' | 'hybrid';
   chain?: string;
 }): Promise<LendingPlatform[]> {
-  let query = supabase
+  let query = db
     .from('lending_platforms')
     .select('*')
     .eq('status', 'active')
@@ -49,7 +49,7 @@ export async function getLendingPlatforms(options?: {
  * Get platform by slug
  */
 export async function getPlatformBySlug(slug: string): Promise<LendingPlatform | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_platforms')
     .select('*')
     .eq('slug', slug)
@@ -63,7 +63,7 @@ export async function getPlatformBySlug(slug: string): Promise<LendingPlatform |
  * Get platform by ID
  */
 export async function getPlatformById(id: string): Promise<LendingPlatform | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_platforms')
     .select('*')
     .eq('id', id)
@@ -85,7 +85,7 @@ export async function getCurrentRates(options?: {
   chain?: string;
   type?: 'lending' | 'borrowing';
 }): Promise<(LendingRate & { platform: LendingPlatform })[]> {
-  let query = supabase
+  let query = db
     .from('lending_rates')
     .select(`
       *,
@@ -105,7 +105,7 @@ export async function getCurrentRates(options?: {
   if (error) throw error;
 
   // Filter out inactive platforms
-  return (data || []).filter((r) => r.platform?.status === 'active');
+  return (data || []).filter((r: any) => r.platform?.status === 'active');
 }
 
 /**
@@ -171,7 +171,7 @@ export async function getRateComparison(
  * Get top lending opportunities
  */
 export async function getTopLendingOpportunities(limit: number = 10): Promise<LendingRate[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_rates')
     .select(`
       *,
@@ -182,14 +182,14 @@ export async function getTopLendingOpportunities(limit: number = 10): Promise<Le
     .limit(limit);
 
   if (error) throw error;
-  return (data || []).filter((r) => r.platform?.status === 'active');
+  return (data || []).filter((r: any) => r.platform?.status === 'active');
 }
 
 /**
  * Get cheapest borrowing options
  */
 export async function getCheapestBorrowingOptions(limit: number = 10): Promise<LendingRate[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_rates')
     .select(`
       *,
@@ -201,7 +201,7 @@ export async function getCheapestBorrowingOptions(limit: number = 10): Promise<L
     .limit(limit);
 
   if (error) throw error;
-  return (data || []).filter((r) => r.platform?.status === 'active');
+  return (data || []).filter((r: any) => r.platform?.status === 'active');
 }
 
 // ============================================
@@ -220,7 +220,7 @@ export async function getRateHistory(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_rate_history')
     .select('*')
     .eq('platform_id', platformId)
@@ -247,7 +247,7 @@ export async function getAverageRates(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_rate_history')
     .select('snapshot_date, lending_apy, borrowing_apy')
     .eq('asset_symbol', assetSymbol.toUpperCase())
@@ -298,7 +298,7 @@ export async function trackAffiliateClick(
     campaign?: string;
   }
 ): Promise<LendingReferral> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_referrals')
     .insert({
       platform_id: platformId,
@@ -340,7 +340,7 @@ export async function getAffiliateStats(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  let query = supabase
+  let query = db
     .from('lending_referrals')
     .select(`
       *,
@@ -357,11 +357,11 @@ export async function getAffiliateStats(
 
   const referrals = data || [];
   const total_clicks = referrals.length;
-  const unique_users = new Set(referrals.filter((r) => r.user_id).map((r) => r.user_id)).size;
-  const conversions = referrals.filter((r) => r.converted).length;
+  const unique_users = new Set(referrals.filter((r: any) => r.user_id).map((r: any) => r.user_id)).size;
+  const conversions = referrals.filter((r: any) => r.converted).length;
   const conversion_rate = total_clicks > 0 ? (conversions / total_clicks) * 100 : 0;
-  const total_deposits = referrals.reduce((sum, r) => sum + (r.deposit_amount || 0), 0);
-  const total_commissions = referrals.reduce((sum, r) => sum + (r.commission_earned || 0), 0);
+  const total_deposits = referrals.reduce((sum: any, r: any) => sum + (r.deposit_amount || 0), 0);
+  const total_commissions = referrals.reduce((sum: any, r: any) => sum + (r.commission_earned || 0), 0);
 
   // Group by platform
   const platformStats: Record<
@@ -404,7 +404,7 @@ export async function recordConversion(
   depositCurrency: string,
   commission: number
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('lending_referrals')
     .update({
       converted: true,
@@ -429,7 +429,7 @@ export async function recordConversion(
 export async function getBestStablecoinYields(): Promise<LendingRate[]> {
   const stablecoins = ['USDT', 'USDC', 'DAI', 'BUSD', 'FRAX', 'TUSD'];
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('lending_rates')
     .select(`
       *,
@@ -441,7 +441,7 @@ export async function getBestStablecoinYields(): Promise<LendingRate[]> {
     .limit(20);
 
   if (error) throw error;
-  return (data || []).filter((r) => r.platform?.status === 'active');
+  return (data || []).filter((r: any) => r.platform?.status === 'active');
 }
 
 // ============================================

@@ -51,7 +51,7 @@ const OnChainAnalytics: React.FC = () => {
     return names[metricType] || metricType;
   };
 
-  const formatMetricValue = (value: number, metricType: OnChainMetricType): string => {
+  const formatMetricValue = (value: number): string => {
     if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
     if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
@@ -153,7 +153,7 @@ const OnChainAnalytics: React.FC = () => {
                 ) : (
                   <>
                     <div className="text-2xl font-bold">
-                      {formatMetricValue(demoMetric?.value || 0, metricType)}
+                      {formatMetricValue(demoMetric?.value || 0)}
                     </div>
                     <div className={`text-sm ${getChangeColor(demoMetric?.change_24h || null)}`}>
                       {(demoMetric?.change_24h || 0) >= 0 ? '+' : ''}
@@ -223,7 +223,7 @@ const OnChainAnalytics: React.FC = () => {
                 {latestMetric && (
                   <div className="text-right">
                     <div className="text-2xl font-bold">
-                      {formatMetricValue(latestMetric.value, selectedMetric)}
+                      {formatMetricValue(latestMetric.value)}
                     </div>
                     <div className={`text-sm ${getChangeColor(latestMetric.change_24h)}`}>
                       {(latestMetric.change_24h || 0) >= 0 ? '+' : ''}
@@ -267,7 +267,7 @@ const OnChainAnalytics: React.FC = () => {
                           {new Date(metric.timestamp).toLocaleDateString()}
                         </td>
                         <td className="p-4 text-right font-medium">
-                          {formatMetricValue(metric.value, selectedMetric)}
+                          {formatMetricValue(metric.value)}
                         </td>
                         <td className={`p-4 text-right ${getChangeColor(metric.change_24h)}`}>
                           {(metric.change_24h || 0) >= 0 ? '+' : ''}

@@ -5,7 +5,7 @@
  * Free users get basic metrics, premium gets pro analytics: $29.99/month tier
  */
 
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/supabase';
 import type {
   OnChainMetric,
   OnChainMetricType,
@@ -16,7 +16,6 @@ import type {
   OnChainAlertCondition,
   AggregationPeriod,
   OnChainDashboardResponse,
-  ON_CHAIN_METRIC_CATEGORIES,
 } from '../types/monetization';
 
 // ============================================
@@ -78,7 +77,7 @@ export const FREE_METRICS: OnChainMetricType[] = [
 export async function getOnChainSubscription(
   userId: string
 ): Promise<OnChainAnalyticsSubscription | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_analytics_subscriptions')
     .select('*')
     .eq('user_id', userId)
@@ -133,7 +132,7 @@ export async function createOnChainSubscription(
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + (billingPeriod === 'yearly' ? 12 : 1));
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_analytics_subscriptions')
     .upsert(
       {
@@ -163,7 +162,7 @@ export async function createOnChainSubscription(
  * Cancel on-chain analytics subscription
  */
 export async function cancelOnChainSubscription(userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('onchain_analytics_subscriptions')
     .update({
       status: 'cancelled',
@@ -200,7 +199,7 @@ export async function getMetrics(options: {
     limit = 100,
   } = options;
 
-  let query = supabase
+  let query = db
     .from('onchain_metrics')
     .select('*')
     .eq('asset_symbol', asset.toUpperCase())
@@ -231,7 +230,7 @@ export async function getLatestMetric(
   metricType: OnChainMetricType,
   chain: string = 'bitcoin'
 ): Promise<OnChainMetric | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_metrics')
     .select('*')
     .eq('asset_symbol', asset.toUpperCase())
@@ -290,7 +289,7 @@ export async function getMetricsSummary(
  * Get user's on-chain alerts
  */
 export async function getOnChainAlerts(userId: string): Promise<OnChainAlert[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_alerts')
     .select('*')
     .eq('user_id', userId)
@@ -324,7 +323,7 @@ export async function createOnChainAlert(
   const subscription = await getOnChainSubscription(userId);
   const maxAlerts = subscription?.max_alerts || ONCHAIN_ANALYTICS_CONFIG.tiers.basic.max_alerts;
 
-  const { count } = await supabase
+  const { count } = await db
     .from('onchain_alerts')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
@@ -339,7 +338,7 @@ export async function createOnChainAlert(
     throw new Error('This metric requires a Pro subscription');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_alerts')
     .insert({
       user_id: userId,
@@ -372,7 +371,7 @@ export async function updateOnChainAlert(
   userId: string,
   updates: Partial<OnChainAlert>
 ): Promise<OnChainAlert> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_alerts')
     .update(updates)
     .eq('id', alertId)
@@ -388,7 +387,7 @@ export async function updateOnChainAlert(
  * Delete on-chain alert
  */
 export async function deleteOnChainAlert(alertId: string, userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('onchain_alerts')
     .delete()
     .eq('id', alertId)
@@ -405,7 +404,7 @@ export async function deleteOnChainAlert(alertId: string, userId: string): Promi
  * Get user's dashboards
  */
 export async function getUserDashboards(userId: string): Promise<OnChainDashboard[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_dashboards')
     .select('*')
     .eq('user_id', userId)
@@ -419,7 +418,7 @@ export async function getUserDashboards(userId: string): Promise<OnChainDashboar
  * Get dashboard by ID
  */
 export async function getDashboard(dashboardId: string): Promise<OnChainDashboard | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_dashboards')
     .select('*')
     .eq('id', dashboardId)
@@ -429,7 +428,7 @@ export async function getDashboard(dashboardId: string): Promise<OnChainDashboar
 
   // Increment views if public
   if (data?.is_public) {
-    await supabase
+    await db
       .from('onchain_dashboards')
       .update({ views_count: data.views_count + 1 })
       .eq('id', dashboardId);
@@ -442,7 +441,7 @@ export async function getDashboard(dashboardId: string): Promise<OnChainDashboar
  * Get dashboard by share slug
  */
 export async function getDashboardBySlug(slug: string): Promise<OnChainDashboard | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_dashboards')
     .select('*')
     .eq('share_slug', slug)
@@ -478,7 +477,7 @@ export async function createDashboard(
     ? `${dashboard.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString(36)}`
     : null;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_dashboards')
     .insert({
       user_id: userId,
@@ -506,7 +505,7 @@ export async function updateDashboard(
   userId: string,
   updates: Partial<OnChainDashboard>
 ): Promise<OnChainDashboard> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('onchain_dashboards')
     .update(updates)
     .eq('id', dashboardId)
@@ -522,7 +521,7 @@ export async function updateDashboard(
  * Delete dashboard
  */
 export async function deleteDashboard(dashboardId: string, userId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('onchain_dashboards')
     .delete()
     .eq('id', dashboardId)

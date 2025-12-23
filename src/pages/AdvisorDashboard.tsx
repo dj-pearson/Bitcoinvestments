@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
   Users,
@@ -11,16 +11,13 @@ import {
   TrendingDown,
   Building2,
   AlertCircle,
-  Check,
-  X,
   Edit2,
-  Trash2,
   Eye,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hasAdvisorAccess, getTierLimits } from '../services/subscriptionLimits';
 import { cn } from '../lib/utils';
-import type { AdvisorClient, AdvisorBranding } from '../types';
+import type { AdvisorClient } from '../types';
 
 // Mock data for clients (in production, this would come from database)
 const mockClients: AdvisorClient[] = [
@@ -127,11 +124,11 @@ export function AdvisorDashboard() {
         <div className="flex items-center gap-3">
           <span className={cn(
             "px-3 py-1 rounded-full text-sm font-medium",
-            profile?.subscription_status === 'enterprise'
+            profile?.subscription_tier === 'enterprise'
               ? "bg-purple-500/20 text-purple-400"
               : "bg-blue-500/20 text-blue-400"
           )}>
-            {profile?.subscription_status === 'enterprise' ? 'Enterprise' : 'Advisor'} Plan
+            {profile?.subscription_tier === 'enterprise' ? 'Enterprise' : 'Advisor'} Plan
           </span>
         </div>
       </div>
@@ -496,7 +493,7 @@ export function AdvisorDashboard() {
                   type="text"
                   className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
                   placeholder="Your Company Name"
-                  defaultValue={profile?.company_name || ''}
+                  defaultValue={(profile as { company_name?: string } | null)?.company_name ?? ''}
                 />
               </div>
 

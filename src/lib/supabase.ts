@@ -42,3 +42,8 @@ export const isSupabaseConfigured = (): boolean => {
 
 // Export project ID for reference
 export const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+
+// Untyped client for tables not in the schema
+// Use this when accessing tables that haven't been added to the Database type yet
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const db = supabase as any;

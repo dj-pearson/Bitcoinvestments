@@ -17,6 +17,9 @@ export const TIER_LIMITS = {
     maxAssets: 10,
     maxClientPortfolios: 0,
 
+    // Watchlist limits
+    maxWatchlistItems: 5,
+
     // Price alert limits
     maxActiveAlerts: 3,
 
@@ -26,6 +29,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - free users can preview but not export
     canExportTaxReports: false,
+
+    // Export formats
+    exportFormats: {
+      csv: true,
+      pdf: false,
+      excel: false,
+      taxSoftware: false,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: false,
+
+    // Research reports
+    premiumResearchReports: false,
+
+    // Calculator features
+    calculatorFeatures: {
+      basic: true,
+      advanced: false,
+      projections: false,
+      comparisons: false,
+      taxOptimization: false,
+    },
 
     // Other features
     cloudSync: false,
@@ -49,6 +75,9 @@ export const TIER_LIMITS = {
     maxAssets: Infinity,
     maxClientPortfolios: 0,
 
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
     // Price alert limits - unlimited
     maxActiveAlerts: Infinity,
 
@@ -57,6 +86,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - full access
     canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
 
     // Other features
     cloudSync: true,
@@ -80,6 +132,9 @@ export const TIER_LIMITS = {
     maxAssets: Infinity,
     maxClientPortfolios: 10, // Up to 10 client portfolios
 
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
     // Price alert limits - unlimited
     maxActiveAlerts: Infinity,
 
@@ -88,6 +143,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - full access
     canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
 
     // Other features
     cloudSync: true,
@@ -111,6 +189,9 @@ export const TIER_LIMITS = {
     maxAssets: Infinity,
     maxClientPortfolios: Infinity, // Unlimited client portfolios
 
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
     // Price alert limits - unlimited
     maxActiveAlerts: Infinity,
 
@@ -119,6 +200,29 @@ export const TIER_LIMITS = {
 
     // Tax reports - full access
     canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
 
     // Other features
     cloudSync: true,
@@ -136,6 +240,65 @@ export const TIER_LIMITS = {
     customBranding: 'full' as const,
     apiAccess: true,
     teamAccess: true,
+  },
+
+  // Lifetime deal - same as premium but one-time payment
+  lifetime: {
+    // Portfolio limits - unlimited for self
+    maxAssets: Infinity,
+    maxClientPortfolios: 0,
+
+    // Watchlist limits - unlimited
+    maxWatchlistItems: Infinity,
+
+    // Price alert limits - unlimited
+    maxActiveAlerts: Infinity,
+
+    // Data freshness - real-time
+    priceDataDelay: 0,
+
+    // Tax reports - full access
+    canExportTaxReports: true,
+
+    // Export formats - all formats available
+    exportFormats: {
+      csv: true,
+      pdf: true,
+      excel: true,
+      taxSoftware: true,
+    },
+
+    // Monthly performance reports
+    monthlyPerformanceReport: true,
+
+    // Research reports
+    premiumResearchReports: true,
+
+    // Calculator features - all features
+    calculatorFeatures: {
+      basic: true,
+      advanced: true,
+      projections: true,
+      comparisons: true,
+      taxOptimization: true,
+    },
+
+    // Other features
+    cloudSync: true,
+    emailAlerts: true,
+    smsAlerts: true,
+    advancedAnalytics: true,
+    adFree: true,
+    aiPortfolioAnalysis: true,
+    backtestingAdvanced: true,
+
+    // Advisor features
+    whiteLabelReports: false,
+    clientDashboard: false,
+    complianceExports: false,
+    customBranding: false,
+    apiAccess: false,
+    teamAccess: false,
   },
 } as const;
 
@@ -158,8 +321,8 @@ export function getTierLimits(
   subscriptionStatus?: SubscriptionStatus,
   subscriptionExpiresAt?: string | null
 ): TierLimits {
-  // Check if subscription is still active
-  if (!isSubscriptionActive(subscriptionExpiresAt)) {
+  // Check if subscription is still active (lifetime never expires)
+  if (subscriptionStatus !== 'lifetime' && !isSubscriptionActive(subscriptionExpiresAt)) {
     return TIER_LIMITS.free;
   }
 
@@ -170,6 +333,8 @@ export function getTierLimits(
       return TIER_LIMITS.advisor;
     case 'premium':
       return TIER_LIMITS.premium;
+    case 'lifetime':
+      return TIER_LIMITS.lifetime;
     case 'free':
     default:
       return TIER_LIMITS.free;
@@ -414,4 +579,621 @@ export function isTaxSeasonActive(): boolean {
  */
 export function formatLimit(limit: number): string {
   return limit === Infinity || limit === -1 ? 'Unlimited' : limit.toString();
+}
+
+// ==================== Watchlist Limits ====================
+
+/**
+ * Check if user can add more items to watchlist
+ */
+export function canAddToWatchlist(
+  currentWatchlistCount: number,
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): { allowed: boolean; limit: number; remaining: number } {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  const remaining = Math.max(0, limits.maxWatchlistItems - currentWatchlistCount);
+
+  return {
+    allowed: currentWatchlistCount < limits.maxWatchlistItems,
+    limit: limits.maxWatchlistItems === Infinity ? -1 : limits.maxWatchlistItems,
+    remaining: limits.maxWatchlistItems === Infinity ? -1 : remaining,
+  };
+}
+
+/**
+ * Get watchlist limit for a subscription tier
+ */
+export function getWatchlistLimit(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): number {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.maxWatchlistItems;
+}
+
+// ==================== Export Format Limits ====================
+
+export type ExportFormat = 'csv' | 'pdf' | 'excel' | 'taxSoftware';
+
+/**
+ * Check if user can use a specific export format
+ */
+export function canUseExportFormat(
+  format: ExportFormat,
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.exportFormats[format];
+}
+
+/**
+ * Get all available export formats for a user
+ */
+export function getAvailableExportFormats(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): ExportFormat[] {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  const formats: ExportFormat[] = [];
+
+  if (limits.exportFormats.csv) formats.push('csv');
+  if (limits.exportFormats.pdf) formats.push('pdf');
+  if (limits.exportFormats.excel) formats.push('excel');
+  if (limits.exportFormats.taxSoftware) formats.push('taxSoftware');
+
+  return formats;
+}
+
+// ==================== Premium Features ====================
+
+/**
+ * Check if user has access to monthly performance reports
+ */
+export function hasMonthlyPerformanceReport(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.monthlyPerformanceReport;
+}
+
+/**
+ * Check if user has access to premium research reports
+ */
+export function hasPremiumResearchReports(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.premiumResearchReports;
+}
+
+// ==================== Calculator Features ====================
+
+export type CalculatorFeature = 'basic' | 'advanced' | 'projections' | 'comparisons' | 'taxOptimization';
+
+/**
+ * Check if user can access a specific calculator feature
+ */
+export function canUseCalculatorFeature(
+  feature: CalculatorFeature,
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): boolean {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  return limits.calculatorFeatures[feature];
+}
+
+/**
+ * Get all available calculator features for a user
+ */
+export function getAvailableCalculatorFeatures(
+  subscriptionStatus?: SubscriptionStatus,
+  subscriptionExpiresAt?: string | null
+): CalculatorFeature[] {
+  const limits = getTierLimits(subscriptionStatus, subscriptionExpiresAt);
+  const features: CalculatorFeature[] = [];
+
+  if (limits.calculatorFeatures.basic) features.push('basic');
+  if (limits.calculatorFeatures.advanced) features.push('advanced');
+  if (limits.calculatorFeatures.projections) features.push('projections');
+  if (limits.calculatorFeatures.comparisons) features.push('comparisons');
+  if (limits.calculatorFeatures.taxOptimization) features.push('taxOptimization');
+
+  return features;
+}
+
+/**
+ * Check if user has lifetime access
+ */
+export function hasLifetimeAccess(
+  subscriptionStatus?: SubscriptionStatus
+): boolean {
+  return subscriptionStatus === 'lifetime';
+}
+
+// ==================== Lifetime Deal Configuration ====================
+
+export const LIFETIME_DEAL = {
+  id: 'lifetime-premium',
+  name: 'Lifetime Premium Access',
+  description: 'One-time payment for lifetime access to all premium features',
+  price: 299,
+  originalPrice: 499, // Show savings
+  currency: 'USD',
+  features: [
+    'Lifetime access to all Premium features',
+    'Never pay a subscription again',
+    'Ad-free experience forever',
+    'Unlimited portfolio assets',
+    'Unlimited watchlist items',
+    'All export formats (PDF, Excel, Tax Software)',
+    'Monthly performance reports',
+    'Premium research reports',
+    'Advanced calculator features',
+    'Cloud sync & email alerts',
+    'Priority support',
+    'All future premium features included',
+  ],
+  stripePriceId: import.meta.env.VITE_STRIPE_PRICE_LIFETIME || 'price_lifetime_placeholder',
+  limitedOffer: true,
+  maxPurchases: 500, // Limited quantity
+} as const;
+
+// ==================== Premium Add-On Features ====================
+// These are standalone subscriptions separate from the main tier system
+
+/**
+ * Influencer Verification Program
+ * - Users pay $2.99/month for transparency access
+ * - Influencers pay $49/month for verified badge
+ */
+export const INFLUENCER_VERIFICATION_PRICING = {
+  user_transparency: {
+    id: 'influencer-transparency',
+    name: 'Influencer Transparency Access',
+    description: 'See verified performance data for crypto influencers',
+    price_monthly: 2.99,
+    price_yearly: 29.99,
+    currency: 'USD',
+    features: [
+      'View verified win rates and returns',
+      'Compare claimed vs actual performance',
+      'Access accuracy scores and trust ratings',
+      'See on-chain verified trades',
+      'Monthly performance reports',
+    ],
+    stripePriceId: {
+      monthly: import.meta.env.VITE_STRIPE_INFLUENCER_TRANSPARENCY_MONTHLY || 'price_influencer_transparency_monthly',
+      yearly: import.meta.env.VITE_STRIPE_INFLUENCER_TRANSPARENCY_YEARLY || 'price_influencer_transparency_yearly',
+    },
+  },
+  influencer_badge: {
+    id: 'influencer-verified-badge',
+    name: 'Verified Influencer Badge',
+    description: 'Get verified status and prove your track record',
+    price_monthly: 49.00,
+    currency: 'USD',
+    features: [
+      'Verified badge on profile',
+      'Increased visibility in search',
+      'Trust score display',
+      'Wallet verification support',
+      'Performance analytics dashboard',
+      'Priority review for trade claims',
+    ],
+    stripePriceId: import.meta.env.VITE_STRIPE_INFLUENCER_BADGE || 'price_influencer_badge_monthly',
+  },
+} as const;
+
+/**
+ * NFT Portfolio Premium
+ * $14.99/month add-on or bundled
+ */
+export const NFT_PORTFOLIO_PRICING = {
+  id: 'nft-portfolio-premium',
+  name: 'NFT Portfolio Premium',
+  description: 'Advanced NFT tracking with floor price monitoring and rarity analytics',
+  price_monthly: 14.99,
+  price_yearly: 149.99,
+  currency: 'USD',
+  features: [
+    'Track unlimited NFT holdings',
+    'Real-time floor price monitoring',
+    'Rarity analytics and rankings',
+    'Floor price alerts',
+    'Collection performance tracking',
+    'Multi-wallet support (up to 5)',
+    'Historical price charts',
+    'P&L tracking with cost basis',
+  ],
+  limits: {
+    max_wallets: 5,
+    max_collections_tracked: 50,
+    max_alerts: 20,
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_NFT_PORTFOLIO_MONTHLY || 'price_nft_portfolio_monthly',
+    yearly: import.meta.env.VITE_STRIPE_NFT_PORTFOLIO_YEARLY || 'price_nft_portfolio_yearly',
+  },
+} as const;
+
+/**
+ * Social Trading / Copy Portfolio
+ * $9.99/month default, creators earn 20%
+ */
+export const SOCIAL_TRADING_PRICING = {
+  id: 'social-trading',
+  name: 'Copy Trading Subscription',
+  description: 'Copy successful trader portfolios automatically',
+  default_price: 9.99,
+  creator_share_percent: 20,
+  platform_share_percent: 80,
+  currency: 'USD',
+  min_copy_amount: 100,
+  features: {
+    follower: [
+      'Follow unlimited portfolios for free',
+      'See portfolio allocations',
+      'Get trade notifications',
+    ],
+    copier: [
+      'Auto-copy portfolio allocations',
+      'Proportional or fixed amount copying',
+      'Real-time trade mirroring',
+      'Performance tracking',
+      'Customizable copy settings',
+    ],
+    creator: [
+      'Publish your portfolio',
+      'Earn 20% of subscriber fees',
+      'Performance analytics',
+      'Follower insights',
+      'Verified badge eligibility',
+    ],
+  },
+  stripePriceId: import.meta.env.VITE_STRIPE_COPY_TRADING || 'price_copy_trading_base',
+} as const;
+
+/**
+ * On-Chain Analytics
+ * Free: Basic metrics
+ * Pro: $29.99/month
+ * Enterprise: Custom pricing
+ */
+export const ONCHAIN_ANALYTICS_PRICING = {
+  tiers: {
+    basic: {
+      id: 'onchain-basic',
+      name: 'On-Chain Analytics Basic',
+      description: 'Essential on-chain metrics for free',
+      price: 0,
+      currency: 'USD',
+      features: [
+        'Active addresses',
+        'Transaction count',
+        'Transaction volume',
+        'Daily data only',
+        '30 days historical',
+        '3 alerts max',
+      ],
+      limits: {
+        metrics: ['active_addresses', 'transaction_count', 'transaction_volume'],
+        aggregation_periods: ['daily'],
+        historical_days: 30,
+        max_alerts: 3,
+        api_access: false,
+        custom_dashboards: false,
+        export_enabled: false,
+      },
+    },
+    pro: {
+      id: 'onchain-pro',
+      name: 'On-Chain Analytics Pro',
+      description: 'Full access to all on-chain metrics and alerts',
+      price_monthly: 29.99,
+      price_yearly: 299.99,
+      currency: 'USD',
+      features: [
+        'All 20+ on-chain metrics',
+        'Exchange flows analysis',
+        'Miner metrics',
+        'Valuation indicators (NVT, MVRV, SOPR)',
+        'Holder behavior analytics',
+        'Hourly/Daily/Weekly data',
+        '365 days historical',
+        '20 custom alerts',
+        'Custom dashboards',
+        'Data export (CSV/JSON)',
+        'API access',
+      ],
+      limits: {
+        metrics: 'all',
+        aggregation_periods: ['hourly', 'daily', 'weekly', 'monthly'],
+        historical_days: 365,
+        max_alerts: 20,
+        api_access: true,
+        custom_dashboards: true,
+        export_enabled: true,
+      },
+      stripePriceId: {
+        monthly: import.meta.env.VITE_STRIPE_ONCHAIN_PRO_MONTHLY || 'price_onchain_pro_monthly',
+        yearly: import.meta.env.VITE_STRIPE_ONCHAIN_PRO_YEARLY || 'price_onchain_pro_yearly',
+      },
+    },
+    enterprise: {
+      id: 'onchain-enterprise',
+      name: 'On-Chain Analytics Enterprise',
+      description: 'Enterprise-grade analytics with dedicated support',
+      price: 'custom',
+      currency: 'USD',
+      features: [
+        'Everything in Pro',
+        '5 years historical data',
+        '100 custom alerts',
+        'Team access',
+        'Dedicated account manager',
+        'Custom metrics development',
+        'Priority data feeds',
+        'SLA guarantees',
+      ],
+      limits: {
+        metrics: 'all',
+        aggregation_periods: ['hourly', 'daily', 'weekly', 'monthly'],
+        historical_days: 1825,
+        max_alerts: 100,
+        api_access: true,
+        custom_dashboards: true,
+        export_enabled: true,
+        team_access: true,
+      },
+    },
+  },
+} as const;
+
+/**
+ * Lending Comparison (Free with Affiliate)
+ * Affiliate commissions: $500-5000 per referred depositor
+ */
+export const LENDING_AFFILIATE_CONFIG = {
+  id: 'lending-affiliate',
+  name: 'Lending Platform Comparison',
+  description: 'Compare lending rates across DeFi and CeFi platforms',
+  pricing: 'free',
+  revenue_model: 'affiliate',
+  commission_range: {
+    min: 500,
+    max: 5000,
+    currency: 'USD',
+  },
+  cookie_duration_days: 30,
+} as const;
+
+// ==================== Add-On Access Helpers ====================
+
+/**
+ * Check if user has NFT Portfolio Premium access
+ */
+export function hasNFTPortfolioPremium(
+  nftSubscriptionStatus?: 'active' | 'inactive' | 'cancelled'
+): boolean {
+  return nftSubscriptionStatus === 'active';
+}
+
+/**
+ * Check if user has On-Chain Analytics Pro access
+ */
+export function hasOnChainAnalyticsPro(
+  onchainTier?: 'basic' | 'pro' | 'enterprise'
+): boolean {
+  return onchainTier === 'pro' || onchainTier === 'enterprise';
+}
+
+/**
+ * Check if user has influencer transparency access
+ */
+export function hasInfluencerTransparencyAccess(
+  transparencySubscriptionStatus?: 'active' | 'inactive' | 'cancelled'
+): boolean {
+  return transparencySubscriptionStatus === 'active';
+}
+
+/**
+ * Check if user can copy trade a portfolio
+ */
+export function hasCopyTradingAccess(
+  copySubscriptionStatus?: 'active' | 'paused' | 'cancelled'
+): boolean {
+  return copySubscriptionStatus === 'active';
+}
+
+// ==================== Premium Feature Add-Ons ====================
+
+/**
+ * Hardware Wallet Integration
+ * $14.99/month for tracking cold storage with Ledger/Trezor
+ */
+export const HARDWARE_WALLET_PRICING = {
+  id: 'hardware-wallet-integration',
+  name: 'Hardware Wallet Integration',
+  description: 'Track your cold storage assets across Ledger, Trezor, and other hardware wallets',
+  price_monthly: 14.99,
+  price_yearly: 149.99,
+  currency: 'USD',
+  features: [
+    'Connect up to 5 hardware wallets',
+    'Track 50 addresses per wallet',
+    'Multi-chain support (ETH, BTC, Polygon, etc.)',
+    'Real-time balance tracking',
+    'Transaction history',
+    'Portfolio analytics',
+    'Export reports',
+    'Partner discounts on hardware',
+  ],
+  limits: {
+    free: { max_devices: 0, max_addresses: 0 },
+    basic: { max_devices: 2, max_addresses: 10 },
+    premium: { max_devices: 5, max_addresses: 50 },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_HARDWARE_WALLET_MONTHLY || 'price_hw_monthly',
+    yearly: import.meta.env.VITE_STRIPE_HARDWARE_WALLET_YEARLY || 'price_hw_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has hardware wallet premium access
+ */
+export function hasHardwareWalletAccess(
+  hardwareWalletStatus?: 'active' | 'inactive' | 'cancelled'
+): boolean {
+  return hardwareWalletStatus === 'active';
+}
+
+/**
+ * Gas Fee Optimizer
+ * Free basic, $4.99/month for premium predictions
+ */
+export const GAS_OPTIMIZER_PRICING = {
+  id: 'gas-fee-optimizer',
+  name: 'Gas Fee Optimizer',
+  description: 'Predict optimal times for Ethereum transactions to minimize gas fees',
+  price_monthly: 4.99,
+  price_yearly: 49.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Current gas prices for all chains',
+      'Basic transaction cost estimates',
+      '3 price alerts',
+      '24-hour price history',
+    ],
+    premium: [
+      'Real-time gas price updates',
+      'AI-powered price predictions',
+      'Optimal timing recommendations',
+      '50 price alerts',
+      '30-day price history',
+      'Email & push notifications',
+      'Transaction scheduling',
+    ],
+  },
+  limits: {
+    free: { max_alerts: 3, has_predictions: false, has_realtime: false },
+    premium: { max_alerts: 50, has_predictions: true, has_realtime: true },
+  },
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_GAS_OPTIMIZER_MONTHLY || 'price_gas_monthly',
+    yearly: import.meta.env.VITE_STRIPE_GAS_OPTIMIZER_YEARLY || 'price_gas_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has gas optimizer premium access
+ */
+export function hasGasOptimizerPremium(
+  gasOptimizerStatus?: 'free' | 'premium'
+): boolean {
+  return gasOptimizerStatus === 'premium';
+}
+
+/**
+ * DeFi Yield Aggregator
+ * Free limited, $19.99/month for full access
+ */
+export const DEFI_YIELD_PRICING = {
+  id: 'defi-yield-aggregator',
+  name: 'DeFi Yield Aggregator',
+  description: 'Compare yield farming opportunities across DeFi protocols',
+  price_monthly: 19.99,
+  price_yearly: 199.99,
+  currency: 'USD',
+  features: {
+    free: [
+      'Top 10 pools per chain',
+      'Basic APY information',
+      'Simple IL calculator',
+      'Protocol safety scores',
+    ],
+    premium: [
+      'All pools across all chains',
+      'Real-time APY tracking',
+      'Advanced IL calculator',
+      'Portfolio position tracking',
+      'Yield alerts & notifications',
+      'Historical APY data',
+      'Risk-adjusted rankings',
+      'API access',
+    ],
+  },
+  limits: {
+    free: { pools_per_chain: 10, has_portfolio_tracking: false, has_alerts: false },
+    premium: { pools_per_chain: Infinity, has_portfolio_tracking: true, has_alerts: true },
+  },
+  affiliate_commission_percent: 0.5,
+  stripePriceId: {
+    monthly: import.meta.env.VITE_STRIPE_DEFI_YIELD_MONTHLY || 'price_defi_monthly',
+    yearly: import.meta.env.VITE_STRIPE_DEFI_YIELD_YEARLY || 'price_defi_yearly',
+  },
+} as const;
+
+/**
+ * Check if user has DeFi yield premium access
+ */
+export function hasDeFiYieldPremium(
+  defiYieldStatus?: 'free' | 'premium'
+): boolean {
+  return defiYieldStatus === 'premium';
+}
+
+/**
+ * Crypto Retirement Calculator
+ * $99/year premium or bundled with main subscription
+ */
+export const RETIREMENT_CALCULATOR_PRICING = {
+  id: 'crypto-retirement-calculator',
+  name: 'Crypto Retirement Calculator',
+  description: 'Model crypto allocation in retirement portfolio with Monte Carlo projections',
+  price_yearly: 99,
+  currency: 'USD',
+  bundled_with_premium: true,
+  features: {
+    free: [
+      'Basic retirement projections',
+      '3 saved scenarios',
+      'Simple crypto allocation',
+      'Basic charts',
+    ],
+    premium: [
+      'Monte Carlo simulations (10,000 runs)',
+      'Unlimited saved scenarios',
+      'Advanced crypto modeling',
+      'Tax optimization strategies',
+      'Roth conversion analysis',
+      'Withdrawal strategy optimization',
+      'PDF export with charts',
+      'Social Security optimization',
+    ],
+  },
+  limits: {
+    free: { max_scenarios: 3, has_monte_carlo: false, has_tax_optimization: false, has_pdf_export: false },
+    premium: { max_scenarios: Infinity, has_monte_carlo: true, has_tax_optimization: true, has_pdf_export: true },
+  },
+  stripePriceId: import.meta.env.VITE_STRIPE_RETIREMENT_YEARLY || 'price_retirement_yearly',
+} as const;
+
+/**
+ * Check if user has retirement calculator premium access
+ */
+export function hasRetirementCalculatorPremium(
+  retirementCalcStatus?: 'free' | 'premium' | 'bundled',
+  mainSubscriptionStatus?: SubscriptionStatus
+): boolean {
+  // Bundled with main premium subscription
+  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+    return true;
+  }
+  return retirementCalcStatus === 'premium' || retirementCalcStatus === 'bundled';
 }

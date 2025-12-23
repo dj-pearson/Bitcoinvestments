@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getCourses,
   getCourse,
   enrollInCourse,
   getUserEnrollments,
   completeLesson,
+  CATEGORY_LABELS,
+  LEVEL_LABELS,
+  LEVEL_COLORS
+} from '../services/interactiveCourses';
+import type {
   Course,
   Module,
   Lesson,
   UserEnrollment,
   CourseFilters,
   CourseCategory,
-  CourseLevel,
-  CATEGORY_LABELS,
-  LEVEL_LABELS,
-  LEVEL_COLORS
+  CourseLevel
 } from '../services/interactiveCourses';
 
 // Icons
@@ -547,7 +549,7 @@ export default function InteractiveCourses({ userId }: InteractiveCoursesProps) 
                   </div>
 
                   <div className="divide-y">
-                    {module.lessons.map((lesson, lessonIndex) => {
+                    {module.lessons.map((lesson) => {
                       const isLocked = !currentEnrollment && !lesson.isFree;
 
                       return (

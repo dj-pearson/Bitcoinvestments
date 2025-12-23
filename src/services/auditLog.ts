@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Audit Logging Service
@@ -112,7 +112,7 @@ export async function logAuditEvent(params: {
       created_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('admin_audit_logs').insert(entry);
+    const { error } = await db.from('admin_audit_logs').insert(entry);
 
     if (error) {
       // If table doesn't exist, log to console instead

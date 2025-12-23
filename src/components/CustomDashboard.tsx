@@ -8,8 +8,6 @@ import {
   Save,
   Eye,
   EyeOff,
-  Maximize2,
-  Minimize2,
   Wallet,
   TrendingUp,
   Globe,

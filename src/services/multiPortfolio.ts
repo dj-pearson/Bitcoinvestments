@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { isSupabaseConfigured, db } from '../lib/supabase';
 
 /**
  * Multi-Portfolio Support Service
@@ -95,7 +95,7 @@ export async function getUserPortfolios(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('portfolios')
       .select('*')
       .eq('user_id', userId)
@@ -130,7 +130,7 @@ export async function getPortfolio(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('portfolios')
       .select('*')
       .eq('id', portfolioId)
@@ -172,13 +172,13 @@ export async function createPortfolio(
     if (isSupabaseConfigured()) {
       // If setting as default, unset other defaults first
       if (is_default) {
-        await supabase
+        await db
           .from('portfolios')
           .update({ is_default: false })
           .eq('user_id', userId);
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('portfolios')
         .insert({
           ...portfolio,
@@ -222,7 +222,7 @@ export async function updatePortfolio(
   }
 
   try {
-    const { error } = await supabase
+    const { error } = await db
       .from('portfolios')
       .update({
         ...updates,
@@ -254,7 +254,7 @@ export async function deletePortfolio(
 
   try {
     // Check if this is the default portfolio
-    const { data: portfolio } = await supabase
+    const { data: portfolio } = await db
       .from('portfolios')
       .select('is_default, user_id')
       .eq('id', portfolioId)
@@ -267,7 +267,7 @@ export async function deletePortfolio(
       };
     }
 
-    const { error } = await supabase.from('portfolios').delete().eq('id', portfolioId);
+    const { error } = await db.from('portfolios').delete().eq('id', portfolioId);
 
     if (error) throw error;
 
@@ -294,13 +294,13 @@ export async function setDefaultPortfolio(
 
   try {
     // Unset current default
-    await supabase
+    await db
       .from('portfolios')
       .update({ is_default: false, updated_at: new Date().toISOString() })
       .eq('user_id', userId);
 
     // Set new default
-    const { error } = await supabase
+    const { error } = await db
       .from('portfolios')
       .update({ is_default: true, updated_at: new Date().toISOString() })
       .eq('id', portfolioId);
@@ -328,7 +328,7 @@ export async function getPortfolioHoldings(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('portfolio_holdings')
       .select('*')
       .eq('portfolio_id', portfolioId)
@@ -341,7 +341,7 @@ export async function getPortfolioHoldings(
       throw error;
     }
 
-    return { holdings: data || [], error: null };
+    return { holdings: (data as PortfolioHolding[]) || [], error: null };
   } catch (error) {
     console.error('Error fetching holdings:', error);
     return {

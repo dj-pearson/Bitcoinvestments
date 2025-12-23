@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getStories,
   getStory,
   likeStory,
   submitStory,
-  SuccessStory,
-  StoryFilters,
-  StoryCategory,
   STORY_CATEGORY_LABELS,
   STORY_CATEGORY_COLORS
+} from '../services/successStories';
+import type {
+  SuccessStory,
+  StoryFilters,
+  StoryCategory
 } from '../services/successStories';
 
 // Icons

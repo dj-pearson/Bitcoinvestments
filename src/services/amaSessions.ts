@@ -1,7 +1,7 @@
 // Expert AMA Sessions Service
 // Live Q&A sessions with cryptocurrency experts
 
-import { supabase } from '../lib/supabase';
+import { supabase, db } from '../lib/supabase';
 
 export type AMAStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
 export type QuestionStatus = 'pending' | 'approved' | 'answered' | 'rejected';
@@ -248,7 +248,7 @@ export async function getAMASessions(filters: AMAFilters = {}): Promise<{
       };
     }
 
-    let query = supabase
+    let query = db
       .from('ama_sessions')
       .select('*, expert:ama_experts(*)', { count: 'exact' });
 
@@ -275,7 +275,7 @@ export async function getAMASessions(filters: AMAFilters = {}): Promise<{
 
     if (error) throw error;
 
-    return { sessions: data || [], total: count || 0, error: null };
+    return { sessions: (data as AMASession[]) || [], total: count || 0, error: null };
   } catch (err) {
     console.error('Error fetching AMA sessions:', err);
     return { sessions: DEMO_SESSIONS, total: DEMO_SESSIONS.length, error: null };
@@ -302,7 +302,7 @@ export async function getAMASession(idOrSlug: string): Promise<{
       };
     }
 
-    const { data: amaSession, error: sessionError } = await supabase
+    const { data: amaSession, error: sessionError } = await db
       .from('ama_sessions')
       .select('*, expert:ama_experts(*)')
       .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
@@ -310,7 +310,7 @@ export async function getAMASession(idOrSlug: string): Promise<{
 
     if (sessionError) throw sessionError;
 
-    const { data: questions } = await supabase
+    const { data: questions } = await db
       .from('ama_questions')
       .select('*')
       .eq('session_id', amaSession.id)
@@ -318,8 +318,8 @@ export async function getAMASession(idOrSlug: string): Promise<{
       .order('upvotes', { ascending: false });
 
     return {
-      session: amaSession,
-      questions: questions || [],
+      session: amaSession as AMASession,
+      questions: (questions as AMAQuestion[]) || [],
       error: null
     };
   } catch (err) {
@@ -344,7 +344,7 @@ export async function registerForAMA(userId: string, sessionId: string): Promise
       return { success: true, error: null };
     }
 
-    const { error } = await supabase
+    const { error } = await db
       .from('ama_registrations')
       .upsert({
         user_id: userId,
@@ -355,7 +355,7 @@ export async function registerForAMA(userId: string, sessionId: string): Promise
     if (error) throw error;
 
     // Increment attendee count
-    await supabase.rpc('increment_ama_attendees', { session_id: sessionId });
+    await db.rpc('increment_ama_attendees', { session_id: sessionId });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -391,7 +391,7 @@ export async function submitQuestion(
 
     const { data: user } = await supabase.auth.getUser();
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('ama_questions')
       .insert({
         session_id: sessionId,
@@ -407,9 +407,9 @@ export async function submitQuestion(
     if (error) throw error;
 
     // Increment question count
-    await supabase.rpc('increment_ama_questions', { session_id: sessionId });
+    await db.rpc('increment_ama_questions', { session_id: sessionId });
 
-    return { question: data, error: null };
+    return { question: data as AMAQuestion, error: null };
   } catch (err: any) {
     console.error('Error submitting question:', err);
     return { question: null, error: err.message };
@@ -428,12 +428,12 @@ export async function upvoteQuestion(userId: string, questionId: string): Promis
       return { success: true, error: null };
     }
 
-    await supabase.from('ama_question_votes').upsert({
+    await db.from('ama_question_votes').upsert({
       user_id: userId,
       question_id: questionId
     });
 
-    await supabase.rpc('update_question_upvotes', { question_id: questionId });
+    await db.rpc('update_question_upvotes', { question_id: questionId });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -453,7 +453,7 @@ export async function getUserRegistrations(userId: string): Promise<{
       return { registrations: [], error: null };
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('ama_registrations')
       .select('*, session:ama_sessions(*, expert:ama_experts(*))')
       .eq('user_id', userId)
@@ -461,7 +461,7 @@ export async function getUserRegistrations(userId: string): Promise<{
 
     if (error) throw error;
 
-    return { registrations: data || [], error: null };
+    return { registrations: (data as AMARegistration[]) || [], error: null };
   } catch (err) {
     return { registrations: [], error: null };
   }
@@ -476,12 +476,12 @@ export async function getExperts(): Promise<AMAExpert[]> {
       return DEMO_EXPERTS;
     }
 
-    const { data } = await supabase
+    const { data } = await db
       .from('ama_experts')
       .select('*')
       .order('total_sessions', { ascending: false });
 
-    return data || DEMO_EXPERTS;
+    return (data as AMAExpert[]) || DEMO_EXPERTS;
   } catch (err) {
     return DEMO_EXPERTS;
   }

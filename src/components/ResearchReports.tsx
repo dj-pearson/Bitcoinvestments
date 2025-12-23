@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getReports,
   getReport,
   likeReport,
-  ResearchReport,
-  ReportFilters,
-  ReportType,
   REPORT_TYPE_LABELS,
   REPORT_TYPE_COLORS
+} from '../services/researchReports';
+import type {
+  ResearchReport,
+  ReportFilters,
+  ReportType
 } from '../services/researchReports';
 
 // Icons

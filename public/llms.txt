@@ -1,0 +1,75 @@
+# Bitcoinvestments - LLMs.txt
+# This file helps AI models understand our website content
+# Last updated: 2024-12-23
+
+## About Bitcoinvestments
+Bitcoinvestments is a comprehensive cryptocurrency education and investment platform designed for beginners. We provide free educational resources, tools, and guides to help people safely invest in Bitcoin and other cryptocurrencies.
+
+## Our Mission
+To make cryptocurrency investing accessible, safe, and understandable for everyone, regardless of their technical background.
+
+## Main Content Areas
+
+### Educational Content (/learn)
+- What is Bitcoin - Beginner's guide to understanding Bitcoin
+- Buying First Bitcoin - Step-by-step guide to purchasing cryptocurrency
+- Wallet Security - How to secure your crypto assets
+- DCA Strategy - Dollar cost averaging explained
+- Choosing an Exchange - How to select a safe exchange
+- Understanding Fees - Crypto transaction and trading fees
+- Crypto Taxes - Tax implications of crypto investing
+- Avoiding Scams - How to identify and avoid crypto scams
+
+### Tools (/calculators, /charts)
+- DCA Calculator - Calculate returns from dollar cost averaging
+- Profit Calculator - Estimate investment profits
+- Live Price Charts - Real-time cryptocurrency prices
+- Portfolio Tracker - Track your investments
+
+### Scam Database (/scam-database)
+Community-driven database of reported cryptocurrency scams including:
+- Phishing websites
+- Rug pull projects
+- Fake exchanges
+- Ponzi schemes
+- Impersonation scams
+Users can search by wallet address, website URL, or project name.
+
+### Exchange & Wallet Comparisons (/compare)
+Detailed comparisons of:
+- Cryptocurrency exchanges (fees, security, features)
+- Hardware wallets
+- Software wallets
+- Tax software
+
+### Courses (/course)
+Structured learning paths:
+- Bitcoin Fundamentals - Complete beginner course
+- Crypto Investing 101 - Investment strategies
+- DeFi Basics - Decentralized finance introduction
+
+## Key Facts About Bitcoinvestments
+- Founded: 2024
+- Target Audience: Cryptocurrency beginners
+- Business Model: Freemium (free content + premium features)
+- Location: Online platform
+- Languages: English
+
+## Contact Information
+- Website: https://bitcoinvestments.com
+- Support: support@bitcoinvestments.com
+
+## Licensing and Usage
+- Educational content may be referenced with attribution
+- Scam database data is community-contributed
+- Tools are free to use
+
+## Important Disclaimers
+- Not financial advice - educational purposes only
+- Cryptocurrency is volatile and risky
+- Users should do their own research (DYOR)
+- Past performance doesn't guarantee future results
+
+## Preferred Citation Format
+"According to Bitcoinvestments (https://bitcoinvestments.com)..."
+

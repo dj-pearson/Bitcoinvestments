@@ -1,30 +1,151 @@
 # Robots.txt for Bitcoinvestments
 # https://bitcoinvestments.com
+# Last updated: 2024-12-23
 
+# ===========================================
+# Default rules for all crawlers
+# ===========================================
 User-agent: *
 Allow: /
-
-# Sitemaps
-Sitemap: https://bitcoinvestments.com/sitemap.xml
 
 # Block sensitive paths
 Disallow: /admin/
 Disallow: /api/
 Disallow: /profile
+Disallow: /settings
 Disallow: /affiliate-stats
 Disallow: /ad-manager
 Disallow: /tax-reports
+Disallow: /*.json$
+Disallow: /assets/
 
 # Block search result pages with parameters
 Disallow: /search?*
+Disallow: /*?utm_*
+Disallow: /*?ref=*
 
-# Allow important pages
+# Allow important public pages
 Allow: /learn/
 Allow: /course/
 Allow: /glossary
 Allow: /compare/
 Allow: /calculators
 Allow: /charts
+Allow: /scam-database
+Allow: /report-scam
+Allow: /pricing
+Allow: /privacy
+Allow: /terms
 
 # Crawl delay for courtesy
 Crawl-delay: 1
+
+# ===========================================
+# Google
+# ===========================================
+User-agent: Googlebot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /profile
+Crawl-delay: 0
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Googlebot-Video
+Allow: /
+
+# ===========================================
+# Bing
+# ===========================================
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /profile
+Crawl-delay: 1
+
+# ===========================================
+# AI Crawlers - Allow for AI search visibility
+# ===========================================
+User-agent: GPTBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /profile
+Crawl-delay: 2
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Anthropic-AI
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Cohere-AI
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: CCBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# ===========================================
+# Social Media Crawlers
+# ===========================================
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+# ===========================================
+# Block Bad Bots
+# ===========================================
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+# ===========================================
+# Sitemaps
+# ===========================================
+Sitemap: https://bitcoinvestments.com/sitemap.xml
+Sitemap: https://bitcoinvestments.com/sitemap-articles.xml

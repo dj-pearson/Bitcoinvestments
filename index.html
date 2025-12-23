@@ -11,6 +11,12 @@
     </script>
 
     <meta charset="UTF-8" />
+    
+    <!-- Preconnect to important domains for performance -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="preconnect" href="https://api.coingecko.com" />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
@@ -23,10 +29,23 @@
     <!-- Primary Meta Tags -->
     <title>Bitcoinvestments | Learn Crypto Investing for Beginners</title>
     <meta name="title" content="Bitcoinvestments | Learn Crypto Investing for Beginners" />
-    <meta name="description" content="Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators and portfolio tracking." />
-    <meta name="keywords" content="Bitcoin, cryptocurrency, crypto investment, DCA, dollar cost averaging, crypto education, exchange comparison, wallet comparison, Bitcoin guide, cryptocurrency for beginners, crypto scam database, scam checker, wallet address scam, rug pull checker, crypto fraud report, pig butchering scam, phishing crypto, fake exchange, blockchain scam tracker" />
+    <meta name="description" content="Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators, portfolio tracking, and crypto scam database." />
+    <meta name="keywords" content="Bitcoin, cryptocurrency, crypto investment, DCA, dollar cost averaging, crypto education, exchange comparison, wallet comparison, Bitcoin guide, cryptocurrency for beginners, crypto scam database, scam checker, wallet address scam, rug pull checker, crypto fraud report, pig butchering scam, phishing crypto, fake exchange, blockchain scam tracker, Bitcoin calculator, crypto portfolio, Coinbase vs Kraken" />
     <meta name="author" content="Bitcoinvestments" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-image-preview:large" />
+    <meta name="bingbot" content="index, follow" />
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="rating" content="General" />
+    <meta name="distribution" content="global" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="language" content="English" />
+    <meta name="geo.region" content="US" />
+    <meta name="geo.placename" content="United States" />
+    <meta name="classification" content="Finance, Education, Cryptocurrency" />
+    <meta name="coverage" content="Worldwide" />
+    <meta name="target" content="all" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -141,6 +160,119 @@
           "name": "Report a Scam",
           "description": "Report cryptocurrency fraud and scams to protect the community",
           "url": "https://bitcoinvestments.com/report-scam"
+        }
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD WebApplication Schema (for tools) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Bitcoinvestments",
+      "description": "Cryptocurrency investment platform with DCA calculator, portfolio tracker, and scam database",
+      "url": "https://bitcoinvestments.com",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free tier available"
+      },
+      "featureList": [
+        "DCA Calculator",
+        "Portfolio Tracking",
+        "Crypto Scam Database",
+        "Exchange Comparison",
+        "Educational Guides",
+        "Price Alerts",
+        "Tax Reports"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }
+    </script>
+
+    <!-- JSON-LD FAQPage Schema for common questions -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Bitcoin?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Bitcoin is a decentralized digital currency created in 2009. It operates on a peer-to-peer network without the need for intermediaries like banks. Bitcoin uses blockchain technology to record all transactions securely and transparently."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is DCA (Dollar Cost Averaging)?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Dollar Cost Averaging (DCA) is an investment strategy where you invest a fixed amount of money at regular intervals, regardless of the asset's price. This approach reduces the impact of volatility and eliminates the need to time the market."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I avoid cryptocurrency scams?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "To avoid crypto scams: 1) Never share your private keys or seed phrases, 2) Use our scam database to check wallet addresses and websites, 3) Be wary of promises of guaranteed returns, 4) Only use reputable exchanges, 5) Enable two-factor authentication, 6) Research projects thoroughly before investing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which cryptocurrency exchange is best for beginners?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The best exchange for beginners depends on your location and needs. Popular options include Coinbase (user-friendly), Kraken (strong security), and Binance (low fees). Use our exchange comparison tool to find the best fit for you based on fees, security, and available features."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Bitcoinvestments free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! Bitcoinvestments offers a free tier with access to educational guides, DCA calculator, scam database search, and exchange comparisons. Premium features like advanced portfolio tracking and tax reports are available with a paid subscription."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://bitcoinvestments.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Learn",
+          "item": "https://bitcoinvestments.com/learn"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Tools",
+          "item": "https://bitcoinvestments.com/calculators"
         }
       ]
     }

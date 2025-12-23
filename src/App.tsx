@@ -52,6 +52,13 @@ import HardwareWallet from './pages/HardwareWallet';
 import GasOptimizer from './pages/GasOptimizer';
 import DeFiYield from './pages/DeFiYield';
 import RetirementCalculator from './pages/RetirementCalculator';
+import MultiExchange from './pages/MultiExchange';
+import StakingCalculator from './pages/StakingCalculator';
+import TradingIndicators from './pages/TradingIndicators';
+import WhaleTrackingPage from './pages/WhaleTracking';
+import RebalancingAlertsPage from './pages/RebalancingAlerts';
+import DCAAutomationPage from './pages/DCAAutomation';
+import SmartAlertBundlesPage from './pages/SmartAlertBundles';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -122,6 +129,15 @@ function App() {
                   <Route path="gas-optimizer" element={<GasOptimizer />} />
                   <Route path="defi-yield" element={<DeFiYield />} />
                   <Route path="retirement-calculator" element={<RetirementCalculator />} />
+
+                  {/* New Premium Monetization Features */}
+                  <Route path="multi-exchange" element={<MultiExchange />} />
+                  <Route path="staking-calculator" element={<StakingCalculator />} />
+                  <Route path="trading-indicators" element={<TradingIndicators />} />
+                  <Route path="whale-tracking" element={<WhaleTrackingPage />} />
+                  <Route path="rebalancing-alerts" element={<RebalancingAlertsPage />} />
+                  <Route path="dca-automation" element={<DCAAutomationPage />} />
+                  <Route path="alert-bundles" element={<SmartAlertBundlesPage />} />
 
                   <Route path="start" element={<Learn />} />
                   <Route path="prices" element={<Dashboard />} />

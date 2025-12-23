@@ -48,6 +48,10 @@ import InfluencerVerification from './pages/InfluencerVerification';
 import LendingComparison from './pages/LendingComparison';
 import SocialTrading from './pages/SocialTrading';
 import OnChainAnalytics from './pages/OnChainAnalytics';
+import HardwareWallet from './pages/HardwareWallet';
+import GasOptimizer from './pages/GasOptimizer';
+import DeFiYield from './pages/DeFiYield';
+import RetirementCalculator from './pages/RetirementCalculator';
 import { wagmiConfig } from './lib/wagmi';
 
 const queryClient = new QueryClient();
@@ -112,6 +116,12 @@ function App() {
                   <Route path="lending" element={<LendingComparison />} />
                   <Route path="social-trading" element={<SocialTrading />} />
                   <Route path="onchain-analytics" element={<OnChainAnalytics />} />
+
+                  {/* Premium Crypto Features */}
+                  <Route path="hardware-wallet" element={<HardwareWallet />} />
+                  <Route path="gas-optimizer" element={<GasOptimizer />} />
+                  <Route path="defi-yield" element={<DeFiYield />} />
+                  <Route path="retirement-calculator" element={<RetirementCalculator />} />
 
                   <Route path="start" element={<Learn />} />
                   <Route path="prices" element={<Dashboard />} />

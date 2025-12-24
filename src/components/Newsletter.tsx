@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 import { subscribeToNewsletter } from '../services/database';
 
 interface NewsletterProps {
@@ -52,10 +53,16 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
           </button>
         </form>
         {status === 'success' && (
-          <p className="mt-2 text-green-400 text-xs">{message}</p>
+          <div className="mt-3 p-3 bg-green-900/30 border border-green-700/50 rounded-lg flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <p className="text-green-400 text-sm">{message}</p>
+          </div>
         )}
         {status === 'error' && (
-          <p className="mt-2 text-red-400 text-xs">{message}</p>
+          <div className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <p className="text-red-400 text-sm">{message}</p>
+          </div>
         )}
       </div>
     );
@@ -83,10 +90,17 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
             {status === 'loading' ? 'Subscribing...' : 'Subscribe Free'}
           </button>
         </form>
-        {(status === 'success' || status === 'error') && (
-          <p className={`mt-2 text-sm ${status === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-            {message}
-          </p>
+        {status === 'success' && (
+          <div className="mt-3 p-3 bg-green-900/30 border border-green-700/50 rounded-lg flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+            <p className="text-green-400 text-sm font-medium">{message}</p>
+          </div>
+        )}
+        {status === 'error' && (
+          <div className="mt-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+            <p className="text-red-400 text-sm font-medium">{message}</p>
+          </div>
         )}
       </div>
     );
@@ -135,7 +149,10 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
             {status === 'loading' ? 'Subscribing...' : 'Subscribe for Free'}
           </button>
           {status === 'error' && (
-            <p className="text-red-400 text-sm text-center">{message}</p>
+            <div className="p-3 bg-red-900/30 border border-red-700/50 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <p className="text-red-400 text-sm">{message}</p>
+            </div>
           )}
           <p className="text-gray-500 text-xs text-center">
             No spam, unsubscribe anytime. We respect your privacy.

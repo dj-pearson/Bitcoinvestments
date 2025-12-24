@@ -99,7 +99,7 @@ export function Signup() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
+                Email Address <span className="text-red-400">*</span>
               </label>
               <input
                 type="email"
@@ -114,7 +114,7 @@ export function Signup() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Password
+                Password <span className="text-red-400">*</span>
               </label>
               <input
                 type="password"
@@ -129,7 +129,7 @@ export function Signup() {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm Password
+                Confirm Password <span className="text-red-400">*</span>
               </label>
               <input
                 type="password"

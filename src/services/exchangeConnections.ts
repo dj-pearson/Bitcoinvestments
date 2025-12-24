@@ -266,7 +266,7 @@ export async function connectExchangeWithApiKey(
           exchange_id: exchangeId,
           exchange_name: exchange.name,
           auth_type: 'api_key',
-          encrypted_credentials: encryptCredentials({ apiKey, apiSecret, passphrase }),
+          encrypted_credentials: await encryptCredentials({ apiKey, apiSecret, passphrase }, userId),
           permissions: exchange.permissions,
           status: 'active',
         })
@@ -351,7 +351,7 @@ export async function completeOAuthConnection(
           exchange_id: exchangeId,
           exchange_name: exchange.name,
           auth_type: 'oauth',
-          encrypted_credentials: encryptCredentials({ code }), // Would be tokens
+          encrypted_credentials: await encryptCredentials({ code }, userId), // Would be tokens
           permissions: exchange.permissions,
           status: 'active',
         })
@@ -411,13 +411,13 @@ export async function syncConnection(
     // Fetch balances from exchange
     const balances = await fetchExchangeBalances(
       connection.exchange_id,
-      decryptCredentials(connection.encrypted_credentials || '')
+      await decryptCredentials(connection.encrypted_credentials || '', connection.user_id)
     );
 
     // Fetch transactions
     const transactions = await fetchExchangeTransactions(
       connection.exchange_id,
-      decryptCredentials(connection.encrypted_credentials || '')
+      await decryptCredentials(connection.encrypted_credentials || '', connection.user_id)
     );
 
     // Store balances
@@ -596,14 +596,122 @@ async function validateApiCredentials(
   return { valid: true };
 }
 
-function encryptCredentials(credentials: Record<string, unknown>): string {
-  // In production, use proper encryption (e.g., AES-256-GCM)
-  return Buffer.from(JSON.stringify(credentials)).toString('base64');
+/**
+ * Encrypts credentials using AES-256-GCM
+ *
+ * SECURITY NOTE: For production, credentials encryption should be moved to server-side
+ * to avoid exposing encryption keys in client-side code. This implementation uses
+ * user-specific key derivation as a significant improvement over base64, but
+ * server-side encryption with Hardware Security Modules (HSM) is recommended.
+ */
+async function encryptCredentials(
+  credentials: Record<string, unknown>,
+  userId: string
+): Promise<string> {
+  try {
+    const data = JSON.stringify(credentials);
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(data);
+
+    // Derive encryption key from userId and a salt
+    // NOTE: In production, use a proper key management service (KMS)
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(userId + ':credentials-encryption-salt-v1'),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: encoder.encode('bitcoinvestments-exchange-credentials'),
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt']
+    );
+
+    // Generate random IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    // Encrypt
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      dataBuffer
+    );
+
+    // Combine IV + encrypted data
+    const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(encryptedBuffer), iv.length);
+
+    // Return as base64
+    return btoa(String.fromCharCode(...combined));
+  } catch (error) {
+    console.error('Encryption error:', error);
+    throw new Error('Failed to encrypt credentials');
+  }
 }
 
-function decryptCredentials(encrypted: string): Record<string, unknown> {
-  // In production, use proper decryption
-  return JSON.parse(Buffer.from(encrypted, 'base64').toString());
+/**
+ * Decrypts credentials using AES-256-GCM
+ */
+async function decryptCredentials(
+  encrypted: string,
+  userId: string
+): Promise<Record<string, unknown>> {
+  try {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    // Decode base64
+    const combined = Uint8Array.from(atob(encrypted), c => c.charCodeAt(0));
+
+    // Extract IV and encrypted data
+    const iv = combined.slice(0, 12);
+    const encryptedData = combined.slice(12);
+
+    // Derive the same key
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(userId + ':credentials-encryption-salt-v1'),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: encoder.encode('bitcoinvestments-exchange-credentials'),
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+
+    // Decrypt
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encryptedData
+    );
+
+    const decryptedText = decoder.decode(decryptedBuffer);
+    return JSON.parse(decryptedText);
+  } catch (error) {
+    console.error('Decryption error:', error);
+    throw new Error('Failed to decrypt credentials');
+  }
 }
 
 async function fetchExchangeBalances(

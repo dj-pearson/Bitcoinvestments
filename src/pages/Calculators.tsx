@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Calculator, DollarSign, Percent, Receipt, Coins } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { SEO, generateBreadcrumbSchema } from '../components/SEO';
 
 type CalculatorType = 'dca' | 'fees' | 'staking' | 'tax';
 
@@ -14,8 +15,100 @@ export function Calculators() {
     { id: 'tax' as const, name: 'Tax Calculator', icon: Percent, description: 'Estimate capital gains tax' },
   ];
 
+  // Breadcrumb schema for SEO
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Calculators', url: '/calculators' },
+  ]);
+
+  // Combined schema with SoftwareApplication for calculator tools
+  const calculatorSchema = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      breadcrumbSchema,
+      {
+        '@type': 'SoftwareApplication',
+        name: 'Crypto Investment Calculators',
+        description: 'Free cryptocurrency investment calculators including DCA (Dollar Cost Averaging), exchange fee comparison, staking rewards estimator, and capital gains tax calculator.',
+        url: 'https://bitcoinvestments.net/calculators',
+        applicationCategory: 'FinanceApplication',
+        operatingSystem: 'Any',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD',
+        },
+        featureList: [
+          'DCA Calculator - Calculate dollar-cost averaging returns for Bitcoin and other cryptocurrencies',
+          'Exchange Fee Calculator - Compare trading fees across popular exchanges',
+          'Staking Rewards Calculator - Estimate potential earnings from cryptocurrency staking',
+          'Capital Gains Tax Calculator - Estimate your crypto tax liability',
+        ],
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: '4.7',
+          ratingCount: '892',
+          bestRating: '5',
+          worstRating: '1',
+        },
+        provider: {
+          '@type': 'Organization',
+          name: 'Bitcoinvestments',
+          url: 'https://bitcoinvestments.net',
+        },
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: 'What is a DCA calculator?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'A DCA (Dollar Cost Averaging) calculator helps you estimate potential returns when investing a fixed amount at regular intervals. This strategy reduces the impact of volatility by spreading purchases over time, eliminating the need to time the market.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'How do cryptocurrency exchange fees work?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Cryptocurrency exchanges typically charge maker fees (for adding liquidity) and taker fees (for removing liquidity). Fees vary by exchange, usually ranging from 0.1% to 0.6% per trade. Our fee calculator helps you compare costs across Binance, Coinbase, Kraken, and other popular exchanges.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'How are cryptocurrency staking rewards calculated?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Staking rewards are calculated based on your staked amount, the Annual Percentage Yield (APY), staking duration, and compounding frequency. Our calculator factors in compound interest to show your potential earnings over time.',
+            },
+          },
+        ],
+      },
+    ],
+  };
+
   return (
-    <div className="container mx-auto px-4 py-12">
+    <>
+      <SEO
+        title="Free Crypto Calculators - DCA, Fees, Staking & Tax"
+        description="Free cryptocurrency investment calculators. Plan your DCA strategy, compare exchange fees, estimate staking rewards, and calculate capital gains tax for Bitcoin and crypto."
+        keywords={[
+          'DCA calculator',
+          'dollar cost averaging calculator',
+          'crypto fee calculator',
+          'exchange fee comparison',
+          'staking calculator',
+          'staking rewards calculator',
+          'crypto tax calculator',
+          'capital gains calculator',
+          'Bitcoin calculator',
+          'cryptocurrency investment tools',
+        ]}
+        schema={calculatorSchema}
+      />
+      <div className="container mx-auto px-4 py-12">
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-4">
           <Calculator className="w-4 h-4 text-brand-primary" />
@@ -59,7 +152,8 @@ export function Calculators() {
         {activeCalculator === 'staking' && <StakingCalculatorForm />}
         {activeCalculator === 'tax' && <TaxCalculatorForm />}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

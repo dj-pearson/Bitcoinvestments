@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getCurrentUser, updateUserProfile, getUserProfile, type AuthUser } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { PriceAlerts } from '../components/PriceAlerts';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { SessionsManager } from '../components/SessionsManager';
@@ -11,6 +12,7 @@ import type { User } from '../types/database';
 export function Profile() {
   const navigate = useNavigate();
   const { signOut, signOutAllDevices } = useAuth();
+  const toast = useToast();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +55,7 @@ export function Profile() {
 
   const handleSignOut = async () => {
     await signOut();
+    toast.info('Signed out', 'You have been signed out successfully.');
     navigate('/');
   };
 
@@ -82,8 +85,10 @@ export function Profile() {
 
     if (error) {
       setSaveMessage({ type: 'error', text: error });
+      toast.error('Failed to save', error);
     } else {
       setSaveMessage({ type: 'success', text: 'Preferences saved successfully!' });
+      toast.success('Preferences saved', 'Your preferences have been updated.');
     }
 
     setSaving(false);
@@ -258,7 +263,10 @@ export function Profile() {
                     {profile.referral_code}
                   </div>
                   <button
-                    onClick={() => navigator.clipboard.writeText(profile.referral_code || '')}
+                    onClick={() => {
+                      navigator.clipboard.writeText(profile.referral_code || '');
+                      toast.success('Copied!', 'Referral code copied to clipboard.');
+                    }}
                     className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition-colors"
                     title="Copy to clipboard"
                   >

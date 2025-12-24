@@ -11,6 +11,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useToast } from '../contexts/ToastContext';
 import {
   getPortfolio,
   createPortfolio,
@@ -46,6 +47,7 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
   const [showWalletImport, setShowWalletImport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     loadPortfolio();
@@ -68,6 +70,7 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
   async function handleCreatePortfolio() {
     const p = await createPortfolio('My Portfolio');
     setPortfolio(p);
+    toast.success('Portfolio created', 'Start adding your holdings!');
     setShowAddModal(true);
   }
 
@@ -82,12 +85,14 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
     a.download = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success('Exported!', 'Portfolio exported to CSV file.');
   }
 
   function handleDelete() {
     if (confirm('Are you sure you want to delete your portfolio? This cannot be undone.')) {
       deletePortfolio();
       setPortfolio(null);
+      toast.info('Portfolio deleted', 'Your portfolio has been removed.');
     }
   }
 
@@ -416,6 +421,7 @@ function AddHoldingModal({
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [customCrypto, setCustomCrypto] = useState({ id: '', symbol: '', name: '' });
   const [useCustom, setUseCustom] = useState(false);
+  const toast = useToast();
 
   if (!open) return null;
 
@@ -425,12 +431,12 @@ function AddHoldingModal({
     const crypto = useCustom ? customCrypto : selectedCrypto;
 
     if (!crypto.id || !crypto.symbol || !crypto.name) {
-      alert('Please fill in all crypto details');
+      toast.error('Missing info', 'Please fill in all crypto details');
       return;
     }
 
     if (!amount || !purchasePrice) {
-      alert('Please fill in amount and purchase price');
+      toast.error('Missing info', 'Please fill in amount and purchase price');
       return;
     }
 
@@ -447,6 +453,7 @@ function AddHoldingModal({
     // Update prices for the new holding
     const withPrices = await updatePortfolioPrices(updatedPortfolio);
     onUpdate(withPrices);
+    toast.success('Holding added', `${crypto.symbol} has been added to your portfolio.`);
 
     // Reset form
     setAmount('');

@@ -5,6 +5,7 @@
  */
 
 import Stripe from 'stripe';
+import { getCorsHeaders, ALLOWED_ORIGINS } from './_cors';
 
 interface Env {
   STRIPE_SECRET_KEY: string;
@@ -23,17 +24,16 @@ interface RequestBody {
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
-  // CORS headers
+  // CORS headers - use secure origin validation
+  const corsHeaders = getCorsHeaders(request);
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    ...corsHeaders,
     'Content-Type': 'application/json',
   };
 
   // Handle preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, { headers });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -60,8 +60,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       apiVersion: '2023-10-16',
     });
 
-    // Get the origin for redirect URLs
-    const origin = request.headers.get('Origin') || 'https://bitcoinvestments.net';
+    // SECURITY: Validate origin against allowed list to prevent open redirect attacks
+    const requestOrigin = request.headers.get('Origin');
+    const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
+      ? requestOrigin
+      : ALLOWED_ORIGINS[0];
 
     // Create Stripe checkout session for one-time payment
     const session = await stripe.checkout.sessions.create({

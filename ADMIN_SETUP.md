@@ -332,18 +332,20 @@ The migration automatically creates 8 default scam categories:
 
 ### Created Pages
 
-1. **`src/pages/AdminDashboard.tsx`**
-   - Main admin overview
-   - Statistics and quick actions
+**Admin Panel Pages** (`src/pages/admin/`):
+1. **`AdminOverview.tsx`** - Main admin dashboard with statistics and quick actions
+2. **`AdminAnalytics.tsx`** - Analytics and reporting dashboard
+3. **`AdminSubscriptions.tsx`** - Subscription management
+4. **`AdminNewsletters.tsx`** - Newsletter management
+5. **`AuditLogs.tsx`** - Admin action audit trail
+6. **`ContentModeration.tsx`** - Content moderation tools
+7. **`SupportTickets.tsx`** - Support ticket management
+8. **`SystemSettings.tsx`** - System-wide settings (super_admin only)
 
-2. **`src/pages/UserManagement.tsx`**
-   - Comprehensive user management
-   - Search, filter, CRUD operations
-
-3. **`src/pages/ScamDatabase.tsx`**
-   - Public scam search interface
-   - Category browsing
-   - Detailed scam reports
+**Other Admin Pages**:
+1. **`src/pages/UserManagement.tsx`** - User management with search, filter, CRUD
+2. **`src/pages/AdminAISettings.tsx`** - AI model configuration
+3. **`src/pages/ScamDatabase.tsx`** - Scam database management (admin view in `/admin/scam-database`)
 
 ### Created Services
 

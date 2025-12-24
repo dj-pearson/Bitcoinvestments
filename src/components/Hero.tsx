@@ -1,11 +1,22 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, TrendingUp } from 'lucide-react';
-import { Hero3D } from './Hero3D';
 import { getTopCryptocurrencies } from '../services/coingecko';
 import type { Cryptocurrency } from '../types';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
+
+// Lazy load the heavy 3D component (Three.js ~490KB)
+const Hero3D = lazy(() => import('./Hero3D').then(m => ({ default: m.Hero3D })));
+
+// Lightweight fallback while 3D loads
+function Hero3DFallback() {
+    return (
+        <div className="absolute inset-0 z-0 bg-gradient-radial from-brand-primary/10 via-transparent to-transparent">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/5 via-transparent to-transparent animate-pulse" />
+        </div>
+    );
+}
 
 export function Hero() {
     const heroRef = useRef<HTMLDivElement>(null);
@@ -46,8 +57,10 @@ export function Hero() {
 
     return (
         <section ref={heroRef} className="relative min-h-[90vh] flex items-center justify-center pt-20 overflow-hidden">
-            {/* 3D Background */}
-            <Hero3D />
+            {/* 3D Background - Lazy loaded */}
+            <Suspense fallback={<Hero3DFallback />}>
+                <Hero3D />
+            </Suspense>
 
             {/* Overlay Gradient for readability (provisional) - ensure text pops over the stars */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-brand-dark/50 pointer-events-none" />

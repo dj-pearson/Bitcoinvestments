@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { signIn, signInWithTwoFactor } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import type { UserRole } from '../types/admin-database';
 
 interface LocationState {
@@ -14,6 +15,7 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading: authLoading, initializeSession } = useAuth();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,7 @@ export function Login() {
     if (user) {
       // Initialize the session for the user
       await initializeSession(user.id);
+      toast.success('Welcome back!', 'You have successfully signed in.');
       const redirectPath = getRedirectPath(user.role);
       navigate(redirectPath, { replace: true });
     }
@@ -123,6 +126,7 @@ export function Login() {
     if (user) {
       // Initialize the session for the user
       await initializeSession(user.id);
+      toast.success('Welcome back!', 'Two-factor authentication verified.');
       const redirectPath = getRedirectPath(user.role);
       navigate(redirectPath, { replace: true });
     }

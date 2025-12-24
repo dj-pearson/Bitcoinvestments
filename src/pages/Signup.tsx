@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signUp } from '../services/auth';
+import { useToast } from '../contexts/ToastContext';
 
 export function Signup() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,16 +20,19 @@ export function Signup() {
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters long');
+      toast.error('Password too short', 'Must be at least 8 characters');
       return;
     }
 
     if (!acceptTerms) {
       setError('Please accept the terms and conditions');
+      toast.warning('Terms required', 'Please accept the terms and conditions');
       return;
     }
 
@@ -37,12 +42,14 @@ export function Signup() {
 
     if (signUpError) {
       setError(signUpError);
+      toast.error('Signup failed', signUpError);
       setLoading(false);
       return;
     }
 
     if (user) {
       setSuccess(true);
+      toast.success('Account created!', 'Please check your email to verify your account.');
     }
     setLoading(false);
   };

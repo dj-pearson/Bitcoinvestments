@@ -10,6 +10,7 @@ import { Newsletter } from '../components/Newsletter';
 import { NewsFeed } from '../components/NewsFeed';
 import { FearGreedGauge } from '../components/FearGreedIndex';
 import { Hero } from '../components/Hero';
+import { SEO } from '../components/SEO';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -43,11 +44,111 @@ export function Home() {
         });
     }, { scope: containerRef });
 
+    // Homepage structured data with service offerings
+    const homepageSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        '@id': 'https://bitcoinvestments.net/#webpage',
+        url: 'https://bitcoinvestments.net/',
+        name: 'Bitcoinvestments - Learn Crypto Investing for Beginners',
+        description: 'Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators, portfolio tracking, and crypto scam database.',
+        isPartOf: {
+            '@type': 'WebSite',
+            '@id': 'https://bitcoinvestments.net/#website',
+            name: 'Bitcoinvestments',
+            url: 'https://bitcoinvestments.net/',
+        },
+        about: {
+            '@type': 'Thing',
+            name: 'Cryptocurrency Education and Investment Tools',
+        },
+        mainEntity: {
+            '@type': 'ItemList',
+            itemListElement: [
+                {
+                    '@type': 'ListItem',
+                    position: 1,
+                    item: {
+                        '@type': 'Service',
+                        name: 'Crypto Education',
+                        description: 'Comprehensive guides from blockchain basics to advanced trading strategies.',
+                        url: 'https://bitcoinvestments.net/learn',
+                        provider: {
+                            '@type': 'Organization',
+                            name: 'Bitcoinvestments',
+                        },
+                    },
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 2,
+                    item: {
+                        '@type': 'Service',
+                        name: 'Exchange Comparison',
+                        description: 'Side-by-side comparisons of cryptocurrency exchanges, wallets, and tax software.',
+                        url: 'https://bitcoinvestments.net/compare',
+                        provider: {
+                            '@type': 'Organization',
+                            name: 'Bitcoinvestments',
+                        },
+                    },
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 3,
+                    item: {
+                        '@type': 'Service',
+                        name: 'Investment Calculators',
+                        description: 'DCA, fee, staking, and tax calculators to plan your cryptocurrency investments.',
+                        url: 'https://bitcoinvestments.net/calculators',
+                        provider: {
+                            '@type': 'Organization',
+                            name: 'Bitcoinvestments',
+                        },
+                    },
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 4,
+                    item: {
+                        '@type': 'Service',
+                        name: 'Market Dashboard',
+                        description: 'Real-time cryptocurrency prices, market sentiment analysis, and portfolio tracking.',
+                        url: 'https://bitcoinvestments.net/dashboard',
+                        provider: {
+                            '@type': 'Organization',
+                            name: 'Bitcoinvestments',
+                        },
+                    },
+                },
+            ],
+        },
+    };
+
     return (
-        <div ref={containerRef} className="overflow-hidden">
-            {/* Hero Section */}
-            {/* Hero Section */}
-            <Hero />
+        <>
+            <SEO
+                title="Learn Crypto Investing for Beginners"
+                description="Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators, portfolio tracking, and crypto scam database."
+                keywords={[
+                    'Bitcoin',
+                    'cryptocurrency',
+                    'crypto investment',
+                    'how to invest in Bitcoin',
+                    'cryptocurrency for beginners',
+                    'DCA calculator',
+                    'dollar cost averaging',
+                    'crypto education',
+                    'exchange comparison',
+                    'wallet comparison',
+                    'crypto scam database',
+                    'portfolio tracker',
+                ]}
+                schema={homepageSchema}
+            />
+            <div ref={containerRef} className="overflow-hidden">
+                {/* Hero Section */}
+                <Hero />
 
             {/* Live Prices Ticker */}
             <section className="py-6 bg-white/5 overflow-hidden">
@@ -219,6 +320,7 @@ export function Home() {
                     </div>
                 </div>
             </section>
-        </div>
+            </div>
+        </>
     );
 }

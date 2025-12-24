@@ -8,6 +8,7 @@ import {
   jsonError,
   jsonSuccess,
 } from '../lib/validation';
+import { handleCorsPreflightRequest } from './_cors';
 
 interface Env {
   AMAZON_SMTP_USER_NAME?: string;
@@ -101,15 +102,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   }
 }
 
-// Handle OPTIONS for CORS preflight
-export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    },
-  });
+// Handle OPTIONS for CORS preflight - uses secure origin validation
+export async function onRequestOptions(context: { request: Request }) {
+  return handleCorsPreflightRequest(context.request);
 }

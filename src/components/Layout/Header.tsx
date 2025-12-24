@@ -21,6 +21,7 @@ const navItems = [
         children: [
             { label: 'Exchanges', href: '/compare?tab=exchanges' },
             { label: 'Wallets', href: '/compare?tab=wallets' },
+            { label: 'Lending Rates', href: '/lending' },
         ],
     },
     {
@@ -29,8 +30,9 @@ const navItems = [
         children: [
             { label: 'DCA Calculator', href: '/calculators?type=dca' },
             { label: 'Fee Calculator', href: '/calculators?type=fees' },
-            { label: 'Staking Calculator', href: '/calculators?type=staking' },
+            { label: 'Staking Calculator', href: '/staking-calculator' },
             { label: 'Tax Calculator', href: '/calculators?type=tax' },
+            { label: 'Retirement Calculator', href: '/retirement-calculator' },
         ],
     },
     {
@@ -40,8 +42,31 @@ const navItems = [
             { label: 'Portfolio Analysis', href: '/portfolio-analysis' },
             { label: 'Backtesting', href: '/backtesting' },
             { label: 'Tax Reports', href: '/tax-reports' },
-            { label: 'Web3 Features', href: '/web3' },
+            { label: 'Multi-Exchange', href: '/multi-exchange' },
+            { label: 'DCA Automation', href: '/dca-automation' },
+            { label: 'Rebalancing Alerts', href: '/rebalancing-alerts' },
+            { label: 'Smart Alert Bundles', href: '/alert-bundles' },
+        ],
+    },
+    {
+        label: 'Research',
+        href: '/onchain-analytics',
+        children: [
+            { label: 'On-Chain Analytics', href: '/onchain-analytics' },
+            { label: 'Whale Tracking', href: '/whale-tracking' },
+            { label: 'Trading Indicators', href: '/trading-indicators' },
+            { label: 'Social Trading', href: '/social-trading' },
             { label: 'Scam Database', href: '/scam-database' },
+        ],
+    },
+    {
+        label: 'DeFi',
+        href: '/defi-yield',
+        children: [
+            { label: 'DeFi Yield', href: '/defi-yield' },
+            { label: 'Gas Optimizer', href: '/gas-optimizer' },
+            { label: 'Web3 Features', href: '/web3' },
+            { label: 'Hardware Wallet Guide', href: '/hardware-wallet' },
         ],
     },
     {
@@ -180,6 +205,31 @@ export function Header() {
                                             >
                                                 Tax Reports
                                             </Link>
+                                            <div className="border-t border-white/10 my-2"></div>
+                                            <Link
+                                                to="/developers/portal"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Developer Portal
+                                            </Link>
+                                            <Link
+                                                to="/affiliate"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Affiliate Dashboard
+                                            </Link>
+                                            <Link
+                                                to="/advertiser"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Advertiser Dashboard
+                                            </Link>
+                                            <Link
+                                                to="/advisor"
+                                                className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                            >
+                                                Advisor Dashboard
+                                            </Link>
                                             {/* Admin Dashboard link - only show for admin users */}
                                             {(user.role === 'admin' || user.role === 'super_admin') && (
                                                 <>
@@ -300,6 +350,35 @@ export function Header() {
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         Tax Reports
+                                    </Link>
+                                    <div className="border-t border-white/10 my-2"></div>
+                                    <Link
+                                        to="/developers/portal"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Developer Portal
+                                    </Link>
+                                    <Link
+                                        to="/affiliate"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Affiliate Dashboard
+                                    </Link>
+                                    <Link
+                                        to="/advertiser"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Advertiser Dashboard
+                                    </Link>
+                                    <Link
+                                        to="/advisor"
+                                        className="block px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-lg"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        Advisor Dashboard
                                     </Link>
                                     {/* Mobile Admin Dashboard link */}
                                     {(user.role === 'admin' || user.role === 'super_admin') && (

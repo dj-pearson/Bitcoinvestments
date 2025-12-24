@@ -28,17 +28,52 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env, next } = context;
   const startTime = Date.now();
 
-  // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+  // Get origin from request
+  const origin = request.headers.get('Origin');
+
+  /**
+   * SECURITY: Restrict CORS to specific origins
+   *
+   * Instead of allowing all origins (*), we:
+   * 1. For authenticated requests: Use API key's allowed_origins
+   * 2. For unauthenticated/error requests: Use a safe default list
+   *
+   * The wildcard '*' is a security risk as it allows any website to make
+   * requests to your API, enabling CSRF attacks and credential theft.
+   */
+  const defaultAllowedOrigins = [
+    'https://bitcoin-investments.pages.dev',
+    'https://bitcoinvestments.com',
+    'http://localhost:5173', // Vite dev server
+    'http://localhost:4173', // Vite preview
+  ];
+
+  // Determine if origin is allowed (will be refined after API key validation)
+  const isOriginAllowed = (allowedOrigins: string[]) => {
+    if (!origin) return false; // No origin header = not a browser request
+    return allowedOrigins.includes(origin);
   };
 
-  // Handle CORS preflight
+  const getCorsHeaders = (allowedOrigins: string[] = defaultAllowedOrigins) => {
+    // Only set Access-Control-Allow-Origin if origin is in allowed list
+    const allowOrigin = origin && isOriginAllowed(allowedOrigins) ? origin : 'null';
+
+    return {
+      'Access-Control-Allow-Origin': allowOrigin,
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+      'Access-Control-Allow-Credentials': 'true',
+      'Vary': 'Origin', // Important for caching
+    };
+  };
+
+  // Handle CORS preflight with default allowed origins
   if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: getCorsHeaders() });
   }
+
+  // Use default CORS headers for early returns
+  const corsHeaders = getCorsHeaders();
 
   // Extract API key from headers
   const authHeader = request.headers.get('Authorization');
@@ -266,7 +301,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     newHeaders.set('X-RateLimit-Limit', String(apiKeyData.rate_limit_per_minute));
     newHeaders.set('X-RateLimit-Remaining', String(Math.max(0, apiKeyData.rate_limit_per_minute - (recentRequests || 0) - 1)));
     newHeaders.set('X-API-Tier', apiKeyData.tier);
-    Object.entries(corsHeaders).forEach(([key, value]) => {
+
+    // Use API key's allowed_origins if configured, otherwise use defaults
+    const finalCorsHeaders = getCorsHeaders(
+      apiKeyData.allowed_origins.length > 0 ? apiKeyData.allowed_origins : defaultAllowedOrigins
+    );
+    Object.entries(finalCorsHeaders).forEach(([key, value]) => {
       newHeaders.set(key, value);
     });
 

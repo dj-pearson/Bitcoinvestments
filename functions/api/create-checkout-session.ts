@@ -16,6 +16,7 @@ import {
   jsonError,
   jsonSuccess,
 } from '../lib/validation';
+import { getCorsHeaders, handleCorsPreflightRequest } from './_cors';
 
 interface Env {
   STRIPE_SECRET_KEY: string;
@@ -32,6 +33,22 @@ interface CheckoutRequest {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  // Get CORS headers for this request
+  const corsHeaders = getCorsHeaders(context.request);
+
+  // Helper to add CORS headers to responses
+  const addCorsHeaders = (response: Response): Response => {
+    const headers = new Headers(response.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  };
+
   try {
     // Parse and validate request body
     const { data: body, error: parseError } = await parseAndValidateBody<CheckoutRequest>(
@@ -40,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     );
 
     if (parseError || !body) {
-      return jsonError(parseError || 'Invalid request body', 400);
+      return addCorsHeaders(jsonError(parseError || 'Invalid request body', 400));
     }
 
     const { priceId, userId, userEmail, successUrl, cancelUrl } = body;
@@ -48,13 +65,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Validate user email
     const emailValidation = validateEmail(userEmail);
     if (!emailValidation.isValid) {
-      return jsonError(emailValidation.error || 'Invalid email', 400);
+      return addCorsHeaders(jsonError(emailValidation.error || 'Invalid email', 400));
     }
 
     // Validate user ID (should be a UUID)
     const userIdValidation = validateUuid(userId, 'User ID');
     if (!userIdValidation.isValid) {
-      return jsonError(userIdValidation.error || 'Invalid user ID', 400);
+      return addCorsHeaders(jsonError(userIdValidation.error || 'Invalid user ID', 400));
     }
 
     // Initialize Stripe
@@ -70,7 +87,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     const priceValidation = validateStripePriceId(priceId, validPriceIds);
     if (!priceValidation.isValid) {
-      return jsonError(priceValidation.error || 'Invalid price ID', 400);
+      return addCorsHeaders(jsonError(priceValidation.error || 'Invalid price ID', 400));
     }
 
     // Validate optional URLs if provided
@@ -80,7 +97,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (successUrl) {
       const successUrlValidation = validateUrl(successUrl, { requireHttps: true });
       if (!successUrlValidation.isValid) {
-        return jsonError('Invalid success URL', 400);
+        return addCorsHeaders(jsonError('Invalid success URL', 400));
       }
       validatedSuccessUrl = successUrl;
     }
@@ -89,7 +106,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (cancelUrl) {
       const cancelUrlValidation = validateUrl(cancelUrl, { requireHttps: true });
       if (!cancelUrlValidation.isValid) {
-        return jsonError('Invalid cancel URL', 400);
+        return addCorsHeaders(jsonError('Invalid cancel URL', 400));
       }
       validatedCancelUrl = cancelUrl;
     }
@@ -122,28 +139,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       },
     });
 
-    return jsonSuccess({
+    return addCorsHeaders(jsonSuccess({
       sessionId: session.id,
       url: session.url,
-    });
+    }));
   } catch (error) {
     console.error('Error creating checkout session:', error);
 
-    return jsonError(
+    return addCorsHeaders(jsonError(
       error instanceof Error ? error.message : 'Failed to create checkout session',
       500
-    );
+    ));
   }
 };
 
 // Handle CORS preflight
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+export const onRequestOptions: PagesFunction = async (context) => {
+  return handleCorsPreflightRequest(context.request);
 };

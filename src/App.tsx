@@ -5,6 +5,7 @@ import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { Layout } from './components/Layout/Layout';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { AnalyticsProvider, PageTracker } from './components/AnalyticsProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
@@ -85,6 +86,7 @@ function App() {
           <BrowserRouter>
             <AnalyticsProvider domain="bitcoinvestments.net">
               <PageTracker />
+              <ToastProvider>
               <AuthProvider>
                 <SessionExpiredModal />
                 <SessionActivityTracker />
@@ -172,6 +174,7 @@ function App() {
                 </Route>
               </Routes>
               </AuthProvider>
+              </ToastProvider>
             </AnalyticsProvider>
           </BrowserRouter>
         </RainbowKitProvider>

@@ -73,9 +73,10 @@ export default defineConfig({
             './src/services/auth.ts',
           ],
           'feature-admin': [
-            './src/pages/AdminDashboard.tsx',
+            './src/pages/admin/AdminOverview.tsx',
             './src/services/auditLog.ts',
             './src/services/contentModeration.ts',
+            './src/services/admin.ts',
           ],
         },
         // Asset file naming

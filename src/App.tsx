@@ -114,7 +114,7 @@ function App() {
                   <Route path="web3" element={<Web3Features />} />
                   <Route path="scam-database" element={<ScamDatabase />} />
                   <Route path="scam/:id" element={<ScamReportDetail />} />
-                  <Route path="report-scam" element={<ReportScam />} />
+                  <Route path="report-scam" element={<ProtectedRoute><ReportScam /></ProtectedRoute>} />
                   <Route path="login" element={<Login />} />
                   <Route path="signup" element={<Signup />} />
                   <Route path="forgot-password" element={<ForgotPassword />} />
@@ -123,7 +123,7 @@ function App() {
                   <Route path="ad-manager" element={<ProtectedRoute><AdManager /></ProtectedRoute>} />
                   <Route path="tax-reports" element={<ProtectedRoute><TaxReports /></ProtectedRoute>} />
                   <Route path="advisor" element={<ProtectedRoute><AdvisorDashboard /></ProtectedRoute>} />
-                  <Route path="affiliate" element={<InfluencerDashboard />} />
+                  <Route path="affiliate" element={<ProtectedRoute><InfluencerDashboard /></ProtectedRoute>} />
                   <Route path="backtesting" element={<Backtesting />} />
                   <Route path="portfolio-analysis" element={<ProtectedRoute><PortfolioAnalysis /></ProtectedRoute>} />
 

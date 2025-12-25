@@ -2,14 +2,64 @@
 # Copy this file to .dev.vars and fill in your actual values
 # DO NOT commit .dev.vars to git!
 
-# Stripe Configuration (Backend - Secret Keys)
+# ============================================================================
+# STRIPE CONFIGURATION (Backend - Secret Keys)
+# ============================================================================
+# Get these from your Stripe Dashboard: https://dashboard.stripe.com/apikeys
 STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx
 
-# Supabase Configuration
+# ============================================================================
+# SUPABASE CONFIGURATION
+# ============================================================================
+# Get these from your Supabase project settings
 VITE_SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx
 
-# Stripe Price IDs (Public)
+# ============================================================================
+# STRIPE PRICE IDs - INDIVIDUAL PLANS
+# ============================================================================
+# Create these in your Stripe Dashboard under Products > Prices
+# Each product should have a corresponding price ID
+
+# Premium Monthly Subscription ($9.99/month)
 VITE_STRIPE_PRICE_MONTHLY=price_xxxxxxxxxxxxxxxxxxxxx
+
+# Premium Annual Subscription ($99.99/year)
 VITE_STRIPE_PRICE_ANNUAL=price_xxxxxxxxxxxxxxxxxxxxx
+
+# Lifetime Premium Deal ($299 one-time)
+VITE_STRIPE_PRICE_LIFETIME=price_xxxxxxxxxxxxxxxxxxxxx
+
+# ============================================================================
+# STRIPE PRICE IDs - BUSINESS PLANS
+# ============================================================================
+# Advisor Plan ($49/month)
+VITE_STRIPE_PRICE_ADVISOR=price_xxxxxxxxxxxxxxxxxxxxx
+
+# Enterprise Plan ($99/month)
+VITE_STRIPE_PRICE_ENTERPRISE=price_xxxxxxxxxxxxxxxxxxxxx
+
+# ============================================================================
+# STRIPE PRICE IDs - TAX PACKAGES (One-time purchases)
+# ============================================================================
+# Tax Report Package Basic ($29.99)
+VITE_STRIPE_TAX_PACKAGE_BASIC=price_xxxxxxxxxxxxxxxxxxxxx
+
+# Tax Report Package Premium ($49.99)
+VITE_STRIPE_TAX_PACKAGE_PREMIUM=price_xxxxxxxxxxxxxxxxxxxxx
+
+# ============================================================================
+# STRIPE PRICE IDs - DEVELOPER API TIERS
+# ============================================================================
+# API Starter Monthly
+VITE_STRIPE_API_STARTER_MONTHLY=price_xxxxxxxxxxxxxxxxxxxxx
+
+# API Starter Yearly
+VITE_STRIPE_API_STARTER_YEARLY=price_xxxxxxxxxxxxxxxxxxxxx
+
+# API Professional Monthly
+VITE_STRIPE_API_PROFESSIONAL_MONTHLY=price_xxxxxxxxxxxxxxxxxxxxx
+
+# API Professional Yearly
+VITE_STRIPE_API_PROFESSIONAL_YEARLY=price_xxxxxxxxxxxxxxxxxxxxx

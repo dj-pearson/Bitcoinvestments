@@ -100,10 +100,18 @@ export function Profile() {
       return;
     }
 
+    if (!user?.id) {
+      setPortalError('User not authenticated. Please log in again.');
+      return;
+    }
+
     setPortalLoading(true);
     setPortalError(null);
 
-    const { url, error } = await createCustomerPortalSession(profile.stripe_customer_id);
+    const { url, error } = await createCustomerPortalSession(
+      profile.stripe_customer_id,
+      user.id
+    );
 
     if (error || !url) {
       setPortalError(error || 'Failed to open customer portal');

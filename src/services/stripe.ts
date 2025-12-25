@@ -247,9 +247,13 @@ export async function redirectToCheckout(
 
 /**
  * Create customer portal session (for managing subscription)
+ *
+ * SECURITY: Requires both customerId and userId for backend validation
+ * to ensure the requesting user owns the customer ID.
  */
 export async function createCustomerPortalSession(
   customerId: string,
+  userId: string,
   returnUrl: string = window.location.origin + '/profile'
 ): Promise<{ url: string | null; error: string | null }> {
   try {
@@ -260,12 +264,14 @@ export async function createCustomerPortalSession(
       },
       body: JSON.stringify({
         customerId,
+        userId,
         returnUrl,
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to create portal session');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to create portal session');
     }
 
     const { url } = await response.json();

@@ -10,6 +10,7 @@ import {
   AffiliateBadge,
   AffiliateCardFooter,
 } from '../components/AffiliateDisclosure';
+import { SEO, generateProductSchema, generateSoftwareSchema, generateBreadcrumbSchema, generateFAQSchema } from '../components/SEO';
 import type { Exchange, Wallet as WalletType } from '../types';
 
 /**
@@ -87,8 +88,37 @@ export function Compare() {
     );
   }
 
+  // Generate FAQ schema for comparison page
+  const compareFAQSchema = generateFAQSchema([
+    {
+      question: 'What is the best cryptocurrency exchange for beginners?',
+      answer: 'For beginners, we recommend exchanges with user-friendly interfaces, strong security, and educational resources. Coinbase and Kraken are popular choices for new crypto investors due to their intuitive design and regulatory compliance.',
+    },
+    {
+      question: 'What is the difference between a hardware wallet and software wallet?',
+      answer: 'Hardware wallets are physical devices that store your private keys offline, providing maximum security against hacking. Software wallets are applications on your phone or computer that are more convenient but potentially more vulnerable to online threats.',
+    },
+    {
+      question: 'How do I choose the right crypto exchange?',
+      answer: 'Consider factors like security features (2FA, cold storage), trading fees, supported cryptocurrencies, user interface, customer support, and regulatory compliance. Our comparison tool helps you evaluate exchanges across all these criteria.',
+    },
+  ]);
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Compare Platforms', url: '/compare' },
+  ]);
+
   return (
     <div className="container mx-auto px-4 py-12">
+      {/* SEO Meta Tags and Structured Data */}
+      <SEO
+        title="Compare Crypto Exchanges & Wallets"
+        description="Compare the best cryptocurrency exchanges and wallets. Find detailed reviews, fees, security features, and user ratings to choose the right platform for your needs."
+        keywords={['crypto exchange comparison', 'best Bitcoin exchange', 'cryptocurrency wallet comparison', 'crypto wallet reviews', 'exchange fees', 'secure crypto wallet', 'hardware wallet comparison']}
+        schema={[compareFAQSchema, breadcrumbSchema]}
+      />
+
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
           Compare <span className="text-gradient">Platforms</span>
@@ -413,8 +443,50 @@ function WalletComparison() {
 
 // Exchange Detail Component
 function ExchangeDetail({ exchange }: { exchange: Exchange }) {
+  // Generate Product schema for exchange with ratings
+  const exchangeSchema = generateProductSchema({
+    name: exchange.name,
+    description: exchange.description,
+    image: exchange.logo,
+    rating: exchange.user_rating,
+    reviewCount: exchange.review_count,
+    url: `https://bitcoinvestments.net/compare/exchange/${exchange.id}`,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Compare Platforms', url: '/compare' },
+    { name: 'Exchanges', url: '/compare' },
+    { name: exchange.name, url: `/compare/exchange/${exchange.id}` },
+  ]);
+
+  // Generate FAQ schema for this exchange
+  const exchangeFAQSchema = generateFAQSchema([
+    {
+      question: `Is ${exchange.name} safe and trustworthy?`,
+      answer: `${exchange.name} has a trust score of ${exchange.trust_score}/10 based on our comprehensive security analysis. ${exchange.pros[0] || 'The exchange implements industry-standard security measures.'}`,
+    },
+    {
+      question: `What are the trading fees on ${exchange.name}?`,
+      answer: `${exchange.name} charges a maker fee of ${(exchange.fees.maker_fee * 100).toFixed(2)}% and a taker fee of ${(exchange.fees.taker_fee * 100).toFixed(2)}%. ${exchange.fees.deposit_fee_fiat === 0 ? 'Fiat deposits are free.' : ''}`,
+    },
+    {
+      question: `How many cryptocurrencies does ${exchange.name} support?`,
+      answer: `${exchange.name} supports over ${exchange.supported_cryptocurrencies} cryptocurrencies for trading, making it suitable for both beginners and advanced traders.`,
+    },
+  ]);
+
   return (
     <div className="container mx-auto px-4 py-12">
+      {/* SEO Meta Tags and Structured Data */}
+      <SEO
+        title={`${exchange.name} Review - Fees, Security & User Ratings`}
+        description={`${exchange.name} review: ${exchange.trust_score}/10 trust score, ${(exchange.fees.taker_fee * 100).toFixed(2)}% trading fees, ${exchange.supported_cryptocurrencies}+ cryptos. Read ${exchange.review_count.toLocaleString()} user reviews.`}
+        keywords={[exchange.name, `${exchange.name} review`, `${exchange.name} fees`, 'crypto exchange', 'cryptocurrency trading', 'Bitcoin exchange', ...exchange.pros.slice(0, 3)]}
+        type="product"
+        schema={[exchangeSchema, breadcrumbSchema, exchangeFAQSchema]}
+      />
+
       {/* Back Link */}
       <Link
         to="/compare"
@@ -603,8 +675,66 @@ function ExchangeDetail({ exchange }: { exchange: Exchange }) {
 
 // Wallet Detail Component
 function WalletDetail({ wallet }: { wallet: WalletType }) {
+  // Determine operating system based on wallet type
+  const getOperatingSystem = () => {
+    switch (wallet.type) {
+      case 'hardware':
+        return 'Hardware Device';
+      case 'mobile':
+        return 'iOS, Android';
+      case 'software':
+        return 'Windows, macOS, Linux, iOS, Android';
+      default:
+        return 'Cross-platform';
+    }
+  };
+
+  // Generate SoftwareApplication schema for wallet
+  const walletSchema = generateSoftwareSchema({
+    name: wallet.name,
+    description: wallet.description,
+    operatingSystem: getOperatingSystem(),
+    applicationCategory: 'FinanceApplication',
+    rating: wallet.user_rating,
+    reviewCount: wallet.review_count,
+    price: wallet.price ? wallet.price.toString() : '0',
+    url: `https://bitcoinvestments.net/compare/wallet/${wallet.id}`,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Compare Platforms', url: '/compare' },
+    { name: 'Wallets', url: '/compare' },
+    { name: wallet.name, url: `/compare/wallet/${wallet.id}` },
+  ]);
+
+  // Generate FAQ schema for this wallet
+  const walletFAQSchema = generateFAQSchema([
+    {
+      question: `Is ${wallet.name} a secure crypto wallet?`,
+      answer: `${wallet.name} is a ${wallet.type} wallet with ${wallet.security_features.seed_phrase_backup ? 'seed phrase backup, ' : ''}${wallet.security_features.biometric_auth ? 'biometric authentication, ' : ''}${wallet.security_features.two_factor_auth ? '2FA, ' : ''}and ${wallet.security_features.open_source ? 'open-source code for transparency' : 'proprietary security features'}.`,
+    },
+    {
+      question: `How many cryptocurrencies does ${wallet.name} support?`,
+      answer: `${wallet.name} supports over ${wallet.supported_cryptocurrencies.toLocaleString()} cryptocurrencies across ${wallet.supported_chains.length} blockchain networks including ${wallet.supported_chains.slice(0, 3).join(', ')}.`,
+    },
+    {
+      question: `How much does ${wallet.name} cost?`,
+      answer: wallet.price ? `${wallet.name} costs $${wallet.price}. This is a one-time purchase for the ${wallet.type} wallet device.` : `${wallet.name} is free to download and use. There are no subscription fees or hidden costs.`,
+    },
+  ]);
+
   return (
     <div className="container mx-auto px-4 py-12">
+      {/* SEO Meta Tags and Structured Data */}
+      <SEO
+        title={`${wallet.name} Review - ${wallet.type.charAt(0).toUpperCase() + wallet.type.slice(1)} Wallet Features & Security`}
+        description={`${wallet.name} ${wallet.type} wallet review: ${wallet.user_rating}/5 rating, ${wallet.supported_cryptocurrencies.toLocaleString()}+ cryptos, ${wallet.ease_of_use}/10 ease of use. ${wallet.price ? `$${wallet.price}` : 'Free download'}.`}
+        keywords={[wallet.name, `${wallet.name} review`, `${wallet.type} wallet`, 'crypto wallet', 'cryptocurrency storage', 'Bitcoin wallet', ...wallet.supported_chains.slice(0, 3)]}
+        type="product"
+        schema={[walletSchema, breadcrumbSchema, walletFAQSchema]}
+      />
+
       {/* Back Link */}
       <Link
         to="/compare"

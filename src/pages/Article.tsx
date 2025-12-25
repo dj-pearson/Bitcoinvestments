@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Eye, Calendar, Share2, Twitter, Facebook, Linkedin } from 'lucide-react';
 import { getArticleBySlug } from '../services/database';
 import { Newsletter } from '../components/Newsletter';
+import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
 import type { Article as ArticleType } from '../types/database';
 
 export function Article() {
@@ -89,8 +90,44 @@ export function Article() {
     );
   }
 
+  // Generate structured data for SEO
+  const articleSchema = generateArticleSchema({
+    title: article.title,
+    description: article.excerpt,
+    image: article.featured_image || undefined,
+    author: 'Bitcoinvestments',
+    publishedDate: article.published_at || undefined,
+    modifiedDate: article.updated_at || article.published_at || undefined,
+    url: `https://bitcoinvestments.net/article/${article.slug}`,
+  });
+
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Learn', url: '/learn' },
+    { name: article.category, url: `/learn?category=${encodeURIComponent(article.category)}` },
+    { name: article.title, url: `/article/${article.slug}` },
+  ]);
+
+  // Combine schemas into a single array for structured data
+  const combinedSchema = [articleSchema, breadcrumbSchema];
+
   return (
     <article className="max-w-4xl mx-auto px-4 py-8">
+      {/* SEO Meta Tags and Structured Data */}
+      <SEO
+        title={article.title}
+        description={article.excerpt}
+        keywords={[...article.tags, article.category, 'Bitcoin', 'cryptocurrency', 'crypto education']}
+        image={article.featured_image || undefined}
+        imageAlt={article.title}
+        type="article"
+        author="Bitcoinvestments"
+        publishedTime={article.published_at || undefined}
+        modifiedTime={article.updated_at || article.published_at || undefined}
+        section={article.category}
+        schema={combinedSchema}
+      />
+
       {/* Back Link */}
       <Link
         to="/learn"

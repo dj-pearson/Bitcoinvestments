@@ -13,6 +13,9 @@ import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
 import { PortfolioTracker } from '../components/PortfolioTracker';
 import { PriceChart } from '../components/charts';
 import { GasPriceTracker } from '../components/GasPriceTracker';
+import { SEO } from '../components/SEO';
+import { RelatedPages } from '../components/InternalLinks';
+import { PAGE_METADATA, generateToolSchema, generateFAQSchema } from '../lib/seo';
 import {
   getCachedTopCryptocurrencies,
   getGlobalMarketData,
@@ -64,7 +67,37 @@ export function Dashboard() {
       crypto.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const meta = PAGE_METADATA.dashboard;
+  const dashboardSchema = [
+    generateToolSchema({
+      name: 'Cryptocurrency Market Dashboard',
+      description: meta.description,
+      url: '/dashboard',
+    }),
+    generateFAQSchema([
+      {
+        question: 'What is a cryptocurrency market dashboard?',
+        answer: 'A cryptocurrency market dashboard displays real-time prices, market data, and portfolio tracking for Bitcoin, Ethereum, and thousands of altcoins in one convenient view.',
+      },
+      {
+        question: 'How often are cryptocurrency prices updated?',
+        answer: 'Our dashboard updates cryptocurrency prices in real-time, with data refreshed every few seconds from major exchanges and market data providers.',
+      },
+      {
+        question: 'What is the Fear and Greed Index?',
+        answer: 'The Fear and Greed Index measures market sentiment on a scale of 0-100. Values below 25 indicate extreme fear (potential buying opportunity), while values above 75 indicate extreme greed (potential correction ahead).',
+      },
+    ]),
+  ];
+
   return (
+    <>
+      <SEO
+        title={meta.title}
+        description={meta.description}
+        keywords={meta.keywords}
+        schema={dashboardSchema}
+      />
     <div className="container mx-auto px-4 py-12">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
         <div>
@@ -297,6 +330,12 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Related Content */}
+      <div className="mt-12">
+        <RelatedPages currentPath="/dashboard" title="Explore More Tools" />
+      </div>
     </div>
+    </>
   );
 }

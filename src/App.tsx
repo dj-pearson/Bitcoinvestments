@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,72 +12,92 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { SessionExpiredModal } from './components/SessionExpiredModal';
 import { SessionActivityTracker } from './components/SessionActivityTracker';
-import { Home } from './pages/Home';
-import { Dashboard } from './pages/Dashboard';
-import { Calculators } from './pages/Calculators';
-import { Compare } from './pages/Compare';
-import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
-import { ForgotPassword } from './pages/ForgotPassword';
-import { Profile } from './pages/Profile';
-import { Learn } from './pages/Learn';
-import { GuideDetail } from './pages/GuideDetail';
-import { CourseLanding } from './pages/CourseLanding';
-import { CourseModule } from './pages/CourseModule';
-import { Glossary } from './pages/Glossary';
-import { Article } from './pages/Article';
-import { Privacy } from './pages/Privacy';
-import { Terms } from './pages/Terms';
-import { AffiliateStats } from './pages/AffiliateStats';
-import { AdManager } from './pages/AdManager';
-import { Pricing } from './pages/Pricing';
-import { Charts } from './pages/Charts';
-import { Web3Features } from './pages/Web3Features';
-import { UserManagement } from './pages/UserManagement';
-import { ScamDatabase } from './pages/ScamDatabase';
-import { ScamReportDetail } from './pages/ScamReportDetail';
-import { ReportScam } from './pages/ReportScam';
-import { AdminAISettings } from './pages/AdminAISettings';
-import TaxReports from './pages/TaxReports';
-import { AdvisorDashboard } from './pages/AdvisorDashboard';
-import { InfluencerDashboard } from './pages/InfluencerDashboard';
-import { Backtesting } from './pages/Backtesting';
-import { PortfolioAnalysis } from './pages/PortfolioAnalysis';
-import { SearchResults } from './pages/SearchResults';
-import { ApiPricing } from './pages/ApiPricing';
-import { DeveloperPortal } from './pages/DeveloperPortal';
-import { AdvertiserDashboard } from './pages/AdvertiserDashboard';
-import InfluencerVerification from './pages/InfluencerVerification';
-import LendingComparison from './pages/LendingComparison';
-import SocialTrading from './pages/SocialTrading';
-import OnChainAnalytics from './pages/OnChainAnalytics';
-import HardwareWallet from './pages/HardwareWallet';
-import GasOptimizer from './pages/GasOptimizer';
-import DeFiYield from './pages/DeFiYield';
-import RetirementCalculator from './pages/RetirementCalculator';
-import MultiExchange from './pages/MultiExchange';
-import StakingCalculator from './pages/StakingCalculator';
-import TradingIndicators from './pages/TradingIndicators';
-import WhaleTrackingPage from './pages/WhaleTracking';
-import RebalancingAlertsPage from './pages/RebalancingAlerts';
-import DCAAutomationPage from './pages/DCAAutomation';
-import SmartAlertBundlesPage from './pages/SmartAlertBundles';
 import { wagmiConfig } from './lib/wagmi';
 
-// Admin Layout and Pages
-import { AdminLayout } from './components/admin/AdminLayout';
-import {
-  AdminOverview,
-  AuditLogs,
-  ContentModeration,
-  SupportTickets,
-  SystemSettings,
-  AdminAnalytics,
-  AdminSubscriptions,
-  AdminNewsletters,
-} from './pages/admin';
+// Eagerly loaded pages (critical path)
+import { Home } from './pages/Home';
+import { Dashboard } from './pages/Dashboard';
+import { Learn } from './pages/Learn';
+import { Compare } from './pages/Compare';
+import { Calculators } from './pages/Calculators';
+import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
 
-const queryClient = new QueryClient();
+// Lazy loaded pages for better initial bundle size
+const Charts = lazy(() => import('./pages/Charts').then(m => ({ default: m.Charts })));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
+const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
+const GuideDetail = lazy(() => import('./pages/GuideDetail').then(m => ({ default: m.GuideDetail })));
+const CourseLanding = lazy(() => import('./pages/CourseLanding').then(m => ({ default: m.CourseLanding })));
+const CourseModule = lazy(() => import('./pages/CourseModule').then(m => ({ default: m.CourseModule })));
+const Glossary = lazy(() => import('./pages/Glossary').then(m => ({ default: m.Glossary })));
+const Article = lazy(() => import('./pages/Article').then(m => ({ default: m.Article })));
+const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
+const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms })));
+const AffiliateStats = lazy(() => import('./pages/AffiliateStats').then(m => ({ default: m.AffiliateStats })));
+const AdManager = lazy(() => import('./pages/AdManager').then(m => ({ default: m.AdManager })));
+const Pricing = lazy(() => import('./pages/Pricing').then(m => ({ default: m.Pricing })));
+const Web3Features = lazy(() => import('./pages/Web3Features').then(m => ({ default: m.Web3Features })));
+const UserManagement = lazy(() => import('./pages/UserManagement').then(m => ({ default: m.UserManagement })));
+const ScamDatabase = lazy(() => import('./pages/ScamDatabase').then(m => ({ default: m.ScamDatabase })));
+const ScamReportDetail = lazy(() => import('./pages/ScamReportDetail').then(m => ({ default: m.ScamReportDetail })));
+const ReportScam = lazy(() => import('./pages/ReportScam').then(m => ({ default: m.ReportScam })));
+const AdminAISettings = lazy(() => import('./pages/AdminAISettings').then(m => ({ default: m.AdminAISettings })));
+const TaxReports = lazy(() => import('./pages/TaxReports'));
+const AdvisorDashboard = lazy(() => import('./pages/AdvisorDashboard').then(m => ({ default: m.AdvisorDashboard })));
+const InfluencerDashboard = lazy(() => import('./pages/InfluencerDashboard').then(m => ({ default: m.InfluencerDashboard })));
+const Backtesting = lazy(() => import('./pages/Backtesting').then(m => ({ default: m.Backtesting })));
+const PortfolioAnalysis = lazy(() => import('./pages/PortfolioAnalysis').then(m => ({ default: m.PortfolioAnalysis })));
+const SearchResults = lazy(() => import('./pages/SearchResults').then(m => ({ default: m.SearchResults })));
+const ApiPricing = lazy(() => import('./pages/ApiPricing').then(m => ({ default: m.ApiPricing })));
+const DeveloperPortal = lazy(() => import('./pages/DeveloperPortal').then(m => ({ default: m.DeveloperPortal })));
+const AdvertiserDashboard = lazy(() => import('./pages/AdvertiserDashboard').then(m => ({ default: m.AdvertiserDashboard })));
+const InfluencerVerification = lazy(() => import('./pages/InfluencerVerification'));
+const LendingComparison = lazy(() => import('./pages/LendingComparison'));
+const SocialTrading = lazy(() => import('./pages/SocialTrading'));
+const OnChainAnalytics = lazy(() => import('./pages/OnChainAnalytics'));
+const HardwareWallet = lazy(() => import('./pages/HardwareWallet'));
+const GasOptimizer = lazy(() => import('./pages/GasOptimizer'));
+const DeFiYield = lazy(() => import('./pages/DeFiYield'));
+const RetirementCalculator = lazy(() => import('./pages/RetirementCalculator'));
+const MultiExchange = lazy(() => import('./pages/MultiExchange'));
+const StakingCalculator = lazy(() => import('./pages/StakingCalculator'));
+const TradingIndicators = lazy(() => import('./pages/TradingIndicators'));
+const WhaleTrackingPage = lazy(() => import('./pages/WhaleTracking'));
+const RebalancingAlertsPage = lazy(() => import('./pages/RebalancingAlerts'));
+const DCAAutomationPage = lazy(() => import('./pages/DCAAutomation'));
+const SmartAlertBundlesPage = lazy(() => import('./pages/SmartAlertBundles'));
+
+// Admin Layout and Pages (lazy loaded)
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminOverview = lazy(() => import('./pages/admin').then(m => ({ default: m.AdminOverview })));
+const AuditLogs = lazy(() => import('./pages/admin').then(m => ({ default: m.AuditLogs })));
+const ContentModeration = lazy(() => import('./pages/admin').then(m => ({ default: m.ContentModeration })));
+const SupportTickets = lazy(() => import('./pages/admin').then(m => ({ default: m.SupportTickets })));
+const SystemSettings = lazy(() => import('./pages/admin').then(m => ({ default: m.SystemSettings })));
+const AdminAnalytics = lazy(() => import('./pages/admin').then(m => ({ default: m.AdminAnalytics })));
+const AdminSubscriptions = lazy(() => import('./pages/admin').then(m => ({ default: m.AdminSubscriptions })));
+const AdminNewsletters = lazy(() => import('./pages/admin').then(m => ({ default: m.AdminNewsletters })));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (previously cacheTime)
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+// Loading fallback component
+function PageLoader() {
+  return (
+    <div className="min-h-[400px] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -90,6 +111,7 @@ function App() {
               <AuthProvider>
                 <SessionExpiredModal />
                 <SessionActivityTracker />
+                <Suspense fallback={<PageLoader />}>
                 <Routes>
                   {/* Admin Panel with dedicated layout */}
                   <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
@@ -173,6 +195,7 @@ function App() {
                   <Route path="*" element={<Home />} />
                 </Route>
               </Routes>
+              </Suspense>
               </AuthProvider>
               </ToastProvider>
             </AnalyticsProvider>

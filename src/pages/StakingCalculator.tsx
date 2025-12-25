@@ -19,6 +19,8 @@ import {
   Shield,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { PageSEO } from '../components/PageSEO';
+import { RelatedPages } from '../components/InternalLinks';
 import {
   hasStakingCalculatorPremium,
   STAKING_CALCULATOR_PRICING,
@@ -107,6 +109,23 @@ export default function StakingCalculatorPage() {
   }
 
   return (
+    <>
+      <PageSEO
+        pageKey="stakingCalculator"
+        isTool
+        toolName="Cryptocurrency Staking Calculator"
+        urlPath="/staking-calculator"
+        faqs={[
+          {
+            question: 'How are staking rewards calculated?',
+            answer: 'Staking rewards are calculated based on the APY rate, your staked amount, and duration. We factor in compound frequency and platform fees to give accurate projections.',
+          },
+          {
+            question: 'What is the best crypto for staking?',
+            answer: 'Popular staking options include Ethereum (ETH), Cardano (ADA), Solana (SOL), and Polkadot (DOT). The best choice depends on your risk tolerance and reward expectations.',
+          },
+        ]}
+      />
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -392,7 +411,13 @@ export default function StakingCalculatorPage() {
             )}
           </div>
         </div>
+
+        {/* Related Content */}
+        <div className="mt-8">
+          <RelatedPages currentPath="/staking-calculator" title="More Tools" variant="list" />
+        </div>
       </div>
     </div>
+    </>
   );
 }

@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hasAdvancedBacktesting } from '../services/subscriptionLimits';
+import { PageSEO } from '../components/PageSEO';
+import { RelatedPages } from '../components/InternalLinks';
 import {
   runBacktest,
   getSupportedAssets,
@@ -68,6 +70,23 @@ export function Backtesting() {
   };
 
   return (
+    <>
+      <PageSEO
+        pageKey="backtesting"
+        isTool
+        toolName="Cryptocurrency Backtesting Tool"
+        urlPath="/backtesting"
+        faqs={[
+          {
+            question: 'What is cryptocurrency backtesting?',
+            answer: 'Backtesting allows you to simulate how an investment strategy would have performed using historical data. You can test "what if" scenarios like investing a lump sum or using DCA.',
+          },
+          {
+            question: 'How accurate is backtesting?',
+            answer: 'Backtesting uses real historical price data and provides accurate past performance. However, past performance does not guarantee future results.',
+          },
+        ]}
+      />
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="text-center mb-8">
@@ -454,6 +473,12 @@ export function Backtesting() {
           )}
         </div>
       </div>
+
+      {/* Related Content */}
+      <div className="mt-12">
+        <RelatedPages currentPath="/backtesting" title="More Tools" />
+      </div>
     </div>
+    </>
   );
 }

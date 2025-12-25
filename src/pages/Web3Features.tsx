@@ -1,12 +1,45 @@
 import { useState } from 'react';
 import { WalletConnect, TransactionImport, Web3Auth, TokenApprovalManager } from '../components/Web3';
 import { useAccount } from 'wagmi';
+import { SEO } from '../components/SEO';
+import { RelatedPages } from '../components/InternalLinks';
+import { PAGE_METADATA, generateToolSchema, generateFAQSchema } from '../lib/seo';
 
 export function Web3Features() {
   const { isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<'import' | 'auth' | 'approvals'>('import');
 
+  const meta = PAGE_METADATA.web3;
+  const web3Schema = [
+    generateToolSchema({
+      name: 'Web3 Wallet Features',
+      description: meta.description,
+      url: '/web3',
+    }),
+    generateFAQSchema([
+      {
+        question: 'How do I connect my crypto wallet?',
+        answer: 'Click the "Connect Wallet" button and select your wallet provider (MetaMask, WalletConnect, etc.). Approve the connection request in your wallet to access Web3 features.',
+      },
+      {
+        question: 'Is it safe to connect my wallet?',
+        answer: 'Yes, connecting your wallet only allows the app to view your public address and request transaction signatures. We never have access to your private keys or seed phrase.',
+      },
+      {
+        question: 'What is token approval management?',
+        answer: 'Token approvals allow smart contracts to spend your tokens. Our approval manager helps you view and revoke unnecessary approvals to improve your wallet security.',
+      },
+    ]),
+  ];
+
   return (
+    <>
+      <SEO
+        title={meta.title}
+        description={meta.description}
+        keywords={meta.keywords}
+        schema={web3Schema}
+      />
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="mb-8">
@@ -113,7 +146,13 @@ export function Web3Features() {
             </div>
           </div>
         </div>
+
+        {/* Related Content */}
+        <div className="mt-8">
+          <RelatedPages currentPath="/web3" title="Explore More" variant="list" />
+        </div>
       </div>
     </div>
+    </>
   );
 }

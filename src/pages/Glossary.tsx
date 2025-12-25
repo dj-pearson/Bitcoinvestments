@@ -1,5 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
+import { SEO } from '../components/SEO';
+import { RelatedPages } from '../components/InternalLinks';
+import { PAGE_METADATA, generateFAQSchema, generateWebPageSchema } from '../lib/seo';
 
 interface GlossaryTerm {
   term: string;
@@ -288,7 +291,29 @@ export function Glossary() {
     return groups;
   }, [filteredTerms]);
 
+  const meta = PAGE_METADATA.glossary;
+  const glossarySchema = [
+    generateWebPageSchema({
+      title: meta.title,
+      description: meta.description,
+      url: '/glossary',
+    }),
+    generateFAQSchema(
+      GLOSSARY_TERMS.slice(0, 10).map((term) => ({
+        question: `What is ${term.term}?`,
+        answer: term.definition,
+      }))
+    ),
+  ];
+
   return (
+    <>
+      <SEO
+        title={meta.title}
+        description={meta.description}
+        keywords={meta.keywords}
+        schema={glossarySchema}
+      />
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="text-center mb-12">
@@ -422,6 +447,12 @@ export function Glossary() {
           ))}
         </div>
       )}
+
+      {/* Related Content */}
+      <div className="mt-12">
+        <RelatedPages currentPath="/glossary" title="Continue Learning" />
+      </div>
     </div>
+    </>
   );
 }

@@ -20,6 +20,8 @@ import {
   Plus,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { PageSEO } from '../components/PageSEO';
+import { RelatedPages } from '../components/InternalLinks';
 import {
   hasWhaleTrackingPremium,
   WHALE_TRACKING_PRICING,
@@ -92,6 +94,23 @@ export default function WhaleTrackingPage() {
   }
 
   return (
+    <>
+      <PageSEO
+        pageKey="whaleTracking"
+        isTool
+        toolName="Cryptocurrency Whale Tracker"
+        urlPath="/whale-tracking"
+        faqs={[
+          {
+            question: 'What is a crypto whale?',
+            answer: 'A crypto whale is an individual or entity that holds a large amount of cryptocurrency. Whale movements can significantly impact market prices.',
+          },
+          {
+            question: 'Why should I track whale wallets?',
+            answer: 'Tracking whale wallets can provide insights into market sentiment and potential price movements. Large inflows to exchanges often signal selling pressure.',
+          },
+        ]}
+      />
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -346,7 +365,13 @@ export default function WhaleTrackingPage() {
             </div>
           </div>
         )}
+
+        {/* Related Content */}
+        <div className="mt-8">
+          <RelatedPages currentPath="/whale-tracking" title="More Analytics" variant="list" />
+        </div>
       </div>
     </div>
+    </>
   );
 }

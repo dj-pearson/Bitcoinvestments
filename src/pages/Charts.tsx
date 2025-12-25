@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { PriceChart, ComparisonChart } from '../components/charts';
 import { searchCryptocurrencies, getTopCryptocurrencies } from '../services/coingecko';
 import { Search, Plus, TrendingUp } from 'lucide-react';
+import { SEO } from '../components/SEO';
+import { RelatedPages } from '../components/InternalLinks';
+import { PAGE_METADATA, generateToolSchema, generateFAQSchema } from '../lib/seo';
 
 export function Charts() {
   const [selectedCrypto, setSelectedCrypto] = useState({
@@ -104,7 +107,33 @@ export function Charts() {
     setComparedCryptos(comparedCryptos.filter(c => c.id !== id));
   }
 
+  const meta = PAGE_METADATA.charts;
+  const chartsSchema = [
+    generateToolSchema({
+      name: 'Cryptocurrency Price Charts',
+      description: meta.description,
+      url: '/charts',
+    }),
+    generateFAQSchema([
+      {
+        question: 'How do I compare cryptocurrency prices?',
+        answer: 'Use our comparison mode to overlay multiple cryptocurrency price charts. Select up to 8 cryptocurrencies to see their relative performance over time.',
+      },
+      {
+        question: 'What timeframes are available for crypto charts?',
+        answer: 'Our charts support multiple timeframes including 24 hours, 7 days, 30 days, 90 days, and 1 year. You can switch between timeframes to analyze short and long-term trends.',
+      },
+    ]),
+  ];
+
   return (
+    <>
+      <SEO
+        title={meta.title}
+        description={meta.description}
+        keywords={meta.keywords}
+        schema={chartsSchema}
+      />
     <div className="container mx-auto px-4 py-12">
       {/* Header */}
       <div className="mb-8">
@@ -273,8 +302,12 @@ export function Charts() {
           </div>
         </div>
       </div>
+
+      {/* Related Content */}
+      <div className="mt-12">
+        <RelatedPages currentPath="/charts" title="More Analysis Tools" />
+      </div>
     </div>
+    </>
   );
 }
-
-

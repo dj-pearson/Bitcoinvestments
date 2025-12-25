@@ -2,6 +2,12 @@
  * Cloudflare Workers API: Create API Tier Checkout Session
  *
  * This function creates a Stripe Checkout session for developer API subscriptions.
+ *
+ * SECURITY:
+ * - Uses environment variables for all price IDs (not hardcoded)
+ * - Validates tier and billing cycle against allowed values
+ * - Uses proper CORS with origin validation
+ * - Sanitizes all input data
  */
 
 import Stripe from 'stripe';
@@ -9,70 +15,117 @@ import {
   parseAndValidateBody,
   validateEmail,
   validateUuid,
+  validateStripePriceId,
   jsonError,
   jsonSuccess,
 } from '../lib/validation';
+import { getCorsHeaders, handleCorsPreflightRequest, ALLOWED_ORIGINS } from './_cors';
 
 interface Env {
   STRIPE_SECRET_KEY: string;
-  STRIPE_API_STARTER: string;
-  STRIPE_API_PROFESSIONAL: string;
-  STRIPE_API_ENTERPRISE: string;
+  VITE_STRIPE_API_STARTER_MONTHLY: string;
+  VITE_STRIPE_API_STARTER_YEARLY: string;
+  VITE_STRIPE_API_PROFESSIONAL_MONTHLY: string;
+  VITE_STRIPE_API_PROFESSIONAL_YEARLY: string;
 }
 
 interface CheckoutRequest {
-  priceId: string;
   userId: string;
   userEmail: string;
   tier: string;
   billingCycle: 'monthly' | 'yearly';
 }
 
-const API_TIER_PRICES: Record<string, { monthly: string; yearly: string }> = {
-  starter: {
-    monthly: 'price_api_starter_monthly',
-    yearly: 'price_api_starter_yearly',
-  },
-  professional: {
-    monthly: 'price_api_professional_monthly',
-    yearly: 'price_api_professional_yearly',
-  },
-  enterprise: {
-    monthly: 'price_api_enterprise_monthly',
-    yearly: 'price_api_enterprise_yearly',
-  },
-};
-
 export const onRequestPost: PagesFunction<Env> = async (context) => {
+  // Get CORS headers for this request
+  const corsHeaders = getCorsHeaders(context.request);
+
+  // Helper to add CORS headers to responses
+  const addCorsHeaders = (response: Response): Response => {
+    const headers = new Headers(response.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  };
+
   try {
     // Parse and validate request body
     const { data: body, error: parseError } = await parseAndValidateBody<CheckoutRequest>(
       context.request,
-      ['priceId', 'userId', 'userEmail', 'tier', 'billingCycle']
+      ['userId', 'userEmail', 'tier', 'billingCycle']
     );
 
     if (parseError || !body) {
-      return jsonError(parseError || 'Invalid request body', 400);
+      return addCorsHeaders(jsonError(parseError || 'Invalid request body', 400));
     }
 
-    const { priceId, userId, userEmail, tier, billingCycle } = body;
+    const { userId, userEmail, tier, billingCycle } = body;
 
     // Validate user email
     const emailValidation = validateEmail(userEmail);
     if (!emailValidation.isValid) {
-      return jsonError(emailValidation.error || 'Invalid email', 400);
+      return addCorsHeaders(jsonError(emailValidation.error || 'Invalid email', 400));
     }
 
     // Validate user ID (should be a UUID)
     const userIdValidation = validateUuid(userId, 'User ID');
     if (!userIdValidation.isValid) {
-      return jsonError(userIdValidation.error || 'Invalid user ID', 400);
+      return addCorsHeaders(jsonError(userIdValidation.error || 'Invalid user ID', 400));
     }
 
     // Validate tier
     const validTiers = ['starter', 'professional', 'enterprise'];
     if (!validTiers.includes(tier)) {
-      return jsonError('Invalid API tier', 400);
+      return addCorsHeaders(jsonError('Invalid API tier', 400));
+    }
+
+    // Validate billing cycle
+    if (!['monthly', 'yearly'].includes(billingCycle)) {
+      return addCorsHeaders(jsonError('Invalid billing cycle. Must be "monthly" or "yearly"', 400));
+    }
+
+    // For enterprise tier, redirect to contact sales
+    if (tier === 'enterprise') {
+      const requestOrigin = context.request.headers.get('Origin');
+      const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
+        ? requestOrigin
+        : ALLOWED_ORIGINS[0];
+
+      return addCorsHeaders(jsonSuccess({
+        sessionId: null,
+        url: `${origin}/contact?plan=enterprise-api`,
+        isContactSales: true,
+      }));
+    }
+
+    // Build price ID map from environment variables
+    const apiTierPrices: Record<string, { monthly: string; yearly: string }> = {
+      starter: {
+        monthly: context.env.VITE_STRIPE_API_STARTER_MONTHLY || '',
+        yearly: context.env.VITE_STRIPE_API_STARTER_YEARLY || '',
+      },
+      professional: {
+        monthly: context.env.VITE_STRIPE_API_PROFESSIONAL_MONTHLY || '',
+        yearly: context.env.VITE_STRIPE_API_PROFESSIONAL_YEARLY || '',
+      },
+    };
+
+    // Get the correct price ID based on tier and billing cycle
+    const tierPrices = apiTierPrices[tier];
+    if (!tierPrices) {
+      return addCorsHeaders(jsonError('Invalid tier', 400));
+    }
+
+    const priceId = billingCycle === 'yearly' ? tierPrices.yearly : tierPrices.monthly;
+
+    // Validate that we have a price ID configured for this tier/cycle
+    if (!priceId || !priceId.startsWith('price_')) {
+      return addCorsHeaders(jsonError(`Price not configured for ${tier} ${billingCycle} plan`, 500));
     }
 
     // Initialize Stripe
@@ -80,23 +133,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       apiVersion: '2024-11-20.acacia',
     });
 
-    // Get the correct price ID based on tier and billing cycle
-    const tierPrices = API_TIER_PRICES[tier];
-    const actualPriceId = billingCycle === 'yearly' ? tierPrices.yearly : tierPrices.monthly;
+    // SECURITY: Validate origin for redirect URLs
+    const requestOrigin = context.request.headers.get('Origin');
+    const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
+      ? requestOrigin
+      : ALLOWED_ORIGINS[0];
 
-    // For enterprise tier, redirect to contact sales
-    if (tier === 'enterprise') {
-      const requestOrigin = new URL(context.request.url).origin;
-      return jsonSuccess({
-        sessionId: null,
-        url: `${requestOrigin}/contact?plan=enterprise-api`,
-        isContactSales: true,
-      });
-    }
-
-    const requestOrigin = new URL(context.request.url).origin;
-    const successUrl = `${requestOrigin}/developers/portal?session_id={CHECKOUT_SESSION_ID}&api_tier=${tier}`;
-    const cancelUrl = `${requestOrigin}/developers/pricing`;
+    const successUrl = `${origin}/developers/portal?session_id={CHECKOUT_SESSION_ID}&api_tier=${tier}`;
+    const cancelUrl = `${origin}/developers/pricing`;
 
     // Create Checkout Session for API subscription
     const session = await stripe.checkout.sessions.create({
@@ -104,7 +148,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       client_reference_id: userId,
       line_items: [
         {
-          price: actualPriceId,
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -126,30 +170,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
+      tax_id_collection: {
+        enabled: true,
+      },
     });
 
-    return jsonSuccess({
+    return addCorsHeaders(jsonSuccess({
       sessionId: session.id,
       url: session.url,
-    });
+    }));
   } catch (error) {
     console.error('Error creating API checkout session:', error);
 
-    return jsonError(
+    return addCorsHeaders(jsonError(
       error instanceof Error ? error.message : 'Failed to create checkout session',
       500
-    );
+    ));
   }
 };
 
 // Handle CORS preflight
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+export const onRequestOptions: PagesFunction = async (context) => {
+  return handleCorsPreflightRequest(context.request);
 };

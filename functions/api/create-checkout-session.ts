@@ -1,9 +1,17 @@
 /**
  * Cloudflare Workers API: Create Stripe Checkout Session
  *
- * This function creates a Stripe Checkout session for premium subscriptions.
- * It's called from the frontend when a user clicks "Subscribe" on the pricing page.
- * Includes comprehensive input validation and sanitization.
+ * This function creates a Stripe Checkout session for subscriptions and one-time purchases.
+ * It's called from the frontend when a user clicks "Subscribe" or "Purchase" on the pricing page.
+ *
+ * Supports:
+ * - Recurring subscriptions: monthly, annual, advisor, enterprise
+ * - One-time purchases: lifetime deal
+ *
+ * SECURITY:
+ * - Validates price ID against whitelist of configured prices
+ * - Validates all input data
+ * - Uses proper CORS with origin validation
  */
 
 import Stripe from 'stripe';
@@ -16,12 +24,17 @@ import {
   jsonError,
   jsonSuccess,
 } from '../lib/validation';
-import { getCorsHeaders, handleCorsPreflightRequest } from './_cors';
+import { getCorsHeaders, handleCorsPreflightRequest, ALLOWED_ORIGINS } from './_cors';
 
 interface Env {
   STRIPE_SECRET_KEY: string;
+  // Individual plan prices
   VITE_STRIPE_PRICE_MONTHLY: string;
   VITE_STRIPE_PRICE_ANNUAL: string;
+  VITE_STRIPE_PRICE_LIFETIME: string;
+  // Business plan prices
+  VITE_STRIPE_PRICE_ADVISOR: string;
+  VITE_STRIPE_PRICE_ENTERPRISE: string;
 }
 
 interface CheckoutRequest {
@@ -30,6 +43,36 @@ interface CheckoutRequest {
   userEmail: string;
   successUrl?: string;
   cancelUrl?: string;
+  mode?: 'subscription' | 'payment';
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Build a map of valid price IDs with their checkout modes
+ */
+function buildValidPricesMap(env: Env): Record<string, { mode: 'subscription' | 'payment'; productType?: string }> {
+  const map: Record<string, { mode: 'subscription' | 'payment'; productType?: string }> = {};
+
+  // Subscription prices
+  if (env.VITE_STRIPE_PRICE_MONTHLY) {
+    map[env.VITE_STRIPE_PRICE_MONTHLY] = { mode: 'subscription' };
+  }
+  if (env.VITE_STRIPE_PRICE_ANNUAL) {
+    map[env.VITE_STRIPE_PRICE_ANNUAL] = { mode: 'subscription' };
+  }
+  if (env.VITE_STRIPE_PRICE_ADVISOR) {
+    map[env.VITE_STRIPE_PRICE_ADVISOR] = { mode: 'subscription' };
+  }
+  if (env.VITE_STRIPE_PRICE_ENTERPRISE) {
+    map[env.VITE_STRIPE_PRICE_ENTERPRISE] = { mode: 'subscription' };
+  }
+
+  // One-time payment prices
+  if (env.VITE_STRIPE_PRICE_LIFETIME) {
+    map[env.VITE_STRIPE_PRICE_LIFETIME] = { mode: 'payment', productType: 'lifetime' };
+  }
+
+  return map;
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -60,7 +103,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return addCorsHeaders(jsonError(parseError || 'Invalid request body', 400));
     }
 
-    const { priceId, userId, userEmail, successUrl, cancelUrl } = body;
+    const { priceId, userId, userEmail, successUrl, cancelUrl, mode: requestedMode, metadata } = body;
 
     // Validate user email
     const emailValidation = validateEmail(userEmail);
@@ -74,26 +117,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return addCorsHeaders(jsonError(userIdValidation.error || 'Invalid user ID', 400));
     }
 
-    // Initialize Stripe
-    const stripe = new Stripe(context.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-11-20.acacia',
-    });
+    // Build valid prices map
+    const validPricesMap = buildValidPricesMap(context.env);
+    const validPriceIds = Object.keys(validPricesMap);
 
     // Validate price ID (must be one of our configured prices)
-    const validPriceIds = [
-      context.env.VITE_STRIPE_PRICE_MONTHLY,
-      context.env.VITE_STRIPE_PRICE_ANNUAL,
-    ].filter(Boolean);
-
     const priceValidation = validateStripePriceId(priceId, validPriceIds);
     if (!priceValidation.isValid) {
       return addCorsHeaders(jsonError(priceValidation.error || 'Invalid price ID', 400));
     }
 
-    // Validate optional URLs if provided
-    const requestOrigin = new URL(context.request.url).origin;
+    // Get the checkout mode for this price
+    const priceConfig = validPricesMap[priceId];
+    const checkoutMode = requestedMode || priceConfig.mode;
 
-    let validatedSuccessUrl = `${requestOrigin}/profile?session_id={CHECKOUT_SESSION_ID}`;
+    // Initialize Stripe
+    const stripe = new Stripe(context.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-11-20.acacia',
+    });
+
+    // SECURITY: Validate origin for redirect URLs
+    const requestOrigin = context.request.headers.get('Origin');
+    const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
+      ? requestOrigin
+      : ALLOWED_ORIGINS[0];
+
+    // Validate optional URLs if provided
+    let validatedSuccessUrl = `${origin}/profile?session_id={CHECKOUT_SESSION_ID}`;
     if (successUrl) {
       const successUrlValidation = validateUrl(successUrl, { requireHttps: true });
       if (!successUrlValidation.isValid) {
@@ -102,7 +152,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       validatedSuccessUrl = successUrl;
     }
 
-    let validatedCancelUrl = `${requestOrigin}/pricing`;
+    let validatedCancelUrl = `${origin}/pricing`;
     if (cancelUrl) {
       const cancelUrlValidation = validateUrl(cancelUrl, { requireHttps: true });
       if (!cancelUrlValidation.isValid) {
@@ -111,8 +161,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       validatedCancelUrl = cancelUrl;
     }
 
-    // Create Checkout Session
-    const session = await stripe.checkout.sessions.create({
+    // Build session metadata
+    const sessionMetadata: Record<string, string> = {
+      userId: userId,
+      ...metadata,
+    };
+
+    // Add product type for one-time purchases
+    if (priceConfig.productType) {
+      sessionMetadata.productType = priceConfig.productType;
+      sessionMetadata.type = priceConfig.productType;
+    }
+
+    // Create base session config
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer_email: userEmail.trim().toLowerCase(),
       client_reference_id: userId,
       line_items: [
@@ -121,23 +183,28 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           quantity: 1,
         },
       ],
-      mode: 'subscription',
+      mode: checkoutMode,
       success_url: validatedSuccessUrl,
       cancel_url: validatedCancelUrl,
-      metadata: {
-        userId: userId,
-      },
-      subscription_data: {
-        metadata: {
-          userId: userId,
-        },
-      },
+      metadata: sessionMetadata,
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       tax_id_collection: {
         enabled: true,
       },
-    });
+    };
+
+    // Add subscription-specific options for recurring purchases
+    if (checkoutMode === 'subscription') {
+      sessionConfig.subscription_data = {
+        metadata: {
+          userId: userId,
+        },
+      };
+    }
+
+    // Create Checkout Session
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return addCorsHeaders(jsonSuccess({
       sessionId: session.id,

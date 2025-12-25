@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { signIn, signInWithTwoFactor } from '../services/auth';
@@ -25,7 +25,11 @@ export function Login() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+
+  // Store password securely for 2FA re-authentication (cleared after use)
+  const pendingPasswordRef = useRef<string | null>(null);
 
   // Get the redirect location from state (if coming from a protected route)
   const locationState = location.state as LocationState | null;
@@ -61,18 +65,24 @@ export function Login() {
   // Redirect already logged-in users
   useEffect(() => {
     if (!authLoading && user) {
-      const userRole = (user as any).role;
-      const redirectPath = getRedirectPath(userRole);
+      const redirectPath = getRedirectPath(user.role);
       navigate(redirectPath, { replace: true });
     }
   }, [user, authLoading, navigate, fromPath, wasAdminRedirect]);
+
+  // Clear pending password on unmount for security
+  useEffect(() => {
+    return () => {
+      pendingPasswordRef.current = null;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { user, requires2FA: needs2FA, userId, error: signInError } = await signIn(email, password);
+    const { user, requires2FA: needs2FA, userId, email: userEmail, error: signInError } = await signIn(email, password);
 
     if (signInError) {
       setError(signInError);
@@ -84,7 +94,11 @@ export function Login() {
     if (needs2FA && userId) {
       setRequires2FA(true);
       setPendingUserId(userId);
-      // Store the role for redirect after 2FA (we'll get it from the user object later)
+      setPendingEmail(userEmail || email);
+      // Store password securely for 2FA re-authentication
+      pendingPasswordRef.current = password;
+      // Clear password from input for security
+      setPassword('');
       setLoading(false);
       return;
     }
@@ -104,9 +118,18 @@ export function Login() {
     setError(null);
     setLoading(true);
 
-    if (!pendingUserId) {
+    if (!pendingUserId || !pendingEmail) {
       setError('Session expired. Please try logging in again.');
-      setRequires2FA(false);
+      handleBack();
+      setLoading(false);
+      return;
+    }
+
+    // Get stored password for re-authentication
+    const storedPassword = pendingPasswordRef.current;
+    if (!storedPassword) {
+      setError('Session expired. Please try logging in again.');
+      handleBack();
       setLoading(false);
       return;
     }
@@ -114,8 +137,13 @@ export function Login() {
     const { user, error: verifyError } = await signInWithTwoFactor(
       pendingUserId,
       twoFactorCode,
-      useRecoveryCode
+      useRecoveryCode,
+      pendingEmail,
+      storedPassword
     );
+
+    // Clear stored password immediately after use
+    pendingPasswordRef.current = null;
 
     if (verifyError) {
       setError(verifyError);
@@ -137,8 +165,11 @@ export function Login() {
     setRequires2FA(false);
     setTwoFactorCode('');
     setPendingUserId(null);
+    setPendingEmail(null);
     setUseRecoveryCode(false);
     setError(null);
+    // Clear stored password for security
+    pendingPasswordRef.current = null;
   };
 
   // 2FA Verification Screen

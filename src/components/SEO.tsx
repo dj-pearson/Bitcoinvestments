@@ -26,7 +26,7 @@ interface SEOProps {
   section?: string;
   noindex?: boolean;
   nofollow?: boolean;
-  schema?: Record<string, unknown>;
+  schema?: Record<string, unknown> | Record<string, unknown>[];
   children?: React.ReactNode;
 }
 
@@ -198,10 +198,28 @@ export function SEO({
     robotsContent,
   ]);
 
-  // Render JSON-LD schema
+  // Render JSON-LD schema (supports single schema or array of schemas)
   const renderSchema = () => {
     if (!schema) return null;
 
+    // If it's an array, render each schema as a separate script tag
+    if (Array.isArray(schema)) {
+      return (
+        <>
+          {schema.map((s, index) => (
+            <script
+              key={index}
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify(s),
+              }}
+            />
+          ))}
+        </>
+      );
+    }
+
+    // Single schema object
     return (
       <script
         type="application/ld+json"

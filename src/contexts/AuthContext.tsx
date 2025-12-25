@@ -21,6 +21,7 @@ export interface AuthContextType {
   initializeSession: (userId: string) => Promise<void>;
   sessionExpired: boolean;
   clearSessionExpired: () => void;
+  markSessionExpired: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -166,6 +167,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setSessionExpired(false);
   }, []);
 
+  // Mark session as expired (used by useSessionManager hook)
+  // This shows the modal before signing out
+  const markSessionExpired = useCallback(async () => {
+    setSessionExpired(true);
+    const sessionId = getCurrentSessionId();
+    if (sessionId && user) {
+      const { invalidateSession } = await import('../services/sessionManager');
+      await invalidateSession(sessionId, user.id);
+    }
+    await authSignOut();
+    setUser(null);
+    setProfile(null);
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -178,6 +193,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         initializeSession,
         sessionExpired,
         clearSessionExpired,
+        markSessionExpired,
       }}
     >
       {children}

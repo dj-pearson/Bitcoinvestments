@@ -4,8 +4,6 @@ import {
   updateActivity,
   isSessionValid,
   SESSION_CONFIG,
-  getCurrentSessionId,
-  invalidateSession,
 } from '../services/sessionManager';
 
 interface UseSessionManagerOptions {
@@ -17,20 +15,17 @@ interface UseSessionManagerOptions {
  * Hook to manage user session with activity tracking and timeout
  */
 export function useSessionManager(options: UseSessionManagerOptions = {}) {
-  const { user, signOut } = useAuth();
+  const { user, markSessionExpired } = useAuth();
   const { onSessionExpired, checkInterval = 60000 } = options; // Check every minute
   const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activityListenersAttached = useRef(false);
 
-  // Handle session expiration
+  // Handle session expiration - now uses context's markSessionExpired
+  // which shows the modal and properly cleans up the session
   const handleSessionExpired = useCallback(async () => {
-    const sessionId = getCurrentSessionId();
-    if (sessionId && user) {
-      await invalidateSession(sessionId, user.id);
-    }
-    await signOut();
+    await markSessionExpired();
     onSessionExpired?.();
-  }, [signOut, user, onSessionExpired]);
+  }, [markSessionExpired, onSessionExpired]);
 
   // Check session validity
   const checkSession = useCallback(async () => {

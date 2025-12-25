@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signUp } from '../services/auth';
+import { signUp, validatePassword, validateEmail } from '../services/auth';
 import { useToast } from '../contexts/ToastContext';
+import { Check, X } from 'lucide-react';
 
 export function Signup() {
   const navigate = useNavigate();
@@ -18,15 +19,24 @@ export function Signup() {
     e.preventDefault();
     setError(null);
 
+    // Validate email format
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      toast.error('Invalid email', 'Please enter a valid email address');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       toast.error('Passwords do not match');
       return;
     }
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      toast.error('Password too short', 'Must be at least 8 characters');
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      setError(passwordValidation.errors.join('. '));
+      toast.error('Password requirements not met', passwordValidation.errors[0]);
       return;
     }
 
@@ -53,6 +63,15 @@ export function Signup() {
     }
     setLoading(false);
   };
+
+  // Password strength indicators
+  const passwordRequirements = [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'One lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'One number', met: /[0-9]/.test(password) },
+    { label: 'One special character', met: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
+  ];
 
   if (success) {
     return (
@@ -123,8 +142,28 @@ export function Signup() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Create a password (8+ characters)"
+                placeholder="Create a strong password"
               />
+              {/* Password strength indicators */}
+              {password.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {passwordRequirements.map((req, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center gap-2 text-xs ${
+                        req.met ? 'text-green-400' : 'text-gray-500'
+                      }`}
+                    >
+                      {req.met ? (
+                        <Check className="w-3 h-3" />
+                      ) : (
+                        <X className="w-3 h-3" />
+                      )}
+                      {req.label}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>

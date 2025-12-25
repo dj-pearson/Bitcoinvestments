@@ -38,8 +38,8 @@ export function AdminRoute({
     return <Navigate to="/login" state={{ from: location.pathname, isAdmin: true }} replace />;
   }
 
-  // Check if user has required role
-  const userRole = (user as any).role || 'user';
+  // Check if user has required role (role is now properly typed in AuthUser)
+  const userRole = user.role;
 
   const hasAccess = checkRoleAccess(userRole, requiredRole);
 
@@ -74,8 +74,7 @@ export function useIsAdmin(): boolean {
   const { user } = useAuth();
   if (!user) return false;
 
-  const userRole = (user as any).role || 'user';
-  return userRole === 'admin' || userRole === 'super_admin';
+  return user.role === 'admin' || user.role === 'super_admin';
 }
 
 /**
@@ -85,8 +84,7 @@ export function useIsSuperAdmin(): boolean {
   const { user } = useAuth();
   if (!user) return false;
 
-  const userRole = (user as any).role || 'user';
-  return userRole === 'super_admin';
+  return user.role === 'super_admin';
 }
 
 /**
@@ -94,5 +92,5 @@ export function useIsSuperAdmin(): boolean {
  */
 export function useUserRole(): UserRole {
   const { user } = useAuth();
-  return (user as any)?.role || 'user';
+  return user?.role || 'user';
 }

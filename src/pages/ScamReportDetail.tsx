@@ -59,19 +59,6 @@ export function ScamReportDetail() {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'disputes'>('details');
 
-  useEffect(() => {
-    if (id) {
-      loadReport();
-      loadComments();
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (id && user) {
-      loadUserInteractions();
-    }
-  }, [id, user]);
-
   async function loadReport() {
     setLoading(true);
     const { report: rep } = await getScamReport(id!);
@@ -99,6 +86,21 @@ export function ScamReportDetail() {
     setUserVote(voteResult.vote?.vote_type || null);
     setInWatchlist(watchlistResult.inWatchlist);
   }
+
+  useEffect(() => {
+    if (id) {
+      loadReport();
+      loadComments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    if (id && user) {
+      loadUserInteractions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user]);
 
   async function handleVote(voteType: VoteType) {
     if (!user) {

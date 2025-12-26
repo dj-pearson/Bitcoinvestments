@@ -17,12 +17,11 @@ type AdFormData = {
   status: 'active' | 'paused' | 'ended';
 };
 
-export function AdManager() {
-  const [ads, setAds] = useState<Advertisement[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
-  const [formData, setFormData] = useState<AdFormData>({
+// Helper to get initial form data with current dates
+function getInitialFormData(): AdFormData {
+  const today = new Date().toISOString().split('T')[0];
+  const thirtyDaysLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  return {
     campaign_name: '',
     advertiser_id: '',
     ad_zone: 'banner',
@@ -30,14 +29,18 @@ export function AdManager() {
     target_url: '',
     alt_text: '',
     cta_text: '',
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    start_date: today,
+    end_date: thirtyDaysLater,
     status: 'active',
-  });
+  };
+}
 
-  useEffect(() => {
-    loadAds();
-  }, []);
+export function AdManager() {
+  const [ads, setAds] = useState<Advertisement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
+  const [formData, setFormData] = useState<AdFormData>(getInitialFormData);
 
   async function loadAds() {
     setLoading(true);
@@ -51,6 +54,10 @@ export function AdManager() {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadAds();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,18 +93,7 @@ export function AdManager() {
   function resetForm() {
     setShowForm(false);
     setEditingAd(null);
-    setFormData({
-      campaign_name: '',
-      advertiser_id: '',
-      ad_zone: 'banner',
-      image_url: '',
-      target_url: '',
-      alt_text: '',
-      cta_text: '',
-      start_date: new Date().toISOString().split('T')[0],
-      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'active',
-    });
+    setFormData(getInitialFormData());
   }
 
   function handleEdit(ad: Advertisement) {

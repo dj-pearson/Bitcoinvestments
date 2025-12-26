@@ -49,10 +49,6 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
   const [updating, setUpdating] = useState(false);
   const toast = useToast();
 
-  useEffect(() => {
-    loadPortfolio();
-  }, []);
-
   async function loadPortfolio() {
     setLoading(true);
     let p = await getPortfolio();
@@ -66,6 +62,10 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
     setPortfolio(p);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadPortfolio();
+  }, []);
 
   async function handleCreatePortfolio() {
     const p = await createPortfolio('My Portfolio');

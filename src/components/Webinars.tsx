@@ -83,10 +83,6 @@ export default function Webinars({ userId, isPremiumUser = false }: WebinarsProp
   const [filters, setFilters] = useState<WebinarFilters>({ page: 1, limit: 12 });
   const [totalWebinars, setTotalWebinars] = useState(0);
 
-  useEffect(() => {
-    loadWebinars();
-  }, [filters]);
-
   async function loadWebinars() {
     setLoading(true);
     const { webinars: data, total } = await getWebinars(filters);
@@ -94,6 +90,11 @@ export default function Webinars({ userId, isPremiumUser = false }: WebinarsProp
     setTotalWebinars(total);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadWebinars();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   async function handleViewWebinar(webinar: Webinar) {
     const { webinar: fullWebinar } = await getWebinar(webinar.id);

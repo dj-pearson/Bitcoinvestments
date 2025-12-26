@@ -45,10 +45,6 @@ export function SupportTickets() {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    loadTickets();
-  }, [statusFilter]);
-
   async function loadTickets() {
     setLoading(true);
     const result = await getSupportTickets({
@@ -60,6 +56,11 @@ export function SupportTickets() {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   async function handleStatusChange(ticketId: string, status: TicketStatus) {
     const result = await updateTicketStatus(ticketId, status);

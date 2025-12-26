@@ -31,16 +31,17 @@ export function TwoFactorSetup({ userId, userEmail, onComplete }: TwoFactorSetup
   const [copied, setCopied] = useState(false);
   const [recoveryCodesCopied, setRecoveryCodesCopied] = useState(false);
 
-  useEffect(() => {
-    loadSettings();
-  }, [userId]);
-
   const loadSettings = async () => {
     setLoading(true);
     const twoFactorSettings = await getTwoFactorSettings(userId);
     setSettings(twoFactorSettings);
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const startSetup = () => {
     const newSecret = generateSecret();

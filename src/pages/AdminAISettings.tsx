@@ -42,10 +42,6 @@ export function AdminAISettings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
   async function loadSettings() {
     setLoading(true);
     const { settings: loadedSettings, error } = await getAIModelSettings();
@@ -54,6 +50,10 @@ export function AdminAISettings() {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   function handleSettingChange(key: keyof AIModelSettings, value: string | number) {
     setSettings((prev) => ({ ...prev, [key]: value }));

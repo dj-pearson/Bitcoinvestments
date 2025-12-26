@@ -101,10 +101,6 @@ export default function SuccessStories({ userId }: SuccessStoriesProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  useEffect(() => {
-    loadStories();
-  }, [filters]);
-
   async function loadStories() {
     setLoading(true);
     const { stories: data, total } = await getStories(filters);
@@ -112,6 +108,11 @@ export default function SuccessStories({ userId }: SuccessStoriesProps) {
     setTotalStories(total);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadStories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   async function handleViewStory(story: SuccessStory) {
     const { story: fullStory } = await getStory(story.id);

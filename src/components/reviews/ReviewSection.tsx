@@ -27,20 +27,6 @@ export function ReviewSection({ platformType, platformId, platformName }: Review
   const [hasMore, setHasMore] = useState(true);
   const REVIEWS_PER_PAGE = 5;
 
-  useEffect(() => {
-    loadData();
-  }, [platformType, platformId]);
-
-  useEffect(() => {
-    loadReviews(true);
-  }, [sortBy]);
-
-  const loadData = async () => {
-    setLoading(true);
-    await Promise.all([loadReviews(true), loadStats()]);
-    setLoading(false);
-  };
-
   const loadReviews = async (reset = false) => {
     const offset = reset ? 0 : page * REVIEWS_PER_PAGE;
     const { reviews: newReviews, total } = await getReviews(platformType, platformId, {
@@ -63,6 +49,22 @@ export function ReviewSection({ platformType, platformId, platformName }: Review
     const reviewStats = await getReviewStats(platformType, platformId);
     setStats(reviewStats);
   };
+
+  const loadData = async () => {
+    setLoading(true);
+    await Promise.all([loadReviews(true), loadStats()]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [platformType, platformId]);
+
+  useEffect(() => {
+    loadReviews(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy]);
 
   const handleLoadMore = async () => {
     setPage(prev => prev + 1);

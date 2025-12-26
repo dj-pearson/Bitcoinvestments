@@ -49,11 +49,6 @@ export function QAForum({ userId }: QAForumProps) {
   });
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    loadQuestions();
-    loadStats();
-  }, [filters]);
-
   const loadQuestions = async () => {
     setIsLoading(true);
     const result = await getQuestions(filters);
@@ -68,6 +63,12 @@ export function QAForum({ userId }: QAForumProps) {
     const result = await getForumStats();
     setStats(result);
   };
+
+  useEffect(() => {
+    loadQuestions();
+    loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const handleSearch = (query: string) => {
     setFilters((prev) => ({ ...prev, query, page: 1 }));
@@ -397,10 +398,6 @@ function QuestionDetail({
   const [newAnswer, setNewAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadQuestion();
-  }, [questionId]);
-
   const loadQuestion = async () => {
     setIsLoading(true);
     const result = await getQuestion(questionId);
@@ -410,6 +407,11 @@ function QuestionDetail({
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadQuestion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionId]);
 
   const handleVote = async (
     targetId: string,

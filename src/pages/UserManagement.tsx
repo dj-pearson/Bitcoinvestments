@@ -18,10 +18,6 @@ export function UserManagement() {
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspendReason, setSuspendReason] = useState('');
 
-  useEffect(() => {
-    loadUsers();
-  }, [page, searchTerm, roleFilter, suspendedFilter]);
-
   async function loadUsers() {
     setLoading(true);
 
@@ -37,6 +33,11 @@ export function UserManagement() {
     setTotalPages(result.totalPages);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchTerm, roleFilter, suspendedFilter]);
 
   async function handleSuspendUser() {
     if (!selectedUser || !currentUser) return;

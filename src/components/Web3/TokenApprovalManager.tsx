@@ -31,12 +31,6 @@ export function TokenApprovalManager() {
   const [revokingIds, setRevokingIds] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  useEffect(() => {
-    if (user && address) {
-      loadApprovals();
-    }
-  }, [user, address]);
-
   async function loadApprovals() {
     if (!user) return;
     setLoading(true);
@@ -51,6 +45,13 @@ export function TokenApprovalManager() {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    if (user && address) {
+      loadApprovals();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, address]);
 
   async function handleRevoke(approval: TokenApproval) {
     if (!user) return;

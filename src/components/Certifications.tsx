@@ -75,20 +75,21 @@ export default function Certifications({ userId }: CertificationsProps) {
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (userId) {
-      loadCertificates();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
   async function loadCertificates() {
     setLoading(true);
     const { certificates: data } = await getUserCertificates(userId!);
     setCertificates(data);
     setLoading(false);
   }
+
+  useEffect(() => {
+    if (userId) {
+      loadCertificates();
+    } else {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   async function handleVerify() {
     if (!verificationInput.trim()) return;

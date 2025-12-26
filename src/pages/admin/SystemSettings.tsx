@@ -41,10 +41,6 @@ export function SystemSettings() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
   async function loadSettings() {
     setLoading(true);
     // Simulate loading settings
@@ -65,6 +61,10 @@ export function SystemSettings() {
     });
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   async function handleSave() {
     setSaving(true);

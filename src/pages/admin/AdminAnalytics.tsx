@@ -27,15 +27,15 @@ export function AdminAnalytics() {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [timeRange]);
-
   async function loadAnalytics() {
     setLoading(true);
     await getSubscriptionAnalytics();
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [timeRange]);
 
   // Simulated traffic data
   const trafficData = [

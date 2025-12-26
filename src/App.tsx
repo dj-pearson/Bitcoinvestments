@@ -13,6 +13,7 @@ import { AdminRoute } from './components/AdminRoute';
 import { SessionExpiredModal } from './components/SessionExpiredModal';
 import { SessionActivityTracker } from './components/SessionActivityTracker';
 import { wagmiConfig } from './lib/wagmi';
+import { PageLoader } from './components/LoadingSkeletons';
 
 // Eagerly loaded pages (critical path)
 import { Home } from './pages/Home';
@@ -90,15 +91,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Loading fallback component
-function PageLoader() {
-  return (
-    <div className="min-h-[400px] flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
-    </div>
-  );
-}
-
 function App() {
   return (
     <WagmiProvider config={wagmiConfig}>
@@ -111,7 +103,7 @@ function App() {
               <AuthProvider>
                 <SessionExpiredModal />
                 <SessionActivityTracker />
-                <Suspense fallback={<PageLoader />}>
+                <Suspense fallback={<PageLoader message="Loading page..." />}>
                 <Routes>
                   {/* Admin Panel with dedicated layout */}
                   <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

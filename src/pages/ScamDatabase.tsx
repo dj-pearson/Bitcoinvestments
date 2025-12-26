@@ -23,6 +23,7 @@ import {
   generateScamFAQSchema,
   generateScamSearchActionSchema,
 } from '../components/SEO';
+import { Skeleton } from '../components/LoadingSkeletons';
 import {
   searchScamReports,
   checkWalletAddress,
@@ -571,9 +572,33 @@ export function ScamDatabase() {
 
         {/* Results Grid */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Searching database...</p>
+          <div
+            className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            role="status"
+            aria-busy="true"
+            aria-label="Loading scam reports"
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-5 w-5" />
+                </div>
+                <div className="flex gap-2 mb-4">
+                  <Skeleton className="h-5 w-16 rounded" />
+                  <Skeleton className="h-5 w-20 rounded" />
+                </div>
+                <div className="space-y-2 mb-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            ))}
+            <span className="sr-only">Loading scam reports...</span>
           </div>
         ) : (
           <>

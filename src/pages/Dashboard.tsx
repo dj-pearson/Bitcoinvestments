@@ -17,6 +17,11 @@ import { SEO } from '../components/SEO';
 import { RelatedPages } from '../components/InternalLinks';
 import { PAGE_METADATA, generateToolSchema, generateFAQSchema } from '../lib/seo';
 import {
+  DashboardStatsSkeleton,
+  ChartSkeleton,
+  TrendingListSkeleton,
+} from '../components/LoadingSkeletons';
+import {
   getCachedTopCryptocurrencies,
   getGlobalMarketData,
   getTrendingCryptocurrencies,
@@ -115,8 +120,9 @@ export function Dashboard() {
       </div>
 
       {/* Global Stats */}
+      {loading && !globalData && <DashboardStatsSkeleton />}
       {globalData && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" role="region" aria-label="Market statistics">
           <div className="glass-card p-4">
             <p className="text-xs text-gray-400 mb-1">Total Market Cap</p>
             <p className="text-xl font-bold text-white">
@@ -158,14 +164,18 @@ export function Dashboard() {
       )}
 
       {/* Featured Chart - Bitcoin */}
-      <div className="mb-8">
-        <PriceChart
-          cryptocurrencyId="bitcoin"
-          cryptocurrencyName="Bitcoin"
-          days={7}
-          height={300}
-          showVolume={false}
-        />
+      <div className="mb-8" role="region" aria-label="Bitcoin price chart">
+        {loading && !cryptos.length ? (
+          <ChartSkeleton height={300} showLegend={false} />
+        ) : (
+          <PriceChart
+            cryptocurrencyId="bitcoin"
+            cryptocurrencyName="Bitcoin"
+            days={7}
+            height={300}
+            showVolume={false}
+          />
+        )}
       </div>
 
       {/* Portfolio Tracker */}
@@ -278,29 +288,34 @@ export function Dashboard() {
           <GasPriceTracker variant="compact" />
 
           {/* Trending */}
-          <div className="glass-card p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Trending</h3>
-            <div className="space-y-3">
-              {trending.map((coin, index) => (
-                <div
-                  key={coin.id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors"
-                >
-                  <span className="text-gray-400 w-4">{index + 1}</span>
-                  <img
-                    src={coin.thumb}
-                    alt={coin.name}
-                    className="w-6 h-6 rounded-full"
-                  />
-                  <div className="flex-grow">
-                    <p className="font-medium text-white text-sm">{coin.name}</p>
-                    <p className="text-xs text-gray-400 uppercase">{coin.symbol}</p>
+          {loading && trending.length === 0 ? (
+            <TrendingListSkeleton items={5} />
+          ) : (
+            <div className="glass-card p-6" role="region" aria-label="Trending cryptocurrencies">
+              <h3 className="text-lg font-bold text-white mb-4">Trending</h3>
+              <div className="space-y-3">
+                {trending.map((coin, index) => (
+                  <div
+                    key={coin.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors"
+                  >
+                    <span className="text-gray-400 w-4">{index + 1}</span>
+                    <img
+                      src={coin.thumb}
+                      alt={coin.name}
+                      className="w-6 h-6 rounded-full"
+                      loading="lazy"
+                    />
+                    <div className="flex-grow">
+                      <p className="font-medium text-white text-sm">{coin.name}</p>
+                      <p className="text-xs text-gray-400 uppercase">{coin.symbol}</p>
+                    </div>
+                    <span className="text-xs text-gray-400">#{coin.market_cap_rank}</span>
                   </div>
-                  <span className="text-xs text-gray-400">#{coin.market_cap_rank}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Quick Actions */}
           <div className="glass-card p-6">

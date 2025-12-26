@@ -18,6 +18,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hasAIPortfolioAnalysis } from '../services/subscriptionLimits';
+import { AnalysisSkeleton } from '../components/LoadingSkeletons';
+import { SEO } from '../components/SEO';
+import { generateToolSchema, generateFAQSchema } from '../lib/seo';
 import {
   generatePortfolioAnalysis,
   type PortfolioAnalysisInput,
@@ -114,7 +117,33 @@ export function PortfolioAnalysis() {
     return 'bg-red-500';
   };
 
+  // SEO schema for portfolio analysis tool
+  const portfolioSchema = [
+    generateToolSchema({
+      name: 'AI Portfolio Analysis',
+      description: 'Get AI-powered insights into your cryptocurrency portfolio including risk assessment, diversification score, and personalized rebalancing suggestions.',
+      url: '/portfolio-analysis',
+    }),
+    generateFAQSchema([
+      {
+        question: 'What is AI portfolio analysis?',
+        answer: 'AI portfolio analysis uses artificial intelligence to evaluate your cryptocurrency holdings, assess risk exposure, measure diversification, and provide personalized suggestions for optimizing your investment strategy.',
+      },
+      {
+        question: 'How does the diversification score work?',
+        answer: 'The diversification score measures how well your portfolio is spread across different cryptocurrencies and sectors. A higher score indicates better diversification, which typically reduces overall risk.',
+      },
+    ]),
+  ];
+
   return (
+    <>
+      <SEO
+        title="AI Portfolio Analysis - Crypto Investment Insights"
+        description="Get AI-powered insights into your cryptocurrency portfolio. Analyze risk exposure, diversification score, and receive personalized rebalancing suggestions."
+        keywords={['portfolio analysis', 'crypto portfolio', 'AI analysis', 'risk assessment', 'diversification', 'rebalancing', 'cryptocurrency investment']}
+        schema={portfolioSchema}
+      />
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="text-center mb-8">
@@ -276,13 +305,7 @@ export function PortfolioAnalysis() {
             )}
 
             {loading && (
-              <div className="glass-card p-12 text-center">
-                <RefreshCw className="w-16 h-16 text-brand-primary mx-auto mb-4 animate-spin" />
-                <h3 className="text-xl font-semibold text-white mb-2">Analyzing Portfolio...</h3>
-                <p className="text-gray-400">
-                  Our AI is reviewing your holdings and generating personalized insights.
-                </p>
-              </div>
+              <AnalysisSkeleton />
             )}
 
             {analysis && !loading && (
@@ -421,5 +444,6 @@ export function PortfolioAnalysis() {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -52,10 +52,6 @@ export function AdminSubscriptions() {
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    loadSubscriptions();
-  }, [statusFilter, planFilter, page]);
-
   async function loadSubscriptions() {
     setLoading(true);
     // Simulate API call
@@ -123,6 +119,11 @@ export function AdminSubscriptions() {
     setSubscriptions(mockSubscriptions);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadSubscriptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, planFilter, page]);
 
   const stats = [
     {

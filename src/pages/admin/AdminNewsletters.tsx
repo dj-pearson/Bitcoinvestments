@@ -53,10 +53,6 @@ export function AdminNewsletters() {
   });
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    loadNewsletters();
-  }, []);
-
   async function loadNewsletters() {
     setLoading(true);
     // Simulate API call
@@ -103,6 +99,10 @@ export function AdminNewsletters() {
     setNewsletters(mockNewsletters);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadNewsletters();
+  }, []);
 
   async function handleSend() {
     if (!draft.subject || !draft.content) return;

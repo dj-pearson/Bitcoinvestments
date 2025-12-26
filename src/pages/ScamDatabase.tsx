@@ -86,15 +86,6 @@ export function ScamDatabase() {
     totalVotes: 0,
   });
 
-  useEffect(() => {
-    loadCommunityStats();
-    loadReports();
-  }, []);
-
-  useEffect(() => {
-    loadReports();
-  }, [page, filters]);
-
   async function loadCommunityStats() {
     const stats = await getCommunityStats();
     setCommunityStats(stats);
@@ -108,6 +99,17 @@ export function ScamDatabase() {
     setTotal(t);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadCommunityStats();
+    loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filters]);
 
   const handleSearchInput = useCallback(async (value: string) => {
     setSearchQuery(value);

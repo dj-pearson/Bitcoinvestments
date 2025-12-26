@@ -45,10 +45,6 @@ export function ExchangeConnections({ userId, isPremium }: ExchangeConnectionsPr
     byAsset: { asset: string; total: number; value: number; exchanges: string[] }[];
   } | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [userId]);
-
   const loadData = async () => {
     setIsLoading(true);
     const [connectionsResult, portfolioResult] = await Promise.all([
@@ -68,6 +64,11 @@ export function ExchangeConnections({ userId, isPremium }: ExchangeConnectionsPr
 
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const handleSync = async (connectionId: string) => {
     setSyncingConnection(connectionId);

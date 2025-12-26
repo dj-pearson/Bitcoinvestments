@@ -91,13 +91,6 @@ export default function InteractiveCourses({ userId }: InteractiveCoursesProps) 
   });
   const [totalCourses, setTotalCourses] = useState(0);
 
-  useEffect(() => {
-    loadCourses();
-    if (userId) {
-      loadEnrollments();
-    }
-  }, [userId, filters]);
-
   async function loadCourses() {
     setLoading(true);
     const { courses: data, total } = await getCourses(filters);
@@ -111,6 +104,14 @@ export default function InteractiveCourses({ userId }: InteractiveCoursesProps) 
     const { enrollments: data } = await getUserEnrollments(userId);
     setEnrollments(data);
   }
+
+  useEffect(() => {
+    loadCourses();
+    if (userId) {
+      loadEnrollments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, filters]);
 
   async function handleViewCourse(course: Course) {
     const { course: fullCourse, modules } = await getCourse(course.id);

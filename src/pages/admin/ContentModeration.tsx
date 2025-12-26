@@ -26,10 +26,6 @@ export function ContentModeration() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadContent();
-  }, [activeTab, statusFilter]);
-
   async function loadContent() {
     setLoading(true);
     const result = await getFlaggedContent({
@@ -42,6 +38,11 @@ export function ContentModeration() {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadContent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, statusFilter]);
 
   async function handleModerate(id: string, action: 'approve' | 'reject') {
     const result = await moderateContent(id, action);

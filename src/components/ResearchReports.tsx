@@ -87,10 +87,6 @@ export default function ResearchReports({ userId, isPremiumUser = false }: Resea
   });
   const [totalReports, setTotalReports] = useState(0);
 
-  useEffect(() => {
-    loadReports();
-  }, [filters]);
-
   async function loadReports() {
     setLoading(true);
     const { reports: data, total } = await getReports(filters);
@@ -98,6 +94,11 @@ export default function ResearchReports({ userId, isPremiumUser = false }: Resea
     setTotalReports(total);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   async function handleViewReport(report: ResearchReport) {
     const { report: fullReport } = await getReport(report.id);

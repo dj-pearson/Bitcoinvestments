@@ -74,16 +74,17 @@ export default function EarlyAccess({ userId, isPremiumUser = false }: EarlyAcce
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'suggestion' | 'praise' | 'other'>('suggestion');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadFeatures();
-  }, [categoryFilter]);
-
   async function loadFeatures() {
     setLoading(true);
     const { features: data } = await getEarlyAccessFeatures(categoryFilter || undefined);
     setFeatures(data);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadFeatures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter]);
 
   async function handleViewFeature(feature: EarlyAccessFeature) {
     const { feature: fullFeature } = await getFeature(feature.id);

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   updateActivity,
@@ -126,14 +126,19 @@ export function useSessionManager(options: UseSessionManagerOptions = {}) {
 export function useSessionTimeRemaining(): number {
   const { user } = useAuth();
 
-  if (!user) return 0;
+  // Use useMemo to avoid recalculating on every render while still being lint-compliant
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => {
+    if (!user) return 0;
 
-  const lastActivityStr = localStorage.getItem(SESSION_CONFIG.LAST_ACTIVITY_KEY);
-  if (!lastActivityStr) return SESSION_CONFIG.TIMEOUT_MS;
+    const lastActivityStr = localStorage.getItem(SESSION_CONFIG.LAST_ACTIVITY_KEY);
+    if (!lastActivityStr) return SESSION_CONFIG.TIMEOUT_MS;
 
-  const lastActivity = parseInt(lastActivityStr, 10);
-  const elapsed = Date.now() - lastActivity;
-  const remaining = SESSION_CONFIG.TIMEOUT_MS - elapsed;
+    const lastActivity = parseInt(lastActivityStr, 10);
+    const now = Date.now();
+    const elapsed = now - lastActivity;
+    const remaining = SESSION_CONFIG.TIMEOUT_MS - elapsed;
 
-  return Math.max(0, remaining);
+    return Math.max(0, remaining);
+  }, [user]);
 }

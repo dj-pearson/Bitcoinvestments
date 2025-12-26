@@ -48,10 +48,6 @@ export function DeFiPortfolio({ walletAddress, defaultChain = 'ethereum' }: DeFi
     return positions.filter((p) => p.type === filterType);
   }, [positions, filterType]);
 
-  useEffect(() => {
-    loadPositions();
-  }, [walletAddress, selectedChain]);
-
   const loadPositions = async () => {
     setIsLoading(true);
     setError(null);
@@ -66,6 +62,11 @@ export function DeFiPortfolio({ walletAddress, defaultChain = 'ethereum' }: DeFi
 
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadPositions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, selectedChain]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

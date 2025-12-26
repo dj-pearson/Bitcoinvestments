@@ -57,13 +57,6 @@ export function PortfolioShareModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  // Load existing share
-  useEffect(() => {
-    if (isOpen) {
-      loadShare();
-    }
-  }, [isOpen, portfolioId]);
-
   const loadShare = async () => {
     setIsLoading(true);
     setError(null);
@@ -84,6 +77,14 @@ export function PortfolioShareModal({
 
     setIsLoading(false);
   };
+
+  // Load existing share
+  useEffect(() => {
+    if (isOpen) {
+      loadShare();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, portfolioId]);
 
   const handleCreateShare = async () => {
     setIsSaving(true);

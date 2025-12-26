@@ -43,11 +43,6 @@ export function NFTPortfolio({ walletAddress, defaultChain = 'ethereum' }: NFTPo
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
 
-  // Fetch NFTs on mount
-  useEffect(() => {
-    loadNFTs();
-  }, [walletAddress, selectedChain]);
-
   const loadNFTs = async () => {
     setIsLoading(true);
     setError(null);
@@ -64,6 +59,12 @@ export function NFTPortfolio({ walletAddress, defaultChain = 'ethereum' }: NFTPo
 
     setIsLoading(false);
   };
+
+  // Fetch NFTs on mount
+  useEffect(() => {
+    loadNFTs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddress, selectedChain]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);

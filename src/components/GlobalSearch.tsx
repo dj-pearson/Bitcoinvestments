@@ -114,6 +114,15 @@ export function GlobalSearch({
     };
   }, []);
 
+  // Handle result click
+  const handleResultClick = (result: SearchResult) => {
+    navigate(result.url);
+    setQuery('');
+    setResults([]);
+    setIsOpen(false);
+    onClose?.();
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -149,17 +158,9 @@ export function GlobalSearch({
           break;
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isOpen, results, selectedIndex, query, navigate, onClose]
   );
-
-  // Handle result click
-  const handleResultClick = (result: SearchResult) => {
-    navigate(result.url);
-    setQuery('');
-    setResults([]);
-    setIsOpen(false);
-    onClose?.();
-  };
 
   // Handle form submit
   const handleSubmit = (e: React.FormEvent) => {

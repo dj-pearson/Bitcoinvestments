@@ -45,10 +45,6 @@ export function AffiliateStats() {
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadStats();
-  }, [dateRange]);
-
   async function loadStats() {
     setLoading(true);
 
@@ -117,6 +113,11 @@ export function AffiliateStats() {
 
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange]);
 
   if (loading) {
     return (

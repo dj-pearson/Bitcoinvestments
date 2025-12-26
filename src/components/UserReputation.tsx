@@ -31,10 +31,6 @@ export function UserReputation({ userId }: UserReputationProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'badges' | 'leaderboard'>('overview');
 
-  useEffect(() => {
-    loadData();
-  }, [userId]);
-
   const loadData = async () => {
     setIsLoading(true);
     const [repResult, leadResult] = await Promise.all([
@@ -50,6 +46,11 @@ export function UserReputation({ userId }: UserReputationProps) {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   if (isLoading) {
     return (

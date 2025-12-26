@@ -31,10 +31,6 @@ export const ApiAccess: React.FC = () => {
   const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<EndpointCategory | 'all'>('all');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     setLoading(true);
     const [keysData, endpointsData, tiersData] = await Promise.all([
@@ -52,6 +48,11 @@ export const ApiAccess: React.FC = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateKey = async (name: string, permissions: string[]) => {
     const result = await createApiKey('demo-user', name, permissions);

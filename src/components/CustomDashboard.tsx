@@ -72,11 +72,6 @@ export function CustomDashboard({ userId }: CustomDashboardProps) {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Load layout on mount
-  useEffect(() => {
-    loadLayout();
-  }, [userId]);
-
   const loadLayout = async () => {
     setIsLoading(true);
     const result = await getDashboardLayout(userId);
@@ -85,6 +80,12 @@ export function CustomDashboard({ userId }: CustomDashboardProps) {
     }
     setIsLoading(false);
   };
+
+  // Load layout on mount
+  useEffect(() => {
+    loadLayout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const handleSave = async () => {
     if (!layout) return;

@@ -27,19 +27,6 @@ export function TransactionImport() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadWallets();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    // Auto-save connected wallet
-    if (user && address && chain) {
-      saveCurrentWallet();
-    }
-  }, [user, address, chain]);
-
   async function loadWallets() {
     if (!user) return;
     const { data } = await getUserWallets(user.id);
@@ -61,6 +48,21 @@ export function TransactionImport() {
 
     await loadWallets();
   }
+
+  useEffect(() => {
+    if (user) {
+      loadWallets();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  useEffect(() => {
+    // Auto-save connected wallet
+    if (user && address && chain) {
+      saveCurrentWallet();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, address, chain]);
 
   async function handleSync(wallet: ConnectedWallet) {
     if (!user) {

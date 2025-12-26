@@ -377,6 +377,9 @@ interface ChartSkeletonProps {
   showLegend?: boolean;
 }
 
+// Pre-computed heights for chart bars to avoid Math.random() during render
+const CHART_BAR_HEIGHTS = [45, 62, 38, 75, 55, 42, 68, 50, 58, 72, 48, 65];
+
 /**
  * Line/area chart skeleton
  */
@@ -407,7 +410,7 @@ export function ChartSkeleton({ height = 300, className, showLegend = true }: Ch
               key={i}
               className="w-1 bg-white/10 rounded-t animate-pulse"
               style={{
-                height: `${30 + Math.random() * 50}%`,
+                height: `${CHART_BAR_HEIGHTS[i]}%`,
                 animationDelay: `${i * 100}ms`
               }}
             />

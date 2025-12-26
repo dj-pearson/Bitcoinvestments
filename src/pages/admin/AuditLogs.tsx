@@ -64,10 +64,6 @@ export function AuditLogs() {
 
   const ITEMS_PER_PAGE = 20;
 
-  useEffect(() => {
-    loadLogs();
-  }, [page, selectedCategory]);
-
   async function loadLogs() {
     setLoading(true);
     const result = await getAuditLogs({
@@ -86,6 +82,11 @@ export function AuditLogs() {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, selectedCategory]);
 
   const filteredLogs = logs.filter((log) => {
     if (searchTerm) {

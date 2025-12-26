@@ -30,10 +30,6 @@ export function SponsoredFeed({
   const [sponsoredArticles, setSponsoredArticles] = useState<SponsoredArticle[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadContent();
-  }, [placement, maxAds, maxArticles]);
-
   const loadContent = async () => {
     setLoading(true);
     try {
@@ -49,6 +45,11 @@ export function SponsoredFeed({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadContent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placement, maxAds, maxArticles]);
 
   if (loading) {
     return (
@@ -104,14 +105,15 @@ export function InterspersedFeed<T>({
 }: InterspersedFeedProps<T>) {
   const [nativeAds, setNativeAds] = useState<NativeAdType[]>([]);
 
-  useEffect(() => {
-    loadAds();
-  }, [placement, maxSponsoredItems]);
-
   const loadAds = async () => {
     const ads = await getNativeAds(placement, maxSponsoredItems);
     setNativeAds(ads);
   };
+
+  useEffect(() => {
+    loadAds();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placement, maxSponsoredItems]);
 
   const positions = insertAt || [4, 9, 14]; // Default: after 4th, 9th, 14th item
   let adIndex = 0;
@@ -169,16 +171,17 @@ export function SponsoredSidebar({ className = '' }: { className?: string }) {
 export function InArticleSponsored({ className = '' }: { className?: string }) {
   const [ad, setAd] = useState<NativeAdType | null>(null);
 
-  useEffect(() => {
-    loadAd();
-  }, []);
-
   const loadAd = async () => {
     const ads = await getNativeAds('in_article', 1);
     if (ads.length > 0) {
       setAd(ads[0]);
     }
   };
+
+  useEffect(() => {
+    loadAd();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!ad) return null;
 

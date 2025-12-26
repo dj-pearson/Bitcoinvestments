@@ -27,10 +27,6 @@ export function PublicPortfolioView({ shareCode }: PublicPortfolioViewProps) {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPortfolio();
-  }, [shareCode]);
-
   const loadPortfolio = async (pwd?: string) => {
     setIsLoading(true);
     setError(null);
@@ -52,6 +48,11 @@ export function PublicPortfolioView({ shareCode }: PublicPortfolioViewProps) {
 
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadPortfolio();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shareCode]);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -53,10 +53,6 @@ export function AdminOverview() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
   async function loadDashboardData() {
     setLoading(true);
 
@@ -73,6 +69,10 @@ export function AdminOverview() {
     setAuditSummary(audit.summary);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
   async function handleRefresh() {
     setRefreshing(true);

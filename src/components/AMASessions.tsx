@@ -91,10 +91,6 @@ export default function AMASessions({ userId, isPremiumUser = false }: AMASessio
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadSessions();
-  }, [filters]);
-
   async function loadSessions() {
     setLoading(true);
     const { sessions: data, total } = await getAMASessions(filters);
@@ -102,6 +98,11 @@ export default function AMASessions({ userId, isPremiumUser = false }: AMASessio
     setTotalSessions(total);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   async function handleViewSession(session: AMASession) {
     const { session: fullSession, questions: sessionQuestions } = await getAMASession(session.id);

@@ -51,20 +51,6 @@ export function VideoLibrary({ userId, isPremium }: VideoLibraryProps) {
   });
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  useEffect(() => {
-    loadVideos();
-  }, [filters]);
-
-  useEffect(() => {
-    if (userId) {
-      loadUserProgress();
-    }
-  }, [userId]);
-
   const loadInitialData = async () => {
     setIsLoading(true);
     const [featured, playlistData] = await Promise.all([
@@ -90,6 +76,22 @@ export function VideoLibrary({ userId, isPremium }: VideoLibraryProps) {
       setUserProgress(progress);
     }
   };
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    loadVideos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  useEffect(() => {
+    if (userId) {
+      loadUserProgress();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   const handleCategoryFilter = (category?: VideoCategory) => {
     setFilters((prev) => ({ ...prev, category, page: 1 }));
@@ -603,18 +605,6 @@ function VideoPlayer({
   const [isLiked, setIsLiked] = useState(false);
   const progressRef = useRef<number>(0);
 
-  useEffect(() => {
-    loadVideo();
-  }, [videoId]);
-
-  useEffect(() => {
-    const progress = userProgress.get(videoId);
-    if (progress) {
-      setIsBookmarked(progress.bookmarked);
-      setIsLiked(progress.liked);
-    }
-  }, [videoId, userProgress]);
-
   const loadVideo = async () => {
     setIsLoading(true);
     const result = await getVideo(videoId);
@@ -624,6 +614,19 @@ function VideoPlayer({
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadVideo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoId]);
+
+  useEffect(() => {
+    const progress = userProgress.get(videoId);
+    if (progress) {
+      setIsBookmarked(progress.bookmarked);
+      setIsLiked(progress.liked);
+    }
+  }, [videoId, userProgress]);
 
   // Progress handler for video playback - reserved for future use
   void progressRef;

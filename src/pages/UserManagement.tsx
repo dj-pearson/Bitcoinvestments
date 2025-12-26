@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, UserCheck, Ban } from 'lucide-react';
 import { getAllUsers, suspendUser, activateUser, updateUserRole } from '../services/admin';
 import { useAuth } from '../contexts/AuthContext';
+import { Skeleton } from '../components/LoadingSkeletons';
 import type { AdminUser, UserRole } from '../types/admin-database';
 
 export function UserManagement() {
@@ -149,9 +150,35 @@ export function UserManagement() {
         {/* Users Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           {loading ? (
-            <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Loading users...</p>
+            <div className="overflow-x-auto" role="status" aria-busy="true" aria-label="Loading users">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left"><Skeleton className="h-4 w-12" /></th>
+                    <th className="px-6 py-3 text-left"><Skeleton className="h-4 w-10" /></th>
+                    <th className="px-6 py-3 text-left"><Skeleton className="h-4 w-14" /></th>
+                    <th className="px-6 py-3 text-left"><Skeleton className="h-4 w-20" /></th>
+                    <th className="px-6 py-3 text-left"><Skeleton className="h-4 w-20" /></th>
+                    <th className="px-6 py-3 text-right"><Skeleton className="h-4 w-16" /></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-6 py-4">
+                        <Skeleton className="h-4 w-40 mb-1" />
+                        <Skeleton className="h-3 w-24" />
+                      </td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
+                      <td className="px-6 py-4 text-right"><Skeleton className="h-8 w-20 ml-auto" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <span className="sr-only">Loading users...</span>
             </div>
           ) : users.length === 0 ? (
             <div className="p-12 text-center text-gray-500 dark:text-gray-400">

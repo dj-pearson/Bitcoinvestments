@@ -221,8 +221,8 @@ self.addEventListener('push', (event) => {
   let data = {
     title: 'Bitcoinvestments',
     body: 'You have a new notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
     tag: 'default',
     data: { url: '/' },
   };
@@ -329,7 +329,7 @@ async function syncAlerts() {
     for (const alert of alerts.triggered) {
       await self.registration.showNotification('Price Alert Triggered!', {
         body: `${alert.coin} has ${alert.condition === 'above' ? 'risen above' : 'fallen below'} $${alert.targetPrice}`,
-        icon: '/icons/icon-192x192.png',
+        icon: '/favicon.svg',
         tag: `alert-${alert.id}`,
         data: { url: '/dashboard' },
       });

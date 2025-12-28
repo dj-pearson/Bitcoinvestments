@@ -16,24 +16,24 @@ VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iim6AzEHVn7sGeqL5V9WJg_1dLtUT0W"
 VITE_STRIPE_PUBLISHABLE_KEY = "pk_live_51Sb4ltACjrOpqtS7x3PDbalWswUIkCvoCS7fdj6RrSc5HYEQgLZfhDziN1SL1ci8m56N0HDMts7IrbN95xMog6Ms00oBhAxO8o"
 
 # Main Subscription Plans
-VITE_STRIPE_PRICE_MONTHLY = "price_1SjBtUACjrOpqtS7jKxVbY2R"
-VITE_STRIPE_PRICE_ANNUAL = "price_1SjBtVACjrOpqtS7ylvgXjIi"
-VITE_STRIPE_PRICE_LIFETIME = "price_1SjBtWACjrOpqtS77fZytGfT"
-VITE_STRIPE_PRICE_ADVISOR = "price_1SjBtYACjrOpqtS7ZAMVuz0i"
-VITE_STRIPE_PRICE_ENTERPRISE = "price_1SjBtZACjrOpqtS7VFZ3M1eq"
+VITE_STRIPE_PRICE_MONTHLY = "price_1SjCs0ACjrOpqtS7WmysOAji"
+VITE_STRIPE_PRICE_ANNUAL = "price_1SjCs1ACjrOpqtS73AJP6L2q"
+VITE_STRIPE_PRICE_LIFETIME = "price_1SjCs2ACjrOpqtS7qRVoOMuA"
+VITE_STRIPE_PRICE_ADVISOR = "price_1SjCs3ACjrOpqtS7wphKBoBq"
+VITE_STRIPE_PRICE_ENTERPRISE = "price_1SjCs4ACjrOpqtS7EWj32lhT"
 
 # Tax Package Plans (One-Time)
-VITE_STRIPE_TAX_PACKAGE_BASIC = "price_1SjBtaACjrOpqtS7EJyj5VIO"
-VITE_STRIPE_TAX_PACKAGE_PREMIUM = "price_1SjBtbACjrOpqtS7n6JQpOwO"
+VITE_STRIPE_TAX_PACKAGE_BASIC = "price_1SjCs6ACjrOpqtS73YfC7eJ1"
+VITE_STRIPE_TAX_PACKAGE_PREMIUM = "price_1SjCs7ACjrOpqtS7OldA1ims"
 
 # Payment Links (Optional - for direct purchase URLs)
-VITE_STRIPE_LINK_MONTHLY = "https://buy.stripe.com/test_7sYbJ095j8tL2cv8sw5gc01"
-VITE_STRIPE_LINK_ANNUAL = "https://buy.stripe.com/test_4gM14m3KZ39r8ATcIM5gc02"
-VITE_STRIPE_LINK_LIFETIME = "https://buy.stripe.com/test_14AdR84P339r8AT4cg5gc03"
-VITE_STRIPE_LINK_ADVISOR = "https://buy.stripe.com/test_bJecN42GV4dv18rgZ25gc04"
-VITE_STRIPE_LINK_ENTERPRISE = "https://buy.stripe.com/test_5kQ8wO6Xb5hz6sLdMQ5gc05"
-VITE_STRIPE_LINK_TAX_BASIC = "https://buy.stripe.com/test_28E14m5T7dO5dVdgZ25gc06"
-VITE_STRIPE_LINK_TAX_PREMIUM = "https://buy.stripe.com/test_28E6oGgxLh0h04n2485gc07"
+VITE_STRIPE_LINK_MONTHLY = "https://buy.stripe.com/8x23cu0yNfWd6sLbEI5gc00"
+VITE_STRIPE_LINK_ANNUAL = "https://buy.stripe.com/7sYbJ095j8tL2cv8sw5gc01"
+VITE_STRIPE_LINK_LIFETIME = "https://buy.stripe.com/4gM14m3KZ39r8ATcIM5gc02"
+VITE_STRIPE_LINK_ADVISOR = "https://buy.stripe.com/14AdR84P339r8AT4cg5gc03"
+VITE_STRIPE_LINK_ENTERPRISE = "https://buy.stripe.com/bJecN42GV4dv18rgZ25gc04"
+VITE_STRIPE_LINK_TAX_BASIC = "https://buy.stripe.com/5kQ8wO6Xb5hz6sLdMQ5gc05"
+VITE_STRIPE_LINK_TAX_PREMIUM = "https://buy.stripe.com/28E14m5T7dO5dVdgZ25gc06"
 
 # WalletConnect Project ID (required for wallet connections)
 # Get your free project ID at: https://cloud.walletconnect.com/

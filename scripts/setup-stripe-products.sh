@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 # ============================================================================
 # Stripe Products Setup Script for Bitcoin Investments
@@ -62,7 +62,7 @@ create_product() {
         --description="$description" \
         --format=json | jq -r '.id')
 
-    echo -e "${GREEN}  ✓ Created product: ${product_id}${NC}"
+    echo -e "${GREEN}  âœ“ Created product: ${product_id}${NC}"
     echo "$product_id"
 }
 
@@ -82,7 +82,7 @@ create_recurring_price() {
         --recurring[interval]="$interval" \
         --format=json | jq -r '.id')
 
-    echo -e "${GREEN}    ✓ Price ID: ${price_id}${NC}"
+    echo -e "${GREEN}    âœ“ Price ID: ${price_id}${NC}"
     echo "${env_var}=${price_id}" >> "$ENV_OUTPUT_FILE"
     echo "$price_id"
 }
@@ -101,7 +101,7 @@ create_onetime_price() {
         --currency=usd \
         --format=json | jq -r '.id')
 
-    echo -e "${GREEN}    ✓ Price ID: ${price_id}${NC}"
+    echo -e "${GREEN}    âœ“ Price ID: ${price_id}${NC}"
     echo "${env_var}=${price_id}" >> "$ENV_OUTPUT_FILE"
     echo "$price_id"
 }
@@ -118,7 +118,7 @@ create_payment_link() {
         --line-items[0][quantity]=1 \
         --format=json | jq -r '.url')
 
-    echo -e "${GREEN}    ✓ Payment Link: ${payment_link}${NC}"
+    echo -e "${GREEN}    âœ“ Payment Link: ${payment_link}${NC}"
     echo "${env_var}=${payment_link}" >> "$ENV_OUTPUT_FILE"
     echo "$payment_link"
 }
@@ -336,7 +336,7 @@ create_payment_link "$PRICE_TAX_PREMIUM" "VITE_STRIPE_LINK_TAX_PREMIUM"
 
 echo ""
 echo -e "${BLUE}============================================================================${NC}"
-echo -e "${GREEN}  ✅ SETUP COMPLETE!${NC}"
+echo -e "${GREEN}  âœ… SETUP COMPLETE!${NC}"
 echo -e "${BLUE}============================================================================${NC}"
 echo ""
 echo -e "${GREEN}All products, prices, and payment links have been created successfully!${NC}"

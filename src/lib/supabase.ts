@@ -1,29 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-// Debug logging (will be removed in production builds by Vite)
-if (import.meta.env.DEV) {
-  console.log('🔍 Supabase Environment Check:');
-  console.log('  VITE_SUPABASE_URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
-  console.log('  VITE_SUPABASE_PUBLISHABLE_KEY:', supabaseKey ? '✓ Set' : '✗ Missing');
-}
+// Check if Supabase is properly configured
+const isConfigured = Boolean(supabaseUrl && supabaseKey);
 
-// Validate environment variables
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Supabase configuration error:');
-  console.error('  Missing required environment variables:');
-  if (!supabaseUrl) console.error('    - VITE_SUPABASE_URL');
-  if (!supabaseKey) console.error('    - VITE_SUPABASE_PUBLISHABLE_KEY');
-  console.error('  Please set these in Cloudflare Dashboard > Settings > Environment Variables');
-  console.error('  See docs/CLOUDFLARE_ENV_SETUP.md for instructions');
-}
-
-// Create Supabase client with fallback values to prevent crashes
-// Note: Features requiring Supabase will check isSupabaseConfigured() before using
-export const supabase = createClient<Database>(
+// Create Supabase client - uses placeholder when not configured to prevent crashes
+// Features should check isSupabaseConfigured() before making database calls
+export const supabase: SupabaseClient<Database> = createClient<Database>(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseKey || 'placeholder-key',
   {
@@ -35,9 +21,9 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Helper to check if Supabase is configured
+// Helper to check if Supabase is configured - use before any database operations
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(supabaseUrl && supabaseKey && supabaseUrl !== 'https://placeholder.supabase.co');
+  return isConfigured;
 };
 
 // Export project ID for reference
@@ -46,4 +32,4 @@ export const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 // Untyped client for tables not in the schema
 // Use this when accessing tables that haven't been added to the Database type yet
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const db = supabase as any;
+export const db = supabase as SupabaseClient<any>;

@@ -208,64 +208,120 @@ export function Dashboard() {
                 ))}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left py-3 px-2 text-gray-400 font-medium text-sm">#</th>
-                      <th className="text-left py-3 px-2 text-gray-400 font-medium text-sm">Name</th>
-                      <th className="text-right py-3 px-2 text-gray-400 font-medium text-sm">Price</th>
-                      <th className="text-right py-3 px-2 text-gray-400 font-medium text-sm">24h</th>
-                      <th className="text-right py-3 px-2 text-gray-400 font-medium text-sm hidden md:table-cell">Market Cap</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCryptos.map((crypto) => (
-                      <tr
-                        key={crypto.id}
-                        className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
-                      >
-                        <td className="py-4 px-2 text-gray-400">{crypto.market_cap_rank}</td>
-                        <td className="py-4 px-2">
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={crypto.image}
-                              alt={crypto.name}
-                              className="w-6 h-6 rounded-full"
-                            />
-                            <div>
-                              <p className="font-medium text-white">{crypto.name}</p>
-                              <p className="text-xs text-gray-400 uppercase">{crypto.symbol}</p>
-                            </div>
+              <>
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {filteredCryptos.map((crypto) => (
+                    <div
+                      key={crypto.id}
+                      className="bg-white/5 rounded-lg p-4 border border-white/10 active:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500 w-5">#{crypto.market_cap_rank}</span>
+                          <img
+                            src={crypto.image}
+                            alt={crypto.name}
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <div>
+                            <p className="font-medium text-white text-sm">{crypto.name}</p>
+                            <p className="text-xs text-gray-400 uppercase">{crypto.symbol}</p>
                           </div>
-                        </td>
-                        <td className="py-4 px-2 text-right font-medium text-white">
-                          ${crypto.current_price.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: crypto.current_price < 1 ? 6 : 2,
-                          })}
-                        </td>
-                        <td className={cn(
-                          'py-4 px-2 text-right font-medium',
-                          crypto.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'
+                        </div>
+                        <div className={cn(
+                          'flex items-center gap-1 text-sm font-medium px-2 py-1 rounded',
+                          crypto.price_change_percentage_24h >= 0
+                            ? 'text-green-400 bg-green-500/10'
+                            : 'text-red-400 bg-red-500/10'
                         )}>
-                          <div className="flex items-center justify-end gap-1">
-                            {crypto.price_change_percentage_24h >= 0 ? (
-                              <TrendingUp className="w-4 h-4" />
-                            ) : (
-                              <TrendingDown className="w-4 h-4" />
-                            )}
-                            {Math.abs(crypto.price_change_percentage_24h).toFixed(2)}%
-                          </div>
-                        </td>
-                        <td className="py-4 px-2 text-right text-gray-300 hidden md:table-cell">
-                          ${(crypto.market_cap / 1e9).toFixed(2)}B
-                        </td>
+                          {crypto.price_change_percentage_24h >= 0 ? (
+                            <TrendingUp className="w-3 h-3" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3" />
+                          )}
+                          {Math.abs(crypto.price_change_percentage_24h).toFixed(2)}%
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-gray-500">Price</p>
+                          <p className="font-semibold text-white">
+                            ${crypto.current_price.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: crypto.current_price < 1 ? 6 : 2,
+                            })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Market Cap</p>
+                          <p className="text-sm text-gray-300">${(crypto.market_cap / 1e9).toFixed(2)}B</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left py-3 px-2 text-gray-400 font-medium text-sm">#</th>
+                        <th className="text-left py-3 px-2 text-gray-400 font-medium text-sm">Name</th>
+                        <th className="text-right py-3 px-2 text-gray-400 font-medium text-sm">Price</th>
+                        <th className="text-right py-3 px-2 text-gray-400 font-medium text-sm">24h</th>
+                        <th className="text-right py-3 px-2 text-gray-400 font-medium text-sm">Market Cap</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredCryptos.map((crypto) => (
+                        <tr
+                          key={crypto.id}
+                          className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                          <td className="py-4 px-2 text-gray-400">{crypto.market_cap_rank}</td>
+                          <td className="py-4 px-2">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={crypto.image}
+                                alt={crypto.name}
+                                className="w-6 h-6 rounded-full"
+                              />
+                              <div>
+                                <p className="font-medium text-white">{crypto.name}</p>
+                                <p className="text-xs text-gray-400 uppercase">{crypto.symbol}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-2 text-right font-medium text-white">
+                            ${crypto.current_price.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: crypto.current_price < 1 ? 6 : 2,
+                            })}
+                          </td>
+                          <td className={cn(
+                            'py-4 px-2 text-right font-medium',
+                            crypto.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'
+                          )}>
+                            <div className="flex items-center justify-end gap-1">
+                              {crypto.price_change_percentage_24h >= 0 ? (
+                                <TrendingUp className="w-4 h-4" />
+                              ) : (
+                                <TrendingDown className="w-4 h-4" />
+                              )}
+                              {Math.abs(crypto.price_change_percentage_24h).toFixed(2)}%
+                            </div>
+                          </td>
+                          <td className="py-4 px-2 text-right text-gray-300">
+                            ${(crypto.market_cap / 1e9).toFixed(2)}B
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
 
             <div className="mt-6 text-center">

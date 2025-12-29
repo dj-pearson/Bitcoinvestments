@@ -11,6 +11,7 @@ import type {
   ReportFilters,
   ReportType
 } from '../services/researchReports';
+import { sanitizeHtml } from '../lib/validation';
 
 // Icons
 const DocumentIcon = () => (
@@ -297,7 +298,7 @@ export default function ResearchReports({ userId, isPremiumUser = false }: Resea
 
                 {/* Report Content */}
                 <div className="prose prose-lg max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: selectedReport.content.replace(/\n/g, '<br/>') }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedReport.content) }} />
                 </div>
               </>
             )}

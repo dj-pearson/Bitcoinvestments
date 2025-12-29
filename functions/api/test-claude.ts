@@ -1,6 +1,8 @@
 // Cloudflare Pages Function: Test Claude API Connection
 // Uses X-Api-Key header for authentication as required by Anthropic API
 
+import { getCorsHeaders, handleCorsPreflightRequest } from './_cors';
+
 interface Env {
   CLAUDE_API_KEY?: string;
 }
@@ -48,7 +50,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           status: 500,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...getCorsHeaders(request),
           },
         }
       );
@@ -68,7 +70,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           status: 400,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...getCorsHeaders(request),
           },
         }
       );
@@ -117,7 +119,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           status: response.status,
           headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            ...getCorsHeaders(request),
           },
         }
       );
@@ -136,7 +138,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+          ...getCorsHeaders(request),
         },
       }
     );
@@ -151,7 +153,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
+          ...getCorsHeaders(request),
         },
       }
     );
@@ -159,14 +161,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 }
 
 // Handle OPTIONS for CORS preflight
-export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    },
-  });
+export async function onRequestOptions(context: { request: Request }) {
+  return handleCorsPreflightRequest(context.request);
 }

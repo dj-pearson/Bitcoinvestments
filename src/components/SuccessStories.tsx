@@ -12,6 +12,7 @@ import type {
   StoryFilters,
   StoryCategory
 } from '../services/successStories';
+import { sanitizeHtml } from '../lib/validation';
 
 // Icons
 const HeartIcon = ({ filled }: { filled?: boolean }) => (
@@ -313,7 +314,7 @@ export default function SuccessStories({ userId }: SuccessStoriesProps) {
 
           {/* Content */}
           <div className="prose prose-lg max-w-none mb-8">
-            <div dangerouslySetInnerHTML={{ __html: selectedStory.content.replace(/\n/g, '<br/>') }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedStory.content) }} />
           </div>
 
           {/* Key Lessons */}

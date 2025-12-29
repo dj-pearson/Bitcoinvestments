@@ -292,58 +292,58 @@ const SocialTrading: React.FC = () => {
 
         {/* Selected Portfolio Modal */}
         {selectedPortfolio && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-700 flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-3xl">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-gray-800 rounded-lg w-full max-w-[calc(100vw-1rem)] sm:max-w-xl md:max-w-3xl max-h-[calc(100vh-1rem)] sm:max-h-[90vh] overflow-y-auto">
+              <div className="p-4 sm:p-6 border-b border-gray-700 flex items-center justify-between">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl sm:text-3xl">
                     {getTradingStyleIcon(selectedPortfolio.trading_style || null)}
                   </div>
                   <div>
                     <div className="flex items-center space-x-2">
-                      <h2 className="text-xl font-bold">{selectedPortfolio.name}</h2>
+                      <h2 className="text-lg sm:text-xl font-bold">{selectedPortfolio.name}</h2>
                       {selectedPortfolio.is_verified && (
-                        <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812z" clipRule="evenodd" />
                         </svg>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2 mt-1">
+                    <div className="flex items-center flex-wrap gap-1 sm:space-x-2 mt-1">
                       <span className={`text-xs px-2 py-0.5 rounded border ${getRiskLevelColor(selectedPortfolio.risk_level || null)}`}>
                         {selectedPortfolio.risk_level?.toUpperCase()}
                       </span>
-                      <span className="text-gray-400">{selectedPortfolio.trading_style}</span>
+                      <span className="text-gray-400 text-sm">{selectedPortfolio.trading_style}</span>
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedPortfolio(null)}
-                  className="text-gray-400 hover:text-white text-2xl"
+                  className="text-gray-400 hover:text-white text-2xl p-2 touch-target-sm"
                 >
                   &times;
                 </button>
               </div>
 
-              <div className="p-6">
-                <p className="text-gray-400 mb-6">{selectedPortfolio.description}</p>
+              <div className="p-4 sm:p-6">
+                <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">{selectedPortfolio.description}</p>
 
-                <div className="grid grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gray-900 rounded-lg p-4 text-center">
-                    <div className={`text-2xl font-bold ${getReturnColor(selectedPortfolio.total_return_percent || null)}`}>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
+                    <div className={`text-lg sm:text-2xl font-bold ${getReturnColor(selectedPortfolio.total_return_percent || null)}`}>
                       +{selectedPortfolio.total_return_percent}%
                     </div>
                     <div className="text-xs text-gray-500 mt-1">Total Return</div>
                   </div>
-                  <div className="bg-gray-900 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-400">{selectedPortfolio.win_rate}%</div>
+                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
+                    <div className="text-lg sm:text-2xl font-bold text-blue-400">{selectedPortfolio.win_rate}%</div>
                     <div className="text-xs text-gray-500 mt-1">Win Rate</div>
                   </div>
-                  <div className="bg-gray-900 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-yellow-400">{selectedPortfolio.sharpe_ratio}</div>
+                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
+                    <div className="text-lg sm:text-2xl font-bold text-yellow-400">{selectedPortfolio.sharpe_ratio}</div>
                     <div className="text-xs text-gray-500 mt-1">Sharpe Ratio</div>
                   </div>
-                  <div className="bg-gray-900 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-red-400">-{selectedPortfolio.max_drawdown_percent}%</div>
+                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
+                    <div className="text-lg sm:text-2xl font-bold text-red-400">-{selectedPortfolio.max_drawdown_percent}%</div>
                     <div className="text-xs text-gray-500 mt-1">Max Drawdown</div>
                   </div>
                 </div>

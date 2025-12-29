@@ -55,11 +55,12 @@ export function Advertisement({ zone, className = '' }: AdvertisementProps) {
     return null;
   }
 
+  // Responsive size classes for different ad zones
   const sizeClasses = {
-    banner: 'w-full h-[90px]',
-    sidebar: 'w-[300px] h-[250px]',
+    banner: 'w-full h-[60px] sm:h-[90px]',
+    sidebar: 'hidden sm:block w-full sm:w-[300px] h-[200px] sm:h-[250px]',
     native: 'w-full',
-    popup: 'w-[400px] max-w-full',
+    popup: 'w-full max-w-[calc(100vw-2rem)] sm:max-w-[400px]',
   };
 
   if (zone === 'native') {
@@ -69,19 +70,19 @@ export function Advertisement({ zone, className = '' }: AdvertisementProps) {
         onClick={handleClick}
         target="_blank"
         rel="noopener noreferrer sponsored"
-        className={`block bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors ${className}`}
+        className={`block bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-gray-600 transition-colors touch-target ${className}`}
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           <img
             src={ad.image_url}
             alt={ad.alt_text}
-            className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg flex-shrink-0"
           />
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-500 mb-1">Sponsored</p>
-            <h4 className="text-white font-medium mb-1 truncate">{ad.campaign_name}</h4>
+            <h4 className="text-white font-medium mb-1 truncate text-sm sm:text-base">{ad.campaign_name}</h4>
             {ad.cta_text && (
-              <span className="text-orange-500 text-sm font-medium">
+              <span className="text-orange-500 text-xs sm:text-sm font-medium">
                 {ad.cta_text} &rarr;
               </span>
             )}
@@ -114,11 +115,12 @@ export function Advertisement({ zone, className = '' }: AdvertisementProps) {
 }
 
 function AdPlaceholder({ zone, className }: { zone: string; className: string }) {
+  // Responsive placeholder sizes matching ad zones
   const sizeClasses: Record<string, string> = {
-    banner: 'w-full h-[90px]',
-    sidebar: 'w-[300px] h-[250px]',
-    native: 'w-full h-[100px]',
-    popup: 'w-[400px] h-[300px]',
+    banner: 'w-full h-[60px] sm:h-[90px]',
+    sidebar: 'hidden sm:block w-full sm:w-[300px] h-[200px] sm:h-[250px]',
+    native: 'w-full h-[80px] sm:h-[100px]',
+    popup: 'w-full max-w-[calc(100vw-2rem)] sm:max-w-[400px] h-[250px] sm:h-[300px]',
   };
 
   return (

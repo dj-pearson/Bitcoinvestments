@@ -266,13 +266,14 @@ export function Header() {
                     </nav>
 
                     {/* Mobile Search & Menu */}
-                    <div className="flex items-center gap-2 md:hidden">
+                    <div className="flex items-center gap-1 md:hidden">
                         <MobileSearchTrigger />
                         <button
-                            className="p-2 text-gray-300 hover:text-white"
+                            className="p-3 text-gray-300 hover:text-white touch-target"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
                         >
-                            {isMenuOpen ? <X /> : <Menu />}
+                            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                         </button>
                     </div>
                 </div>
@@ -280,30 +281,30 @@ export function Header() {
 
             {/* Mobile Navigation */}
             {isMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 right-0 glass border-b border-white/5 animate-in slide-in-from-top-5">
-                    <nav className="flex flex-col p-4 gap-2">
+                <div className="md:hidden absolute top-20 left-0 right-0 glass border-b border-white/5 animate-in slide-in-from-top-5 max-h-[calc(100vh-5rem)] overflow-y-auto safe-padding-bottom">
+                    <nav className="flex flex-col p-4 gap-1">
                         {navItems.map((item) => (
                             <div key={item.label}>
                                 <Link
                                     to={item.href}
                                     className={cn(
-                                        'flex items-center justify-between text-base font-medium px-4 py-3 rounded-lg',
+                                        'flex items-center justify-between text-base font-medium px-4 py-3.5 rounded-lg min-h-[48px]',
                                         isActive(item.href)
                                             ? 'text-white bg-white/10'
-                                            : 'text-gray-300 hover:text-white hover:bg-white/5'
+                                            : 'text-gray-300 hover:text-white active:bg-white/10'
                                     )}
                                     onClick={() => !item.children && setIsMenuOpen(false)}
                                 >
                                     {item.label}
-                                    {item.children && <ChevronDown className="w-4 h-4" />}
+                                    {item.children && <ChevronDown className="w-5 h-5" />}
                                 </Link>
                                 {item.children && (
-                                    <div className="ml-4 mt-1 space-y-1">
+                                    <div className="ml-4 mt-1 space-y-0.5">
                                         {item.children.map((child) => (
                                             <Link
                                                 key={child.label}
                                                 to={child.href}
-                                                className="block px-4 py-2 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-white/5"
+                                                className="block px-4 py-3 text-sm text-gray-400 hover:text-white rounded-lg active:bg-white/10 min-h-[44px] flex items-center"
                                                 onClick={() => setIsMenuOpen(false)}
                                             >
                                                 {child.label}

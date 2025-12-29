@@ -181,29 +181,29 @@ export function PortfolioShareModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg max-h-[calc(100vh-1rem)] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-700">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="p-2 bg-orange-500/20 rounded-lg">
               <Share2 className="h-5 w-5 text-orange-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Share Portfolio</h2>
-              <p className="text-sm text-slate-400">{portfolioName}</p>
+              <h2 className="text-base sm:text-lg font-semibold text-white">Share Portfolio</h2>
+              <p className="text-xs sm:text-sm text-slate-400 truncate max-w-[150px] sm:max-w-none">{portfolioName}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white transition-colors"
+            className="p-2 text-slate-400 hover:text-white transition-colors touch-target-sm"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <RefreshCw className="h-8 w-8 text-orange-400 animate-spin" />

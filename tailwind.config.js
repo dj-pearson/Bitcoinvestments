@@ -36,6 +36,18 @@ export default {
         shimmer: 'shimmer 2s infinite',
         progress: 'progress 2s ease-in-out infinite',
       },
+      // Mobile-first spacing and sizing
+      spacing: {
+        'safe': 'env(safe-area-inset-bottom)',
+        'safe-top': 'env(safe-area-inset-top)',
+        'touch': '44px', // Minimum touch target size
+      },
+      minHeight: {
+        'touch': '44px',
+      },
+      minWidth: {
+        'touch': '44px',
+      },
     },
   },
   plugins: [],

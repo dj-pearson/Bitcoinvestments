@@ -12,6 +12,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { SessionExpiredModal } from './components/SessionExpiredModal';
 import { SessionActivityTracker } from './components/SessionActivityTracker';
+import { AppErrorBoundary } from './components/ErrorBoundary';
 import { wagmiConfig } from './lib/wagmi';
 import { PageLoader } from './components/LoadingSkeletons';
 
@@ -97,6 +98,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <BrowserRouter>
+            <AppErrorBoundary>
             <AnalyticsProvider domain="bitcoinvestments.net">
               <PageTracker />
               <ToastProvider>
@@ -191,6 +193,7 @@ function App() {
               </AuthProvider>
               </ToastProvider>
             </AnalyticsProvider>
+            </AppErrorBoundary>
           </BrowserRouter>
         </RainbowKitProvider>
       </QueryClientProvider>

@@ -18,6 +18,7 @@ import type {
   CourseCategory,
   CourseLevel
 } from '../services/interactiveCourses';
+import { sanitizeHtml } from '../lib/validation';
 
 // Icons
 const PlayIcon = () => (
@@ -701,7 +702,7 @@ export default function InteractiveCourses({ userId }: InteractiveCoursesProps) 
                 {selectedLesson.content.map(block => (
                   <div key={block.id}>
                     {block.type === 'text' && (
-                      <div dangerouslySetInnerHTML={{ __html: block.content }} />
+                      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content, false) }} />
                     )}
                   </div>
                 ))}

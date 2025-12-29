@@ -5,6 +5,8 @@
  * to prevent XSS, SQL injection, and other security vulnerabilities.
  */
 
+import DOMPurify from 'dompurify';
+
 // ============================================================================
 // SANITIZATION FUNCTIONS
 // ============================================================================
@@ -580,4 +582,69 @@ export function validateUserContent(
   const sanitized = allowHtml ? content : sanitizeString(content);
 
   return { isValid: true, sanitized };
+}
+
+// ============================================================================
+// DOM PURIFY HTML SANITIZATION
+// ============================================================================
+
+/**
+ * DOMPurify configuration for safe HTML rendering
+ * Allows basic formatting tags but removes scripts, event handlers, and dangerous content
+ */
+const DOMPURIFY_ALLOWED_TAGS = [
+  'p', 'br', 'b', 'i', 'em', 'strong', 'u', 's', 'strike',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'ul', 'ol', 'li',
+  'blockquote', 'pre', 'code',
+  'a', 'span', 'div',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'hr', 'sub', 'sup',
+];
+
+const DOMPURIFY_ALLOWED_ATTR = [
+  'href', 'target', 'rel', 'class', 'id',
+  'colspan', 'rowspan',
+];
+
+const DOMPURIFY_FORBID_TAGS = ['script', 'style', 'iframe', 'form', 'input', 'button', 'object', 'embed'];
+const DOMPURIFY_FORBID_ATTR = ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'];
+
+/**
+ * Sanitize HTML content for safe rendering with dangerouslySetInnerHTML
+ * Uses DOMPurify to remove XSS vectors while preserving safe formatting
+ *
+ * @param html - The HTML string to sanitize
+ * @param convertNewlines - Whether to convert \n to <br/> (default: true)
+ * @returns Sanitized HTML string safe for rendering
+ */
+export function sanitizeHtml(html: string, convertNewlines = true): string {
+  if (!html || typeof html !== 'string') return '';
+
+  // First convert newlines to br tags if requested
+  const processed = convertNewlines ? html.replace(/\n/g, '<br/>') : html;
+
+  // Sanitize with DOMPurify
+  const sanitized = DOMPurify.sanitize(processed, {
+    ALLOWED_TAGS: DOMPURIFY_ALLOWED_TAGS,
+    ALLOWED_ATTR: DOMPURIFY_ALLOWED_ATTR,
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: DOMPURIFY_FORBID_TAGS,
+    FORBID_ATTR: DOMPURIFY_FORBID_ATTR,
+    ADD_ATTR: ['target'],
+  });
+
+  return sanitized;
+}
+
+/**
+ * Create a safe HTML object for React's dangerouslySetInnerHTML
+ * This is a convenience wrapper that returns the proper format
+ *
+ * @param html - The HTML string to sanitize
+ * @param convertNewlines - Whether to convert \n to <br/> (default: true)
+ * @returns Object with __html property containing sanitized HTML
+ */
+export function createSafeHtml(html: string, convertNewlines = true): { __html: string } {
+  return { __html: sanitizeHtml(html, convertNewlines) };
 }

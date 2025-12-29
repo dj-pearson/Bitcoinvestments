@@ -77,4 +77,83 @@
   .prose blockquote {
     @apply border-l-4 border-orange-500 pl-4 italic text-gray-400 my-4;
   }
+
+  /* Mobile-friendly modal utilities */
+  .modal-responsive {
+    @apply w-full max-w-[calc(100vw-2rem)] sm:max-w-md md:max-w-lg;
+  }
+
+  .modal-responsive-lg {
+    @apply w-full max-w-[calc(100vw-2rem)] sm:max-w-lg md:max-w-2xl;
+  }
+
+  .modal-responsive-xl {
+    @apply w-full max-w-[calc(100vw-2rem)] sm:max-w-xl md:max-w-3xl;
+  }
+
+  /* Touch-friendly button utilities */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .touch-target-sm {
+    @apply min-h-[36px] min-w-[36px];
+  }
+
+  /* Mobile-safe padding */
+  .safe-padding-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-padding-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  /* Responsive text utilities */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg md:text-xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  /* Mobile card view for tables */
+  .mobile-card {
+    @apply block md:hidden bg-slate-800/50 rounded-lg p-4 border border-slate-700 space-y-2;
+  }
+
+  .mobile-card-row {
+    @apply flex justify-between items-center py-1;
+  }
+
+  .mobile-card-label {
+    @apply text-xs text-slate-400 font-medium;
+  }
+
+  .mobile-card-value {
+    @apply text-sm text-white;
+  }
+
+  /* Hide on mobile, show on desktop */
+  .desktop-only {
+    @apply hidden md:block;
+  }
+
+  /* Show on mobile, hide on desktop */
+  .mobile-only {
+    @apply block md:hidden;
+  }
 }

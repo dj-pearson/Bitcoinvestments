@@ -390,12 +390,12 @@ function AddExchangeModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg">
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Connect Exchange</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Connect Exchange</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl p-2 touch-target-sm">×</button>
           </div>
         </div>
 

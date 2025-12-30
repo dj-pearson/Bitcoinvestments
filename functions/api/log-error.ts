@@ -10,6 +10,8 @@
  * - Adding server-side context to errors
  */
 
+import { getCorsHeaders, handleCorsPreflightRequest } from './_cors';
+
 interface Env {
   SENTRY_DSN?: string;
 }
@@ -29,6 +31,7 @@ interface ErrorReport {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
+  const corsHeaders = getCorsHeaders(request);
 
   try {
     const body = await request.json() as ErrorReport;
@@ -37,7 +40,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!body.message) {
       return new Response(
         JSON.stringify({ error: 'Missing required field: message' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
@@ -137,7 +140,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     );
   } catch (error) {
@@ -149,22 +152,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     );
   }
 };
 
-// Handle CORS preflight
-export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+// Handle CORS preflight - uses shared CORS config for security
+export const onRequestOptions: PagesFunction = async (context) => {
+  return handleCorsPreflightRequest(context.request);
 };
 
 /**

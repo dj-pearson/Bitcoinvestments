@@ -197,13 +197,21 @@ async function checkRateLimit(
 
 /**
  * Get security headers for the response
+ *
+ * SECURITY HARDENING (2025-12-30):
+ * - Removed 'unsafe-eval' from script-src (not needed for React production builds)
+ * - Added 'wasm-unsafe-eval' for WebAssembly (required by crypto/wallet libraries)
+ * - Keeping 'unsafe-inline' for styles only (required by CSS-in-JS solutions)
+ * - Removed 'unsafe-inline' from script-src to prevent XSS attacks
  */
 function getSecurityHeaders(): Record<string, string> {
   return {
-    // Content Security Policy
+    // Content Security Policy - Hardened configuration
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://challenges.cloudflare.com",
+      // Scripts: No unsafe-inline or unsafe-eval; wasm-unsafe-eval for crypto libraries
+      "script-src 'self' 'wasm-unsafe-eval' https://js.stripe.com https://challenges.cloudflare.com",
+      // Styles: unsafe-inline needed for CSS-in-JS (styled-components, emotion, etc.)
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https: http:",
@@ -219,13 +227,13 @@ function getSecurityHeaders(): Record<string, string> {
     'X-Frame-Options': 'SAMEORIGIN',
     // Prevent MIME type sniffing
     'X-Content-Type-Options': 'nosniff',
-    // Enable XSS filter
+    // Enable XSS filter (legacy but still useful for older browsers)
     'X-XSS-Protection': '1; mode=block',
-    // Referrer policy
+    // Referrer policy - strict to prevent leaking sensitive URL info
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    // Permissions policy
+    // Permissions policy - restrict access to sensitive APIs
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(self)',
-    // Strict Transport Security
+    // Strict Transport Security - enforce HTTPS
     'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
   };
 }

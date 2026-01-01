@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -24,6 +24,10 @@ export function Pricing() {
   const lifetimeSavings = calculateLifetimeSavings();
   const stripeConfigured = isStripeConfigured();
   const taxSeasonActive = isTaxSeasonActive();
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+  }, []);
 
   const handleLifetimePurchase = async () => {
     if (!user) {
@@ -188,7 +192,7 @@ export function Pricing() {
         {/* View Mode Toggle */}
         <div className="inline-flex bg-gray-800 rounded-lg p-1">
           <button
-            onClick={() => setViewMode('individual')}
+            onClick={() => handleViewModeChange('individual')}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
               viewMode === 'individual'
                 ? 'bg-purple-600 text-white'
@@ -198,7 +202,7 @@ export function Pricing() {
             Individual
           </button>
           <button
-            onClick={() => setViewMode('business')}
+            onClick={() => handleViewModeChange('business')}
             className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
               viewMode === 'business'
                 ? 'bg-purple-600 text-white'
@@ -234,8 +238,8 @@ export function Pricing() {
             <div className="flex-1 mb-6">
               <h4 className="font-semibold mb-3">Features:</h4>
               <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.free.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {SUBSCRIPTION_TIERS.free.features.map((feature) => (
+                  <li key={`free-feature-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -256,8 +260,8 @@ export function Pricing() {
 
               <h4 className="font-semibold mb-3 mt-6">Limitations:</h4>
               <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.free.limitations.map((limitation, index) => (
-                  <li key={index} className="flex items-start">
+                {SUBSCRIPTION_TIERS.free.limitations.map((limitation) => (
+                  <li key={`free-limitation-${limitation}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-gray-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -299,8 +303,8 @@ export function Pricing() {
             <div className="flex-1 mb-6">
               <h4 className="font-semibold mb-3">Everything in Free, plus:</h4>
               <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.monthly.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {SUBSCRIPTION_TIERS.monthly.features.map((feature) => (
+                  <li key={`monthly-feature-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -357,8 +361,8 @@ export function Pricing() {
             <div className="flex-1 mb-6">
               <h4 className="font-semibold mb-3">Everything in Monthly, plus:</h4>
               <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.annual.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {SUBSCRIPTION_TIERS.annual.features.map((feature) => (
+                  <li key={`annual-feature-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-gold-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -426,8 +430,8 @@ export function Pricing() {
             <div className="flex-1 mb-6">
               <h4 className="font-semibold mb-3">All Premium features forever:</h4>
               <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.lifetime.features.slice(0, 8).map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {SUBSCRIPTION_TIERS.lifetime.features.slice(0, 8).map((feature) => (
+                  <li key={`lifetime-feature-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -491,8 +495,8 @@ export function Pricing() {
 
             <div className="flex-1 mb-6">
               <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.advisor.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {SUBSCRIPTION_TIERS.advisor.features.map((feature) => (
+                  <li key={`advisor-feature-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -548,8 +552,8 @@ export function Pricing() {
 
             <div className="flex-1 mb-6">
               <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.enterprise.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {SUBSCRIPTION_TIERS.enterprise.features.map((feature) => (
+                  <li key={`enterprise-feature-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -619,8 +623,8 @@ export function Pricing() {
 
             <div className="flex-1 mb-6">
               <ul className="space-y-2">
-                {TAX_PACKAGE.features.basic.map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {TAX_PACKAGE.features.basic.map((feature) => (
+                  <li key={`tax-basic-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -679,8 +683,8 @@ export function Pricing() {
 
             <div className="flex-1 mb-6">
               <ul className="space-y-2">
-                {TAX_PACKAGE.features.premium.map((feature, index) => (
-                  <li key={index} className="flex items-start">
+                {TAX_PACKAGE.features.premium.map((feature) => (
+                  <li key={`tax-premium-${feature}`} className="flex items-start">
                     <svg
                       className="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5"
                       fill="none"
@@ -733,7 +737,7 @@ export function Pricing() {
             <tbody>
               {featureComparison.map((row, index) => (
                 <tr
-                  key={index}
+                  key={`comparison-${row.feature}`}
                   className={`border-b border-gray-800 ${
                     index % 2 === 0 ? 'bg-gray-900/30' : ''
                   }`}

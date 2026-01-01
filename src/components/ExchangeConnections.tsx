@@ -27,6 +27,7 @@ import {
   type ExchangeConnection,
   type ExchangeBalance,
 } from '../services/exchangeConnections';
+import { ConfirmationDialog } from './ConfirmationDialog';
 
 interface ExchangeConnectionsProps {
   userId: string;
@@ -44,6 +45,16 @@ export function ExchangeConnections({ userId, isPremium }: ExchangeConnectionsPr
     byExchange: { exchange: Exchange; value: number; assets: number }[];
     byAsset: { asset: string; total: number; value: number; exchanges: string[] }[];
   } | null>(null);
+  const [disconnectConfirmation, setDisconnectConfirmation] = useState<{
+    isOpen: boolean;
+    connectionId: string | null;
+    exchangeName: string;
+  }>({
+    isOpen: false,
+    connectionId: null,
+    exchangeName: '',
+  });
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -77,12 +88,22 @@ export function ExchangeConnections({ userId, isPremium }: ExchangeConnectionsPr
     setSyncingConnection(null);
   };
 
-  const handleDisconnect = async (connectionId: string) => {
-    if (!confirm('Are you sure you want to disconnect this exchange?')) {
-      return;
-    }
-    await disconnectExchange(connectionId, userId);
+  const handleDisconnectClick = (connection: ExchangeConnection) => {
+    setDisconnectConfirmation({
+      isOpen: true,
+      connectionId: connection.id,
+      exchangeName: connection.exchangeName,
+    });
+  };
+
+  const handleConfirmDisconnect = async () => {
+    if (!disconnectConfirmation.connectionId) return;
+
+    setIsDisconnecting(true);
+    await disconnectExchange(disconnectConfirmation.connectionId, userId);
     await loadData();
+    setIsDisconnecting(false);
+    setDisconnectConfirmation({ isOpen: false, connectionId: null, exchangeName: '' });
   };
 
   const handleConnectionSuccess = async () => {
@@ -200,7 +221,7 @@ export function ExchangeConnections({ userId, isPremium }: ExchangeConnectionsPr
                 balances={balances.filter((b) => b.connectionId === connection.id)}
                 isSyncing={syncingConnection === connection.id}
                 onSync={() => handleSync(connection.id)}
-                onDisconnect={() => handleDisconnect(connection.id)}
+                onDisconnect={() => handleDisconnectClick(connection)}
               />
             ))}
           </div>
@@ -244,6 +265,19 @@ export function ExchangeConnections({ userId, isPremium }: ExchangeConnectionsPr
           onSuccess={handleConnectionSuccess}
         />
       )}
+
+      {/* Disconnect Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={disconnectConfirmation.isOpen}
+        title="Disconnect Exchange"
+        message={`Are you sure you want to disconnect ${disconnectConfirmation.exchangeName}? Your balance data will be removed but can be re-synced if you reconnect.`}
+        confirmLabel="Disconnect"
+        cancelLabel="Cancel"
+        variant="warning"
+        isLoading={isDisconnecting}
+        onConfirm={handleConfirmDisconnect}
+        onCancel={() => setDisconnectConfirmation({ isOpen: false, connectionId: null, exchangeName: '' })}
+      />
     </div>
   );
 }

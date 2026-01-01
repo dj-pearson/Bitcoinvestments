@@ -15,15 +15,18 @@ import { SessionActivityTracker } from './components/SessionActivityTracker';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import { wagmiConfig } from './lib/wagmi';
 import { PageLoader } from './components/LoadingSkeletons';
+import { WebVitalsTracker } from './components/WebVitalsTracker';
 
-// Eagerly loaded pages (critical path)
+// Eagerly loaded pages (critical path - only Home and Auth pages)
 import { Home } from './pages/Home';
-import { Dashboard } from './pages/Dashboard';
-import { Learn } from './pages/Learn';
-import { Compare } from './pages/Compare';
-import { Calculators } from './pages/Calculators';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
+
+// Lazy loaded main pages (improves initial bundle size)
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Learn = lazy(() => import('./pages/Learn').then(m => ({ default: m.Learn })));
+const Compare = lazy(() => import('./pages/Compare').then(m => ({ default: m.Compare })));
+const Calculators = lazy(() => import('./pages/Calculators').then(m => ({ default: m.Calculators })));
 
 // Lazy loaded pages for better initial bundle size
 const Charts = lazy(() => import('./pages/Charts').then(m => ({ default: m.Charts })));
@@ -101,6 +104,7 @@ function App() {
             <AppErrorBoundary>
             <AnalyticsProvider domain="bitcoinvestments.net">
               <PageTracker />
+              <WebVitalsTracker />
               <ToastProvider>
               <AuthProvider>
                 <SessionExpiredModal />

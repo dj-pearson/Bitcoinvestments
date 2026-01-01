@@ -648,3 +648,271 @@ export function sanitizeHtml(html: string, convertNewlines = true): string {
 export function createSafeHtml(html: string, convertNewlines = true): { __html: string } {
   return { __html: sanitizeHtml(html, convertNewlines) };
 }
+
+// ============================================================================
+// ZOD SCHEMA VALIDATION
+// ============================================================================
+
+import { z } from 'zod';
+
+/**
+ * Email validation schema with common edge cases handled
+ */
+export const emailSchema = z
+  .string()
+  .min(1, 'Email is required')
+  .email('Please enter a valid email address')
+  .max(255, 'Email is too long')
+  .transform((email) => email.toLowerCase().trim());
+
+/**
+ * Password validation schema
+ */
+export const passwordSchema = z
+  .string()
+  .min(1, 'Password is required')
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password is too long');
+
+/**
+ * Strong password schema with additional requirements for registration
+ */
+export const strongPasswordSchema = z
+  .string()
+  .min(1, 'Password is required')
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password is too long')
+  .refine(
+    (password) => /[A-Z]/.test(password),
+    'Password must contain at least one uppercase letter'
+  )
+  .refine(
+    (password) => /[a-z]/.test(password),
+    'Password must contain at least one lowercase letter'
+  )
+  .refine(
+    (password) => /[0-9]/.test(password),
+    'Password must contain at least one number'
+  );
+
+/**
+ * Two-factor authentication code schema (6 digits)
+ */
+export const twoFactorCodeSchema = z
+  .string()
+  .length(6, 'Code must be exactly 6 digits')
+  .regex(/^\d{6}$/, 'Code must contain only numbers');
+
+/**
+ * Recovery code schema (8 alphanumeric characters)
+ */
+export const recoveryCodeSchema = z
+  .string()
+  .min(8, 'Recovery code must be at least 8 characters')
+  .max(10, 'Recovery code is too long')
+  .transform((code) => code.toUpperCase());
+
+/**
+ * Login form schema
+ */
+export const loginFormSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional().default(false),
+});
+
+export type LoginFormData = z.infer<typeof loginFormSchema>;
+
+/**
+ * Registration form schema
+ */
+export const signupFormSchema = z
+  .object({
+    email: emailSchema,
+    password: strongPasswordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    name: z
+      .string()
+      .max(100, 'Name is too long')
+      .regex(/^[a-zA-Z\s'-]*$/, 'Name can only contain letters, spaces, hyphens, and apostrophes')
+      .transform((name) => name.trim())
+      .optional()
+      .or(z.literal('')),
+    acceptTerms: z.boolean().refine((val) => val === true, {
+      message: 'You must accept the terms and conditions',
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type SignupFormData = z.infer<typeof signupFormSchema>;
+
+/**
+ * Forgot password form schema
+ */
+export const forgotPasswordFormSchema = z.object({
+  email: emailSchema,
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordFormSchema>;
+
+/**
+ * Reset password form schema
+ */
+export const resetPasswordFormSchema = z
+  .object({
+    password: strongPasswordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordFormSchema>;
+
+/**
+ * Contact form schema
+ */
+export const contactFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name is too long'),
+  email: emailSchema,
+  subject: z
+    .string()
+    .min(1, 'Subject is required')
+    .min(5, 'Subject must be at least 5 characters')
+    .max(200, 'Subject is too long'),
+  message: z
+    .string()
+    .min(1, 'Message is required')
+    .min(20, 'Message must be at least 20 characters')
+    .max(5000, 'Message is too long'),
+});
+
+export type ContactFormData = z.infer<typeof contactFormSchema>;
+
+/**
+ * Support ticket form schema
+ */
+export const supportTicketFormSchema = z.object({
+  subject: z
+    .string()
+    .min(1, 'Subject is required')
+    .min(5, 'Subject must be at least 5 characters')
+    .max(200, 'Subject is too long'),
+  category: z.enum(['bug', 'feature', 'account', 'billing', 'other'], {
+    message: 'Please select a category',
+  }),
+  priority: z.enum(['low', 'medium', 'high'], {
+    message: 'Please select a priority',
+  }),
+  description: z
+    .string()
+    .min(1, 'Description is required')
+    .min(20, 'Description must be at least 20 characters')
+    .max(10000, 'Description is too long'),
+});
+
+export type SupportTicketFormData = z.infer<typeof supportTicketFormSchema>;
+
+/**
+ * Portfolio transaction form schema
+ */
+export const transactionFormSchema = z.object({
+  type: z.enum(['buy', 'sell', 'transfer', 'reward'], {
+    message: 'Please select a transaction type',
+  }),
+  coinId: z.string().min(1, 'Please select a cryptocurrency'),
+  amount: z
+    .number({ message: 'Amount must be a number' })
+    .positive('Amount must be greater than 0')
+    .finite('Invalid amount'),
+  pricePerCoin: z
+    .number({ message: 'Price must be a number' })
+    .nonnegative('Price cannot be negative')
+    .finite('Invalid price'),
+  date: z.string().min(1, 'Date is required'),
+  notes: z.string().max(500, 'Notes are too long').optional(),
+  fee: z
+    .number({ message: 'Fee must be a number' })
+    .nonnegative('Fee cannot be negative')
+    .optional(),
+});
+
+export type TransactionFormData = z.infer<typeof transactionFormSchema>;
+
+/**
+ * Create portfolio form schema
+ */
+export const createPortfolioFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Portfolio name is required')
+    .min(2, 'Name must be at least 2 characters')
+    .max(50, 'Name is too long'),
+  description: z.string().max(200, 'Description is too long').optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format')
+    .optional(),
+});
+
+export type CreatePortfolioFormData = z.infer<typeof createPortfolioFormSchema>;
+
+/**
+ * Validate form data with a Zod schema and return structured errors
+ */
+export function validateWithZod<T extends z.ZodSchema>(
+  schema: T,
+  data: unknown
+): { success: true; data: z.infer<T> } | { success: false; errors: Record<string, string> } {
+  const result = schema.safeParse(data);
+
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+
+  // Convert Zod errors to a simple object
+  const errors: Record<string, string> = {};
+  for (const issue of result.error.issues) {
+    const path = issue.path.join('.');
+    if (!errors[path]) {
+      errors[path] = issue.message;
+    }
+  }
+
+  return { success: false, errors };
+}
+
+/**
+ * Get the first error message from a Zod error
+ */
+export function getFirstZodError(error: z.ZodError): string {
+  return error.issues[0]?.message || 'Validation failed';
+}
+
+/**
+ * Check if a field has an error in the error record
+ */
+export function hasFieldError(
+  errors: Record<string, string> | undefined,
+  field: string
+): boolean {
+  return errors ? field in errors : false;
+}
+
+/**
+ * Get error message for a specific field
+ */
+export function getFieldError(
+  errors: Record<string, string> | undefined,
+  field: string
+): string | undefined {
+  return errors?.[field];
+}

@@ -4,6 +4,8 @@ import { Shield, AlertTriangle } from 'lucide-react';
 import { signIn, signInWithTwoFactor } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { loginFormSchema, validateWithZod, getFieldError } from '../lib/validation';
+import { handleError } from '../lib/apiError';
 import type { UserRole } from '../types/admin-database';
 
 interface LocationState {
@@ -19,6 +21,7 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   // 2FA state
@@ -80,15 +83,30 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     setLoading(true);
 
-    const { user, requires2FA: needs2FA, userId, email: userEmail, error: signInError } = await signIn(email, password);
-
-    if (signInError) {
-      setError(signInError);
+    // Validate form with Zod
+    const validation = validateWithZod(loginFormSchema, { email, password });
+    if (!validation.success) {
+      setFieldErrors(validation.errors);
       setLoading(false);
       return;
     }
+
+    try {
+      const { user, requires2FA: needs2FA, userId, email: userEmail, error: signInError } = await signIn(
+        validation.data.email,
+        password
+      );
+
+      if (signInError) {
+        // Use the error handler for user-friendly messages
+        const userMessage = handleError(signInError, 'Login');
+        setError(userMessage);
+        setLoading(false);
+        return;
+      }
 
     // Check if 2FA is required
     if (needs2FA && userId) {
@@ -103,14 +121,21 @@ export function Login() {
       return;
     }
 
-    if (user) {
-      // Initialize the session for the user
-      await initializeSession(user.id);
-      toast.success('Welcome back!', 'You have successfully signed in.');
-      const redirectPath = getRedirectPath(user.role);
-      navigate(redirectPath, { replace: true });
+      if (user) {
+        // Initialize the session for the user
+        await initializeSession(user.id);
+        toast.success('Welcome back!', 'You have successfully signed in.');
+        const redirectPath = getRedirectPath(user.role);
+        navigate(redirectPath, { replace: true });
+      }
+    } catch (err) {
+      // Handle unexpected errors with user-friendly message
+      const userMessage = handleError(err, 'Login');
+      setError(userMessage);
+      toast.error('Sign in failed', userMessage);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handle2FASubmit = async (e: React.FormEvent) => {
@@ -298,11 +323,25 @@ export function Login() {
                 type="email"
                 id="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => ({ ...prev, email: '' }));
+                  }
+                }}
                 required
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                  getFieldError(fieldErrors, 'email') ? 'border-red-500' : 'border-gray-600'
+                }`}
                 placeholder="you@example.com"
+                aria-invalid={!!getFieldError(fieldErrors, 'email')}
+                aria-describedby={getFieldError(fieldErrors, 'email') ? 'email-error' : undefined}
               />
+              {getFieldError(fieldErrors, 'email') && (
+                <p id="email-error" className="mt-1 text-sm text-red-400">
+                  {getFieldError(fieldErrors, 'email')}
+                </p>
+              )}
             </div>
 
             <div>
@@ -313,11 +352,25 @@ export function Login() {
                 type="password"
                 id="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) {
+                    setFieldErrors((prev) => ({ ...prev, password: '' }));
+                  }
+                }}
                 required
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                  getFieldError(fieldErrors, 'password') ? 'border-red-500' : 'border-gray-600'
+                }`}
                 placeholder="Enter your password"
+                aria-invalid={!!getFieldError(fieldErrors, 'password')}
+                aria-describedby={getFieldError(fieldErrors, 'password') ? 'password-error' : undefined}
               />
+              {getFieldError(fieldErrors, 'password') && (
+                <p id="password-error" className="mt-1 text-sm text-red-400">
+                  {getFieldError(fieldErrors, 'password')}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">

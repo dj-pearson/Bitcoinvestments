@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Play, Pause, BarChart3, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AD_ZONES } from '../services/ads';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import type { Advertisement } from '../types/database';
 
 type AdFormData = {
@@ -41,6 +42,12 @@ export function AdManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
   const [formData, setFormData] = useState<AdFormData>(getInitialFormData);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; adId: string | null; adName: string }>({
+    isOpen: false,
+    adId: null,
+    adName: '',
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   async function loadAds() {
     setLoading(true);
@@ -113,17 +120,28 @@ export function AdManager() {
     setShowForm(true);
   }
 
-  async function handleDelete(adId: string) {
-    if (!confirm('Are you sure you want to delete this ad?')) return;
+  function handleDeleteClick(ad: Advertisement) {
+    setDeleteConfirmation({
+      isOpen: true,
+      adId: ad.id,
+      adName: ad.campaign_name,
+    });
+  }
 
+  async function handleConfirmDelete() {
+    if (!deleteConfirmation.adId) return;
+
+    setIsDeleting(true);
     const { error } = await supabase
       .from('advertisements')
       .delete()
-      .eq('id', adId);
+      .eq('id', deleteConfirmation.adId);
 
     if (!error) {
       await loadAds();
     }
+    setIsDeleting(false);
+    setDeleteConfirmation({ isOpen: false, adId: null, adName: '' });
   }
 
   async function toggleAdStatus(ad: Advertisement) {
@@ -493,7 +511,7 @@ export function AdManager() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(ad.id)}
+                          onClick={() => handleDeleteClick(ad)}
                           className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded transition-colors"
                           title="Delete"
                         >
@@ -508,6 +526,19 @@ export function AdManager() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={deleteConfirmation.isOpen}
+        title="Delete Advertisement"
+        message={`Are you sure you want to delete "${deleteConfirmation.adName}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmation({ isOpen: false, adId: null, adName: '' })}
+      />
     </div>
   );
 }

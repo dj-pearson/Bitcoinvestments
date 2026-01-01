@@ -6,6 +6,7 @@ import {
   terminateSession,
   type Session,
 } from '../services/sessionManager';
+import { ConfirmationDialog } from './ConfirmationDialog';
 
 export function SessionsManager() {
   const { user, signOutAllDevices } = useAuth();
@@ -14,6 +15,14 @@ export function SessionsManager() {
   const [error, setError] = useState<string | null>(null);
   const [terminating, setTerminating] = useState<string | null>(null);
   const [signingOutAll, setSigningOutAll] = useState(false);
+  const [terminateConfirmation, setTerminateConfirmation] = useState<{
+    isOpen: boolean;
+    session: Session | null;
+  }>({
+    isOpen: false,
+    session: null,
+  });
+  const [signOutAllConfirmation, setSignOutAllConfirmation] = useState(false);
 
   const fetchSessions = async () => {
     if (!user) return;
@@ -36,10 +45,19 @@ export function SessionsManager() {
     fetchSessions();
   }, [user]);
 
-  const handleTerminateSession = async (sessionId: string) => {
-    if (!user) return;
+  const handleTerminateClick = (session: Session) => {
+    setTerminateConfirmation({
+      isOpen: true,
+      session,
+    });
+  };
 
+  const handleConfirmTerminate = async () => {
+    if (!user || !terminateConfirmation.session) return;
+
+    const sessionId = terminateConfirmation.session.id;
     setTerminating(sessionId);
+    setTerminateConfirmation({ isOpen: false, session: null });
 
     const { error: terminateError } = await terminateSession(sessionId, user.id);
 
@@ -52,7 +70,12 @@ export function SessionsManager() {
     setTerminating(null);
   };
 
-  const handleSignOutAll = async () => {
+  const handleSignOutAllClick = () => {
+    setSignOutAllConfirmation(true);
+  };
+
+  const handleConfirmSignOutAll = async () => {
+    setSignOutAllConfirmation(false);
     setSigningOutAll(true);
     await signOutAllDevices();
     // User will be redirected after sign out
@@ -113,7 +136,7 @@ export function SessionsManager() {
           </button>
           {sessions.length > 1 && (
             <button
-              onClick={handleSignOutAll}
+              onClick={handleSignOutAllClick}
               disabled={signingOutAll}
               className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors text-sm disabled:opacity-50"
             >
@@ -189,7 +212,7 @@ export function SessionsManager() {
 
               {!session.is_current && (
                 <button
-                  onClick={() => handleTerminateSession(session.id)}
+                  onClick={() => handleTerminateClick(session)}
                   disabled={terminating === session.id}
                   className="flex items-center gap-1 px-3 py-1.5 bg-slate-600 text-slate-300 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-colors text-sm disabled:opacity-50"
                 >
@@ -212,6 +235,33 @@ export function SessionsManager() {
           consider changing your password. Enable 2FA for additional security.
         </p>
       </div>
+
+      {/* Terminate Session Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={terminateConfirmation.isOpen}
+        title="End Session"
+        message={terminateConfirmation.session
+          ? `Are you sure you want to end the session on "${terminateConfirmation.session.device_info}"? This device will be logged out immediately.`
+          : ''
+        }
+        confirmLabel="End Session"
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={handleConfirmTerminate}
+        onCancel={() => setTerminateConfirmation({ isOpen: false, session: null })}
+      />
+
+      {/* Sign Out All Devices Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={signOutAllConfirmation}
+        title="Sign Out All Devices"
+        message={`This will sign you out of all ${sessions.length} devices, including this one. You will need to sign in again on each device.`}
+        confirmLabel="Sign Out All"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmSignOutAll}
+        onCancel={() => setSignOutAllConfirmation(false)}
+      />
     </div>
   );
 }

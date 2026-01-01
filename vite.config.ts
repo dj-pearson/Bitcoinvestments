@@ -58,26 +58,112 @@ export default defineConfig({
         warn(warning);
       },
       output: {
-        // Code splitting configuration
-        manualChunks: {
-          // Vendor chunks
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['lucide-react', 'framer-motion'],
-          'vendor-charts': ['chart.js', 'react-chartjs-2'],
-          'vendor-web3': ['wagmi', 'viem', '@tanstack/react-query'],
-          'vendor-three': ['three', '@react-three/fiber', '@react-three/drei'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          // Feature chunks
-          'feature-auth': [
-            './src/contexts/AuthContext.tsx',
-            './src/services/auth.ts',
-          ],
-          'feature-admin': [
-            './src/pages/admin/AdminOverview.tsx',
-            './src/services/auditLog.ts',
-            './src/services/contentModeration.ts',
-            './src/services/admin.ts',
-          ],
+        // Improved code splitting configuration for better performance
+        manualChunks: (id) => {
+          // Core React bundle - loaded on every page
+          if (id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/react-router-dom/') ||
+              id.includes('node_modules/scheduler/')) {
+            return 'vendor-react';
+          }
+
+          // UI libraries - frequently used
+          if (id.includes('node_modules/lucide-react/') ||
+              id.includes('node_modules/framer-motion/') ||
+              id.includes('node_modules/clsx/') ||
+              id.includes('node_modules/tailwind-merge/')) {
+            return 'vendor-ui';
+          }
+
+          // Charts - only loaded on dashboard/analytics pages
+          if (id.includes('node_modules/chart.js/') ||
+              id.includes('node_modules/react-chartjs-2/')) {
+            return 'vendor-charts';
+          }
+
+          // PDF generation - only for tax reports/exports
+          if (id.includes('node_modules/jspdf/') ||
+              id.includes('node_modules/jspdf-autotable/') ||
+              id.includes('node_modules/html2canvas/')) {
+            return 'vendor-pdf';
+          }
+
+          // Excel/spreadsheet - only for exports
+          if (id.includes('node_modules/xlsx/')) {
+            return 'vendor-excel';
+          }
+
+          // Animation libraries - split from core UI
+          if (id.includes('node_modules/gsap/') ||
+              id.includes('node_modules/@gsap/')) {
+            return 'vendor-animations';
+          }
+
+          // Three.js - only for 3D visualizations
+          if (id.includes('node_modules/three/') ||
+              id.includes('node_modules/@react-three/')) {
+            return 'vendor-three';
+          }
+
+          // Web3 core - wagmi, viem, tanstack query
+          if (id.includes('node_modules/wagmi/') ||
+              id.includes('node_modules/viem/') ||
+              id.includes('node_modules/@tanstack/')) {
+            return 'vendor-web3-core';
+          }
+
+          // Web3 wallet connectors - RainbowKit, WalletConnect
+          if (id.includes('node_modules/@rainbow-me/') ||
+              id.includes('node_modules/@walletconnect/') ||
+              id.includes('node_modules/@reown/')) {
+            return 'vendor-web3-wallets';
+          }
+
+          // Ethereum/blockchain utilities
+          if (id.includes('node_modules/ethers/') ||
+              id.includes('node_modules/siwe/') ||
+              id.includes('node_modules/alchemy-sdk/')) {
+            return 'vendor-web3-utils';
+          }
+
+          // Solana - separate from EVM chains
+          if (id.includes('node_modules/@solana/')) {
+            return 'vendor-solana';
+          }
+
+          // Supabase - database client
+          if (id.includes('node_modules/@supabase/')) {
+            return 'vendor-supabase';
+          }
+
+          // Sentry - error tracking
+          if (id.includes('node_modules/@sentry/')) {
+            return 'vendor-monitoring';
+          }
+
+          // Stripe - payments
+          if (id.includes('node_modules/@stripe/') ||
+              id.includes('node_modules/stripe/')) {
+            return 'vendor-payments';
+          }
+
+          // Markdown rendering
+          if (id.includes('node_modules/react-markdown/') ||
+              id.includes('node_modules/remark-') ||
+              id.includes('node_modules/rehype-')) {
+            return 'vendor-markdown';
+          }
+
+          // DOMPurify - security
+          if (id.includes('node_modules/dompurify/')) {
+            return 'vendor-security';
+          }
+
+          // Zod - validation (small, can be bundled with utils)
+          if (id.includes('node_modules/zod/')) {
+            return 'vendor-validation';
+          }
         },
         // Asset file naming
         assetFileNames: (assetInfo) => {

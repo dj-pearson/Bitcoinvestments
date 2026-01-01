@@ -5,6 +5,7 @@ import { Menu, X, ChevronDown, User, Shield } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
 import { GlobalSearch, MobileSearchTrigger } from '../GlobalSearch';
+import { PrefetchLink } from '../PrefetchLink';
 
 const navItems = [
     {
@@ -110,7 +111,7 @@ export function Header() {
                                 onMouseEnter={() => item.children && setOpenDropdown(item.label)}
                                 onMouseLeave={() => setOpenDropdown(null)}
                             >
-                                <Link
+                                <PrefetchLink
                                     to={item.href}
                                     className={cn(
                                         'flex items-center gap-1 text-sm font-medium transition-colors px-3 py-2 rounded-lg',
@@ -126,20 +127,20 @@ export function Header() {
                                             openDropdown === item.label && 'rotate-180'
                                         )} />
                                     )}
-                                </Link>
+                                </PrefetchLink>
 
                                 {/* Dropdown */}
                                 {item.children && openDropdown === item.label && (
                                     <div className="absolute top-full left-0 pt-2">
                                         <div className="glass-card p-2 min-w-[180px] rounded-xl border border-white/10">
                                             {item.children.map((child) => (
-                                                <Link
+                                                <PrefetchLink
                                                     key={child.label}
                                                     to={child.href}
                                                     className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                                                 >
                                                     {child.label}
-                                                </Link>
+                                                </PrefetchLink>
                                             ))}
                                         </div>
                                     </div>

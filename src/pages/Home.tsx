@@ -1,7 +1,4 @@
 import { useRef, useState, useEffect } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useGSAP } from '@gsap/react';
 import { ArrowRight, Shield, Zap, Globe, TrendingUp, Calculator, BookOpen, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getTopCryptocurrencies } from '../services/coingecko';
@@ -11,8 +8,7 @@ import { NewsFeed } from '../components/NewsFeed';
 import { FearGreedGauge } from '../components/FearGreedIndex';
 import { Hero } from '../components/Hero';
 import { SEO } from '../components/SEO';
-
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+import { useLazyAnimation } from '../hooks/useGSAPLazy';
 
 export function Home() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -26,23 +22,25 @@ export function Home() {
         loadPrices();
     }, []);
 
-    useGSAP(() => {
-        const tl = gsap.timeline();
+    // Lazy load GSAP for scroll-triggered animations
+    useLazyAnimation((gsap) => {
+        // Import ScrollTrigger dynamically as it's needed for this animation
+        import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
+            gsap.registerPlugin(ScrollTrigger);
 
-        // Removed Hero animations as they are now in Hero component
-
-        tl.from('.feature-card', {
-            y: 30,
-            opacity: 0,
-            duration: 0.8,
-            stagger: 0.1,
-            ease: 'power2.out',
-            scrollTrigger: {
-                trigger: '.features-section',
-                start: 'top 80%',
-            }
+            gsap.from('.feature-card', {
+                y: 30,
+                opacity: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: '.features-section',
+                    start: 'top 80%',
+                }
+            });
         });
-    }, { scope: containerRef });
+    }, [], containerRef);
 
     // Homepage structured data with service offerings
     const homepageSchema = {

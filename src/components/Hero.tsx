@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, TrendingUp } from 'lucide-react';
 import { getTopCryptocurrencies } from '../services/coingecko';
 import type { Cryptocurrency } from '../types';
-import { gsap } from 'gsap';
-import { useGSAP } from '@gsap/react';
+import { useLazyAnimation } from '../hooks/useGSAPLazy';
 
 // Lazy load the heavy 3D component (Three.js ~490KB)
 const Hero3D = lazy(() => import('./Hero3D').then(m => ({ default: m.Hero3D })));
@@ -37,7 +36,8 @@ export function Hero() {
         loadPrices();
     }, []);
 
-    useGSAP(() => {
+    // Lazy load GSAP for animations
+    useLazyAnimation((gsap) => {
         const tl = gsap.timeline();
 
         tl.from('.hero-text', {
@@ -53,7 +53,7 @@ export function Hero() {
                 duration: 1,
                 ease: 'back.out(1.7)',
             }, '-=0.5');
-    }, { scope: heroRef });
+    }, [], heroRef);
 
     return (
         <section ref={heroRef} className="relative min-h-[90vh] flex items-center justify-center pt-20 overflow-hidden">

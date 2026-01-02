@@ -1,9 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import '@rainbow-me/rainbowkit/styles.css';
 import { Layout } from './components/Layout/Layout';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -13,9 +10,9 @@ import { AdminRoute } from './components/AdminRoute';
 import { SessionExpiredModal } from './components/SessionExpiredModal';
 import { SessionActivityTracker } from './components/SessionActivityTracker';
 import { AppErrorBoundary } from './components/ErrorBoundary';
-import { wagmiConfig } from './lib/wagmi';
 import { PageLoader } from './components/LoadingSkeletons';
 import { WebVitalsTracker } from './components/WebVitalsTracker';
+import { Web3Route } from './components/Web3Route';
 
 // Eagerly loaded pages (critical path - only Home and Auth pages)
 import { Home } from './pages/Home';
@@ -97,20 +94,18 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <BrowserRouter>
-            <AppErrorBoundary>
-            <AnalyticsProvider domain="bitcoinvestments.net">
-              <PageTracker />
-              <WebVitalsTracker />
-              <ToastProvider>
-              <AuthProvider>
-                <SessionExpiredModal />
-                <SessionActivityTracker />
-                <Suspense fallback={<PageLoader message="Loading page..." />}>
-                <Routes>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AppErrorBoundary>
+        <AnalyticsProvider domain="bitcoinvestments.net">
+          <PageTracker />
+          <WebVitalsTracker />
+          <ToastProvider>
+          <AuthProvider>
+            <SessionExpiredModal />
+            <SessionActivityTracker />
+            <Suspense fallback={<PageLoader message="Loading page..." />}>
+            <Routes>
                   {/* Admin Panel with dedicated layout */}
                   <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                     <Route index element={<AdminOverview />} />
@@ -133,7 +128,8 @@ function App() {
                   <Route path="calculators" element={<Calculators />} />
                   <Route path="compare" element={<Compare />} />
                   <Route path="compare/:type/:id" element={<Compare />} />
-                  <Route path="web3" element={<Web3Features />} />
+                  {/* Web3 routes - lazily load Web3 providers only when needed */}
+                  <Route path="web3" element={<Web3Route><Web3Features /></Web3Route>} />
                   <Route path="scam-database" element={<ScamDatabase />} />
                   <Route path="scam/:id" element={<ScamReportDetail />} />
                   <Route path="report-scam" element={<ProtectedRoute><ReportScam /></ProtectedRoute>} />
@@ -171,17 +167,17 @@ function App() {
                   <Route path="influencer-verification" element={<InfluencerVerification />} />
                   <Route path="lending" element={<LendingComparison />} />
                   <Route path="social-trading" element={<SocialTrading />} />
-                  <Route path="onchain-analytics" element={<OnChainAnalytics />} />
+                  <Route path="onchain-analytics" element={<Web3Route><OnChainAnalytics /></Web3Route>} />
 
                   {/* Premium Crypto Features */}
                   <Route path="hardware-wallet" element={<HardwareWallet />} />
-                  <Route path="gas-optimizer" element={<GasOptimizer />} />
-                  <Route path="defi-yield" element={<DeFiYield />} />
+                  <Route path="gas-optimizer" element={<Web3Route><GasOptimizer /></Web3Route>} />
+                  <Route path="defi-yield" element={<Web3Route><DeFiYield /></Web3Route>} />
                   <Route path="retirement-calculator" element={<RetirementCalculator />} />
 
                   {/* New Premium Monetization Features */}
-                  <Route path="multi-exchange" element={<MultiExchange />} />
-                  <Route path="staking-calculator" element={<StakingCalculator />} />
+                  <Route path="multi-exchange" element={<Web3Route><MultiExchange /></Web3Route>} />
+                  <Route path="staking-calculator" element={<Web3Route><StakingCalculator /></Web3Route>} />
                   <Route path="trading-indicators" element={<TradingIndicators />} />
                   <Route path="whale-tracking" element={<WhaleTrackingPage />} />
                   <Route path="rebalancing-alerts" element={<RebalancingAlertsPage />} />
@@ -193,15 +189,13 @@ function App() {
                   <Route path="*" element={<Home />} />
                 </Route>
               </Routes>
-              </Suspense>
-              </AuthProvider>
-              </ToastProvider>
-            </AnalyticsProvider>
-            </AppErrorBoundary>
-          </BrowserRouter>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+            </Suspense>
+          </AuthProvider>
+          </ToastProvider>
+        </AnalyticsProvider>
+        </AppErrorBoundary>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

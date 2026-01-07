@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Test Report - 1/6/2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; background: #f9fafb; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.5rem; margin: 2rem 0 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+    h3 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; }
+    .header { background: #1f2937; color: white; padding: 2rem; margin-bottom: 2rem; border-radius: 8px; }
+    .header p { opacity: 0.8; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .stat-card .value { font-size: 2rem; font-weight: bold; }
+    .stat-card .label { color: #6b7280; font-size: 0.875rem; }
+    .stat-card.success .value { color: #22c55e; }
+    .stat-card.danger .value { color: #ef4444; }
+    .stat-card.warning .value { color: #f59e0b; }
+    .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+    .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+    .badge-passed { background: #dcfce7; color: #166534; }
+    .badge-failed { background: #fee2e2; color: #991b1b; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-critical { background: #fee2e2; color: #991b1b; }
+    .badge-high { background: #ffedd5; color: #9a3412; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .badge-low { background: #e0f2fe; color: #075985; }
+    .progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+    .progress-bar .fill { height: 100%; transition: width 0.3s; }
+    .progress-bar .fill.success { background: #22c55e; }
+    .progress-bar .fill.danger { background: #ef4444; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f9fafb; font-weight: 600; }
+    .error-item { border-left: 4px solid #ef4444; padding-left: 1rem; margin-bottom: 1rem; }
+    .error-item.warning { border-color: #f59e0b; }
+    .error-message { font-family: monospace; font-size: 0.875rem; background: #f3f4f6; padding: 0.5rem; border-radius: 4px; overflow-x: auto; }
+    .recommendation { padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .recommendation.critical { background: #fee2e2; border-left: 4px solid #ef4444; }
+    .recommendation.high { background: #ffedd5; border-left: 4px solid #f97316; }
+    .recommendation.medium { background: #fef3c7; border-left: 4px solid #f59e0b; }
+    .recommendation.low { background: #e0f2fe; border-left: 4px solid #0ea5e9; }
+    .collapsible { cursor: pointer; }
+    .collapsible::after { content: ' ▼'; font-size: 0.75rem; }
+    .collapsible.collapsed::after { content: ' ▶'; }
+    .content { overflow: hidden; transition: max-height 0.3s; }
+    .content.collapsed { max-height: 0 !important; }
+    code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.875rem; }
+    .footer { text-align: center; padding: 2rem; color: #6b7280; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 Automated Test Report</h1>
+      <p>Generated: 1/6/2026, 9:44:29 PM</p>
+      <p>Duration: 29.28s | Browser: chromium | Pages: 0</p>
+    </div>
+
+    <div class="summary-grid">
+      <div class="stat-card success">
+        <div class="value">0.0%</div>
+        <div class="label">Pass Rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">0</div>
+        <div class="label">Total Tests</div>
+      </div>
+      <div class="stat-card success">
+        <div class="value">0</div>
+        <div class="label">Passed</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="value">0</div>
+        <div class="label">Failed</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="value">0</div>
+        <div class="label">Warnings</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">0ms</div>
+        <div class="label">Avg Load Time</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Test Results Distribution</h3>
+      <div class="progress-bar" style="height: 24px;">
+        <div class="fill success" style="width: NaN%; display: inline-block;"></div>
+        <div class="fill danger" style="width: NaN%; display: inline-block;"></div>
+      </div>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+        <span><span style="color: #22c55e">■</span> Passed: 0</span>
+        <span><span style="color: #ef4444">■</span> Failed: 0</span>
+        <span><span style="color: #f59e0b">■</span> Warnings: 0</span>
+        <span><span style="color: #6b7280">■</span> Skipped: 0</span>
+      </div>
+    </div>
+
+    
+    <h2>📋 Recommendations</h2>
+    
+      <div class="recommendation high">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong>Improve Overall Test Pass Rate</strong>
+          <span class="badge badge-high">HIGH</span>
+        </div>
+        <p>Test pass rate is 0.0%, which is below the recommended 80% threshold.</p>
+        <p style="margin-top: 0.5rem;"><strong>Suggested Fix:</strong> Review failing tests and prioritize fixes based on severity and user impact.</p>
+        
+      </div>
+    
+    
+
+    
+
+    <h2>📄 Pages Tested (0)</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>URL</th>
+            <th>Load Time</th>
+            <th>Tests</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        </tbody>
+      </table>
+      
+    </div>
+
+    
+
+    <div class="footer">
+      <p>Generated by Automated Testing Tool</p>
+      <p>Test run completed in 29.28s</p>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.collapsible').forEach(el => {
+      el.addEventListener('click', () => {
+        el.classList.toggle('collapsed');
+        const content = el.nextElementSibling;
+        if (content) content.classList.toggle('collapsed');
+      });
+    });
+  </script>
+</body>
+</html>

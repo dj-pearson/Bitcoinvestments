@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "generatedAt": "2026-01-07T03:44:29.898Z",
+    "duration": 29282,
+    "config": {
+      "baseUrl": "http://localhost:8080",
+      "depth": "shallow",
+      "maxPages": 20,
+      "browser": "chromium"
+    },
+    "environment": {
+      "browser": "chromium",
+      "viewport": {
+        "width": 1280,
+        "height": 720,
+        "deviceScaleFactor": 1,
+        "isMobile": false
+      },
+      "platform": "win32",
+      "nodeVersion": "v22.17.0"
+    }
+  },
+  "summary": {
+    "totalPages": 0,
+    "totalTests": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 0,
+    "passRate": 0,
+    "totalErrors": 0,
+    "errorsByClassification": {
+      "critical": 0,
+      "functional": 0,
+      "visual": 0,
+      "performance": 0,
+      "accessibility": 0,
+      "network": 0,
+      "validation": 0,
+      "console": 0,
+      "unknown": 0
+    },
+    "errorsByType": {},
+    "avgPageLoadTime": 0,
+    "pagesWithErrors": 0,
+    "edgeFunctionsTested": 0,
+    "edgeFunctionsPassing": 0
+  },
+  "pages": [],
+  "edgeFunctions": [],
+  "consoleEntries": [],
+  "failedNetworkRequests": [],
+  "accessibilityResults": [],
+  "performanceResults": [],
+  "errors": [],
+  "recommendations": [
+    {
+      "type": "high",
+      "category": "functionality",
+      "title": "Improve Overall Test Pass Rate",
+      "description": "Test pass rate is 0.0%, which is below the recommended 80% threshold.",
+      "affectedPages": [],
+      "suggestedFix": "Review failing tests and prioritize fixes based on severity and user impact."
+    }
+  ]
+}

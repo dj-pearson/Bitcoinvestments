@@ -28,6 +28,7 @@ const Calculators = lazy(() => import('./pages/Calculators').then(m => ({ defaul
 // Lazy loaded pages for better initial bundle size
 const Charts = lazy(() => import('./pages/Charts').then(m => ({ default: m.Charts })));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const GuideDetail = lazy(() => import('./pages/GuideDetail').then(m => ({ default: m.GuideDetail })));
 const CourseLanding = lazy(() => import('./pages/CourseLanding').then(m => ({ default: m.CourseLanding })));
@@ -136,6 +137,7 @@ function App() {
                   <Route path="login" element={<Login />} />
                   <Route path="signup" element={<Signup />} />
                   <Route path="forgot-password" element={<ForgotPassword />} />
+                  <Route path="reset-password" element={<ResetPassword />} />
                   <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="affiliate-stats" element={<ProtectedRoute><AffiliateStats /></ProtectedRoute>} />
                   <Route path="ad-manager" element={<ProtectedRoute><AdManager /></ProtectedRoute>} />

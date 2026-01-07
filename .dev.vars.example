@@ -12,8 +12,24 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxxx
 # ============================================================================
 # SUPABASE CONFIGURATION
 # ============================================================================
-# Get these from your Supabase project settings
+# For CLOUD Supabase: Get these from your Supabase Dashboard > Project Settings > API
+# For SELF-HOSTED Supabase: Get these from your self-hosted instance's API settings
+#
+# VITE_SUPABASE_URL: The URL of your Supabase instance
+#   - Cloud: https://your-project.supabase.co
+#   - Self-hosted: https://your-domain.com or http://localhost:8000 (Kong API gateway)
+#
+# VITE_SUPABASE_PUBLISHABLE_KEY: The anon/public key (safe to expose in frontend)
+#   - This is a JWT token starting with "eyJ..."
+#   - Found in API settings as "anon public" key
+#
+# SUPABASE_SERVICE_ROLE_KEY: The service role key (NEVER expose in frontend!)
+#   - This is a JWT token starting with "eyJ..."
+#   - Found in API settings as "service_role" key
+#   - Has full access to bypass RLS - keep secret!
+#
 VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx
 
 # ============================================================================

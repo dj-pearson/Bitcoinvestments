@@ -2,9 +2,12 @@
 
 A comprehensive, dynamic testing framework that crawls web applications and tests all functionality including pages, forms, buttons, links, edge functions, accessibility, and performance.
 
+> **✨ Updated January 2026** - Now using `npx tsx` for better ES module support. Fixed URL configuration to properly override preset defaults.
+
 ## Features
 
 ### Core Testing
+
 - **Dynamic Page Discovery**: Automatically crawls and discovers all pages in your application
 - **Route Analysis**: Statically analyzes route files to find all defined routes
 - **Form Testing**: Tests form visibility, field interactions, validation, and submission
@@ -17,6 +20,7 @@ A comprehensive, dynamic testing framework that crawls web applications and test
 - **Authentication Testing**: Login flow and session testing
 
 ### Advanced Features
+
 - **Parallel Execution**: Run tests across multiple browser contexts
 - **Test Tagging & Filtering**: Tag tests and run specific subsets
 - **Environment Configuration**: Manage settings for dev, staging, production
@@ -25,6 +29,7 @@ A comprehensive, dynamic testing framework that crawls web applications and test
 - **Historical Trending**: Track test metrics over time for regression detection
 
 ### Monitoring & Reporting
+
 - **Console Monitoring**: Captures and categorizes JavaScript errors
 - **Network Monitoring**: Tracks failed requests and slow responses
 - **Multi-Format Reports**: Generates HTML, JSON, and Markdown reports
@@ -32,44 +37,73 @@ A comprehensive, dynamic testing framework that crawls web applications and test
 
 ## Quick Start
 
-### CLI Usage
+### Prerequisites
 
 ```bash
-# Install dependencies if not already installed
-npm install playwright
+# Install dependencies (if not already installed)
+npm install playwright @playwright/test ts-node tsx --save-dev
 
-# Run a smoke test
-npx ts-node src/tools/automated-testing/cli.ts --url http://localhost:8080
+# Install Playwright browsers
+npx playwright install chromium
+```
 
-# Run a full test
-npx ts-node src/tools/automated-testing/cli.ts --url http://localhost:8080 --preset full
+### CLI Usage
+
+**Important:** Make sure your dev server is running first!
+
+```bash
+# Terminal 1: Start your dev server
+npm run dev
+# (Usually runs on http://localhost:5173 for Vite)
+
+# Terminal 2: Run tests
+# Quick smoke test (2-5 minutes)
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset smoke
+
+# Standard test (10-20 minutes)
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset standard
+
+# Full test (30-60 minutes)
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset full
 
 # Custom configuration
-npx ts-node src/tools/automated-testing/cli.ts --url http://localhost:8080 --depth deep --max-pages 100
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --depth deep --max-pages 100
 ```
+
+**Note:** Replace `http://localhost:5173` with your actual dev server URL. Common ports:
+
+- Vite: `5173`
+- Create React App: `3000`
+- Next.js: `3000`
+- Other: Check your terminal output
 
 ### Programmatic Usage
 
 ```typescript
-import { TestOrchestrator, createTester, runSmokeTest, runFullTest } from './tools/automated-testing';
+import {
+  TestOrchestrator,
+  createTester,
+  getPreset,
+} from "./tools/automated-testing";
 
-// Quick smoke test
-const report = await runSmokeTest('http://localhost:8080');
-
-// Full test with preset
-const tester = createTester('full', {
-  baseUrl: 'http://localhost:8080',
-});
+// Using a preset
+const config = getPreset("standard");
+config.baseUrl = "http://localhost:5173";
+const tester = new TestOrchestrator(config);
 const report = await tester.run();
 
 // Custom configuration
 const orchestrator = new TestOrchestrator({
-  baseUrl: 'http://localhost:8080',
-  depth: 'deep',
+  baseUrl: "http://localhost:5173",
+  depth: "deep",
   maxPages: 100,
   accessibilityTesting: true,
   performanceTesting: true,
   edgeFunctionTesting: true,
+  browser: "chromium",
+  headless: true,
+  screenshots: true,
+  outputDir: "./test-reports/automated",
 });
 const report = await orchestrator.run();
 ```
@@ -78,16 +112,16 @@ const report = await orchestrator.run();
 
 ### Test Presets
 
-| Preset | Description | Pages | Features |
-|--------|-------------|-------|----------|
-| `smoke` | Quick smoke test | 20 | Basic functionality only |
-| `standard` | Balanced coverage | 50 | All features |
-| `full` | Comprehensive | Unlimited | All features + video |
-| `mobile` | Mobile testing | 50 | Mobile viewport |
-| `accessibility` | A11y audit | Unlimited | Accessibility focus |
-| `performance` | Perf audit | 50 | Performance focus |
-| `api` | API testing | 5 | Edge functions only |
-| `ci` | CI/CD optimized | 30 | Parallel, retries |
+| Preset          | Description       | Pages     | Features                 |
+| --------------- | ----------------- | --------- | ------------------------ |
+| `smoke`         | Quick smoke test  | 20        | Basic functionality only |
+| `standard`      | Balanced coverage | 50        | All features             |
+| `full`          | Comprehensive     | Unlimited | All features + video     |
+| `mobile`        | Mobile testing    | 50        | Mobile viewport          |
+| `accessibility` | A11y audit        | Unlimited | Accessibility focus      |
+| `performance`   | Perf audit        | 50        | Performance focus        |
+| `api`           | API testing       | 5         | Edge functions only      |
+| `ci`            | CI/CD optimized   | 30        | Parallel, retries        |
 
 ### Configuration Options
 
@@ -112,7 +146,7 @@ interface TestConfig {
   headless: boolean; // default: true
 
   // Browser: chromium, firefox, webkit
-  browser: 'chromium' | 'firefox' | 'webkit';
+  browser: "chromium" | "firefox" | "webkit";
 
   // Viewport configuration
   viewport: {
@@ -150,7 +184,7 @@ interface TestConfig {
   outputDir: string;
 
   // Test depth: shallow, medium, deep
-  depth: 'shallow' | 'medium' | 'deep';
+  depth: "shallow" | "medium" | "deep";
 
   // Max pages to crawl (0 = unlimited)
   maxPages: number;
@@ -178,11 +212,13 @@ interface TestConfig {
 ## Test Depth Levels
 
 ### Shallow
+
 - Page load verification
 - Link checking
 - Basic navigation
 
 ### Medium (Default)
+
 - All shallow tests
 - Form field interactions
 - Button functionality
@@ -190,6 +226,7 @@ interface TestConfig {
 - Accessibility checks
 
 ### Deep
+
 - All medium tests
 - Form validation testing
 - Full element interactions
@@ -209,6 +246,7 @@ test-reports/automated/
 ```
 
 ### HTML Report Features
+
 - Overall test summary with pass rate
 - Recommendations sorted by priority
 - Categorized errors with stack traces
@@ -216,10 +254,187 @@ test-reports/automated/
 - Edge function status
 - Interactive collapsible sections
 
+## CLI Options
+
+### All Available Options
+
+```bash
+npx tsx tools/automated-testing/cli.ts [options]
+
+Options:
+  --url, -u          Base URL to test (required)
+  --preset, -p       Test preset: smoke, standard, full, mobile, accessibility, performance, api, ci
+  --depth, -d        Test depth: shallow, medium, deep
+  --max-pages, -m    Maximum pages to test (0 = unlimited)
+  --output, -o       Output directory for reports
+  --browser, -b      Browser: chromium, firefox, webkit
+  --headed           Run in headed mode (visible browser)
+  --no-screenshots   Disable screenshots
+  --no-a11y          Disable accessibility testing
+  --no-perf          Disable performance testing
+  --no-edge          Disable edge function testing
+  --help, -h         Show help
+```
+
+### Examples
+
+```bash
+# Quick smoke test (fastest)
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset smoke
+
+# Test only 10 pages
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --max-pages 10
+
+# Deep crawl with all features
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --depth deep
+
+# Watch tests run (headed mode)
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset smoke --headed
+
+# Test in Firefox
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --browser firefox
+
+# Mobile testing
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset mobile
+
+# Accessibility audit only
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset accessibility
+
+# Performance audit only
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --preset performance
+
+# Test production site
+npx tsx tools/automated-testing/cli.ts --url https://yourdomain.com --preset smoke
+
+# Custom output directory
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --output ./my-test-results
+
+# Disable specific tests
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173 --no-screenshots --no-a11y
+```
+
+## Test Reports
+
+After running tests, you'll find reports in the output directory (default: `test-reports/automated/`):
+
+```
+test-reports/automated/
+├── test-report-YYYY-MM-DDTHH-mm-ss-SSSZ.html    # Open in browser
+├── test-report-YYYY-MM-DDTHH-mm-ss-SSSZ.json    # For CI/CD integration
+└── test-report-YYYY-MM-DDTHH-mm-ss-SSSZ.md      # Markdown format
+```
+
+### Viewing Reports
+
+```bash
+# Open HTML report (Windows)
+start test-reports\automated\test-report-*.html
+
+# Open HTML report (Mac/Linux)
+open test-reports/automated/test-report-*.html
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. "EBUSY: resource busy or locked"
+
+**Problem:** Node.js processes are locking files in `node_modules`.
+
+**Solution (Windows):**
+
+```powershell
+Get-Process | Where-Object {$_.ProcessName -match "node"} | Stop-Process -Force
+npm install
+```
+
+**Solution (Mac/Linux):**
+
+```bash
+pkill -9 node
+npm install
+```
+
+#### 2. "Executable doesn't exist" / Playwright browser not found
+
+**Problem:** Playwright browsers not installed.
+
+**Solution:**
+
+```bash
+npx playwright install chromium
+# Or install all browsers
+npx playwright install
+```
+
+#### 3. "net::ERR_CONNECTION_REFUSED"
+
+**Problem:** Dev server is not running or using wrong port.
+
+**Solution:**
+
+```bash
+# Make sure dev server is running first
+npm run dev
+
+# Check what port it's running on (usually shown in terminal)
+# Then use that port in the --url parameter
+npx tsx tools/automated-testing/cli.ts --url http://localhost:YOUR_PORT
+```
+
+#### 4. "Cannot find module './cli.ts'"
+
+**Problem:** Wrong path or running from wrong directory.
+
+**Solution:**
+
+```bash
+# Always run from project root
+cd C:\Users\pears\Documents\Bitcoinvestments
+
+# Use correct path
+npx tsx tools/automated-testing/cli.ts --url http://localhost:5173
+```
+
+#### 5. Tests failing with high failure rate
+
+**Problem:** This is normal! The tool is finding real issues.
+
+**What to do:**
+
+1. Open the HTML report to see specific failures
+2. Common issues it finds:
+   - Console errors
+   - Network errors
+   - Accessibility violations
+   - Performance problems
+   - Broken forms/buttons
+3. Fix the issues it identifies
+4. Re-run tests to verify fixes
+
+### Port already in use
+
+```powershell
+# Windows: Find what's using port 5173
+Get-NetTCPConnection -LocalPort 5173 | Select-Object OwningProcess
+
+# Kill the process
+Stop-Process -Id <ProcessID>
+```
+
+```bash
+# Mac/Linux: Find what's using port 5173
+lsof -ti:5173
+
+# Kill the process
+kill -9 <ProcessID>
+```
+
 ## Architecture
 
 ```
-src/tools/automated-testing/
+tools/automated-testing/
 ├── index.ts                    # Main entry point
 ├── cli.ts                      # Command-line interface
 ├── types.ts                    # TypeScript type definitions
@@ -264,24 +479,26 @@ src/tools/automated-testing/
 ### Custom Testers
 
 ```typescript
-import type { Page } from 'playwright';
-import type { TestConfig, TestResult } from './types';
+import type { Page } from "playwright";
+import type { TestConfig, TestResult } from "./types";
 
 class CustomTester {
   constructor(private config: TestConfig) {}
 
   async test(page: Page, url: string): Promise<TestResult[]> {
     // Your custom test logic
-    return [{
-      id: 'custom-test-1',
-      type: 'custom',
-      name: 'Custom Test',
-      status: 'passed',
-      url,
-      duration: 0,
-      timestamp: new Date(),
-      retryCount: 0,
-    }];
+    return [
+      {
+        id: "custom-test-1",
+        type: "custom",
+        name: "Custom Test",
+        status: "passed",
+        url,
+        duration: 0,
+        timestamp: new Date(),
+        retryCount: 0,
+      },
+    ];
   }
 }
 ```
@@ -289,10 +506,13 @@ class CustomTester {
 ### Platform-Specific Configuration
 
 ```typescript
-import { createPlatformConfig, TestOrchestrator } from './tools/automated-testing';
+import {
+  createPlatformConfig,
+  TestOrchestrator,
+} from "./tools/automated-testing";
 
 // Pre-configured for BuildDesk
-const config = createPlatformConfig('builddesk', {
+const config = createPlatformConfig("builddesk", {
   maxPages: 100,
 });
 
@@ -317,22 +537,25 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install chromium
 
-      - name: Start dev server
-        run: npm run dev &
+      - name: Build
+        run: npm run build
+
+      - name: Start preview server
+        run: npm run preview &
 
       - name: Wait for server
-        run: npx wait-on http://localhost:8080
+        run: npx wait-on http://localhost:4173
 
       - name: Run automated tests
-        run: npx ts-node src/tools/automated-testing/cli.ts --url http://localhost:8080 --preset ci
+        run: npx tsx tools/automated-testing/cli.ts --url http://localhost:4173 --preset ci
 
       - name: Upload test reports
         uses: actions/upload-artifact@v3
@@ -346,29 +569,29 @@ jobs:
 
 The tool categorizes errors by severity:
 
-| Classification | Severity | Description |
-|---------------|----------|-------------|
-| `critical` | 1 | App crashes, white screens |
-| `functional` | 2 | Feature doesn't work |
-| `network` | 2 | API/network errors |
-| `accessibility` | 3 | A11y violations |
-| `performance` | 3 | Slow responses |
-| `validation` | 3 | Form validation issues |
-| `visual` | 4 | UI display issues |
-| `console` | 4 | JavaScript console errors |
-| `unknown` | 5 | Uncategorized errors |
+| Classification  | Severity | Description                |
+| --------------- | -------- | -------------------------- |
+| `critical`      | 1        | App crashes, white screens |
+| `functional`    | 2        | Feature doesn't work       |
+| `network`       | 2        | API/network errors         |
+| `accessibility` | 3        | A11y violations            |
+| `performance`   | 3        | Slow responses             |
+| `validation`    | 3        | Form validation issues     |
+| `visual`        | 4        | UI display issues          |
+| `console`       | 4        | JavaScript console errors  |
+| `unknown`       | 5        | Uncategorized errors       |
 
 ## Performance Thresholds
 
 Based on Google's Core Web Vitals:
 
-| Metric | Good | Needs Improvement | Poor |
-|--------|------|-------------------|------|
-| LCP | < 2.5s | 2.5s - 4s | > 4s |
-| FID | < 100ms | 100ms - 300ms | > 300ms |
-| CLS | < 0.1 | 0.1 - 0.25 | > 0.25 |
-| FCP | < 1.8s | 1.8s - 3s | > 3s |
-| TTFB | < 800ms | 800ms - 1.8s | > 1.8s |
+| Metric | Good    | Needs Improvement | Poor    |
+| ------ | ------- | ----------------- | ------- |
+| LCP    | < 2.5s  | 2.5s - 4s         | > 4s    |
+| FID    | < 100ms | 100ms - 300ms     | > 300ms |
+| CLS    | < 0.1   | 0.1 - 0.25        | > 0.25  |
+| FCP    | < 1.8s  | 1.8s - 3s         | > 3s    |
+| TTFB   | < 800ms | 800ms - 1.8s      | > 1.8s  |
 
 ## Accessibility Rules
 
@@ -392,7 +615,7 @@ The tool checks for common WCAG violations:
 Run tests across multiple browser contexts for faster execution:
 
 ```typescript
-import { ParallelRunner, TestConfig } from './tools/automated-testing';
+import { ParallelRunner, TestConfig } from "./tools/automated-testing";
 
 const runner = new ParallelRunner(config);
 await runner.initialize(); // Creates 4 workers by default
@@ -413,17 +636,23 @@ await runner.cleanup();
 Filter tests by tags for targeted test runs:
 
 ```typescript
-import { TestFilterManager } from './tools/automated-testing';
+import { TestFilterManager } from "./tools/automated-testing";
 
 const filter = new TestFilterManager({
-  includeTags: ['smoke', 'critical'],
-  excludeTags: ['slow'],
-  includeTypes: ['form-submission', 'button-click'],
-  namePattern: 'Login.*',
+  includeTags: ["smoke", "critical"],
+  excludeTags: ["slow"],
+  includeTypes: ["form-submission", "button-click"],
+  namePattern: "Login.*",
 });
 
 // Check if a test should run
-if (filter.shouldRunTest({ type: 'form-submission', name: 'Login Form', tags: ['smoke'] })) {
+if (
+  filter.shouldRunTest({
+    type: "form-submission",
+    name: "Login Form",
+    tags: ["smoke"],
+  })
+) {
   // Run the test
 }
 
@@ -431,6 +660,7 @@ if (filter.shouldRunTest({ type: 'form-submission', name: 'Login Form', tags: ['
 ```
 
 CLI usage:
+
 ```bash
 # Run only smoke tests
 npx ts-node src/tools/automated-testing/cli.ts --tags smoke
@@ -447,19 +677,19 @@ npx ts-node src/tools/automated-testing/cli.ts --only-failed
 Manage different environments:
 
 ```typescript
-import { createEnvironmentManager } from './tools/automated-testing';
+import { createEnvironmentManager } from "./tools/automated-testing";
 
-const envManager = createEnvironmentManager('./test-environments.json');
+const envManager = createEnvironmentManager("./test-environments.json");
 
 // Switch to staging
-envManager.setEnvironment('staging');
+envManager.setEnvironment("staging");
 
 // Validate environment is accessible
-const validation = await envManager.validateEnvironment('staging');
+const validation = await envManager.validateEnvironment("staging");
 console.log(validation.message);
 
 // Build test config from environment
-const config = envManager.buildTestConfig('staging', {
+const config = envManager.buildTestConfig("staging", {
   maxPages: 50,
 });
 
@@ -474,11 +704,11 @@ Built-in environments: `local`, `development`, `staging`, `production`, `ci`
 Re-run tests automatically on file changes:
 
 ```typescript
-import { createWatchMode } from './tools/automated-testing';
+import { createWatchMode } from "./tools/automated-testing";
 
 const watchMode = createWatchMode(config, {
-  watchDirs: ['./src'],
-  extensions: ['.ts', '.tsx', '.css'],
+  watchDirs: ["./src"],
+  extensions: [".ts", ".tsx", ".css"],
   debounceMs: 300,
   runOnStart: true,
 });
@@ -501,25 +731,25 @@ await watchMode.start();
 Test API endpoints with JSON schema validation:
 
 ```typescript
-import { ApiTester } from './tools/automated-testing';
+import { ApiTester } from "./tools/automated-testing";
 
 const apiTester = new ApiTester(config);
-apiTester.setAuthToken('your-jwt-token');
+apiTester.setAuthToken("your-jwt-token");
 
 const result = await apiTester.testEndpoint({
-  name: 'Get User Profile',
-  method: 'GET',
-  url: '/api/users/profile',
+  name: "Get User Profile",
+  method: "GET",
+  url: "/api/users/profile",
   expectedStatus: 200,
   maxResponseTime: 500,
   responseSchema: {
-    type: 'object',
+    type: "object",
     properties: {
-      id: { type: 'string' },
-      email: { type: 'string' },
-      name: { type: 'string' },
+      id: { type: "string" },
+      email: { type: "string" },
+      name: { type: "string" },
     },
-    required: ['id', 'email'],
+    required: ["id", "email"],
   },
 });
 
@@ -531,24 +761,24 @@ console.log(result.data.schemaValid);
 Manage test data setup and cleanup:
 
 ```typescript
-import { FixtureManager, SMOKE_TEST_FIXTURES } from './tools/automated-testing';
+import { FixtureManager, SMOKE_TEST_FIXTURES } from "./tools/automated-testing";
 
 const fixtures = new FixtureManager(config);
 fixtures.setSupabaseClient(supabase);
 
 // Register and load fixtures
 fixtures.registerFixtureSet(SMOKE_TEST_FIXTURES);
-await fixtures.loadFixtureSet('smoke');
+await fixtures.loadFixtureSet("smoke");
 
 // Get created IDs for assertions
-const userIds = fixtures.getCreatedIds('test-user');
+const userIds = fixtures.getCreatedIds("test-user");
 
 // Cleanup after tests
 await fixtures.cleanupAll();
 
 // Generate test data
-const users = FixtureManager.generateTestData('user', 5);
-const projects = FixtureManager.generateTestData('project', 3);
+const users = FixtureManager.generateTestData("user", 5);
+const projects = FixtureManager.generateTestData("project", 3);
 ```
 
 ### Visual Regression & Baseline Management
@@ -580,10 +810,10 @@ npx ts-node src/tools/automated-testing/cli.ts baseline review
 Track test metrics over time:
 
 ```typescript
-import { MetricsStorage } from './tools/automated-testing';
+import { MetricsStorage } from "./tools/automated-testing";
 
 const storage = new MetricsStorage({
-  storageDir: './test-results/metrics',
+  storageDir: "./test-results/metrics",
   maxRuns: 100,
   retentionDays: 30,
 });
@@ -591,9 +821,9 @@ const storage = new MetricsStorage({
 // Store a test run
 const run = storage.storeRun(reports, {
   duration: 5000,
-  environment: 'staging',
-  commitHash: 'abc123',
-  branch: 'main',
+  environment: "staging",
+  commitHash: "abc123",
+  branch: "main",
 });
 
 // Get trend analysis
@@ -609,7 +839,7 @@ const comparison = storage.compareRuns(run1Id, run2Id);
 console.log(comparison.differences);
 
 // Get chart data for visualization
-const chartData = storage.generateChartData('performance.avgLCP', 30);
+const chartData = storage.generateChartData("performance.avgLCP", 30);
 ```
 
 ## Troubleshooting
@@ -617,30 +847,36 @@ const chartData = storage.generateChartData('performance.avgLCP', 30);
 ### Common Issues
 
 **Tests timing out:**
+
 - Increase `timeout` configuration
 - Add `navigationDelay` between pages
 - Reduce `maxPages` for initial testing
 
 **Browser not launching:**
+
 - Ensure Playwright is installed: `npx playwright install`
 - Try different browser: `--browser firefox`
 
 **No pages discovered:**
+
 - Check `baseUrl` is accessible
 - Verify `routesDir` path is correct
 - Check `excludePatterns` aren't too broad
 
 **Edge functions failing:**
+
 - Verify `SUPABASE_URL` environment variable
 - Check function endpoints are accessible
 - Ensure CORS headers are configured
 
 **Parallel tests failing:**
+
 - Reduce worker count if system resources are limited
 - Ensure tests don't share mutable state
 - Check for race conditions in test data
 
 **Watch mode not detecting changes:**
+
 - Verify `watchDirs` are correct
 - Check `ignorePatterns` aren't excluding your files
 - Ensure `extensions` includes your file types

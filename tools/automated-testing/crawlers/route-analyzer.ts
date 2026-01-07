@@ -151,8 +151,11 @@ export class RouteAnalyzer {
    * Normalize a route path
    */
   private normalizePath(routePath: string): string {
+    // Convert backslashes to forward slashes (Windows compatibility)
+    let normalized = routePath.replace(/\\/g, '/');
+
     // Ensure leading slash
-    let normalized = routePath.startsWith('/') ? routePath : `/${routePath}`;
+    normalized = normalized.startsWith('/') ? normalized : `/${normalized}`;
 
     // Remove trailing slash (except for root)
     if (normalized !== '/' && normalized.endsWith('/')) {
@@ -299,6 +302,9 @@ export class RouteAnalyzer {
   private filePathToRoutePath(filePath: string): string | null {
     // Remove extension
     let routePath = filePath.replace(/\.(tsx?|jsx?)$/, '');
+
+    // Convert backslashes to forward slashes (Windows compatibility)
+    routePath = routePath.replace(/\\/g, '/');
 
     // Handle index files
     routePath = routePath.replace(/\/index$/, '');

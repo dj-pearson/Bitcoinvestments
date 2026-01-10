@@ -1,87 +1,137 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '../Logo';
-import { Menu, X, ChevronDown, User, Shield } from 'lucide-react';
+import {
+    Menu,
+    X,
+    ChevronDown,
+    ChevronRight,
+    User,
+    Shield,
+    LayoutDashboard,
+    LineChart,
+    ArrowLeftRight,
+    Calculator,
+    Wrench,
+    Search,
+    Coins,
+    GraduationCap,
+    Wallet,
+    TrendingUp,
+    Receipt,
+    RefreshCw,
+    Bell,
+    Layers,
+    Activity,
+    Fish,
+    BarChart3,
+    Users,
+    AlertTriangle,
+    Percent,
+    Fuel,
+    Globe,
+    HardDrive
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
 import { GlobalSearch, MobileSearchTrigger } from '../GlobalSearch';
 import { PrefetchLink } from '../PrefetchLink';
 
+// Navigation items with icons for better visual hierarchy
 const navItems = [
     {
         label: 'Dashboard',
         href: '/dashboard',
+        icon: LayoutDashboard,
+        description: 'Your portfolio overview',
     },
     {
         label: 'Charts',
         href: '/charts',
+        icon: LineChart,
+        description: 'Price charts & analytics',
     },
     {
         label: 'Compare',
         href: '/compare',
+        icon: ArrowLeftRight,
+        description: 'Compare platforms',
         children: [
-            { label: 'Exchanges', href: '/compare?tab=exchanges' },
-            { label: 'Wallets', href: '/compare?tab=wallets' },
-            { label: 'Lending Rates', href: '/lending' },
+            { label: 'Exchanges', href: '/compare?tab=exchanges', icon: ArrowLeftRight, description: 'Compare crypto exchanges' },
+            { label: 'Wallets', href: '/compare?tab=wallets', icon: Wallet, description: 'Compare wallet options' },
+            { label: 'Lending Rates', href: '/lending', icon: Percent, description: 'Compare lending rates' },
         ],
     },
     {
         label: 'Calculators',
         href: '/calculators',
+        icon: Calculator,
+        description: 'Investment calculators',
         children: [
-            { label: 'DCA Calculator', href: '/calculators?type=dca' },
-            { label: 'Fee Calculator', href: '/calculators?type=fees' },
-            { label: 'Staking Calculator', href: '/staking-calculator' },
-            { label: 'Tax Calculator', href: '/calculators?type=tax' },
-            { label: 'Retirement Calculator', href: '/retirement-calculator' },
+            { label: 'DCA Calculator', href: '/calculators?type=dca', icon: TrendingUp, description: 'Dollar cost averaging' },
+            { label: 'Fee Calculator', href: '/calculators?type=fees', icon: Receipt, description: 'Calculate trading fees' },
+            { label: 'Staking Calculator', href: '/staking-calculator', icon: Coins, description: 'Staking rewards estimator' },
+            { label: 'Tax Calculator', href: '/calculators?type=tax', icon: Receipt, description: 'Estimate crypto taxes' },
+            { label: 'Retirement Calculator', href: '/retirement-calculator', icon: Calculator, description: 'Plan for retirement' },
         ],
     },
     {
         label: 'Tools',
         href: '/portfolio-analysis',
+        icon: Wrench,
+        description: 'Advanced trading tools',
         children: [
-            { label: 'Portfolio Analysis', href: '/portfolio-analysis' },
-            { label: 'Backtesting', href: '/backtesting' },
-            { label: 'Tax Reports', href: '/tax-reports' },
-            { label: 'Multi-Exchange', href: '/multi-exchange' },
-            { label: 'DCA Automation', href: '/dca-automation' },
-            { label: 'Rebalancing Alerts', href: '/rebalancing-alerts' },
-            { label: 'Smart Alert Bundles', href: '/alert-bundles' },
+            { label: 'Portfolio Analysis', href: '/portfolio-analysis', icon: BarChart3, description: 'Analyze your holdings' },
+            { label: 'Backtesting', href: '/backtesting', icon: RefreshCw, description: 'Test trading strategies' },
+            { label: 'Tax Reports', href: '/tax-reports', icon: Receipt, description: 'Generate tax reports' },
+            { label: 'Multi-Exchange', href: '/multi-exchange', icon: Layers, description: 'Manage multiple exchanges' },
+            { label: 'DCA Automation', href: '/dca-automation', icon: TrendingUp, description: 'Automate DCA purchases' },
+            { label: 'Rebalancing Alerts', href: '/rebalancing-alerts', icon: Bell, description: 'Portfolio rebalancing' },
+            { label: 'Smart Alert Bundles', href: '/alert-bundles', icon: Bell, description: 'Custom alert packages' },
         ],
     },
     {
         label: 'Research',
         href: '/onchain-analytics',
+        icon: Search,
+        description: 'Market research & data',
         children: [
-            { label: 'On-Chain Analytics', href: '/onchain-analytics' },
-            { label: 'Whale Tracking', href: '/whale-tracking' },
-            { label: 'Trading Indicators', href: '/trading-indicators' },
-            { label: 'Social Trading', href: '/social-trading' },
-            { label: 'Scam Database', href: '/scam-database' },
+            { label: 'On-Chain Analytics', href: '/onchain-analytics', icon: Activity, description: 'Blockchain data insights' },
+            { label: 'Whale Tracking', href: '/whale-tracking', icon: Fish, description: 'Track large holders' },
+            { label: 'Trading Indicators', href: '/trading-indicators', icon: BarChart3, description: 'Technical indicators' },
+            { label: 'Social Trading', href: '/social-trading', icon: Users, description: 'Follow top traders' },
+            { label: 'Scam Database', href: '/scam-database', icon: AlertTriangle, description: 'Avoid crypto scams' },
         ],
     },
     {
         label: 'DeFi',
         href: '/defi-yield',
+        icon: Coins,
+        description: 'DeFi opportunities',
         children: [
-            { label: 'DeFi Yield', href: '/defi-yield' },
-            { label: 'Gas Optimizer', href: '/gas-optimizer' },
-            { label: 'Web3 Features', href: '/web3' },
-            { label: 'Hardware Wallet Guide', href: '/hardware-wallet' },
+            { label: 'DeFi Yield', href: '/defi-yield', icon: Percent, description: 'Find the best yields' },
+            { label: 'Gas Optimizer', href: '/gas-optimizer', icon: Fuel, description: 'Optimize gas costs' },
+            { label: 'Web3 Features', href: '/web3', icon: Globe, description: 'Web3 integrations' },
+            { label: 'Hardware Wallet Guide', href: '/hardware-wallet', icon: HardDrive, description: 'Secure your crypto' },
         ],
     },
     {
         label: 'Learn',
         href: '/learn',
+        icon: GraduationCap,
+        description: 'Educational resources',
     },
 ];
 
 export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [mobileOpenSections, setMobileOpenSections] = useState<Set<string>>(new Set());
     const [user, setUser] = useState<AuthUser | null>(null);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const location = useLocation();
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const mobileMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         async function checkAuth() {
@@ -91,7 +141,63 @@ export function Header() {
         checkAuth();
     }, [location.pathname]);
 
+    // Close mobile menu on route change
+    useEffect(() => {
+        setIsMenuOpen(false);
+        setMobileOpenSections(new Set());
+    }, [location.pathname]);
+
+    // Handle escape key to close menus
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsMenuOpen(false);
+                setOpenDropdown(null);
+                setUserDropdownOpen(false);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, []);
+
+    // Handle click outside to close dropdowns
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setOpenDropdown(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + '/');
+
+    // Toggle mobile accordion section
+    const toggleMobileSection = useCallback((label: string) => {
+        setMobileOpenSections(prev => {
+            const next = new Set(prev);
+            if (next.has(label)) {
+                next.delete(label);
+            } else {
+                next.add(label);
+            }
+            return next;
+        });
+    }, []);
+
+    // Handle keyboard navigation for dropdowns
+    const handleDropdownKeyDown = useCallback((e: React.KeyboardEvent, item: typeof navItems[0]) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (item.children) {
+                setOpenDropdown(prev => prev === item.label ? null : item.label);
+            }
+        } else if (e.key === 'ArrowDown' && item.children) {
+            e.preventDefault();
+            setOpenDropdown(item.label);
+        }
+    }, []);
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
@@ -103,50 +209,75 @@ export function Header() {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-6">
-                        {navItems.map((item) => (
-                            <div
-                                key={item.label}
-                                className="relative"
-                                onMouseEnter={() => item.children && setOpenDropdown(item.label)}
-                                onMouseLeave={() => setOpenDropdown(null)}
-                            >
-                                <PrefetchLink
-                                    to={item.href}
-                                    className={cn(
-                                        'flex items-center gap-1 text-sm font-medium transition-colors px-3 py-2 rounded-lg',
-                                        isActive(item.href)
-                                            ? 'text-white bg-white/10'
-                                            : 'text-gray-300 hover:text-white hover:bg-white/5'
-                                    )}
+                    <nav className="hidden lg:flex items-center gap-1" ref={dropdownRef}>
+                        {navItems.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <div
+                                    key={item.label}
+                                    className="relative"
+                                    onMouseEnter={() => item.children && setOpenDropdown(item.label)}
+                                    onMouseLeave={() => setOpenDropdown(null)}
                                 >
-                                    {item.label}
-                                    {item.children && (
-                                        <ChevronDown className={cn(
-                                            'w-4 h-4 transition-transform',
-                                            openDropdown === item.label && 'rotate-180'
+                                    <PrefetchLink
+                                        to={item.href}
+                                        className={cn(
+                                            'flex items-center gap-1.5 text-sm font-medium transition-all px-3 py-2 rounded-lg group',
+                                            isActive(item.href)
+                                                ? 'text-white bg-white/10'
+                                                : 'text-gray-300 hover:text-white hover:bg-white/5'
+                                        )}
+                                        onKeyDown={(e) => handleDropdownKeyDown(e, item)}
+                                        aria-expanded={item.children ? openDropdown === item.label : undefined}
+                                        aria-haspopup={item.children ? 'menu' : undefined}
+                                    >
+                                        <Icon className={cn(
+                                            'w-4 h-4 transition-colors',
+                                            isActive(item.href) ? 'text-brand-primary' : 'text-gray-400 group-hover:text-brand-accent'
                                         )} />
-                                    )}
-                                </PrefetchLink>
+                                        <span className="hidden xl:inline">{item.label}</span>
+                                        {item.children && (
+                                            <ChevronDown className={cn(
+                                                'w-3.5 h-3.5 transition-transform duration-200',
+                                                openDropdown === item.label && 'rotate-180'
+                                            )} />
+                                        )}
+                                    </PrefetchLink>
 
-                                {/* Dropdown */}
-                                {item.children && openDropdown === item.label && (
-                                    <div className="absolute top-full left-0 pt-2">
-                                        <div className="glass-card p-2 min-w-[180px] rounded-xl border border-white/10">
-                                            {item.children.map((child) => (
-                                                <PrefetchLink
-                                                    key={child.label}
-                                                    to={child.href}
-                                                    className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                                                >
-                                                    {child.label}
-                                                </PrefetchLink>
-                                            ))}
+                                    {/* Enhanced Dropdown with icons and descriptions */}
+                                    {item.children && openDropdown === item.label && (
+                                        <div
+                                            className="absolute top-full left-0 pt-2 z-50"
+                                            role="menu"
+                                            aria-label={`${item.label} submenu`}
+                                        >
+                                            <div className="glass-card p-2 min-w-[260px] rounded-xl border border-white/10 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="px-3 py-2 border-b border-white/10 mb-2">
+                                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{item.label}</p>
+                                                </div>
+                                                {item.children.map((child) => {
+                                                    const ChildIcon = child.icon;
+                                                    return (
+                                                        <PrefetchLink
+                                                            key={child.label}
+                                                            to={child.href}
+                                                            className="flex items-start gap-3 px-3 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all group"
+                                                            role="menuitem"
+                                                        >
+                                                            <ChildIcon className="w-4 h-4 mt-0.5 text-gray-400 group-hover:text-brand-accent transition-colors flex-shrink-0" />
+                                                            <div>
+                                                                <span className="block font-medium">{child.label}</span>
+                                                                <span className="block text-xs text-gray-500 group-hover:text-gray-400 mt-0.5">{child.description}</span>
+                                                            </div>
+                                                        </PrefetchLink>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                    )}
+                                </div>
+                            );
+                        })}
 
                         {/* Search Bar */}
                         <GlobalSearch className="hidden lg:block" />
@@ -267,54 +398,123 @@ export function Header() {
                     </nav>
 
                     {/* Mobile Search & Menu */}
-                    <div className="flex items-center gap-1 md:hidden">
+                    <div className="flex items-center gap-1 lg:hidden">
                         <MobileSearchTrigger />
                         <button
-                            className="p-3 text-gray-300 hover:text-white touch-target"
+                            className="p-3 text-gray-300 hover:text-white touch-target relative"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                             aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+                            aria-expanded={isMenuOpen}
                         >
-                            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                            <span className={cn(
+                                'absolute inset-0 flex items-center justify-center transition-all duration-200',
+                                isMenuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'
+                            )}>
+                                <X className="w-6 h-6" />
+                            </span>
+                            <span className={cn(
+                                'flex items-center justify-center transition-all duration-200',
+                                isMenuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'
+                            )}>
+                                <Menu className="w-6 h-6" />
+                            </span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Mobile Navigation */}
+            {/* Mobile Navigation - Accordion Style */}
             {isMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 right-0 glass border-b border-white/5 animate-in slide-in-from-top-5 max-h-[calc(100vh-5rem)] overflow-y-auto safe-padding-bottom">
+                <div
+                    ref={mobileMenuRef}
+                    className="lg:hidden absolute top-20 left-0 right-0 glass border-b border-white/5 animate-in slide-in-from-top-2 duration-200 max-h-[calc(100vh-5rem)] overflow-y-auto safe-padding-bottom"
+                    role="navigation"
+                    aria-label="Mobile navigation"
+                >
                     <nav className="flex flex-col p-4 gap-1">
-                        {navItems.map((item) => (
-                            <div key={item.label}>
-                                <Link
-                                    to={item.href}
-                                    className={cn(
-                                        'flex items-center justify-between text-base font-medium px-4 py-3.5 rounded-lg min-h-[48px]',
-                                        isActive(item.href)
-                                            ? 'text-white bg-white/10'
-                                            : 'text-gray-300 hover:text-white active:bg-white/10'
-                                    )}
-                                    onClick={() => !item.children && setIsMenuOpen(false)}
-                                >
-                                    {item.label}
-                                    {item.children && <ChevronDown className="w-5 h-5" />}
-                                </Link>
-                                {item.children && (
-                                    <div className="ml-4 mt-1 space-y-0.5">
-                                        {item.children.map((child) => (
-                                            <Link
-                                                key={child.label}
-                                                to={child.href}
-                                                className="block px-4 py-3 text-sm text-gray-400 hover:text-white rounded-lg active:bg-white/10 min-h-[44px] flex items-center"
-                                                onClick={() => setIsMenuOpen(false)}
+                        {navItems.map((item) => {
+                            const Icon = item.icon;
+                            const isExpanded = mobileOpenSections.has(item.label);
+
+                            return (
+                                <div key={item.label} className="border-b border-white/5 last:border-0">
+                                    {item.children ? (
+                                        <>
+                                            {/* Accordion Header */}
+                                            <button
+                                                onClick={() => toggleMobileSection(item.label)}
+                                                className={cn(
+                                                    'flex items-center justify-between w-full text-base font-medium px-4 py-3.5 rounded-lg min-h-[52px] transition-colors',
+                                                    isActive(item.href)
+                                                        ? 'text-white bg-white/10'
+                                                        : 'text-gray-300 hover:text-white active:bg-white/10'
+                                                )}
+                                                aria-expanded={isExpanded}
+                                                aria-controls={`mobile-section-${item.label}`}
                                             >
-                                                {child.label}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                                <span className="flex items-center gap-3">
+                                                    <Icon className={cn(
+                                                        'w-5 h-5',
+                                                        isActive(item.href) ? 'text-brand-primary' : 'text-gray-400'
+                                                    )} />
+                                                    <span>{item.label}</span>
+                                                </span>
+                                                <ChevronDown className={cn(
+                                                    'w-5 h-5 transition-transform duration-200',
+                                                    isExpanded && 'rotate-180'
+                                                )} />
+                                            </button>
+
+                                            {/* Accordion Content */}
+                                            <div
+                                                id={`mobile-section-${item.label}`}
+                                                className={cn(
+                                                    'overflow-hidden transition-all duration-200',
+                                                    isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                                                )}
+                                            >
+                                                <div className="ml-4 pl-4 border-l-2 border-white/10 py-2 space-y-1">
+                                                    {item.children.map((child) => {
+                                                        const ChildIcon = child.icon;
+                                                        return (
+                                                            <Link
+                                                                key={child.label}
+                                                                to={child.href}
+                                                                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-400 hover:text-white rounded-lg active:bg-white/10 min-h-[48px] transition-colors"
+                                                                onClick={() => setIsMenuOpen(false)}
+                                                            >
+                                                                <ChildIcon className="w-4 h-4 text-gray-500" />
+                                                                <div>
+                                                                    <span className="block">{child.label}</span>
+                                                                    <span className="block text-xs text-gray-500 mt-0.5">{child.description}</span>
+                                                                </div>
+                                                            </Link>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <Link
+                                            to={item.href}
+                                            className={cn(
+                                                'flex items-center gap-3 text-base font-medium px-4 py-3.5 rounded-lg min-h-[52px] transition-colors',
+                                                isActive(item.href)
+                                                    ? 'text-white bg-white/10'
+                                                    : 'text-gray-300 hover:text-white active:bg-white/10'
+                                            )}
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Icon className={cn(
+                                                'w-5 h-5',
+                                                isActive(item.href) ? 'text-brand-primary' : 'text-gray-400'
+                                            )} />
+                                            {item.label}
+                                        </Link>
+                                    )}
+                                </div>
+                            );
+                        })}
 
                         {/* Mobile Auth */}
                         <div className="border-t border-white/10 mt-2 pt-4">

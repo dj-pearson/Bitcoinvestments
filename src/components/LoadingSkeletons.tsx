@@ -874,6 +874,333 @@ export function DashboardSkeleton() {
   );
 }
 
+// ============================================
+// Enhanced Progress Indicators
+// ============================================
+
+interface ProgressBarProps {
+  progress: number; // 0-100
+  showLabel?: boolean;
+  label?: string;
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'success' | 'warning' | 'error';
+  animated?: boolean;
+  className?: string;
+}
+
+/**
+ * Determinate progress bar with percentage
+ */
+export function ProgressBar({
+  progress,
+  showLabel = false,
+  label,
+  size = 'md',
+  variant = 'default',
+  animated = true,
+  className
+}: ProgressBarProps) {
+  const clampedProgress = Math.min(100, Math.max(0, progress));
+
+  const sizeClasses = {
+    sm: 'h-1',
+    md: 'h-2',
+    lg: 'h-3'
+  };
+
+  const variantClasses = {
+    default: 'bg-brand-primary',
+    success: 'bg-green-500',
+    warning: 'bg-amber-500',
+    error: 'bg-red-500'
+  };
+
+  return (
+    <div className={cn('w-full', className)}>
+      {(showLabel || label) && (
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-gray-400">{label || 'Progress'}</span>
+          <span className="text-sm font-medium text-white">{Math.round(clampedProgress)}%</span>
+        </div>
+      )}
+      <div className={cn(
+        'w-full bg-white/10 rounded-full overflow-hidden',
+        sizeClasses[size]
+      )}>
+        <div
+          className={cn(
+            'h-full rounded-full transition-all duration-500 ease-out',
+            variantClasses[variant],
+            animated && 'relative overflow-hidden'
+          )}
+          style={{ width: `${clampedProgress}%` }}
+          role="progressbar"
+          aria-valuenow={clampedProgress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          {animated && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface StepProgressProps {
+  currentStep: number;
+  totalSteps: number;
+  labels?: string[];
+  className?: string;
+}
+
+/**
+ * Step progress indicator for multi-step flows
+ */
+export function StepProgress({
+  currentStep,
+  totalSteps,
+  labels,
+  className
+}: StepProgressProps) {
+  return (
+    <div className={cn('w-full', className)}>
+      {/* Step indicators */}
+      <div className="flex items-center justify-between relative">
+        {/* Connection line */}
+        <div className="absolute top-4 left-4 right-4 h-0.5 bg-white/10">
+          <div
+            className="h-full bg-brand-primary transition-all duration-500"
+            style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
+          />
+        </div>
+
+        {/* Step circles */}
+        {Array.from({ length: totalSteps }).map((_, index) => {
+          const stepNumber = index + 1;
+          const isCompleted = stepNumber < currentStep;
+          const isCurrent = stepNumber === currentStep;
+
+          return (
+            <div
+              key={index}
+              className="relative flex flex-col items-center gap-2"
+            >
+              <div
+                className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm z-10 transition-all duration-300',
+                  isCompleted && 'bg-brand-primary text-white',
+                  isCurrent && 'bg-brand-primary text-white ring-4 ring-brand-primary/20',
+                  !isCompleted && !isCurrent && 'bg-white/10 text-gray-500'
+                )}
+              >
+                {isCompleted ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  stepNumber
+                )}
+              </div>
+              {labels && labels[index] && (
+                <span className={cn(
+                  'text-xs absolute top-10 whitespace-nowrap',
+                  isCurrent ? 'text-white font-medium' : 'text-gray-500'
+                )}>
+                  {labels[index]}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Step count */}
+      <p className="text-center text-sm text-gray-400 mt-8">
+        Step {currentStep} of {totalSteps}
+      </p>
+    </div>
+  );
+}
+
+interface LoadingDotsProps {
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+/**
+ * Animated loading dots
+ */
+export function LoadingDots({ size = 'md', className }: LoadingDotsProps) {
+  const sizeClasses = {
+    sm: 'w-1.5 h-1.5',
+    md: 'w-2 h-2',
+    lg: 'w-3 h-3'
+  };
+
+  return (
+    <div className={cn('flex items-center gap-1', className)} role="status" aria-label="Loading">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className={cn(
+            'rounded-full bg-brand-primary animate-bounce',
+            sizeClasses[size]
+          )}
+          style={{
+            animationDelay: `${i * 0.15}s`,
+            animationDuration: '0.6s'
+          }}
+        />
+      ))}
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
+}
+
+interface SpinnerProps {
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  color?: 'primary' | 'white' | 'gray';
+  className?: string;
+}
+
+/**
+ * Customizable spinner component
+ */
+export function Spinner({ size = 'md', color = 'primary', className }: SpinnerProps) {
+  const sizeClasses = {
+    xs: 'w-3 h-3 border',
+    sm: 'w-4 h-4 border-2',
+    md: 'w-6 h-6 border-2',
+    lg: 'w-8 h-8 border-2',
+    xl: 'w-12 h-12 border-4'
+  };
+
+  const colorClasses = {
+    primary: 'border-brand-primary/30 border-t-brand-primary',
+    white: 'border-white/30 border-t-white',
+    gray: 'border-gray-500/30 border-t-gray-400'
+  };
+
+  return (
+    <div
+      className={cn(
+        'rounded-full animate-spin',
+        sizeClasses[size],
+        colorClasses[color],
+        className
+      )}
+      role="status"
+      aria-label="Loading"
+    >
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
+}
+
+interface LoadingOverlayProps {
+  isLoading: boolean;
+  message?: string;
+  blur?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}
+
+/**
+ * Loading overlay that covers content while loading
+ */
+export function LoadingOverlay({
+  isLoading,
+  message,
+  blur = true,
+  className,
+  children
+}: LoadingOverlayProps) {
+  return (
+    <div className={cn('relative', className)}>
+      {children}
+      {isLoading && (
+        <div className={cn(
+          'absolute inset-0 flex flex-col items-center justify-center bg-brand-dark/80 z-10',
+          blur && 'backdrop-blur-sm'
+        )}>
+          <Spinner size="lg" />
+          {message && (
+            <p className="mt-4 text-sm text-gray-400">{message}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ButtonLoaderProps {
+  isLoading: boolean;
+  children: React.ReactNode;
+  loadingText?: string;
+}
+
+/**
+ * Inline button loading state
+ */
+export function ButtonLoader({ isLoading, children, loadingText }: ButtonLoaderProps) {
+  if (!isLoading) return <>{children}</>;
+
+  return (
+    <span className="flex items-center gap-2">
+      <Spinner size="xs" color="white" />
+      <span>{loadingText || children}</span>
+    </span>
+  );
+}
+
+interface PulseLoaderProps {
+  className?: string;
+}
+
+/**
+ * Pulsing circular loader
+ */
+export function PulseLoader({ className }: PulseLoaderProps) {
+  return (
+    <div className={cn('flex items-center justify-center', className)} role="status">
+      <div className="relative">
+        <div className="w-12 h-12 rounded-full bg-brand-primary/20 animate-ping" />
+        <div className="absolute inset-0 w-12 h-12 rounded-full bg-brand-primary/40 animate-pulse" />
+        <div className="absolute inset-2 w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center">
+          <Spinner size="sm" color="white" />
+        </div>
+      </div>
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
+}
+
+interface ContentPlaceholderProps {
+  lines?: number;
+  className?: string;
+}
+
+/**
+ * Content placeholder with varying line widths
+ */
+export function ContentPlaceholder({ lines = 3, className }: ContentPlaceholderProps) {
+  const widths = ['w-full', 'w-5/6', 'w-4/6', 'w-3/4', 'w-2/3'];
+
+  return (
+    <div className={cn('space-y-3', className)} role="status" aria-busy="true">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={cn('h-4', widths[i % widths.length])}
+        />
+      ))}
+      <span className="sr-only">Loading content...</span>
+    </div>
+  );
+}
+
 export default {
   Skeleton,
   SkeletonShimmer,
@@ -898,4 +1225,12 @@ export default {
   InlineLoader,
   DashboardStatsSkeleton,
   DashboardSkeleton,
+  ProgressBar,
+  StepProgress,
+  LoadingDots,
+  Spinner,
+  LoadingOverlay,
+  ButtonLoader,
+  PulseLoader,
+  ContentPlaceholder,
 };

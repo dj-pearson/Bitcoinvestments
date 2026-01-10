@@ -3,8 +3,76 @@
 @tailwind utilities;
 
 @layer base {
+  /* Root typography variables */
+  :root {
+    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+
+    /* Semantic text colors */
+    --text-primary: rgb(255, 255, 255);
+    --text-secondary: rgb(156, 163, 175);
+    --text-tertiary: rgb(107, 114, 128);
+    --text-muted: rgb(75, 85, 99);
+
+    /* Improved color contrast for dark mode */
+    --text-success: rgb(74, 222, 128);
+    --text-warning: rgb(251, 191, 36);
+    --text-error: rgb(248, 113, 113);
+    --text-info: rgb(96, 165, 250);
+  }
+
+  html {
+    /* Better text rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Prevent layout shift from scrollbar */
+    scrollbar-gutter: stable;
+  }
+
   body {
-    @apply bg-brand-dark text-white font-sans antialiased;
+    @apply bg-brand-dark text-white font-sans;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    /* Better line height for readability */
+    line-height: 1.625;
+  }
+
+  /* Improved heading styles */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+    text-wrap: balance;
+  }
+
+  h1 {
+    @apply text-display-lg md:text-display-xl;
+  }
+
+  h2 {
+    @apply text-display-sm md:text-display-md;
+  }
+
+  h3 {
+    @apply text-xl md:text-2xl;
+  }
+
+  /* Improved paragraph spacing */
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Monospace font for code */
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+  }
+
+  /* Better focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-primary/50 ring-offset-2 ring-offset-brand-dark;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-brand-primary/30 text-white;
   }
 }
 
@@ -49,33 +117,126 @@
     animation: slide-in 0.3s ease-out forwards;
   }
 
-  /* Prose styles for article content */
+  /* Enhanced Prose styles for article content */
   .prose {
     @apply text-gray-300;
+    --prose-headings: rgb(255, 255, 255);
+    --prose-body: rgb(209, 213, 219);
+    --prose-links: rgb(249, 115, 22);
+    --prose-bold: rgb(255, 255, 255);
+    --prose-quotes: rgb(156, 163, 175);
+    --prose-code: rgb(251, 191, 36);
   }
+
+  .prose h1 {
+    @apply text-display-md md:text-display-lg font-bold text-white mt-0 mb-6;
+  }
+
   .prose h2 {
-    @apply text-2xl font-bold text-white mt-8 mb-4;
+    @apply text-2xl md:text-display-sm font-bold text-white mt-12 mb-4 first:mt-0;
+    scroll-margin-top: 6rem;
   }
+
   .prose h3 {
-    @apply text-xl font-semibold text-white mt-6 mb-3;
+    @apply text-xl md:text-2xl font-semibold text-white mt-8 mb-3;
   }
+
+  .prose h4 {
+    @apply text-lg font-semibold text-white mt-6 mb-2;
+  }
+
   .prose p {
-    @apply mb-4 leading-relaxed;
+    @apply mb-5 leading-relaxed text-body-md;
   }
+
+  .prose strong {
+    @apply font-semibold text-white;
+  }
+
   .prose a {
-    @apply text-orange-500 hover:text-orange-400;
+    @apply text-brand-secondary hover:text-orange-400 underline underline-offset-2 decoration-brand-secondary/30 hover:decoration-orange-400/50 transition-colors;
   }
+
   .prose ul, .prose ol {
-    @apply mb-4 pl-6;
+    @apply mb-5 pl-6 space-y-2;
   }
+
   .prose li {
-    @apply mb-2;
+    @apply leading-relaxed;
   }
+
+  .prose ul > li {
+    @apply relative pl-2;
+  }
+
+  .prose ul > li::marker {
+    @apply text-brand-primary;
+  }
+
+  .prose ol > li::marker {
+    @apply text-brand-primary font-semibold;
+  }
+
   .prose code {
-    @apply bg-gray-800 px-2 py-1 rounded text-sm;
+    @apply bg-white/10 px-1.5 py-0.5 rounded text-sm text-amber-300 font-mono;
   }
+
+  .prose pre {
+    @apply bg-brand-gray/80 rounded-xl p-4 my-6 overflow-x-auto border border-white/10;
+  }
+
+  .prose pre code {
+    @apply bg-transparent p-0 text-sm leading-relaxed;
+  }
+
   .prose blockquote {
-    @apply border-l-4 border-orange-500 pl-4 italic text-gray-400 my-4;
+    @apply border-l-4 border-brand-primary pl-5 py-1 my-6 text-gray-400 italic bg-white/5 rounded-r-lg;
+  }
+
+  .prose blockquote p {
+    @apply mb-0;
+  }
+
+  .prose hr {
+    @apply border-white/10 my-10;
+  }
+
+  .prose img {
+    @apply rounded-xl my-8;
+  }
+
+  .prose table {
+    @apply w-full my-6 text-sm;
+  }
+
+  .prose th {
+    @apply text-left font-semibold text-white border-b border-white/10 pb-3 pr-4;
+  }
+
+  .prose td {
+    @apply border-b border-white/5 py-3 pr-4;
+  }
+
+  /* Lead paragraph style */
+  .prose-lead {
+    @apply text-body-lg text-gray-300 leading-relaxed;
+  }
+
+  /* Smaller prose variant */
+  .prose-sm {
+    @apply text-body-sm;
+  }
+
+  .prose-sm h2 {
+    @apply text-xl mt-8 mb-3;
+  }
+
+  .prose-sm h3 {
+    @apply text-lg mt-6 mb-2;
+  }
+
+  .prose-sm p {
+    @apply mb-4;
   }
 
   /* Mobile-friendly modal utilities */
@@ -155,5 +316,260 @@
   /* Show on mobile, hide on desktop */
   .mobile-only {
     @apply block md:hidden;
+  }
+
+  /* ============================================
+   * Dark Mode Utility Classes
+   * ============================================ */
+
+  /* Elevated surfaces with proper contrast */
+  .surface-elevated {
+    @apply bg-white/5 border border-white/10;
+  }
+
+  .surface-elevated-lg {
+    @apply bg-white/8 border border-white/12;
+  }
+
+  /* Interactive surface states */
+  .surface-interactive {
+    @apply bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/15 transition-colors;
+  }
+
+  .surface-interactive-active {
+    @apply bg-white/10 border-white/20;
+  }
+
+  /* Card variants with improved contrast */
+  .card-base {
+    @apply bg-brand-gray/50 backdrop-blur-md border border-white/5 rounded-xl;
+  }
+
+  .card-elevated {
+    @apply bg-brand-gray/60 backdrop-blur-md border border-white/8 rounded-xl shadow-xl;
+  }
+
+  .card-interactive {
+    @apply bg-brand-gray/50 backdrop-blur-md border border-white/5 rounded-xl;
+    @apply hover:bg-brand-gray/60 hover:border-white/10 transition-all duration-200;
+  }
+
+  /* Focus ring with better visibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-primary/50 focus:ring-offset-2 focus:ring-offset-brand-dark;
+  }
+
+  /* Text contrast utilities */
+  .text-contrast-high {
+    @apply text-white;
+  }
+
+  .text-contrast-medium {
+    @apply text-gray-200;
+  }
+
+  .text-contrast-low {
+    @apply text-gray-400;
+  }
+
+  .text-contrast-muted {
+    @apply text-gray-500;
+  }
+
+  /* Status colors with WCAG AA contrast on dark backgrounds */
+  .text-status-success {
+    @apply text-green-400;
+  }
+
+  .text-status-warning {
+    @apply text-amber-400;
+  }
+
+  .text-status-error {
+    @apply text-red-400;
+  }
+
+  .text-status-info {
+    @apply text-blue-400;
+  }
+
+  /* Background status colors */
+  .bg-status-success {
+    @apply bg-green-500/10 border-green-500/20;
+  }
+
+  .bg-status-warning {
+    @apply bg-amber-500/10 border-amber-500/20;
+  }
+
+  .bg-status-error {
+    @apply bg-red-500/10 border-red-500/20;
+  }
+
+  .bg-status-info {
+    @apply bg-blue-500/10 border-blue-500/20;
+  }
+
+  /* Divider with proper visibility */
+  .divider {
+    @apply border-white/10;
+  }
+
+  .divider-subtle {
+    @apply border-white/5;
+  }
+
+  .divider-prominent {
+    @apply border-white/20;
+  }
+
+  /* Input styling with dark mode focus */
+  .input-dark {
+    @apply bg-white/5 border border-white/10 text-white placeholder-gray-500;
+    @apply focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20;
+    @apply hover:border-white/20 transition-colors;
+  }
+
+  .input-dark-error {
+    @apply border-red-500/50 focus:border-red-500 focus:ring-red-500/20;
+  }
+
+  .input-dark-success {
+    @apply border-green-500/50 focus:border-green-500 focus:ring-green-500/20;
+  }
+
+  /* Button variants with proper contrast */
+  .btn-primary {
+    @apply bg-brand-primary hover:bg-brand-primary/90 text-white font-medium;
+    @apply transition-all duration-200 shadow-glow-sm hover:shadow-glow-md;
+  }
+
+  .btn-secondary {
+    @apply bg-white/5 hover:bg-white/10 text-white border border-white/10;
+    @apply transition-colors duration-200;
+  }
+
+  .btn-ghost {
+    @apply text-gray-400 hover:text-white hover:bg-white/5;
+    @apply transition-colors duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20;
+    @apply transition-colors duration-200;
+  }
+
+  .btn-success {
+    @apply bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20;
+    @apply transition-colors duration-200;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-brand-primary/20 text-brand-primary;
+  }
+
+  .badge-secondary {
+    @apply bg-white/10 text-gray-300;
+  }
+
+  .badge-success {
+    @apply bg-green-500/20 text-green-400;
+  }
+
+  .badge-warning {
+    @apply bg-amber-500/20 text-amber-400;
+  }
+
+  .badge-error {
+    @apply bg-red-500/20 text-red-400;
+  }
+
+  .badge-info {
+    @apply bg-blue-500/20 text-blue-400;
+  }
+
+  /* Tooltip styling */
+  .tooltip {
+    @apply bg-gray-900 text-white text-sm px-3 py-1.5 rounded-lg shadow-lg;
+    @apply border border-white/10;
+  }
+
+  /* Scrollbar styling for dark mode */
+  .scrollbar-dark {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Overlay styles */
+  .overlay-dark {
+    @apply bg-brand-dark/80 backdrop-blur-sm;
+  }
+
+  .overlay-darker {
+    @apply bg-brand-dark/90 backdrop-blur-md;
+  }
+
+  /* Link styles with better visibility */
+  .link-primary {
+    @apply text-brand-primary hover:text-brand-primary/80 underline-offset-2;
+    @apply decoration-brand-primary/30 hover:decoration-brand-primary/50;
+    @apply transition-colors;
+  }
+
+  .link-secondary {
+    @apply text-brand-secondary hover:text-orange-400 underline-offset-2;
+    @apply decoration-brand-secondary/30 hover:decoration-orange-400/50;
+    @apply transition-colors;
+  }
+
+  /* Table row hover state */
+  .table-row-hover {
+    @apply hover:bg-white/5 transition-colors;
+  }
+
+  /* Dropdown/menu styling */
+  .dropdown-menu {
+    @apply bg-brand-gray/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl;
+  }
+
+  .dropdown-item {
+    @apply px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5;
+    @apply transition-colors cursor-pointer;
+  }
+
+  .dropdown-item-active {
+    @apply bg-white/10 text-white;
+  }
+
+  /* Subtle animations for dark mode */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-0.5;
+  }
+
+  .hover-glow {
+    @apply transition-shadow duration-200 hover:shadow-glow-sm;
   }
 }

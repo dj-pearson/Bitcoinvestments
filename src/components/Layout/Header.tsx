@@ -200,16 +200,16 @@ export function Header() {
     }, []);
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300" role="banner">
             <div className="glass border-b border-white/5">
                 <div className="container mx-auto px-4 h-20 flex items-center justify-between">
                     {/* Logo */}
-                    <Link to="/">
+                    <Link to="/" aria-label="Bitcoinvestments - Home">
                         <Logo />
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <nav className="hidden lg:flex items-center gap-1" ref={dropdownRef}>
+                    <nav id="navigation" className="hidden lg:flex items-center gap-1" ref={dropdownRef} aria-label="Main navigation">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             return (

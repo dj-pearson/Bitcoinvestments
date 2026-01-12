@@ -46,9 +46,10 @@ export function SessionExpiredModal() {
       <div className="relative bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-2xl border border-slate-700">
         <button
           onClick={handleDismiss}
+          aria-label="Close dialog"
           className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
         >
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5" aria-hidden="true" />
         </button>
 
         <div className="text-center">

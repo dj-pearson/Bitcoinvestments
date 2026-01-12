@@ -220,9 +220,10 @@ export function GlobalSearch({
             <button
               type="button"
               onClick={handleClear}
+              aria-label="Clear search"
               className="absolute right-2 p-2 rounded hover:bg-white/10 transition-colors touch-target-sm"
             >
-              <X className="w-4 h-4 text-gray-400" />
+              <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
             </button>
           )}
           {isLoading && (

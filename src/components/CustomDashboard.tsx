@@ -258,9 +258,9 @@ export function CustomDashboard({ userId }: CustomDashboardProps) {
               <button
                 onClick={handleReset}
                 className="p-2 text-slate-400 hover:text-white transition-colors"
-                title="Reset to default"
+                aria-label="Reset dashboard to default layout"
               >
-                <RotateCcw className="h-5 w-5" />
+                <RotateCcw className="h-5 w-5" aria-hidden="true" />
               </button>
             </>
           )}

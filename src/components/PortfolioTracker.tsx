@@ -252,16 +252,16 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
           <button
             onClick={handleExport}
             className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            title="Export CSV"
+            aria-label="Export portfolio as CSV"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" aria-hidden="true" />
           </button>
           <button
             onClick={handleDelete}
             className="p-2 text-gray-400 hover:text-red-400 hover:bg-white/10 rounded-lg transition-colors"
-            title="Delete Portfolio"
+            aria-label="Delete portfolio"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       </div>

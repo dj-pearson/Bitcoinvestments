@@ -244,9 +244,9 @@ export function CookieConsent() {
                 <button
                   onClick={handleAcceptNecessary}
                   className="flex-shrink-0 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                  title="Close and accept necessary cookies only"
+                  aria-label="Close and accept necessary cookies only"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5" aria-hidden="true" />
                 </button>
               )}
             </div>

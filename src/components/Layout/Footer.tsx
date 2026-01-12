@@ -5,7 +5,7 @@ import { Logo } from '../Logo';
 
 export function Footer() {
     return (
-        <footer className="bg-brand-dark border-t border-white/5 pt-16 pb-8">
+        <footer id="footer" className="bg-brand-dark border-t border-white/5 pt-16 pb-8" role="contentinfo" tabIndex={-1}>
             <div className="container mx-auto px-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
                     {/* Brand & Newsletter */}
@@ -99,8 +99,13 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
+                                <Link to="/accessibility" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
+                                    Accessibility
+                                </Link>
+                            </li>
+                            <li>
                                 <a href="mailto:support@bitcoinvestments.net" className="text-gray-400 hover:text-brand-primary text-sm transition-colors flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
+                                    <Mail className="w-3 h-3" aria-hidden="true" />
                                     Contact Us
                                 </a>
                             </li>

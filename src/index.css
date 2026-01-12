@@ -2,7 +2,191 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+ * Accessibility Utilities
+ * WCAG 2.1 Compliance Styles
+ * ============================================ */
+
 @layer base {
+  /* Screen reader only - visually hidden but accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Screen reader only but visible when focused (for skip links) */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only-focusable:focus,
+  .sr-only-focusable:focus-within {
+    position: fixed;
+    width: auto;
+    height: auto;
+    padding: 1rem 1.5rem;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    z-index: 9999;
+    top: 1rem;
+    left: 1rem;
+    background: rgb(var(--color-brand-primary));
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+  }
+
+  /* Skip links container */
+  .skip-links-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+  }
+
+  .skip-links-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 1rem;
+    padding: 1rem 1.5rem;
+    background: rgb(var(--color-brand-primary));
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    z-index: 9999;
+    transition: top 0.2s ease-in-out;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+    outline: 3px solid white;
+    outline-offset: 2px;
+  }
+
+  /* High Contrast Mode */
+  .high-contrast {
+    --text-primary: rgb(255, 255, 255);
+    --text-secondary: rgb(230, 230, 230);
+    --text-tertiary: rgb(200, 200, 200);
+  }
+
+  .high-contrast * {
+    border-color: rgba(255, 255, 255, 0.5) !important;
+  }
+
+  .high-contrast button,
+  .high-contrast a,
+  .high-contrast [role="button"] {
+    outline: 2px solid transparent;
+  }
+
+  .high-contrast button:focus,
+  .high-contrast a:focus,
+  .high-contrast [role="button"]:focus {
+    outline: 3px solid white !important;
+    outline-offset: 2px;
+  }
+
+  .high-contrast .text-gray-400,
+  .high-contrast .text-gray-500 {
+    color: rgb(200, 200, 200) !important;
+  }
+
+  .high-contrast .bg-white\/5,
+  .high-contrast .bg-white\/10 {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  /* Reduced Motion */
+  .reduce-motion *,
+  .reduce-motion *::before,
+  .reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Respect system preference for reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Font Size Adjustments */
+  .font-size-normal {
+    font-size: 100%;
+  }
+
+  .font-size-large {
+    font-size: 112.5%; /* 18px base */
+  }
+
+  .font-size-larger {
+    font-size: 125%; /* 20px base */
+  }
+
+  /* Enhanced Focus Indicators */
+  .enhanced-focus *:focus {
+    outline: 3px solid rgb(var(--color-brand-primary)) !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 6px rgba(var(--color-brand-primary), 0.3) !important;
+  }
+
+  .enhanced-focus button:focus,
+  .enhanced-focus a:focus,
+  .enhanced-focus input:focus,
+  .enhanced-focus select:focus,
+  .enhanced-focus textarea:focus {
+    outline: 3px solid white !important;
+    outline-offset: 3px !important;
+  }
+
+  /* Ensure minimum touch target size (WCAG 2.5.5) */
+  @media (pointer: coarse) {
+    button,
+    a,
+    [role="button"],
+    input[type="checkbox"],
+    input[type="radio"],
+    select {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
   /* Root typography variables */
   :root {
     --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

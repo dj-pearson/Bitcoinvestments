@@ -13,6 +13,7 @@ import { AppErrorBoundary } from './components/ErrorBoundary';
 import { PageLoader } from './components/LoadingSkeletons';
 import { WebVitalsTracker } from './components/WebVitalsTracker';
 import { Web3Route } from './components/Web3Route';
+import { AccessibilityProvider } from './components/accessibility/AccessibilityContext';
 
 // Eagerly loaded pages (critical path - only Home and Auth pages)
 import { Home } from './pages/Home';
@@ -70,6 +71,8 @@ const WhaleTrackingPage = lazy(() => import('./pages/WhaleTracking'));
 const RebalancingAlertsPage = lazy(() => import('./pages/RebalancingAlerts'));
 const DCAAutomationPage = lazy(() => import('./pages/DCAAutomation'));
 const SmartAlertBundlesPage = lazy(() => import('./pages/SmartAlertBundles'));
+const Accessibility = lazy(() => import('./pages/Accessibility').then(m => ({ default: m.Accessibility })));
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 // Admin Layout and Pages (lazy loaded)
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
@@ -98,6 +101,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppErrorBoundary>
+        <AccessibilityProvider>
         <AnalyticsProvider domain="bitcoinvestments.net">
           <PageTracker />
           <WebVitalsTracker />
@@ -186,15 +190,18 @@ function App() {
                   <Route path="dca-automation" element={<DCAAutomationPage />} />
                   <Route path="alert-bundles" element={<SmartAlertBundlesPage />} />
 
+                  <Route path="accessibility" element={<Accessibility />} />
                   <Route path="start" element={<Learn />} />
                   <Route path="prices" element={<Dashboard />} />
-                  <Route path="*" element={<Home />} />
+                  <Route path="404" element={<NotFound />} />
+                  <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>
             </Suspense>
           </AuthProvider>
           </ToastProvider>
         </AnalyticsProvider>
+        </AccessibilityProvider>
         </AppErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>

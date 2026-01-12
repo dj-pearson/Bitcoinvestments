@@ -71,6 +71,10 @@
     <meta name="theme-color" content="#F7931A" />
     <meta name="msapplication-TileColor" content="#F7931A" />
 
+    <!-- Accessibility -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="color-scheme" content="dark" />
+
     <!-- JSON-LD Organization Schema -->
     <script type="application/ld+json">
     {
@@ -279,6 +283,19 @@
     </script>
   </head>
   <body>
+    <!-- Accessible noscript fallback -->
+    <noscript>
+      <div style="padding: 2rem; text-align: center; background: #1a1a2e; color: #fff; min-height: 100vh;">
+        <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">JavaScript Required</h1>
+        <p style="color: #9ca3af; max-width: 400px; margin: 0 auto;">
+          Bitcoinvestments requires JavaScript to function. Please enable JavaScript in your browser settings to use this application.
+        </p>
+        <p style="color: #6b7280; margin-top: 1rem; font-size: 0.875rem;">
+          If you need assistance, contact us at
+          <a href="mailto:support@bitcoinvestments.net" style="color: #8b5cf6;">support@bitcoinvestments.net</a>
+        </p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>

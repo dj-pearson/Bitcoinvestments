@@ -196,9 +196,10 @@ export function PortfolioShareModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close share dialog"
             className="p-2 text-slate-400 hover:text-white transition-colors touch-target-sm"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 

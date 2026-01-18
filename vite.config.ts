@@ -13,6 +13,19 @@ export default defineConfig({
         global: true,
         process: true,
       },
+      // Include specific module polyfills
+      include: [
+        'buffer',
+        'process',
+        'util',
+        'stream',
+        'events',
+        'querystring',
+        'url',
+        'crypto',
+      ],
+      // Don't polyfill these (causes conflicts)
+      protocolImports: true,
     }),
   ],
   optimizeDeps: {
@@ -32,7 +45,15 @@ export default defineConfig({
       'react-chartjs-2',
       'three',
       '@react-three/fiber',
+      'buffer',
+      'process/browser',
     ],
+    esbuildOptions: {
+      // Node.js global to browser globalThis
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   resolve: {
     // Add fallbacks for Node.js modules used by Web3 libraries
@@ -40,7 +61,15 @@ export default defineConfig({
       process: 'process/browser',
       stream: 'stream-browserify',
       util: 'util',
+      buffer: 'buffer',
+      events: 'events',
+      crypto: 'crypto-browserify',
     },
+  },
+  define: {
+    // Define global for Web3 libraries
+    global: 'globalThis',
+    'process.env': {},
   },
   build: {
     // Increase chunk size warning limit for Web3 libraries

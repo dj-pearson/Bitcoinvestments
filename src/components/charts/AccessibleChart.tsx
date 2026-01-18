@@ -174,7 +174,7 @@ export function AccessibleChart({
                         ))}
                         {dataPoints.length > 10 && (
                             <div role="row">
-                                <span role="cell" colSpan={2}>
+                                <span role="cell">
                                     ...and {dataPoints.length - 10} more data points
                                 </span>
                             </div>

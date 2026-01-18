@@ -361,9 +361,17 @@ export function removeAccessibilityHighlights(): void {
     });
 }
 
+// Extend Window interface for accessibility debugging
+declare global {
+    interface Window {
+        a11yAudit: typeof logAuditResults;
+        a11yHighlight: typeof highlightAccessibilityIssues;
+        a11yClearHighlights: typeof removeAccessibilityHighlights;
+    }
+}
+
 // Export a global debug function for console use
 if (typeof window !== 'undefined') {
-    (window as typeof window & { a11yAudit: typeof logAuditResults; a11yHighlight: typeof highlightAccessibilityIssues; a11yClearHighlights: typeof removeAccessibilityHighlights }) = window as typeof window & { a11yAudit: typeof logAuditResults; a11yHighlight: typeof highlightAccessibilityIssues; a11yClearHighlights: typeof removeAccessibilityHighlights };
     window.a11yAudit = logAuditResults;
     window.a11yHighlight = highlightAccessibilityIssues;
     window.a11yClearHighlights = removeAccessibilityHighlights;

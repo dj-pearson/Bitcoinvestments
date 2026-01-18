@@ -5,7 +5,6 @@ import {
     Menu,
     X,
     ChevronDown,
-    ChevronRight,
     User,
     Shield,
     LayoutDashboard,

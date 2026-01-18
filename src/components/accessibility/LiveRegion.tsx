@@ -39,13 +39,13 @@ export function LiveRegion({
     clearAfter = 0,
 }: LiveRegionProps) {
     const [content, setContent] = useState<ReactNode>(children);
-    const clearTimeoutRef = useRef<number>();
+    const clearTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     useEffect(() => {
         setContent(children);
 
         if (clearAfter > 0 && children) {
-            clearTimeoutRef.current = window.setTimeout(() => {
+            clearTimeoutRef.current = setTimeout(() => {
                 setContent(null);
             }, clearAfter);
         }
@@ -78,7 +78,7 @@ export function LiveRegion({
 export function useAnnounce() {
     const [announcement, setAnnouncement] = useState<string>('');
     const [priority, setPriority] = useState<'polite' | 'assertive'>('polite');
-    const timeoutRef = useRef<number>();
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const announce = (message: string, announcePriority: 'polite' | 'assertive' = 'polite') => {
         // Clear any pending timeout
@@ -97,7 +97,7 @@ export function useAnnounce() {
             setAnnouncement(message);
 
             // Clear after announcement is read
-            timeoutRef.current = window.setTimeout(() => {
+            timeoutRef.current = setTimeout(() => {
                 setAnnouncement('');
             }, 1000);
         });

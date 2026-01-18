@@ -69,10 +69,9 @@ export function AccessibleIcon({
     // Clone the icon element with accessibility attributes
     const iconElement = cloneElement(children as ReactElement, {
         'aria-hidden': isDecorative ? 'true' : undefined,
-        focusable: 'false', // Prevent SVG icons from being focusable in IE
         role: isDecorative ? 'presentation' : 'img',
         'aria-label': !isDecorative ? label : undefined,
-    });
+    } as any);
 
     if (isDecorative) {
         return iconElement;

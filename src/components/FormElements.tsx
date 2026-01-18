@@ -75,7 +75,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({
   const [inputState, setInputState] = useState<InputState>({ status: 'idle' });
   const [isFocused, setIsFocused] = useState(false);
   const [localValue, setLocalValue] = useState(value?.toString() || '');
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Sync external value
   useEffect(() => {
@@ -91,7 +91,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({
     } else if (inputState.status === 'invalid' && !error) {
       setInputState({ status: 'idle' });
     }
-  }, [error]);
+  }, [error, inputState.status]);
 
   const runValidation = async (val: string) => {
     if (!onValidate) return;

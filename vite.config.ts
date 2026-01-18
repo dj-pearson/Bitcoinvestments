@@ -78,6 +78,11 @@ export default defineConfig({
     sourcemap: false,
     // Minification settings
     minify: 'terser',
+    // Common.js options to handle problematic packages
+    commonjsOptions: {
+      transformMixedEsModules: true,
+      defaultIsModuleExports: 'auto',
+    },
     rollupOptions: {
       // Handle missing modules gracefully
       onwarn(warning, warn) {

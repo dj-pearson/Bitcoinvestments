@@ -40,12 +40,12 @@ export function ResetPassword() {
 
           if (accessToken && type === 'recovery') {
             // Set the session with the recovery token
-            const { error: setError } = await supabase.auth.setSession({
+            const { error: sessionSetError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: hashParams.get('refresh_token') || '',
             });
 
-            if (setError) {
+            if (sessionSetError) {
               setError('Invalid or expired reset link. Please request a new password reset.');
               setTokenValid(false);
             } else {

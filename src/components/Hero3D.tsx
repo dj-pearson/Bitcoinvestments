@@ -8,7 +8,18 @@ import * as THREE from 'three';
 function StarField(props: any) {
     const ref = useRef<any>(null);
     // Generate 5000 stars in a sphere
-    const sphere = useMemo(() => random.inSphere(new Float32Array(5000), { radius: 15 }), []);
+    // Note: We need to ensure the array is properly sized (3 components per point = 5000 * 3)
+    // and filter out any potential NaN values to prevent THREE.BufferGeometry.computeBoundingSphere errors
+    const sphere = useMemo(() => {
+        const positions = random.inSphere(new Float32Array(5000 * 3), { radius: 15 });
+        // Sanitize positions: replace any NaN/Infinity values with valid coordinates
+        for (let i = 0; i < positions.length; i++) {
+            if (!Number.isFinite(positions[i])) {
+                positions[i] = 0;
+            }
+        }
+        return positions;
+    }, []);
 
     useFrame((_state, delta) => {
         if (ref.current) {

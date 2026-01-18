@@ -205,12 +205,16 @@ export function PriceChart({
 
   if (loading) {
     return (
-      <div 
+      <div
         className="flex items-center justify-center bg-gray-900/50 rounded-xl border border-gray-800"
         style={{ height }}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        aria-label={`Loading ${cryptocurrencyName || cryptocurrencyId} price chart`}
       >
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-orange-500 animate-spin mx-auto mb-2" />
+          <Loader2 className="w-8 h-8 text-orange-500 animate-spin mx-auto mb-2" aria-hidden="true" />
           <p className="text-gray-400 text-sm">Loading chart...</p>
         </div>
       </div>
@@ -219,9 +223,11 @@ export function PriceChart({
 
   if (error) {
     return (
-      <div 
+      <div
         className="flex items-center justify-center bg-gray-900/50 rounded-xl border border-gray-800"
         style={{ height }}
+        role="alert"
+        aria-live="assertive"
       >
         <div className="text-center text-red-400">
           <p className="font-medium mb-1">Failed to load chart</p>
@@ -231,8 +237,19 @@ export function PriceChart({
     );
   }
 
+  const currentPrice = chartData.prices[chartData.prices.length - 1];
+  const periodLabel = selectedPeriod === 1 ? '24 hours' : selectedPeriod === 7 ? '7 days' : selectedPeriod === 14 ? '14 days' : selectedPeriod === 30 ? '1 month' : selectedPeriod === 90 ? '3 months' : selectedPeriod === 180 ? '6 months' : '1 year';
+  const chartDescription = `${cryptocurrencyName || cryptocurrencyId} price chart showing ${periodLabel} of history. Current price is $${currentPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Price has ${isPositive ? 'increased' : 'decreased'} by ${Math.abs(priceChange).toFixed(2)} percent during this period.`;
+
   return (
-    <div className="bg-gray-900/50 rounded-xl border border-gray-800 p-4">
+    <figure
+      className="bg-gray-900/50 rounded-xl border border-gray-800 p-4"
+      role="figure"
+      aria-label={`${cryptocurrencyName || cryptocurrencyId} price chart`}
+    >
+      {/* Screen reader description */}
+      <figcaption className="sr-only">{chartDescription}</figcaption>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div>
@@ -240,24 +257,34 @@ export function PriceChart({
             <h3 className="text-lg font-bold text-white mb-1">{cryptocurrencyName} Price</h3>
           )}
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-white">
-              ${chartData.prices[chartData.prices.length - 1]?.toLocaleString(undefined, {
+            <span className="text-2xl font-bold text-white" aria-label={`Current price: $${currentPrice?.toLocaleString()}`}>
+              ${currentPrice?.toLocaleString(undefined, {
                 minimumFractionDigits: 2,
-                maximumFractionDigits: chartData.prices[chartData.prices.length - 1] < 1 ? 6 : 2,
+                maximumFractionDigits: currentPrice < 1 ? 6 : 2,
               })}
             </span>
-            <span className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+            <span
+              className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}
+              aria-label={`Price change: ${isPositive ? 'up' : 'down'} ${Math.abs(priceChange).toFixed(2)} percent`}
+            >
               {isPositive ? '+' : ''}{priceChange.toFixed(2)}%
             </span>
           </div>
         </div>
 
         {/* Period Selector */}
-        <div className="flex gap-1 bg-gray-800/50 rounded-lg p-1">
+        <div
+          className="flex gap-1 bg-gray-800/50 rounded-lg p-1"
+          role="tablist"
+          aria-label="Select time period"
+        >
           {periods.map((period) => (
             <button
               key={period.value}
               onClick={() => setSelectedPeriod(period.value)}
+              role="tab"
+              aria-selected={selectedPeriod === period.value}
+              aria-label={`Show ${period.label === '24H' ? '24 hour' : period.label === '7D' ? '7 day' : period.label === '14D' ? '14 day' : period.label === '1M' ? '1 month' : period.label === '3M' ? '3 month' : period.label === '6M' ? '6 month' : '1 year'} price history`}
               className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                 selectedPeriod === period.value
                   ? 'bg-orange-500 text-white'
@@ -271,15 +298,38 @@ export function PriceChart({
       </div>
 
       {/* Chart */}
-      <div style={{ height }}>
+      <div style={{ height }} role="img" aria-label={chartDescription}>
         <Line ref={chartRef} data={data} options={options} />
+      </div>
+
+      {/* Accessible data summary for screen readers */}
+      <div className="sr-only" role="table" aria-label="Price data summary">
+        <div role="rowgroup">
+          <div role="row">
+            <span role="columnheader">Time</span>
+            <span role="columnheader">Price</span>
+          </div>
+        </div>
+        <div role="rowgroup">
+          {chartData.labels.slice(0, 5).map((label, index) => (
+            <div key={index} role="row">
+              <span role="cell">{label}</span>
+              <span role="cell">${chartData.prices[index]?.toLocaleString()}</span>
+            </div>
+          ))}
+          {chartData.labels.length > 5 && (
+            <div role="row">
+              <span role="cell">...and {chartData.labels.length - 5} more data points</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Volume Chart (Optional) */}
       {showVolume && chartData.volumes.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-800">
+        <div className="mt-4 pt-4 border-t border-gray-800" role="img" aria-label="Trading volume visualization">
           <p className="text-xs text-gray-400 mb-2">24h Volume</p>
-          <div className="flex gap-1 h-12">
+          <div className="flex gap-1 h-12" aria-hidden="true">
             {chartData.volumes.slice(-50).map((volume, index) => {
               const maxVolume = Math.max(...chartData.volumes);
               const heightPercent = (volume / maxVolume) * 100;
@@ -298,7 +348,7 @@ export function PriceChart({
           </div>
         </div>
       )}
-    </div>
+    </figure>
   );
 }
 

@@ -75,6 +75,7 @@
     "globals": "^16.5.0",
     "playwright": "^1.57.0",
     "process": "^0.11.10",
+    "rollup-plugin-polyfill-node": "^0.13.0",
     "stream-browserify": "^3.0.0",
     "terser": "^5.44.1",
     "ts-node": "^10.9.2",

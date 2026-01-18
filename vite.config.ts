@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import rollupNodePolyFill from 'rollup-plugin-polyfill-node'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -67,9 +68,8 @@ export default defineConfig({
     },
   },
   define: {
-    // Define global for Web3 libraries
+    // Define global for Web3 libraries - critical for SIWE
     global: 'globalThis',
-    'process.env': {},
   },
   build: {
     // Increase chunk size warning limit for Web3 libraries
@@ -81,9 +81,13 @@ export default defineConfig({
     // Common.js options to handle problematic packages
     commonjsOptions: {
       transformMixedEsModules: true,
-      defaultIsModuleExports: 'auto',
+      requireReturnsDefault: 'auto', // This is critical for SIWE/Web3 CommonJS modules
+      include: [/node_modules/], // Ensure all CJS in node_modules are handled
     },
     rollupOptions: {
+      plugins: [
+        rollupNodePolyFill(), // Add rollup polyfill plugin for better Node.js compatibility
+      ],
       // Handle missing modules gracefully
       onwarn(warning, warn) {
         // Suppress warnings about missing modules in Web3 packages

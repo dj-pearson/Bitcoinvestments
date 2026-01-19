@@ -70,7 +70,7 @@ export function SupportTicketForm({ onSuccess, onCancel }: SupportTicketFormProp
 
     const result = await createSupportTicket({
       userId: user.id,
-      userEmail: user.email,
+      userEmail: user.email || user.wallet_address || 'anonymous@wallet.user',
       userName: (user as { name?: string }).name ?? 'User',
       isPremium,
       subject: subject.trim(),

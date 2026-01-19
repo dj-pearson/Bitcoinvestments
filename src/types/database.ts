@@ -20,7 +20,8 @@ export type Database = {
       users: {
         Row: {
           id: string;
-          email: string;
+          email: string | null; // Made optional for wallet-only accounts
+          wallet_address: string | null; // Ethereum wallet address for wallet auth
           created_at: string;
           updated_at: string;
           subscription_status: 'free' | 'premium';
@@ -44,8 +45,10 @@ export type Database = {
           two_factor_enabled_at: string | null;
         };
         Insert: {
-          id: string;
-          email: string;
+          id?: string;
+          email?: string | null; // Made optional for wallet-only accounts
+          wallet_address?: string | null; // Ethereum wallet address
+          username?: string; // For wallet-only users
           created_at?: string;
           updated_at?: string;
           subscription_status?: 'free' | 'premium';
@@ -69,7 +72,8 @@ export type Database = {
         };
         Update: {
           id?: string;
-          email?: string;
+          email?: string | null;
+          wallet_address?: string | null; // Can update wallet address
           created_at?: string;
           updated_at?: string;
           subscription_status?: 'free' | 'premium';

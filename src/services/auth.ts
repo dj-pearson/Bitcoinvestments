@@ -5,7 +5,8 @@ import { verifyTOTP, useRecoveryCode as useRecoveryCodeService } from './twoFact
 
 export interface AuthUser {
   id: string;
-  email: string;
+  email: string | null; // Made optional for wallet-only accounts
+  wallet_address?: string | null; // Ethereum wallet address
   created_at: string;
   role: UserRole;
   is_suspended: boolean;

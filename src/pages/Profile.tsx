@@ -515,11 +515,19 @@ export function Profile() {
           </div>
 
           {/* Two-Factor Authentication */}
-          {user && (
+          {user && user.email && (
             <TwoFactorSetup
               userId={user.id}
               userEmail={user.email}
             />
+          )}
+          
+          {/* 2FA not available for wallet-only accounts */}
+          {user && !user.email && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-sm text-yellow-200">
+              <p className="font-semibold mb-2">⚠️ Two-Factor Authentication</p>
+              <p>Two-factor authentication is only available for email-based accounts. Please link an email address to your wallet to enable 2FA.</p>
+            </div>
           )}
 
           {/* Password Section */}

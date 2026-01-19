@@ -1,215 +1,342 @@
-# Web3/SIWE Bundling Fix - Production Deployment
-
-**Date**: January 18, 2026  
-**Issue**: Black screen in production with `Object.defineProperty called on non-object` error  
-**Status**: ✅ RESOLVED (Final Fix - Truly Dynamic Imports)
+# Web3/SIWE Bundle Fix - COMPLETE SOLUTION
 
 ## Problem Summary
 
-The site was experiencing a critical production error where Web3 features would cause a black screen due to SIWE (Sign-In with Ethereum) library bundling issues. The error manifested as:
+The production site was showing a black screen with the following error on initial page load:
 
 ```
-Uncaught TypeError: Object.defineProperty called on non-object
-  at lb (vendor-web3-core-*.js)
+vendor-web3-core-CAOS0oWN.js:2 Uncaught TypeError: Object.defineProperty called on non-object
+    at Object.defineProperty (<anonymous>)
+    at Hg (vendor-web3-core-CAOS0oWN.js:2:450830)
+    at Qc (vendor-web3-utils-DFGmwUm_.js:1:297524)
 ```
 
-This was a **module evaluation timing issue** - the SIWE CommonJS modules were being evaluated immediately when the bundle loaded, before polyfills could initialize and before React even mounted.
+This error occurred because **SIWE (Sign-In with Ethereum)** code was being loaded and executed **before React even mounted**, causing CommonJS modules to fail during browser initialization.
 
-## Root Cause
+## Root Cause Analysis
 
-The SIWE library (used by wagmi/RainbowKit for Web3 authentication) contains CommonJS modules that were being **evaluated at module load time** - i.e., when the JavaScript file was parsed, before any React code could run. This caused:
+After extensive investigation, we identified **4 separate issues** that all contributed to premature Web3 code loading:
 
-1. Missing Node.js polyfills at evaluation time (Buffer, process, crypto not yet initialized)
-2. `Object.defineProperty` being called on undefined objects during module initialization  
-3. The entire app crashing before React could even mount
+### 1. ❌ Static imports in `Web3ProviderWrapper.tsx`
+**Problem**: Even though `Web3ProviderWrapper` was lazy-loaded, it had static imports like:
+```typescript
+import { WagmiProvider } from 'wagmi';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+```
+These imports were evaluated as soon as the module was parsed, before React mounted.
 
-**Key Insight**: Even with proper polyfills and lazy loading via `React.lazy()`, the **static imports** at the top of `Web3ProviderWrapper.tsx` were still being evaluated when the lazy-loaded chunk was parsed, causing the error.
+### 2. ❌ Static imports of Web3 components on non-Web3 pages
+**Problem**: `WalletImport` and `TransactionImport` components (which contain `wagmi` imports) were statically imported in:
+- `src/components/PortfolioTracker.tsx`
+- `src/pages/TaxReports.tsx`
 
-## Failed Approaches
+This caused Web3 code to load on **every page**, not just Web3-specific routes.
 
-### ❌ Attempt 1: Comprehensive Polyfills
-Added `rollup-plugin-polyfill-node` and `vite-plugin-node-polyfills` but the error persisted because the issue was **timing**, not missing polyfills.
+### 3. ❌ Top-level config creation in `src/lib/wagmi.ts`
+**Problem**: The Wagmi config was created at the top level:
+```typescript
+export const wagmiConfig = getDefaultConfig({...});  // ❌ Runs immediately!
+```
+This `getDefaultConfig()` call loaded SIWE as soon as the module was imported.
 
-### ❌ Attempt 2: CommonJS Configuration  
-Added `requireReturnsDefault: 'auto'` and `transformMixedEsModules: true` but this didn't solve the module evaluation timing issue.
+### 4. ❌ **THE BIG ONE**: Vite's automatic `modulepreload` (THE ROOT CAUSE)
+**Problem**: Vite was automatically adding these lines to `dist/index.html`:
+```html
+<link rel="modulepreload" crossorigin href="/assets/js/vendor-web3-utils-DFGmwUm_.js">
+<link rel="modulepreload" crossorigin href="/assets/js/vendor-web3-wallets-DwiSNfV0.js">
+<link rel="modulepreload" crossorigin href="/assets/js/vendor-web3-core-CAOS0oWN.js">
+```
 
-### ❌ Attempt 3: Client-Side Only Rendering
-Added `isClient` check with `useEffect`, but static imports at the top of the file still executed immediately when the lazy-loaded chunk was parsed.
+**`modulepreload`** tells the browser to **immediately fetch and PARSE** these modules, even though they're not needed yet. This caused the SIWE code to execute before React mounted, triggering the `Object.defineProperty` error.
 
-## The Solution: Truly Dynamic Imports ✅
+## Complete Solution (4-Layer Fix)
 
-The fix required moving **ALL** Web3 imports inside `useEffect` with dynamic `import()` calls. This ensures SIWE code only executes AFTER React mounts in the browser.
+### Layer 1: Make Web3ProviderWrapper truly dynamic ✅
 
-### Updated `Web3ProviderWrapper.tsx`
+**File**: `src/components/Web3ProviderWrapper.tsx`
+
+Converted ALL static imports to dynamic imports inside a lazy-loaded component:
 
 ```typescript
-import { useState, useEffect, type ReactNode } from 'react';
-import { PageLoader } from './LoadingSkeletons';
+const Web3Content = lazy(async () => {
+  // Dynamic imports - ONLY load when this component is rendered
+  const [
+    { WagmiProvider },
+    { QueryClient, QueryClientProvider },
+    { RainbowKitProvider },
+    { wagmiConfig },
+  ] = await Promise.all([
+    import('wagmi'),
+    import('@tanstack/react-query'),
+    import('@rainbow-me/rainbowkit'),
+    import('../lib/wagmi'),
+    import('@rainbow-me/rainbowkit/styles.css'), // CSS also loaded dynamically
+  ]);
+
+  const web3QueryClient = new QueryClient({...});
+
+  const Provider = ({ children }: { children: ReactNode }) => (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={web3QueryClient}>
+        <RainbowKitProvider>{children}</RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+  
+  return { default: Provider };
+});
 
 export function Web3ProviderWrapper({ children }: Web3ProviderWrapperProps) {
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [Web3Content, setWeb3Content] = useState<React.ComponentType | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Dynamically import ALL Web3 dependencies AFTER React mounts
-    Promise.all([
-      import('wagmi'),
-      import('@tanstack/react-query'),
-      import('@rainbow-me/rainbowkit'),
-      import('@rainbow-me/rainbowkit/styles.css'),
-      import('../lib/wagmi'),
-    ])
-      .then(([
-        { WagmiProvider },
-        { QueryClient, QueryClientProvider },
-        { RainbowKitProvider },
-        _,
-        { wagmiConfig }
-      ]) => {
-        // Create QueryClient
-        const web3QueryClient = new QueryClient({
-          defaultOptions: {
-            queries: {
-              staleTime: 1000 * 60 * 5,
-              gcTime: 1000 * 60 * 30,
-              refetchOnWindowFocus: false,
-              retry: 1,
-            },
-          },
-        });
-
-        // Create provider component dynamically
-        const Provider: React.FC<{ children: ReactNode }> = ({ children }) => (
-          <WagmiProvider config={wagmiConfig}>
-            <QueryClientProvider client={web3QueryClient}>
-              <RainbowKitProvider>
-                {children}
-              </RainbowKitProvider>
-            </QueryClientProvider>
-          </WagmiProvider>
-        );
-
-        setWeb3Content(() => Provider);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Failed to load Web3 providers:', error);
-        setHasError(true);
-        setIsLoading(false);
-      });
+    if (typeof window !== 'undefined') {
+      setIsClient(true);
+    }
   }, []);
 
-  if (isLoading) return <PageLoader message="Loading Web3..." />;
-  if (hasError) return <ErrorFallbackUI />;
-  if (!Web3Content) return <>{children}</>;
-  
-  return <Web3Content>{children}</Web3Content>;
+  if (!isClient) {
+    return <>{children}</>;
+  }
+
+  if (hasError) {
+    return <ErrorFallbackUI />;
+  }
+
+  return (
+    <Suspense fallback={<PageLoader message="Loading Web3 providers..." />}>
+      <Web3Content>{children}</Web3Content>
+    </Suspense>
+  );
 }
 ```
 
-### Supporting Vite Configuration
+### Layer 2: Lazy-load Web3 components on non-Web3 pages ✅
 
-The polyfills are still helpful for browser compatibility:
+**File**: `src/components/PortfolioTracker.tsx`
+
+Made `WalletImportModal` lazy-loaded:
 
 ```typescript
-// vite.config.ts
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import rollupNodePolyFill from 'rollup-plugin-polyfill-node'
+import { lazy, Suspense } from 'react';
+import { PageLoader } from './LoadingSkeletons';
 
-export default defineConfig({
-  plugins: [
-    react(),
-    nodePolyfills({
-      globals: { Buffer: true, global: true, process: true },
-      include: ['buffer', 'process', 'util', 'stream', 'events', 'crypto'],
-      protocolImports: true,
-    }),
-  ],
-  
-  define: {
-    global: 'globalThis',
+// Lazy load WalletImport to avoid loading wagmi on every page
+const WalletImportModal = lazy(() =>
+  import('./WalletImport').then(m => ({ default: m.WalletImportModal }))
+);
+
+// In render:
+{showWalletImport && (
+  <Suspense fallback={<PageLoader message="Loading wallet import..." />}>
+    <WalletImportModal
+      open={showWalletImport}
+      onClose={() => setShowWalletImport(false)}
+      portfolio={portfolio!}
+      onUpdate={(p) => setPortfolio(p)}
+    />
+  </Suspense>
+)}
+```
+
+**File**: `src/pages/TaxReports.tsx`
+
+Made `TransactionImport` lazy-loaded:
+
+```typescript
+import { lazy, Suspense } from 'react';
+import { PageLoader } from '../components/LoadingSkeletons';
+
+// Lazy load TransactionImport to avoid loading wagmi on every page
+const TransactionImport = lazy(() =>
+  import('../components/TransactionImport').then(m => ({ default: m.TransactionImport }))
+);
+
+// In render:
+{showTransactionImportModal && (
+  <Suspense fallback={<PageLoader message="Loading transaction import..." />}>
+    <TransactionImport
+      isOpen={showTransactionImportModal}
+      onClose={() => setShowTransactionImportModal(false)}
+      onImport={handleImportTransactions}
+    />
+  </Suspense>
+)}
+```
+
+### Layer 3: Lazy-create Wagmi config with Proxy ✅
+
+**File**: `src/lib/wagmi.ts`
+
+Wrapped `wagmiConfig` in a Proxy that only creates the config when first accessed:
+
+```typescript
+import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { mainnet, polygon, arbitrum, optimism } from 'viem/chains';
+import { http } from 'wagmi';
+import type { Config } from 'wagmi';
+
+const alchemyApiKey = import.meta.env.VITE_ALCHEMY_API_KEY || '';
+const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
+
+const getTransports = () => ({
+  [mainnet.id]: http(alchemyApiKey ? `https://eth-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : 'https://eth.llamarpc.com'),
+  [polygon.id]: http(alchemyApiKey ? `https://polygon-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : 'https://polygon.llamarpc.com'),
+  [arbitrum.id]: http(alchemyApiKey ? `https://arb-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : 'https://arbitrum.llamarpc.com'),
+  [optimism.id]: http(alchemyApiKey ? `https://opt-mainnet.g.alchemy.com/v2/${alchemyApiKey}` : 'https://optimism.llamarpc.com'),
+});
+
+// Lazy-create wagmi config to avoid loading SIWE on page load
+let _wagmiConfig: Config | null = null;
+
+export const wagmiConfig: Config = new Proxy({} as Config, {
+  get(_target, prop) {
+    // Create config on first access
+    if (!_wagmiConfig) {
+      _wagmiConfig = getDefaultConfig({
+        appName: 'Bitcoin Investments',
+        projectId: walletConnectProjectId,
+        chains: [mainnet, polygon, arbitrum, optimism],
+        transports: getTransports(),
+        ssr: false,
+      });
+    }
+    return Reflect.get(_wagmiConfig, prop);
   },
-  
+});
+```
+
+### Layer 4: Disable modulepreload for Web3 chunks ✅ (THE FIX!)
+
+**File**: `vite.config.ts`
+
+Added `modulePreload.resolveDependencies` to filter out Web3 chunks from being preloaded:
+
+```typescript
+export default defineConfig({
+  // ... other config
   build: {
+    chunkSizeWarningLimit: 1000,
+    sourcemap: false,
+    minify: 'terser',
+    
+    // **CRITICAL**: Disable modulepreload for Web3 chunks to prevent early evaluation
+    modulePreload: {
+      polyfill: true,
+      resolveDependencies: (_filename, deps, _context) => {
+        // Filter out Web3 chunks from modulepreload to prevent SIWE loading on page load
+        return deps.filter(dep => {
+          const isWeb3Chunk = dep.includes('vendor-web3') || 
+                             dep.includes('WalletImport') || 
+                             dep.includes('TransactionImport') ||
+                             dep.includes('Web3Features') ||
+                             dep.includes('Web3ProviderWrapper');
+          return !isWeb3Chunk; // Only preload non-Web3 chunks
+        });
+      },
+    },
+    
     commonjsOptions: {
       transformMixedEsModules: true,
       requireReturnsDefault: 'auto',
       include: [/node_modules/],
     },
-    rollupOptions: {
-      plugins: [
-        rollupNodePolyFill(),
-      ],
-    },
+    // ... rest of build config
   },
-})
+});
 ```
 
-## Why This Works
+**Result**: The HTML no longer contains `<link rel="modulepreload">` tags for Web3 bundles!
 
-1. **No Static Imports**: All Web3 libraries are loaded via `import()` inside `useEffect`
-2. **React Mounts First**: The dynamic imports only execute AFTER React successfully mounts
-3. **Polyfills Have Time**: By the time the imports resolve, all polyfills are initialized
-4. **Truly Lazy**: Web3 bundles create separate chunks (`wagmi-*.js`) that only load when needed
-5. **Graceful Errors**: If imports fail, we show a user-friendly error instead of a black screen
-
-## Build Evidence
-
-Looking at the build output, we can confirm the fix works:
-
-```bash
-dist/assets/js/wagmi-WjOupnqi.js              1.35 kB │ gzip:   0.60 kB
-dist/assets/js/Web3ProviderWrapper-*.js       3.28 kB │ gzip:   1.32 kB
-dist/assets/js/vendor-web3-core-*.js       1,045.58 kB │ gzip: 297.10 kB
-dist/assets/js/vendor-web3-utils-*.js      1,554.45 kB │ gzip: 476.21 kB
-dist/assets/js/vendor-web3-wallets-*.js    2,675.88 kB │ gzip: 562.54 kB
+**Before (broken)**:
+```html
+<link rel="modulepreload" href="/assets/js/vendor-web3-utils-DFGmwUm_.js">    ❌
+<link rel="modulepreload" href="/assets/js/vendor-web3-wallets-DwiSNfV0.js">  ❌
+<link rel="modulepreload" href="/assets/js/vendor-web3-core-CAOS0oWN.js">     ❌
 ```
 
-The `wagmi-*.js` chunk is separate, proving it's dynamically loaded.
+**After (fixed)**:
+```html
+<!-- NO Web3 modulepreload links! -->  ✅
+<link rel="modulepreload" href="/assets/js/vendor-react-BAvX0ZXQ.js">
+<link rel="modulepreload" href="/assets/js/vendor-supabase-8RHVLiO9.js">
+```
 
-## Testing Results
+## Why This Fix Works
 
-✅ **Local Build**: Succeeded in 48s  
-✅ **Bundle Size**: Normal for Web3 apps  
-✅ **No TypeScript Errors**: Clean compilation  
-✅ **Dynamic Chunks**: Web3 code properly split  
-✅ **Runtime**: No module evaluation errors
+### Before the Fix
+1. Browser loads `index.html`
+2. Sees `<link rel="modulepreload" href="vendor-web3-core.js">`
+3. **IMMEDIATELY** fetches and parses `vendor-web3-core.js`
+4. SIWE code executes during parsing → `Object.defineProperty` error!
+5. React never mounts → black screen
 
-## References
+### After the Fix
+1. Browser loads `index.html`
+2. **NO modulepreload links for Web3 chunks**
+3. React app mounts successfully
+4. User navigates to `/web3` route
+5. **THEN** `Web3ProviderWrapper` lazy-loads
+6. **THEN** dynamic imports load Web3 chunks
+7. **THEN** Proxy creates wagmi config
+8. Web3 features work perfectly! ✅
 
-- [Vite Dynamic Imports](https://vitejs.dev/guide/features.html#dynamic-import)
-- [GitHub Issue: SIWE + Vite CommonJS](https://github.com/vitejs/vite/discussions/14490)
-- [rollup-plugin-polyfill-node](https://github.com/FredKSchott/rollup-plugin-polyfill-node)
-- [React.lazy() vs Dynamic Imports](https://react.dev/reference/react/lazy)
+## Testing Checklist
 
-## Deployment
+- ✅ **Home page** - Loads instantly, no Web3 errors
+- ✅ **Dashboard** - Loads instantly, no Web3 errors
+- ✅ **All non-Web3 pages** - No Web3 code loaded
+- ✅ **Navigate to `/web3`** - Web3 loads on demand
+- ✅ **Click "Import from Wallet"** - WalletImport loads on demand
+- ✅ **Connect wallet** - Wagmi config created on demand
+- ✅ **Sign message with wallet** - SIWE works correctly
+- ✅ **No console errors** on any page
 
-**Commit**: `166efca`  
-**Deployment**: Cloudflare Pages (automatic)  
-**Affected Features**: All Web3 wallet features now fully functional
+## Key Learnings
 
-## Files Changed
+1. **`modulepreload` is powerful but dangerous** - It's great for performance, but can cause modules to execute before they're ready.
 
-1. `vite.config.ts` - Added rollup polyfills and proper CommonJS handling  
-2. `src/components/Web3ProviderWrapper.tsx` - Changed to fully dynamic imports with Promise.all  
-3. `package.json` - Added `rollup-plugin-polyfill-node` dependency
+2. **Vite's automatic optimizations aren't always optimal** - Sometimes you need to manually configure chunk loading behavior.
 
-## Key Takeaway
+3. **CommonJS/ESM interop is tricky in browsers** - SIWE and other Node.js libraries need careful handling in browser environments.
 
-**The issue wasn't the bundling configuration or missing polyfills - it was the TIMING of when modules were evaluated.**
+4. **Multi-layer lazy loading is required** - For deeply problematic libraries, you need to lazy-load at EVERY level:
+   - Component level (React.lazy)
+   - Import level (dynamic import())
+   - Config level (Proxy)
+   - Build level (modulepreload filtering)
 
-Static imports (`import X from 'Y'`) at the top of files execute immediately when the chunk is parsed. Dynamic imports (`import('Y')`) inside `useEffect` only execute when React calls that effect, giving polyfills time to initialize.
+5. **Always check the built HTML** - The source code might look fine, but the built output might have unexpected preload/prefetch hints.
 
-This pattern should be used for ANY CommonJS dependency that has browser compatibility issues:
-- Move imports inside `useEffect`
-- Use `Promise.all()` to load multiple dependencies
-- Store the result in state
-- Render once loaded
+## Related Issues
+
+- Web3 authentication errors
+- SIWE sign-in failures
+- Wallet connection issues
+- Black screen on production
+- `Object.defineProperty` errors
+- CommonJS module errors in browser
+
+## Files Modified
+
+1. `src/components/Web3ProviderWrapper.tsx` - Dynamic imports
+2. `src/components/PortfolioTracker.tsx` - Lazy-load WalletImport
+3. `src/pages/TaxReports.tsx` - Lazy-load TransactionImport
+4. `src/lib/wagmi.ts` - Lazy Proxy config
+5. `vite.config.ts` - Disable modulepreload for Web3
+
+## Deployment Status
+
+- ✅ **Commit**: 7b3d98d
+- ✅ **Branch**: main
+- ✅ **Deployed**: Cloudflare Pages
+- ✅ **Status**: Production ready
 
 ---
 
-**Maintained by**: DJ Pearson  
-**Last Updated**: January 18, 2026
+**Last Updated**: January 19, 2026  
+**Status**: ✅ RESOLVED  
+**Severity**: Critical (Black screen on production)  
+**Time to Resolution**: Multiple attempts over several deployments
+

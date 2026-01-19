@@ -1,21 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { WagmiProvider } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
-import '@rainbow-me/rainbowkit/styles.css';
-import { wagmiConfig } from '../lib/wagmi';
-
-// Create a separate QueryClient for Web3 to avoid conflicts
-const web3QueryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 30,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+import { PageLoader } from './LoadingSkeletons';
 
 interface Web3ProviderWrapperProps {
   children: ReactNode;
@@ -23,23 +7,66 @@ interface Web3ProviderWrapperProps {
 
 /**
  * Web3Provider with proper error handling for SIWE/Wagmi bundling
- * This wrapper ensures Web3 libraries only load in the browser environment
+ * This wrapper dynamically imports Web3 libraries to avoid module evaluation errors
  */
 export function Web3ProviderWrapper({ children }: Web3ProviderWrapperProps) {
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [Web3Content, setWeb3Content] = useState<React.ComponentType<{ children: ReactNode }> | null>(null);
 
   useEffect(() => {
-    // Ensure we're in a browser environment
-    if (typeof window !== 'undefined') {
-      setIsClient(true);
+    // Dynamically import Web3 providers only in the browser
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
     }
+
+    // Import Web3 dependencies dynamically to avoid SIWE bundling issues
+    Promise.all([
+      import('wagmi'),
+      import('@tanstack/react-query'),
+      import('@rainbow-me/rainbowkit'),
+      import('@rainbow-me/rainbowkit/styles.css'),
+      import('../lib/wagmi'),
+    ])
+      .then(([{ WagmiProvider }, { QueryClient, QueryClientProvider }, { RainbowKitProvider }, _, { wagmiConfig }]) => {
+        // Create QueryClient
+        const web3QueryClient = new QueryClient({
+          defaultOptions: {
+            queries: {
+              staleTime: 1000 * 60 * 5,
+              gcTime: 1000 * 60 * 30,
+              refetchOnWindowFocus: false,
+              retry: 1,
+            },
+          },
+        });
+
+        // Create the Web3 provider component
+        const Provider: React.FC<{ children: ReactNode }> = ({ children }) => (
+          <WagmiProvider config={wagmiConfig}>
+            <QueryClientProvider client={web3QueryClient}>
+              <RainbowKitProvider>
+                {children}
+              </RainbowKitProvider>
+            </QueryClientProvider>
+          </WagmiProvider>
+        );
+
+        setWeb3Content(() => Provider);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Failed to load Web3 providers:', error);
+        setHasError(true);
+        setErrorMessage(error instanceof Error ? error.message : 'Unknown error');
+        setIsLoading(false);
+      });
   }, []);
 
-  // Don't render Web3 providers during SSR or initial hydration
-  if (!isClient) {
-    return <>{children}</>;
+  if (isLoading) {
+    return <PageLoader message="Loading Web3..." />;
   }
 
   if (hasError) {
@@ -72,22 +99,11 @@ export function Web3ProviderWrapper({ children }: Web3ProviderWrapperProps) {
     );
   }
 
-  try {
-    return (
-      <WagmiProvider config={wagmiConfig}>
-        <QueryClientProvider client={web3QueryClient}>
-          <RainbowKitProvider>
-            {children}
-          </RainbowKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    );
-  } catch (error) {
-    console.error('Web3Provider Error:', error);
-    setHasError(true);
-    setErrorMessage(error instanceof Error ? error.message : 'Unknown error');
-    return null;
+  if (!Web3Content) {
+    return <>{children}</>;
   }
+
+  return <Web3Content>{children}</Web3Content>;
 }
 
 export default Web3ProviderWrapper;

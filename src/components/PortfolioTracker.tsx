@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Wallet,
   Plus,
@@ -22,8 +22,13 @@ import {
   getPortfolioAllocation,
 } from '../services/portfolio';
 import { PortfolioChart } from './charts';
-import { WalletImportModal } from './WalletImport';
+import { PageLoader } from './LoadingSkeletons';
 import type { Portfolio } from '../types';
+
+// Lazy load WalletImport to avoid loading wagmi on every page
+const WalletImportModal = lazy(() => 
+  import('./WalletImport').then(m => ({ default: m.WalletImportModal }))
+);
 
 interface PortfolioTrackerProps {
   variant?: 'full' | 'compact';
@@ -140,12 +145,16 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
           </div>
         </div>
         
-        <WalletImportModal
-          open={showWalletImport}
-          onClose={() => setShowWalletImport(false)}
-          portfolio={portfolio!}
-          onUpdate={(p) => setPortfolio(p)}
-        />
+        {showWalletImport && (
+          <Suspense fallback={<PageLoader message="Loading wallet import..." />}>
+            <WalletImportModal
+              open={showWalletImport}
+              onClose={() => setShowWalletImport(false)}
+              portfolio={portfolio!}
+              onUpdate={(p) => setPortfolio(p)}
+            />
+          </Suspense>
+        )}
       </div>
     );
   }
@@ -393,12 +402,16 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
         onUpdate={(p) => setPortfolio(p)}
       />
       
-      <WalletImportModal
-        open={showWalletImport}
-        onClose={() => setShowWalletImport(false)}
-        portfolio={portfolio}
-        onUpdate={(p) => setPortfolio(p)}
-      />
+      {showWalletImport && (
+        <Suspense fallback={<PageLoader message="Loading wallet import..." />}>
+          <WalletImportModal
+            open={showWalletImport}
+            onClose={() => setShowWalletImport(false)}
+            portfolio={portfolio}
+            onUpdate={(p) => setPortfolio(p)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

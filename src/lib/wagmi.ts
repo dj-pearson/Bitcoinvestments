@@ -1,13 +1,14 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { mainnet, polygon, arbitrum, optimism } from 'viem/chains';
 import { http } from 'wagmi';
+import type { Config } from 'wagmi';
 
 // Get API keys from environment variables
 const alchemyApiKey = import.meta.env.VITE_ALCHEMY_API_KEY || '';
 const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
 
 // Configure transports with fallbacks
-const transports = {
+const getTransports = () => ({
   [mainnet.id]: http(
     alchemyApiKey 
       ? `https://eth-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
@@ -28,14 +29,25 @@ const transports = {
       ? `https://opt-mainnet.g.alchemy.com/v2/${alchemyApiKey}`
       : 'https://optimism.llamarpc.com' // Public fallback
   ),
-};
+});
 
-export const wagmiConfig = getDefaultConfig({
-  appName: 'Bitcoin Investments',
-  projectId: walletConnectProjectId,
-  chains: [mainnet, polygon, arbitrum, optimism],
-  transports,
-  ssr: false, // If using SSR, set to true
+// Lazy-create wagmi config to avoid loading SIWE on page load
+let _wagmiConfig: Config | null = null;
+
+export const wagmiConfig: Config = new Proxy({} as Config, {
+  get(_target, prop) {
+    // Create config on first access
+    if (!_wagmiConfig) {
+      _wagmiConfig = getDefaultConfig({
+        appName: 'Bitcoin Investments',
+        projectId: walletConnectProjectId,
+        chains: [mainnet, polygon, arbitrum, optimism],
+        transports: getTransports(),
+        ssr: false,
+      });
+    }
+    return Reflect.get(_wagmiConfig, prop);
+  },
 });
 
 // Chain configuration for Alchemy

@@ -78,6 +78,21 @@ export default defineConfig({
     sourcemap: false,
     // Minification settings
     minify: 'terser',
+    // **CRITICAL**: Disable modulepreload for Web3 chunks to prevent early evaluation
+    modulePreload: {
+      polyfill: true,
+      resolveDependencies: (_filename, deps, _context) => {
+        // Filter out Web3 chunks from modulepreload to prevent SIWE loading on page load
+        return deps.filter(dep => {
+          const isWeb3Chunk = dep.includes('vendor-web3') || 
+                             dep.includes('WalletImport') || 
+                             dep.includes('TransactionImport') ||
+                             dep.includes('Web3Features') ||
+                             dep.includes('Web3ProviderWrapper');
+          return !isWeb3Chunk; // Only preload non-Web3 chunks
+        });
+      },
+    },
     // Common.js options to handle problematic packages
     commonjsOptions: {
       transformMixedEsModules: true,

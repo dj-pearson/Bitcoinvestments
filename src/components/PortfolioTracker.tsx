@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Wallet,
   Plus,
@@ -8,7 +8,6 @@ import {
   Trash2,
   X,
   PieChart,
-  Link2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useToast } from '../contexts/ToastContext';
@@ -22,13 +21,7 @@ import {
   getPortfolioAllocation,
 } from '../services/portfolio';
 import { PortfolioChart } from './charts';
-import { PageLoader } from './LoadingSkeletons';
 import type { Portfolio } from '../types';
-
-// Lazy load WalletImport to avoid loading wagmi on every page
-const WalletImportModal = lazy(() => 
-  import('./WalletImport').then(m => ({ default: m.WalletImportModal }))
-);
 
 interface PortfolioTrackerProps {
   variant?: 'full' | 'compact';
@@ -49,7 +42,6 @@ const POPULAR_CRYPTOS = [
 export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showWalletImport, setShowWalletImport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const toast = useToast();
@@ -123,7 +115,7 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
           <p className="text-gray-400 text-sm mb-6 max-w-xs mx-auto">
             Add your crypto holdings to track performance and see real-time values.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex justify-center">
             <button
               onClick={handleCreatePortfolio}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors"
@@ -131,30 +123,8 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
               <Plus className="w-4 h-4" />
               Create Portfolio
             </button>
-            <button
-              onClick={async () => {
-                const p = await createPortfolio('My Portfolio');
-                setPortfolio(p);
-                setShowWalletImport(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-colors"
-            >
-              <Link2 className="w-4 h-4" />
-              Import from Wallet
-            </button>
           </div>
         </div>
-        
-        {showWalletImport && (
-          <Suspense fallback={<PageLoader message="Loading wallet import..." />}>
-            <WalletImportModal
-              open={showWalletImport}
-              onClose={() => setShowWalletImport(false)}
-              portfolio={portfolio!}
-              onUpdate={(p) => setPortfolio(p)}
-            />
-          </Suspense>
-        )}
       </div>
     );
   }
@@ -249,14 +219,6 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
           >
             <Plus className="w-4 h-4" />
             Add
-          </button>
-          <button
-            onClick={() => setShowWalletImport(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium rounded-lg transition-colors"
-            title="Import from Wallet"
-          >
-            <Link2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Import</span>
           </button>
           <button
             onClick={handleExport}
@@ -401,17 +363,6 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
         portfolio={portfolio}
         onUpdate={(p) => setPortfolio(p)}
       />
-      
-      {showWalletImport && (
-        <Suspense fallback={<PageLoader message="Loading wallet import..." />}>
-          <WalletImportModal
-            open={showWalletImport}
-            onClose={() => setShowWalletImport(false)}
-            portfolio={portfolio}
-            onUpdate={(p) => setPortfolio(p)}
-          />
-        </Suspense>
-      )}
     </div>
   );
 }

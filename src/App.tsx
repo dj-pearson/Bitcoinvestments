@@ -12,7 +12,6 @@ import { SessionActivityTracker } from './components/SessionActivityTracker';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import { PageLoader } from './components/LoadingSkeletons';
 import { WebVitalsTracker } from './components/WebVitalsTracker';
-import { Web3Route } from './components/Web3Route';
 import { AccessibilityProvider } from './components/accessibility/AccessibilityContext';
 
 // Eagerly loaded pages (critical path - only Home and Auth pages)
@@ -133,8 +132,8 @@ function App() {
                   <Route path="calculators" element={<Calculators />} />
                   <Route path="compare" element={<Compare />} />
                   <Route path="compare/:type/:id" element={<Compare />} />
-                  {/* Web3 routes - lazily load Web3 providers only when needed */}
-                  <Route path="web3" element={<Web3Route><Web3Features /></Web3Route>} />
+                  {/* Web3 routes - manual wallet tracking (no wallet connection) */}
+                  <Route path="web3" element={<Web3Features />} />
                   <Route path="scam-database" element={<ScamDatabase />} />
                   <Route path="scam/:id" element={<ScamReportDetail />} />
                   <Route path="report-scam" element={<ProtectedRoute><ReportScam /></ProtectedRoute>} />
@@ -173,17 +172,17 @@ function App() {
                   <Route path="influencer-verification" element={<InfluencerVerification />} />
                   <Route path="lending" element={<LendingComparison />} />
                   <Route path="social-trading" element={<SocialTrading />} />
-                  <Route path="onchain-analytics" element={<Web3Route><OnChainAnalytics /></Web3Route>} />
+                  <Route path="onchain-analytics" element={<OnChainAnalytics />} />
 
                   {/* Premium Crypto Features */}
                   <Route path="hardware-wallet" element={<HardwareWallet />} />
-                  <Route path="gas-optimizer" element={<Web3Route><GasOptimizer /></Web3Route>} />
-                  <Route path="defi-yield" element={<Web3Route><DeFiYield /></Web3Route>} />
+                  <Route path="gas-optimizer" element={<GasOptimizer />} />
+                  <Route path="defi-yield" element={<DeFiYield />} />
                   <Route path="retirement-calculator" element={<RetirementCalculator />} />
 
                   {/* New Premium Monetization Features */}
-                  <Route path="multi-exchange" element={<Web3Route><MultiExchange /></Web3Route>} />
-                  <Route path="staking-calculator" element={<Web3Route><StakingCalculator /></Web3Route>} />
+                  <Route path="multi-exchange" element={<MultiExchange />} />
+                  <Route path="staking-calculator" element={<StakingCalculator />} />
                   <Route path="trading-indicators" element={<TradingIndicators />} />
                   <Route path="whale-tracking" element={<WhaleTrackingPage />} />
                   <Route path="rebalancing-alerts" element={<RebalancingAlertsPage />} />

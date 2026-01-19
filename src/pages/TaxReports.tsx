@@ -24,9 +24,6 @@ import {
 } from '../services/taxReportService';
 import { TAX_PACKAGE, isTaxSeasonActive } from '../services/subscriptionLimits';
 import { TaxSeasonPackage } from '../components/TaxSeasonPackage';
-import { TransactionImport } from '../components/TransactionImport';
-import { addTransaction, getOrCreateHolding } from '../services/portfolio';
-import { convertToTransaction, type ImportedTransaction } from '../services/transactionImport';
 import type { Portfolio } from '../types';
 
 // State tax options
@@ -115,9 +112,6 @@ export default function TaxReports() {
   const [costBasisMethod, setCostBasisMethod] = useState<CostBasisMethod>('fifo');
   const [state, setState] = useState('');
   const [taxBracket, setTaxBracket] = useState(22);
-
-  // Import modal state
-  const [showImportModal, setShowImportModal] = useState(false);
 
   // Available years (current year and 5 previous)
   const currentYear = new Date().getFullYear();
@@ -244,36 +238,6 @@ export default function TaxReports() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportTransactions = async (transactions: ImportedTransaction[]) => {
-    if (!userId) return;
-
-    // Group transactions by asset
-    const transactionsByAsset = new Map<string, ImportedTransaction[]>();
-    for (const tx of transactions) {
-      const key = tx.symbol.toUpperCase();
-      if (!transactionsByAsset.has(key)) {
-        transactionsByAsset.set(key, []);
-      }
-      transactionsByAsset.get(key)!.push(tx);
-    }
-
-    // Import each group
-    for (const [symbol, txs] of transactionsByAsset) {
-      // Get or create holding for this asset
-      const holding = await getOrCreateHolding(userId, symbol, txs[0].asset);
-
-      // Add each transaction
-      for (const tx of txs) {
-        const transaction = convertToTransaction(tx, holding.id);
-        await addTransaction(holding.id, transaction);
-      }
-    }
-
-    // Reload portfolio
-    const updatedPortfolio = await getPortfolio();
-    setPortfolio(updatedPortfolio);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 py-12">
@@ -370,15 +334,6 @@ export default function TaxReports() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            Import Transactions
-          </button>
         </div>
 
         {/* Report Configuration */}
@@ -684,13 +639,6 @@ export default function TaxReports() {
             )}
           </>
         )}
-
-        {/* Import Modal */}
-        <TransactionImport
-          isOpen={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          onImport={handleImportTransactions}
-        />
       </div>
     </div>
   );

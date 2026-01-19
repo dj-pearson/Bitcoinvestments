@@ -1,109 +1,55 @@
-import { useState, useEffect, type ReactNode } from 'react';
-import { PageLoader } from './LoadingSkeletons';
+import type { ReactNode } from 'react';
 
 interface Web3ProviderWrapperProps {
   children: ReactNode;
 }
 
 /**
- * Web3Provider with proper error handling for SIWE/Wagmi bundling
- * This wrapper dynamically imports Web3 libraries to avoid module evaluation errors
+ * TEMPORARILY DISABLED: Web3 features are under maintenance due to compatibility issues
+ * with wallet extension security (SES/Secure ECMAScript lockdown from MetaMask).
+ * 
+ * The SIWE library is incompatible with the hardened JavaScript environment created
+ * by wallet extensions. We're working on a solution that doesn't rely on SIWE.
  */
-export function Web3ProviderWrapper({ children }: Web3ProviderWrapperProps) {
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [Web3Content, setWeb3Content] = useState<React.ComponentType<{ children: ReactNode }> | null>(null);
-
-  useEffect(() => {
-    // Dynamically import Web3 providers only in the browser
-    if (typeof window === 'undefined') {
-      setIsLoading(false);
-      return;
-    }
-
-    // Import Web3 dependencies dynamically to avoid SIWE bundling issues
-    Promise.all([
-      import('wagmi'),
-      import('@tanstack/react-query'),
-      import('@rainbow-me/rainbowkit'),
-      import('@rainbow-me/rainbowkit/styles.css'),
-      import('../lib/wagmi'),
-    ])
-      .then(([{ WagmiProvider }, { QueryClient, QueryClientProvider }, { RainbowKitProvider }, _, { wagmiConfig }]) => {
-        // Create QueryClient
-        const web3QueryClient = new QueryClient({
-          defaultOptions: {
-            queries: {
-              staleTime: 1000 * 60 * 5,
-              gcTime: 1000 * 60 * 30,
-              refetchOnWindowFocus: false,
-              retry: 1,
-            },
-          },
-        });
-
-        // Create the Web3 provider component
-        const Provider: React.FC<{ children: ReactNode }> = ({ children }) => (
-          <WagmiProvider config={wagmiConfig}>
-            <QueryClientProvider client={web3QueryClient}>
-              <RainbowKitProvider>
-                {children}
-              </RainbowKitProvider>
-            </QueryClientProvider>
-          </WagmiProvider>
-        );
-
-        setWeb3Content(() => Provider);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Failed to load Web3 providers:', error);
-        setHasError(true);
-        setErrorMessage(error instanceof Error ? error.message : 'Unknown error');
-        setIsLoading(false);
-      });
-  }, []);
-
-  if (isLoading) {
-    return <PageLoader message="Loading Web3..." />;
-  }
-
-  if (hasError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-brand-dark to-black p-4">
-        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-xl p-6">
-          <h2 className="text-xl font-bold text-white mb-4">⚠️ Web3 Error</h2>
-          <p className="text-gray-300 mb-4">
-            There was an issue loading Web3 features:
+export function Web3ProviderWrapper(_props: Web3ProviderWrapperProps) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-brand-dark to-black p-4">
+      <div className="max-w-2xl w-full bg-white/5 border border-white/10 rounded-xl p-8 text-center">
+        <div className="text-6xl mb-6">🔧</div>
+        <h2 className="text-2xl font-bold text-white mb-4">Web3 Features Under Maintenance</h2>
+        <p className="text-gray-300 mb-4 text-lg">
+          We're currently upgrading our Web3 wallet integration to improve compatibility with browser wallet extensions.
+        </p>
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
+          <p className="text-yellow-200 text-sm">
+            <strong>Technical Note:</strong> We discovered a compatibility issue between SIWE (Sign-In with Ethereum) 
+            and MetaMask's security hardening (SES). We're implementing a wallet-only authentication system that 
+            doesn't require SIWE message signing.
           </p>
-          <pre className="text-xs text-red-400 bg-red-900/20 p-3 rounded mb-4 overflow-auto">
-            {errorMessage}
-          </pre>
-          <div className="space-y-2">
-            <button
-              onClick={() => window.location.reload()}
-              className="block w-full text-center px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg transition-colors"
-            >
-              Reload Page
-            </button>
-            <a
-              href="/"
-              className="block w-full text-center px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-            >
-              Return to Home
-            </a>
-          </div>
         </div>
+        <p className="text-gray-400 mb-6">
+          All other features of Bitcoinvestments (Learn, Compare, Calculators, Scam Database) are fully functional.
+        </p>
+        <div className="flex justify-center gap-4 flex-wrap">
+          <a
+            href="/"
+            className="px-6 py-3 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg transition-colors font-medium"
+          >
+            Return to Homepage
+          </a>
+          <a
+            href="/learn"
+            className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium"
+          >
+            Browse Educational Content
+          </a>
+        </div>
+        <p className="text-gray-500 text-sm mt-8">
+          Expected resolution: Within 24-48 hours. Thank you for your patience!
+        </p>
       </div>
-    );
-  }
-
-  if (!Web3Content) {
-    return <>{children}</>;
-  }
-
-  return <Web3Content>{children}</Web3Content>;
+    </div>
+  );
 }
 
 export default Web3ProviderWrapper;

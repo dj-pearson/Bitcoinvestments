@@ -77,9 +77,9 @@ export function Signup() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
         <div className="max-w-md w-full">
-          <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700 text-center">
+          <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700 text-center" role="status" aria-live="polite">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -110,56 +110,65 @@ export function Signup() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
+            <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm" role="alert" aria-live="assertive">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address <span className="text-red-400">*</span>
+              <label htmlFor="signup-email" className="block text-sm font-medium text-gray-300 mb-2">
+                Email Address <span className="text-red-400" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </label>
               <input
                 type="email"
-                id="email"
+                id="signup-email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Password <span className="text-red-400">*</span>
+              <label htmlFor="signup-password" className="block text-sm font-medium text-gray-300 mb-2">
+                Password <span className="text-red-400" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </label>
               <input
                 type="password"
-                id="password"
+                id="signup-password"
+                name="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="new-password"
+                aria-describedby="password-requirements"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="Create a strong password"
               />
               {/* Password strength indicators */}
               {password.length > 0 && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-2 space-y-1" id="password-requirements" aria-live="polite">
+                  <span className="sr-only">Password requirements:</span>
                   {passwordRequirements.map((req, index) => (
                     <div
                       key={index}
                       className={`flex items-center gap-2 text-xs ${
                         req.met ? 'text-green-400' : 'text-gray-500'
                       }`}
+                      aria-label={`${req.label}: ${req.met ? 'met' : 'not met'}`}
                     >
                       {req.met ? (
-                        <Check className="w-3 h-3" />
+                        <Check className="w-3 h-3" aria-hidden="true" />
                       ) : (
-                        <X className="w-3 h-3" />
+                        <X className="w-3 h-3" aria-hidden="true" />
                       )}
-                      {req.label}
+                      <span aria-hidden="true">{req.label}</span>
                     </div>
                   ))}
                 </div>
@@ -167,15 +176,18 @@ export function Signup() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm Password <span className="text-red-400">*</span>
+              <label htmlFor="signup-confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                Confirm Password <span className="text-red-400" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </label>
               <input
                 type="password"
-                id="confirmPassword"
+                id="signup-confirmPassword"
+                name="confirm-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
+                autoComplete="new-password"
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="Confirm your password"
               />

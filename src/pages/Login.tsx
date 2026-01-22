@@ -205,7 +205,7 @@ export function Login() {
           <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-orange-400" />
+                <Shield className="w-8 h-8 text-orange-400" aria-hidden="true" />
               </div>
               <h1 className="text-2xl font-bold text-white mb-2">
                 {useRecoveryCode ? 'Enter Recovery Code' : 'Two-Factor Authentication'}
@@ -218,8 +218,8 @@ export function Login() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm flex items-center gap-2" role="alert" aria-live="assertive">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                 {error}
               </div>
             )}
@@ -233,9 +233,12 @@ export function Login() {
                   <input
                     type="text"
                     id="2fa-code"
+                    name="recovery-code"
                     value={twoFactorCode}
                     onChange={(e) => setTwoFactorCode(e.target.value.toUpperCase())}
                     required
+                    autoComplete="off"
+                    inputMode="text"
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-center font-mono text-lg tracking-wider placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     placeholder="XXXXXXXX"
                     maxLength={8}
@@ -244,9 +247,12 @@ export function Login() {
                   <input
                     type="text"
                     id="2fa-code"
+                    name="otp-code"
                     value={twoFactorCode}
                     onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     required
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
                     className="w-full px-4 py-4 bg-gray-700 border border-gray-600 rounded-lg text-white text-center font-mono text-2xl tracking-widest placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     placeholder="000000"
                     maxLength={6}
@@ -302,14 +308,14 @@ export function Login() {
           </div>
 
           {wasAdminRedirect && (
-            <div className="mb-6 p-4 bg-orange-900/30 border border-orange-700/50 rounded-lg text-orange-300 text-sm flex items-center gap-2">
-              <Shield className="w-5 h-5 flex-shrink-0" />
+            <div className="mb-6 p-4 bg-orange-900/30 border border-orange-700/50 rounded-lg text-orange-300 text-sm flex items-center gap-2" role="status">
+              <Shield className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               <span>Admin credentials required to access this area</span>
             </div>
           )}
 
           {error && (
-            <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm">
+            <div className="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-300 text-sm" role="alert" aria-live="assertive">
               {error}
             </div>
           )}
@@ -317,11 +323,13 @@ export function Login() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address <span className="text-red-400">*</span>
+                Email Address <span className="text-red-400" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </label>
               <input
                 type="email"
                 id="email"
+                name="email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -330,6 +338,7 @@ export function Login() {
                   }
                 }}
                 required
+                autoComplete="email"
                 className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   getFieldError(fieldErrors, 'email') ? 'border-red-500' : 'border-gray-600'
                 }`}
@@ -338,7 +347,7 @@ export function Login() {
                 aria-describedby={getFieldError(fieldErrors, 'email') ? 'email-error' : undefined}
               />
               {getFieldError(fieldErrors, 'email') && (
-                <p id="email-error" className="mt-1 text-sm text-red-400">
+                <p id="email-error" className="mt-1 text-sm text-red-400" role="alert">
                   {getFieldError(fieldErrors, 'email')}
                 </p>
               )}
@@ -346,11 +355,13 @@ export function Login() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Password <span className="text-red-400">*</span>
+                Password <span className="text-red-400" aria-hidden="true">*</span>
+                <span className="sr-only">(required)</span>
               </label>
               <input
                 type="password"
                 id="password"
+                name="password"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -359,6 +370,7 @@ export function Login() {
                   }
                 }}
                 required
+                autoComplete="current-password"
                 className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
                   getFieldError(fieldErrors, 'password') ? 'border-red-500' : 'border-gray-600'
                 }`}
@@ -367,16 +379,18 @@ export function Login() {
                 aria-describedby={getFieldError(fieldErrors, 'password') ? 'password-error' : undefined}
               />
               {getFieldError(fieldErrors, 'password') && (
-                <p id="password-error" className="mt-1 text-sm text-red-400">
+                <p id="password-error" className="mt-1 text-sm text-red-400" role="alert">
                   {getFieldError(fieldErrors, 'password')}
                 </p>
               )}
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center">
+              <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
+                  id="remember-me"
+                  name="remember-me"
                   className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500"
                 />
                 <span className="ml-2 text-sm text-gray-400">Remember me</span>

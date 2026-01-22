@@ -523,6 +523,100 @@ export function Accessibility() {
                     </div>
                 </section>
 
+                {/* Legal Compliance Statement */}
+                <section aria-labelledby="legal-heading" className="mb-12">
+                    <h2 id="legal-heading" className="text-2xl font-bold text-white mb-6">
+                        Legal Compliance
+                    </h2>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+                        <div>
+                            <h3 className="text-lg font-semibold text-white mb-2">Americans with Disabilities Act (ADA)</h3>
+                            <p className="text-gray-300">
+                                Bitcoinvestments is committed to compliance with Title III of the Americans with Disabilities Act (ADA),
+                                which requires that places of public accommodation, including websites, be accessible to individuals with disabilities.
+                                We strive to ensure that our website is accessible to all users, regardless of ability.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-white mb-2">Section 508 Compliance</h3>
+                            <p className="text-gray-300">
+                                While Section 508 primarily applies to federal agencies, we voluntarily adhere to its accessibility standards
+                                as part of our commitment to making our platform accessible to the widest possible audience.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-white mb-2">European Accessibility Act (EAA)</h3>
+                            <p className="text-gray-300">
+                                For our users in the European Union, we are committed to meeting the requirements of the European Accessibility Act
+                                and the Web Accessibility Directive (EU 2016/2102), which mandate WCAG 2.1 Level AA compliance.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Assessment Methodology */}
+                <section aria-labelledby="methodology-heading" className="mb-12">
+                    <h2 id="methodology-heading" className="text-2xl font-bold text-white mb-6">
+                        Assessment Methodology
+                    </h2>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                        <p className="text-gray-300 mb-4">
+                            Bitcoinvestments assesses the accessibility of our website using the following methods:
+                        </p>
+                        <ul className="space-y-3 mb-4">
+                            {[
+                                'Automated testing using industry-standard accessibility tools',
+                                'Manual testing with keyboard-only navigation',
+                                'Screen reader testing with NVDA, VoiceOver, and JAWS',
+                                'Color contrast analysis for all text and interactive elements',
+                                'User testing with individuals who use assistive technologies',
+                                'Code review for semantic HTML and ARIA implementation',
+                            ].map((method, index) => (
+                                <li key={index} className="flex items-start gap-2 text-gray-300">
+                                    <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                                    {method}
+                                </li>
+                            ))}
+                        </ul>
+                        <p className="text-gray-400 text-sm">
+                            We conduct accessibility reviews on a regular basis and whenever significant changes are made to the website.
+                        </p>
+                    </div>
+                </section>
+
+                {/* Limitations */}
+                <section aria-labelledby="limitations-heading" className="mb-12">
+                    <h2 id="limitations-heading" className="text-2xl font-bold text-white mb-6">
+                        Known Limitations
+                    </h2>
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                        <p className="text-gray-300 mb-4">
+                            Despite our best efforts to ensure accessibility, there may be some limitations:
+                        </p>
+                        <ul className="space-y-3 mb-4">
+                            <li className="flex items-start gap-2 text-gray-300">
+                                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                                <span>
+                                    <strong>Third-party content:</strong> Some embedded content from third-party services
+                                    (such as charts and external widgets) may not be fully accessible. We are working
+                                    with our vendors to improve this.
+                                </span>
+                            </li>
+                            <li className="flex items-start gap-2 text-gray-300">
+                                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                                <span>
+                                    <strong>Legacy PDF documents:</strong> Some older PDF documents may not be fully accessible.
+                                    Alternative formats are available upon request.
+                                </span>
+                            </li>
+                        </ul>
+                        <p className="text-gray-400 text-sm">
+                            If you encounter any accessibility barriers, please contact us and we will provide the information
+                            in an alternative format or assist you in accessing the content.
+                        </p>
+                    </div>
+                </section>
+
                 {/* Related Pages */}
                 <nav aria-label="Related pages" className="border-t border-white/10 pt-8">
                     <h2 className="text-lg font-semibold text-white mb-4">Related Pages</h2>

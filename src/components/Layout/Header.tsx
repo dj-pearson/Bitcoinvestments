@@ -233,13 +233,14 @@ export function Header() {
                                         <Icon className={cn(
                                             'w-4 h-4 transition-colors',
                                             isActive(item.href) ? 'text-brand-primary' : 'text-gray-400 group-hover:text-brand-accent'
-                                        )} />
+                                        )} aria-hidden="true" />
                                         <span className="hidden xl:inline">{item.label}</span>
+                                        <span className="sr-only xl:hidden">{item.label}</span>
                                         {item.children && (
                                             <ChevronDown className={cn(
                                                 'w-3.5 h-3.5 transition-transform duration-200',
                                                 openDropdown === item.label && 'rotate-180'
-                                            )} />
+                                            )} aria-hidden="true" />
                                         )}
                                     </PrefetchLink>
 
@@ -263,7 +264,7 @@ export function Header() {
                                                             className="flex items-start gap-3 px-3 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-all group"
                                                             role="menuitem"
                                                         >
-                                                            <ChildIcon className="w-4 h-4 mt-0.5 text-gray-400 group-hover:text-brand-accent transition-colors flex-shrink-0" />
+                                                            <ChildIcon className="w-4 h-4 mt-0.5 text-gray-400 group-hover:text-brand-accent transition-colors flex-shrink-0" aria-hidden="true" />
                                                             <div>
                                                                 <span className="block font-medium">{child.label}</span>
                                                                 <span className="block text-xs text-gray-500 group-hover:text-gray-400 mt-0.5">{child.description}</span>
@@ -288,19 +289,24 @@ export function Header() {
                                 onMouseEnter={() => setUserDropdownOpen(true)}
                                 onMouseLeave={() => setUserDropdownOpen(false)}
                             >
-                                <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                                <button
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                                    aria-expanded={userDropdownOpen}
+                                    aria-haspopup="menu"
+                                    aria-label="User menu"
+                                >
                                     <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center">
-                                        <User className="w-4 h-4 text-brand-primary" />
+                                        <User className="w-4 h-4 text-brand-primary" aria-hidden="true" />
                                     </div>
                                     <ChevronDown className={cn(
                                         'w-4 h-4 transition-transform',
                                         userDropdownOpen && 'rotate-180'
-                                    )} />
+                                    )} aria-hidden="true" />
                                 </button>
 
                                 {userDropdownOpen && (
                                     <div className="absolute top-full right-0 pt-2">
-                                        <div className="glass-card p-2 min-w-[200px] rounded-xl border border-white/10">
+                                        <div className="glass-card p-2 min-w-[200px] rounded-xl border border-white/10" role="menu" aria-label="User menu">
                                             <div className="px-4 py-2 border-b border-white/10 mb-2">
                                                 <p className="text-sm text-gray-400">Signed in as</p>
                                                 <p className="text-sm text-white font-medium truncate">{user.email}</p>
@@ -364,12 +370,13 @@ export function Header() {
                                             {/* Admin Dashboard link - only show for admin users */}
                                             {(user.role === 'admin' || user.role === 'super_admin') && (
                                                 <>
-                                                    <div className="border-t border-white/10 my-2"></div>
+                                                    <div className="border-t border-white/10 my-2" role="separator"></div>
                                                     <Link
                                                         to="/admin"
                                                         className="flex items-center gap-2 px-4 py-2 text-sm text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors"
+                                                        role="menuitem"
                                                     >
-                                                        <Shield className="w-4 h-4" />
+                                                        <Shield className="w-4 h-4" aria-hidden="true" />
                                                         Admin Dashboard
                                                     </Link>
                                                 </>
@@ -409,13 +416,13 @@ export function Header() {
                                 'absolute inset-0 flex items-center justify-center transition-all duration-200',
                                 isMenuOpen ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'
                             )}>
-                                <X className="w-6 h-6" />
+                                <X className="w-6 h-6" aria-hidden="true" />
                             </span>
                             <span className={cn(
                                 'flex items-center justify-center transition-all duration-200',
                                 isMenuOpen ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'
                             )}>
-                                <Menu className="w-6 h-6" />
+                                <Menu className="w-6 h-6" aria-hidden="true" />
                             </span>
                         </button>
                     </div>
@@ -455,13 +462,13 @@ export function Header() {
                                                     <Icon className={cn(
                                                         'w-5 h-5',
                                                         isActive(item.href) ? 'text-brand-primary' : 'text-gray-400'
-                                                    )} />
+                                                    )} aria-hidden="true" />
                                                     <span>{item.label}</span>
                                                 </span>
                                                 <ChevronDown className={cn(
                                                     'w-5 h-5 transition-transform duration-200',
                                                     isExpanded && 'rotate-180'
-                                                )} />
+                                                )} aria-hidden="true" />
                                             </button>
 
                                             {/* Accordion Content */}
@@ -482,7 +489,7 @@ export function Header() {
                                                                 className="flex items-center gap-3 px-4 py-3 text-sm text-gray-400 hover:text-white rounded-lg active:bg-white/10 min-h-[48px] transition-colors"
                                                                 onClick={() => setIsMenuOpen(false)}
                                                             >
-                                                                <ChildIcon className="w-4 h-4 text-gray-500" />
+                                                                <ChildIcon className="w-4 h-4 text-gray-500" aria-hidden="true" />
                                                                 <div>
                                                                     <span className="block">{child.label}</span>
                                                                     <span className="block text-xs text-gray-500 mt-0.5">{child.description}</span>
@@ -507,7 +514,7 @@ export function Header() {
                                             <Icon className={cn(
                                                 'w-5 h-5',
                                                 isActive(item.href) ? 'text-brand-primary' : 'text-gray-400'
-                                            )} />
+                                            )} aria-hidden="true" />
                                             {item.label}
                                         </Link>
                                     )}
@@ -590,7 +597,7 @@ export function Header() {
                                                 className="flex items-center gap-2 px-4 py-3 text-base font-medium text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg"
                                                 onClick={() => setIsMenuOpen(false)}
                                             >
-                                                <Shield className="w-5 h-5" />
+                                                <Shield className="w-5 h-5" aria-hidden="true" />
                                                 Admin Dashboard
                                             </Link>
                                         </>

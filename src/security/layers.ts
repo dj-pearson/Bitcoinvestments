@@ -28,7 +28,6 @@ import {
   hasPermission,
   hasAllPermissions,
   hasAnyPermission,
-  hasResourceAccess,
   isRoleAtLeast,
   ROLE_LEVELS,
 } from './permissions';
@@ -290,7 +289,7 @@ export async function requireOwnership(
       };
     }
 
-    const ownerId = (data as Record<string, string>)[ownerField];
+    const ownerId = (data as unknown as Record<string, string>)[ownerField];
     if (ownerId !== context.userId) {
       return {
         allowed: false,

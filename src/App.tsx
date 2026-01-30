@@ -83,6 +83,13 @@ const SystemSettings = lazy(() => import('./pages/admin').then(m => ({ default: 
 const AdminAnalytics = lazy(() => import('./pages/admin').then(m => ({ default: m.AdminAnalytics })));
 const AdminSubscriptions = lazy(() => import('./pages/admin').then(m => ({ default: m.AdminSubscriptions })));
 const AdminNewsletters = lazy(() => import('./pages/admin').then(m => ({ default: m.AdminNewsletters })));
+const AdminBlogList = lazy(() => import('./pages/admin/AdminBlogList').then(m => ({ default: m.AdminBlogList })));
+const AdminBlogEditor = lazy(() => import('./pages/admin/AdminBlogEditor').then(m => ({ default: m.AdminBlogEditor })));
+const AdminBlogCategories = lazy(() => import('./pages/admin/AdminBlogCategories').then(m => ({ default: m.AdminBlogCategories })));
+
+// Public Blog Pages (lazy loaded)
+const Blog = lazy(() => import('./pages/Blog').then(m => ({ default: m.Blog })));
+const BlogPost = lazy(() => import('./pages/BlogPost').then(m => ({ default: m.BlogPost })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,6 +130,11 @@ function App() {
                     <Route path="newsletters" element={<AdminNewsletters />} />
                     <Route path="analytics" element={<AdminAnalytics />} />
                     <Route path="settings" element={<AdminRoute requiredRole="super_admin"><SystemSettings /></AdminRoute>} />
+                    {/* Blog Admin Routes */}
+                    <Route path="blog" element={<AdminBlogList />} />
+                    <Route path="blog/new" element={<AdminBlogEditor />} />
+                    <Route path="blog/edit/:id" element={<AdminBlogEditor />} />
+                    <Route path="blog/categories" element={<AdminBlogCategories />} />
                   </Route>
 
                 <Route path="/" element={<Layout />}>
@@ -159,6 +171,10 @@ function App() {
                   <Route path="course/:courseId/:moduleId" element={<CourseModule />} />
                   <Route path="glossary" element={<Glossary />} />
                   <Route path="article/:slug" element={<Article />} />
+                  {/* Blog Routes */}
+                  <Route path="blog" element={<Blog />} />
+                  <Route path="blog/category/:category" element={<Blog />} />
+                  <Route path="blog/:slug" element={<BlogPost />} />
                   <Route path="privacy" element={<Privacy />} />
                   <Route path="terms" element={<Terms />} />
                   <Route path="disclaimer" element={<Terms />} />

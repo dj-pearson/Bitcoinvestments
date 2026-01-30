@@ -23,6 +23,7 @@ import {
   CreditCard,
   Globe,
   Zap,
+  PenSquare,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsSuperAdmin, useUserRole } from '../AdminRoute';
@@ -58,6 +59,7 @@ const navSections: NavSection[] = [
   {
     title: 'Content & Safety',
     items: [
+      { name: 'Blog', path: '/admin/blog', icon: PenSquare },
       { name: 'Scam Database', path: '/admin/scam-database', icon: Shield },
       { name: 'Content Moderation', path: '/admin/content', icon: FileText },
       { name: 'Support Tickets', path: '/admin/support', icon: HeadphonesIcon },

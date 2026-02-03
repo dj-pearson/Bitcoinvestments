@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Test Report - 1/20/2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; background: #f9fafb; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.5rem; margin: 2rem 0 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+    h3 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; }
+    .header { background: #1f2937; color: white; padding: 2rem; margin-bottom: 2rem; border-radius: 8px; }
+    .header p { opacity: 0.8; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .stat-card .value { font-size: 2rem; font-weight: bold; }
+    .stat-card .label { color: #6b7280; font-size: 0.875rem; }
+    .stat-card.success .value { color: #22c55e; }
+    .stat-card.danger .value { color: #ef4444; }
+    .stat-card.warning .value { color: #f59e0b; }
+    .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+    .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+    .badge-passed { background: #dcfce7; color: #166534; }
+    .badge-failed { background: #fee2e2; color: #991b1b; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-critical { background: #fee2e2; color: #991b1b; }
+    .badge-high { background: #ffedd5; color: #9a3412; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .badge-low { background: #e0f2fe; color: #075985; }
+    .progress-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+    .progress-bar .fill { height: 100%; transition: width 0.3s; }
+    .progress-bar .fill.success { background: #22c55e; }
+    .progress-bar .fill.danger { background: #ef4444; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f9fafb; font-weight: 600; }
+    .error-item { border-left: 4px solid #ef4444; padding-left: 1rem; margin-bottom: 1rem; }
+    .error-item.warning { border-color: #f59e0b; }
+    .error-message { font-family: monospace; font-size: 0.875rem; background: #f3f4f6; padding: 0.5rem; border-radius: 4px; overflow-x: auto; }
+    .recommendation { padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .recommendation.critical { background: #fee2e2; border-left: 4px solid #ef4444; }
+    .recommendation.high { background: #ffedd5; border-left: 4px solid #f97316; }
+    .recommendation.medium { background: #fef3c7; border-left: 4px solid #f59e0b; }
+    .recommendation.low { background: #e0f2fe; border-left: 4px solid #0ea5e9; }
+    .collapsible { cursor: pointer; }
+    .collapsible::after { content: ' ▼'; font-size: 0.75rem; }
+    .collapsible.collapsed::after { content: ' ▶'; }
+    .content { overflow: hidden; transition: max-height 0.3s; }
+    .content.collapsed { max-height: 0 !important; }
+    code { background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.875rem; }
+    .footer { text-align: center; padding: 2rem; color: #6b7280; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 Automated Test Report</h1>
+      <p>Generated: 1/20/2026, 11:23:31 AM</p>
+      <p>Duration: 1m 18s | Browser: chromium | Pages: 20</p>
+    </div>
+
+    <div class="summary-grid">
+      <div class="stat-card success">
+        <div class="value">14.9%</div>
+        <div class="label">Pass Rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">470</div>
+        <div class="label">Total Tests</div>
+      </div>
+      <div class="stat-card success">
+        <div class="value">70</div>
+        <div class="label">Passed</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="value">329</div>
+        <div class="label">Failed</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="value">71</div>
+        <div class="label">Warnings</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">1.20s</div>
+        <div class="label">Avg Load Time</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Test Results Distribution</h3>
+      <div class="progress-bar" style="height: 24px;">
+        <div class="fill success" style="width: 14.893617021276595%; display: inline-block;"></div>
+        <div class="fill danger" style="width: 70%; display: inline-block;"></div>
+      </div>
+      <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+        <span><span style="color: #22c55e">■</span> Passed: 70</span>
+        <span><span style="color: #ef4444">■</span> Failed: 329</span>
+        <span><span style="color: #f59e0b">■</span> Warnings: 71</span>
+        <span><span style="color: #6b7280">■</span> Skipped: 0</span>
+      </div>
+    </div>
+
+    
+    <h2>📋 Recommendations</h2>
+    
+      <div class="recommendation high">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong>Fix Network Request Failures</strong>
+          <span class="badge badge-high">HIGH</span>
+        </div>
+        <p>21 network request(s) failed, indicating potential API or connectivity issues.</p>
+        <p style="margin-top: 0.5rem;"><strong>Suggested Fix:</strong> Review API endpoints, ensure proper error handling, and check server availability.</p>
+        <p style="margin-top: 0.5rem;"><strong>Affected Pages:</strong> 10</p>
+      </div>
+    
+      <div class="recommendation high">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong>Improve Overall Test Pass Rate</strong>
+          <span class="badge badge-high">HIGH</span>
+        </div>
+        <p>Test pass rate is 14.9%, which is below the recommended 80% threshold.</p>
+        <p style="margin-top: 0.5rem;"><strong>Suggested Fix:</strong> Review failing tests and prioritize fixes based on severity and user impact.</p>
+        <p style="margin-top: 0.5rem;"><strong>Affected Pages:</strong> 20</p>
+      </div>
+    
+      <div class="recommendation medium">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong>Resolve Console Errors</strong>
+          <span class="badge badge-medium">MEDIUM</span>
+        </div>
+        <p>3 JavaScript error(s) logged to the console.</p>
+        <p style="margin-top: 0.5rem;"><strong>Suggested Fix:</strong> Check browser console for error details, add proper error handling, and fix any undefined variable issues.</p>
+        <p style="margin-top: 0.5rem;"><strong>Affected Pages:</strong> 3</p>
+      </div>
+    
+    
+
+    
+    <h2>❌ Errors (29)</h2>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 2 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/Accessibility | Occurrences: 10</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">21 network error(s) detected</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL:  | Occurrences: 20</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">1 HTTP error(s) detected</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL:  | Occurrences: 20</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">1 network error(s) detected</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/Accessibility | Occurrences: 200</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 5 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; id=&quot;email&quot; required=&quot;&quot; type=&quot;email&quot; aria-invalid=&quot;false&quot; placeholder=&quot;you@example.com&quot; class=&quot;w-full px-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent border-gray-600&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Email Address *&#39; })
+    3) &lt;input value=&quot;&quot; required=&quot;&quot; id=&quot;password&quot; type=&quot;password&quot; aria-invalid=&quot;false&quot; placeholder=&quot;Enter your password&quot; class=&quot;w-full px-4 py-3 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent border-gray-600&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Password *&#39; })
+    4) &lt;input type=&quot;checkbox&quot; class=&quot;w-4 h-4 rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;checkbox&#39;, { name: &#39;Remember me&#39; })
+    5) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/admin | Occurrences: 3</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 3 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter your email&quot; class=&quot;w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter your email&#39; })
+    3) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173 | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 3 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search...&quot; class=&quot;w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-brand-primary&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search...&#39; })
+    3) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/dashboard | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">3 network error(s) detected</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/dashboard | Occurrences: 10</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 3 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search cryptocurrencies...&quot; class=&quot;w-full pl-12 pr-4 py-3 rounded-xl bg-gray-800/50 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 transition-colors&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search cryptocurrencies...&#39; })
+    3) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/charts | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 4 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input min=&quot;1&quot; value=&quot;100&quot; type=&quot;number&quot; class=&quot;w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary&quot;/&gt; aka getByRole(&#39;spinbutton&#39;).first()
+    3) &lt;input min=&quot;1&quot; max=&quot;120&quot; value=&quot;12&quot; type=&quot;number&quot; class=&quot;w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary&quot;/&gt; aka getByRole(&#39;spinbutton&#39;).nth(1)
+    4) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/calculators | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 3 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search pools...&quot; class=&quot;w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search pools...&#39; })
+    3) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/defi-yield | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 3 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter your email for crypto updates&quot; class=&quot;w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter your email for crypto&#39; })
+    3) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/learn | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">locator.isVisible: Error: strict mode violation: locator(&#39;input:nth-of-type(1)&#39;) resolved to 6 elements:
+    1) &lt;input value=&quot;&quot; type=&quot;text&quot; placeholder=&quot;Search guides, exchanges, wallets...&quot; class=&quot;w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm sm:text-base focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all min-h-[44px]&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Search guides, exchanges,&#39; })
+    2) &lt;input value=&quot;&quot; id=&quot;email&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;you@example.com&quot; class=&quot;w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Email Address *&#39; })
+    3) &lt;input value=&quot;&quot; required=&quot;&quot; id=&quot;password&quot; type=&quot;password&quot; placeholder=&quot;Create a strong password&quot; class=&quot;w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Password *&#39;, exact: true })
+    4) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;password&quot; id=&quot;confirmPassword&quot; placeholder=&quot;Confirm your password&quot; class=&quot;w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Confirm Password *&#39; })
+    5) &lt;input id=&quot;terms&quot; type=&quot;checkbox&quot; class=&quot;w-4 h-4 mt-1 rounded border-gray-600 bg-gray-700 text-orange-500 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;checkbox&#39;, { name: &#39;I agree to the Terms of&#39; })
+    6) &lt;input value=&quot;&quot; required=&quot;&quot; type=&quot;email&quot; placeholder=&quot;Enter email&quot; class=&quot;flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500&quot;/&gt; aka getByRole(&#39;textbox&#39;, { name: &#39;Enter email&#39; })
+
+Call log:
+[2m    - checking visibility of locator(&#39;input:nth-of-type(1)&#39;)[22m
+</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/signup | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">Failed to load resource: net::ERR_FAILED</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/dashboard | Occurrences: 4</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">Error fetching global market data: TypeError: Failed to fetch
+    at rateLimitedFetch (http://localhost:5173/src/services/coingecko.ts:75:28)
+    at async getGlobalMarketData (http://localhost:5173/src/services/coingecko.ts:194:22)
+    at async Promise.all (index 1)
+    at async fetchData (http://localhost:5173/src/pages/Dashboard.tsx:51:50)</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/dashboard | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">Error fetching historical data for bitcoin: TypeError: Failed to fetch
+    at rateLimitedFetch (http://localhost:5173/src/services/coingecko.ts:75:28)
+    at async getHistoricalData (http://localhost:5173/src/services/coingecko.ts:149:22)
+    at async loadChartData (http://localhost:5173/src/components/charts/PriceChart.tsx:60:21)</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/charts | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item ">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-failed">Severity 2</span>
+        </div>
+        <p class="error-message">Error loading chart data: TypeError: Failed to fetch
+    at rateLimitedFetch (http://localhost:5173/src/services/coingecko.ts:75:28)
+    at async getHistoricalData (http://localhost:5173/src/services/coingecko.ts:149:22)
+    at async loadChartData (http://localhost:5173/src/components/charts/PriceChart.tsx:60:21)</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/charts | Occurrences: 1</p>
+      </div>
+    
+      <div class="error-item warning">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>PERFORMANCE</strong>
+          <span class="badge badge-warning">Severity 3</span>
+        </div>
+        <p class="error-message">3 very slow request(s) (&gt;10s)</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL:  | Occurrences: 20</p>
+      </div>
+    
+      <div class="error-item warning">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-warning">Severity 3</span>
+        </div>
+        <p class="error-message">Network error: net::ERR_ABORTED</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/Accessibility | Occurrences: 19</p>
+      </div>
+    
+      <div class="error-item warning">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>NETWORK</strong>
+          <span class="badge badge-warning">Severity 3</span>
+        </div>
+        <p class="error-message">Network error: net::ERR_FAILED</p>
+        <p style="font-size: 0.75rem; color: #6b7280;">URL: http://localhost:5173/dashboard | Occurrences: 1</p>
+      </div>
+    
+    <p>... and 9 more errors</p>
+    
+
+    <h2>📄 Pages Tested (20)</h2>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>URL</th>
+            <th>Load Time</th>
+            <th>Tests</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td><code>http://localhost:5173/Accessibility</code></td>
+              <td>5.99s</td>
+              <td>3/12</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/AdManager</code></td>
+              <td>803ms</td>
+              <td>3/13</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/admin/AdminAnalytics</code></td>
+              <td>759ms</td>
+              <td>3/14</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/admin/AdminNewsletters</code></td>
+              <td>711ms</td>
+              <td>3/15</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/admin/AdminOverview</code></td>
+              <td>719ms</td>
+              <td>3/16</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/admin/AdminSubscriptions</code></td>
+              <td>817ms</td>
+              <td>3/17</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/admin/AuditLogs</code></td>
+              <td>696ms</td>
+              <td>3/18</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/admin/ContentModeration</code></td>
+              <td>725ms</td>
+              <td>3/19</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/admin</code></td>
+              <td>717ms</td>
+              <td>5/24</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173</code></td>
+              <td>3.10s</td>
+              <td>3/23</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/dashboard</code></td>
+              <td>2.37s</td>
+              <td>3/23</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/charts</code></td>
+              <td>798ms</td>
+              <td>3/25</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/compare</code></td>
+              <td>738ms</td>
+              <td>3/26</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/calculators</code></td>
+              <td>733ms</td>
+              <td>3/27</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/portfolio-analysis</code></td>
+              <td>747ms</td>
+              <td>5/32</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/onchain-analytics</code></td>
+              <td>718ms</td>
+              <td>3/29</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/defi-yield</code></td>
+              <td>719ms</td>
+              <td>3/30</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/learn</code></td>
+              <td>795ms</td>
+              <td>3/33</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/login</code></td>
+              <td>716ms</td>
+              <td>5/36</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+            <tr>
+              <td><code>http://localhost:5173/signup</code></td>
+              <td>715ms</td>
+              <td>7/38</td>
+              <td><span class="badge badge-failed">failed</span></td>
+            </tr>
+          
+        </tbody>
+      </table>
+      
+    </div>
+
+    
+
+    <div class="footer">
+      <p>Generated by Automated Testing Tool</p>
+      <p>Test run completed in 1m 18s</p>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.collapsible').forEach(el => {
+      el.addEventListener('click', () => {
+        el.classList.toggle('collapsed');
+        const content = el.nextElementSibling;
+        if (content) content.classList.toggle('collapsed');
+      });
+    });
+  </script>
+</body>
+</html>

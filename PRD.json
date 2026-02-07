@@ -1,0 +1,1048 @@
+{
+  "project": "Bitcoinvestments Enterprise Platform",
+  "branchName": "claude/create-ralph-prd-json-Xkq3Q",
+  "description": "Transform the Bitcoinvestments cryptocurrency education and investment platform from its current ~92% complete state into a fully enterprise-grade, professional, production-ready SaaS product. The platform is built with React 18 + TypeScript on Vite, Supabase (PostgreSQL + Auth), Cloudflare Workers/Pages, Stripe payments, and Web3 integrations (RainbowKit, SIWE, wagmi/viem). It currently has 98+ components, 90+ services, 50+ pages, and 37 database migrations. This PRD covers all remaining gaps: code quality, testing, security hardening, performance optimization, monitoring/observability, CI/CD, API documentation, accessibility, SEO, and enterprise features needed to achieve production readiness.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Verify and fix TypeScript build pipeline",
+      "description": "Run the full build pipeline (tsc -b && vite build) and fix any TypeScript compilation errors or warnings. Ensure strict mode is enforced in tsconfig.app.json and all source files compile cleanly with zero errors.",
+      "acceptanceCriteria": [
+        "Running 'npm run build' completes with exit code 0",
+        "Zero TypeScript compilation errors reported by tsc",
+        "tsconfig.app.json has strict: true enabled",
+        "No 'any' type suppressions added - fix types properly",
+        "Vite build produces optimized chunks in dist/ directory",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "This is the foundation - nothing else works if the build is broken. Current tsconfig.app.json already has strict:true, noUnusedLocals:true, noUnusedParameters:true."
+    },
+    {
+      "id": "US-002",
+      "title": "Add Prettier for consistent code formatting",
+      "description": "Install and configure Prettier with a .prettierrc config that works alongside the existing ESLint setup. Add format scripts to package.json and ensure no conflicts between ESLint and Prettier rules.",
+      "acceptanceCriteria": [
+        "Prettier installed as devDependency",
+        ".prettierrc config file created with sensible defaults (semi, singleQuote, trailingComma, printWidth)",
+        ".prettierignore file excludes dist/, node_modules/, coverage/",
+        "eslint-config-prettier added to prevent rule conflicts",
+        "package.json has 'format' and 'format:check' scripts",
+        "Running 'npm run format:check' exits cleanly or reports fixable issues",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Current eslint.config.js uses typescript-eslint and react-hooks plugins. Prettier must not conflict."
+    },
+    {
+      "id": "US-003",
+      "title": "Add path aliases for clean imports",
+      "description": "Configure TypeScript path aliases (@/ maps to src/) in tsconfig.app.json and vite.config.ts to replace deep relative imports (../../..) with clean absolute imports throughout the codebase.",
+      "acceptanceCriteria": [
+        "tsconfig.app.json has baseUrl and paths configured: '@/*' maps to 'src/*'",
+        "vite.config.ts has matching resolve.alias for '@' pointing to src/",
+        "At least the top-level App.tsx and router files updated to use @/ imports",
+        "Build succeeds with new path aliases",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "This improves developer experience and makes refactoring easier. Only update imports in files you directly touch - don't mass-rename all files at once."
+    },
+    {
+      "id": "US-004",
+      "title": "Set up Vitest testing framework",
+      "description": "Install and configure Vitest as the unit/integration testing framework. Set up test configuration, coverage reporting with Istanbul, and add test scripts to package.json. Create a test utilities file with common helpers for rendering React components with providers.",
+      "acceptanceCriteria": [
+        "vitest, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, jsdom installed as devDependencies",
+        "vitest.config.ts created with jsdom environment, coverage thresholds, and path aliases",
+        "src/test/setup.ts created with @testing-library/jest-dom imports",
+        "src/test/test-utils.tsx created with custom render that wraps components in required providers (Router, QueryClient, AuthContext)",
+        "package.json has 'test', 'test:watch', 'test:coverage' scripts",
+        "Running 'npm run test' executes successfully (even with 0 tests)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Vitest integrates natively with Vite config. Use @testing-library/react for component tests. Istanbul for coverage."
+    },
+    {
+      "id": "US-005",
+      "title": "Write unit tests for authentication service",
+      "description": "Write comprehensive unit tests for src/services/auth.ts covering login, signup, logout, password reset, rate limiting, and 2FA verification. Mock Supabase client calls and test error handling paths.",
+      "acceptanceCriteria": [
+        "Test file src/services/__tests__/auth.test.ts created",
+        "Tests cover: successful login, failed login, signup with valid data, signup with invalid data, logout, password reset request, rate limiting after 5 failed attempts, 2FA verification success/failure",
+        "Supabase client is properly mocked",
+        "All tests pass with 'npm run test'",
+        "Auth service has >80% line coverage",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Auth is the most critical service. Tests should verify rate limiting lockout behavior (5 attempts = 30-min lockout) and 2FA TOTP flow."
+    },
+    {
+      "id": "US-006",
+      "title": "Write unit tests for portfolio service",
+      "description": "Write unit tests for src/services/portfolio.ts covering CRUD operations for portfolios and holdings, P/L calculations, transaction recording, and subscription tier asset limits.",
+      "acceptanceCriteria": [
+        "Test file src/services/__tests__/portfolio.test.ts created",
+        "Tests cover: create/read/update/delete portfolio, add/remove holdings, transaction recording (buy/sell/transfer/staking), P/L calculation accuracy, asset limit enforcement by subscription tier",
+        "Supabase client and CoinGecko calls mocked",
+        "All tests pass",
+        "Portfolio service has >80% line coverage",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Portfolio is the core product feature. P/L calculations must be mathematically verified."
+    },
+    {
+      "id": "US-007",
+      "title": "Write unit tests for Stripe payment service",
+      "description": "Write unit tests for the Stripe integration covering checkout session creation, webhook event handling, subscription status updates, and portal session creation.",
+      "acceptanceCriteria": [
+        "Test file for Stripe service created",
+        "Tests cover: checkout session creation for all plan types (monthly, annual, lifetime, business, API tiers, tax packages), webhook signature verification, subscription status mapping, portal session creation",
+        "Stripe SDK properly mocked",
+        "All tests pass",
+        "Stripe service has >80% line coverage",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Stripe webhook handler is in functions/api/stripe-webhook.ts. Must verify correct subscription tier mapping from Stripe price IDs."
+    },
+    {
+      "id": "US-008",
+      "title": "Write component tests for authentication UI",
+      "description": "Write React component tests for the Login, Signup, and ForgotPassword page components. Test form validation, submission behavior, error display, and navigation.",
+      "acceptanceCriteria": [
+        "Test files created for Login, Signup, and ForgotPassword components",
+        "Tests cover: form renders correctly, validation messages appear for invalid input, successful submission calls auth service, error messages display on failure, navigation links work, loading states appear during submission",
+        "Auth service is mocked at the module level",
+        "All tests pass with @testing-library/react",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Use @testing-library/user-event for realistic user interaction simulation. Test the user-facing behavior, not implementation details."
+    },
+    {
+      "id": "US-009",
+      "title": "Write component tests for Dashboard and Portfolio UI",
+      "description": "Write React component tests for the Dashboard and Portfolio pages. Test data display, loading states, empty states, and user interactions like adding/removing holdings.",
+      "acceptanceCriteria": [
+        "Test files created for Dashboard and Portfolio components",
+        "Tests cover: loading skeleton displays while fetching, data renders correctly when loaded, empty state shown when no holdings, add holding interaction works, remove holding shows confirmation, portfolio summary calculations display correctly",
+        "API services and hooks properly mocked",
+        "All tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Dashboard uses React Query for data fetching - mock at the hook level or use QueryClient wrapper from test-utils."
+    },
+    {
+      "id": "US-010",
+      "title": "Configure Playwright E2E tests for critical flows",
+      "description": "Configure the existing Playwright installation with proper test configuration, base URL, and write E2E tests for the three most critical user flows: signup/login, portfolio management, and subscription checkout.",
+      "acceptanceCriteria": [
+        "playwright.config.ts created with baseURL, timeout, retries, and screenshot-on-failure settings",
+        "E2E test for auth flow: visit signup, fill form, verify redirect to dashboard, logout, login again",
+        "E2E test for portfolio flow: login, create portfolio, add holding, verify it appears, delete it",
+        "E2E test for checkout flow: visit pricing, select plan, verify redirect to Stripe checkout (using test mode)",
+        "All E2E tests pass against local dev server",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Playwright 1.57.0 already in devDependencies. Use Stripe test card 4242424242424242 for checkout tests. Tests should be independent and clean up after themselves."
+    },
+    {
+      "id": "US-011",
+      "title": "Add React Error Boundaries to all route segments",
+      "description": "Create a reusable ErrorBoundary component with a user-friendly fallback UI and integrate it at the route level so that errors in one page don't crash the entire application. Include error reporting to Sentry.",
+      "acceptanceCriteria": [
+        "src/components/ErrorBoundary.tsx created as a class component with componentDidCatch",
+        "Fallback UI shows friendly error message with 'Try Again' and 'Go Home' buttons",
+        "Error details sent to Sentry via @sentry/react if VITE_SENTRY_ENABLED is true",
+        "ErrorBoundary wraps each route segment in the router configuration",
+        "A top-level ErrorBoundary wraps the entire app as a last resort",
+        "Errors in one route don't crash other routes",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "@sentry/react is already installed. Use Sentry.ErrorBoundary or manual captureException. The fallback should match the existing design system (Tailwind classes)."
+    },
+    {
+      "id": "US-012",
+      "title": "Add loading skeletons for all async pages",
+      "description": "Create a reusable Skeleton component library and add loading skeleton states to all pages that fetch data asynchronously (Dashboard, Portfolio, Charts, Blog, Forum, Admin pages).",
+      "acceptanceCriteria": [
+        "src/components/ui/Skeleton.tsx created with configurable width, height, and variant (text, circle, rect, card)",
+        "Dashboard page shows skeleton layout while data loads",
+        "Portfolio page shows skeleton table while holdings load",
+        "Charts page shows skeleton chart placeholder while price data loads",
+        "Blog listing shows skeleton cards while articles load",
+        "All skeletons use consistent animation (pulse or shimmer)",
+        "No layout shift when data replaces skeletons",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Use Tailwind animate-pulse for skeleton animation. Match the exact layout dimensions of the loaded content to prevent CLS."
+    },
+    {
+      "id": "US-013",
+      "title": "Add global API error handling with retry logic",
+      "description": "Create a centralized API client wrapper that adds automatic retry logic with exponential backoff for transient failures, proper error typing, and toast notifications for user-facing errors.",
+      "acceptanceCriteria": [
+        "src/lib/apiClient.ts created with retry logic (3 retries, exponential backoff: 1s, 2s, 4s)",
+        "Retries only on 5xx errors and network failures, not on 4xx client errors",
+        "Error responses parsed into typed ApiError objects with status, message, and code",
+        "Integration with existing Toast context for user-facing error notifications",
+        "CoinGecko service updated to use the new API client",
+        "Supabase calls wrapped with consistent error handling",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "CoinGecko has rate limits (10-50 calls/min free tier) - retry logic must respect 429 responses with Retry-After header. Don't retry auth failures."
+    },
+    {
+      "id": "US-014",
+      "title": "Add comprehensive input validation with Zod schemas",
+      "description": "Create Zod validation schemas for all user-facing forms (signup, login, profile, portfolio, blog editor, scam report) and integrate them with form components to provide real-time validation feedback.",
+      "acceptanceCriteria": [
+        "src/lib/validationSchemas.ts created with Zod schemas for: signupForm, loginForm, profileForm, portfolioForm, holdingForm, blogPostForm, scamReportForm, priceAlertForm",
+        "Email validation uses proper RFC 5322 pattern",
+        "Password validation enforces minimum 8 chars, uppercase, lowercase, number, special character",
+        "Portfolio name limited to 100 chars, sanitized for XSS",
+        "All schemas export both the schema and inferred TypeScript type",
+        "At least 3 form components updated to use Zod validation with real-time error display",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Zod 4.3.4 already installed. Use z.string().email() for emails, z.string().min(8) for passwords. Export types with z.infer<typeof schema>."
+    },
+    {
+      "id": "US-015",
+      "title": "Add Content Security Policy and security headers",
+      "description": "Configure Content Security Policy (CSP) headers and other security headers (X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy, Permissions-Policy) in the Cloudflare Pages _headers file.",
+      "acceptanceCriteria": [
+        "public/_headers file created with security headers for all routes (/*)",
+        "CSP allows: self for scripts/styles, Supabase domain for API, CoinGecko for data, Stripe for payments, Sentry for monitoring, WalletConnect for Web3",
+        "X-Frame-Options set to DENY",
+        "X-Content-Type-Options set to nosniff",
+        "Strict-Transport-Security set with max-age=31536000 and includeSubDomains",
+        "Referrer-Policy set to strict-origin-when-cross-origin",
+        "Permissions-Policy restricts camera, microphone, geolocation",
+        "Application still functions correctly with all CSP rules applied",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "CSP must allow: *.supabase.co, api.coingecko.com, js.stripe.com, *.sentry.io, *.walletconnect.com, wss:// for WebSocket connections. Use report-uri for monitoring violations before enforcing."
+    },
+    {
+      "id": "US-016",
+      "title": "Audit and harden all API endpoint rate limiting",
+      "description": "Review and enhance rate limiting across all Cloudflare Worker API endpoints. Ensure consistent rate limit headers in responses and add rate limiting to any unprotected endpoints.",
+      "acceptanceCriteria": [
+        "All API endpoints in functions/api/ have rate limiting applied",
+        "Rate limit configuration centralized in a shared module",
+        "Response headers include X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset",
+        "429 responses include Retry-After header",
+        "Rate limits documented: auth=10/min, checkout=20/min, webhooks=500/min, public=200/min, default=100/min",
+        "Rate limit KV store (RATE_LIMIT_KV) properly used with TTL-based cleanup",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Current rate limiting uses Cloudflare KV namespace RATE_LIMIT_KV. Some endpoints may be missing rate limiting. Check all files in functions/api/."
+    },
+    {
+      "id": "US-017",
+      "title": "Add CSRF protection to all state-changing endpoints",
+      "description": "Implement CSRF token generation and validation for all POST/PUT/DELETE API endpoints. Generate tokens server-side, pass them to the frontend via meta tags or cookies, and validate on every mutation request.",
+      "acceptanceCriteria": [
+        "CSRF token generation utility created in functions/api/_middleware.ts or shared module",
+        "Tokens are cryptographically random (256-bit), tied to user session, and expire after 1 hour",
+        "All state-changing API endpoints validate CSRF token from X-CSRF-Token header",
+        "Frontend API client automatically includes CSRF token in mutation requests",
+        "Missing or invalid CSRF token returns 403 Forbidden",
+        "CSRF validation skipped for webhook endpoints (Stripe) that use their own signature verification",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Stripe webhooks use signature verification and should be exempt from CSRF. Use crypto.randomUUID() or crypto.getRandomValues() in Cloudflare Workers."
+    },
+    {
+      "id": "US-018",
+      "title": "Add XSS sanitization to all user-generated content displays",
+      "description": "Audit all locations where user-generated content is rendered (forum posts, blog comments, success stories, scam reports, profile bios) and ensure DOMPurify sanitization is applied consistently before rendering.",
+      "acceptanceCriteria": [
+        "src/lib/sanitize.ts created with typed sanitization functions: sanitizeHTML, sanitizeMarkdown, sanitizeText, sanitizeSVG",
+        "All forum post content sanitized before rendering",
+        "All blog article content (especially TipTap editor output) sanitized",
+        "Success story submissions sanitized on both client and server",
+        "Scam report details sanitized",
+        "User profile fields (display name, bio) sanitized",
+        "React-markdown components use custom sanitized renderers",
+        "DOMPurify configured to strip dangerous tags (script, iframe, object, embed) while allowing safe formatting",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "DOMPurify 3.3.1 already installed. The TipTap rich text editor output needs special attention - allow formatting tags but strip scripts. react-markdown should use rehype-sanitize."
+    },
+    {
+      "id": "US-019",
+      "title": "Optimize images and add lazy loading",
+      "description": "Create an optimized Image component that implements lazy loading, WebP format support with fallbacks, responsive srcset attributes, and blur-up placeholder loading pattern.",
+      "acceptanceCriteria": [
+        "src/components/ui/OptimizedImage.tsx created with lazy loading (loading='lazy' + IntersectionObserver for below-fold images)",
+        "Component supports width/height to prevent CLS (Cumulative Layout Shift)",
+        "Blur-up placeholder shown while image loads using a tiny base64 thumbnail or CSS gradient",
+        "Images in the static data files (courses, guides, exchanges, wallets) updated to use OptimizedImage",
+        "Home page hero section and above-fold images use eager loading, not lazy",
+        "Alt text required via TypeScript prop validation",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "Cloudflare Pages supports image transformations. Use native loading='lazy' for broad browser support. Priority images (LCP candidates) must not be lazy loaded."
+    },
+    {
+      "id": "US-020",
+      "title": "Implement code splitting for route-based lazy loading",
+      "description": "Convert all page-level route imports to React.lazy() with Suspense boundaries. Ensure each route loads only the code needed for that specific page, reducing initial bundle size.",
+      "acceptanceCriteria": [
+        "All page components in src/pages/ imported via React.lazy()",
+        "Each lazy route wrapped in Suspense with a consistent loading fallback component",
+        "Home page and Login page remain eagerly loaded (critical path)",
+        "Admin pages grouped into a single lazy chunk",
+        "Web3 feature pages grouped into a single lazy chunk",
+        "Calculator pages grouped into a single lazy chunk",
+        "Initial JS bundle reduced by at least 30% compared to before",
+        "No flash of unstyled content during route transitions",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Vite already has manual chunks configured in vite.config.ts. React.lazy works with Vite code splitting. Use the Skeleton component from US-012 as the Suspense fallback."
+    },
+    {
+      "id": "US-021",
+      "title": "Add service worker for offline support and caching",
+      "description": "Implement a service worker using Workbox that caches static assets, provides offline fallback pages, and implements stale-while-revalidate for API responses.",
+      "acceptanceCriteria": [
+        "workbox-webpack-plugin or vite-plugin-pwa installed and configured",
+        "Service worker caches: static assets (JS, CSS, fonts) with cache-first strategy, API responses with stale-while-revalidate, images with cache-first + 30-day expiry",
+        "Offline fallback page shown when network is unavailable",
+        "Service worker updates automatically with skipWaiting and clientsClaim",
+        "Cache versioning ensures stale caches are cleaned up on deploy",
+        "Portfolio data cached locally for offline viewing",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "Use vite-plugin-pwa for best Vite integration. Be careful not to cache Stripe.js or Supabase auth tokens. Only cache public, non-sensitive data."
+    },
+    {
+      "id": "US-022",
+      "title": "Configure Sentry error tracking and performance monitoring",
+      "description": "Properly configure the existing @sentry/react integration with environment-specific settings, source maps upload, user context, and performance monitoring for Core Web Vitals.",
+      "acceptanceCriteria": [
+        "Sentry.init() configured in src/main.tsx with DSN from VITE_SENTRY_DSN",
+        "Environment set dynamically (development, staging, production)",
+        "Release version set from package.json version or git commit hash",
+        "Sentry.setUser() called on login with user ID (no PII)",
+        "BrowserTracing integration enabled for automatic performance monitoring",
+        "React profiler integration enabled for component render tracking",
+        "Source maps uploaded during build (via @sentry/vite-plugin)",
+        "Error sampling rate: 100% for errors, 20% for transactions in production",
+        "Sensitive data (tokens, passwords) scrubbed from error reports via beforeSend",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "@sentry/react 10.32.1 already installed. VITE_SENTRY_DSN and VITE_SENTRY_ENABLED already in env vars. Add @sentry/vite-plugin for source map uploads."
+    },
+    {
+      "id": "US-023",
+      "title": "Add structured logging to Cloudflare Workers",
+      "description": "Implement structured JSON logging in all Cloudflare Worker functions with consistent log levels, request tracing, and correlation IDs for debugging production issues.",
+      "acceptanceCriteria": [
+        "functions/api/_shared/logger.ts created with structured log functions: info, warn, error, debug",
+        "Each log entry includes: timestamp, level, message, correlationId, requestPath, duration",
+        "All API endpoints updated to use the structured logger",
+        "Request/response logging middleware added to functions/api/_middleware.ts",
+        "Correlation ID generated per request and passed through all function calls",
+        "Error logs include stack traces and request context",
+        "Sensitive data (API keys, tokens, passwords) never logged",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Cloudflare Workers use console.log() which goes to 'wrangler tail'. Structure logs as JSON for easy parsing. Use crypto.randomUUID() for correlation IDs."
+    },
+    {
+      "id": "US-024",
+      "title": "Add health check and status endpoints",
+      "description": "Create health check API endpoints that verify the status of all critical dependencies (Supabase, Stripe, CoinGecko, email service) and return a structured health status response.",
+      "acceptanceCriteria": [
+        "GET /api/health endpoint returns overall system health status",
+        "Health check verifies: Supabase connection (simple query), Stripe API reachability, CoinGecko API availability, KV store accessibility",
+        "Response format: { status: 'healthy'|'degraded'|'unhealthy', checks: { supabase: { status, latencyMs }, stripe: {...}, coingecko: {...} }, timestamp, version }",
+        "Individual check failures result in 'degraded' status, not full failure",
+        "Endpoint is unauthenticated but rate-limited (10 req/min)",
+        "GET /api/health/ready returns 200 only when all critical dependencies are healthy (for load balancer health checks)",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "Health endpoints are critical for production monitoring. Keep checks lightweight - don't do heavy queries. Cache results for 30 seconds to prevent thundering herd."
+    },
+    {
+      "id": "US-025",
+      "title": "Create GitHub Actions CI pipeline",
+      "description": "Set up a GitHub Actions workflow that runs on every push and pull request to perform linting, type checking, unit tests, and build verification automatically.",
+      "acceptanceCriteria": [
+        ".github/workflows/ci.yml created",
+        "Workflow triggers on: push to main/develop, pull_request to main/develop",
+        "Pipeline steps: checkout, setup Node 20, install deps (with npm ci), lint (npm run lint), typecheck (tsc --noEmit), unit tests (npm run test), build (npm run build)",
+        "Test results reported as GitHub check annotations",
+        "Build artifacts uploaded for deployment pipeline",
+        "Pipeline completes in under 5 minutes for typical changes",
+        "Branch protection rules documented for requiring CI to pass",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "Use actions/cache for node_modules to speed up builds. Run lint, typecheck, and test in parallel jobs for faster feedback."
+    },
+    {
+      "id": "US-026",
+      "title": "Create GitHub Actions CD deployment pipeline",
+      "description": "Set up automated deployment to Cloudflare Pages and Workers via GitHub Actions. Deploy automatically on merge to main, with manual approval for production releases.",
+      "acceptanceCriteria": [
+        ".github/workflows/deploy.yml created",
+        "Triggers on: push to main branch (auto-deploy), manual workflow_dispatch for production",
+        "Deploys frontend to Cloudflare Pages using wrangler-action",
+        "Deploys price-alerts-cron and newsletter-cron workers",
+        "Cloudflare API token stored as GitHub secret (CLOUDFLARE_API_TOKEN)",
+        "Deployment status reported to GitHub Deployments",
+        "Rollback instructions documented in case of failed deploy",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": "Use cloudflare/wrangler-action@v3 for deployments. Secrets must be configured in Cloudflare Dashboard, not in GitHub Actions."
+    },
+    {
+      "id": "US-027",
+      "title": "Add dependency security scanning",
+      "description": "Set up automated dependency vulnerability scanning using GitHub Dependabot and npm audit. Configure alerts for critical and high severity vulnerabilities.",
+      "acceptanceCriteria": [
+        ".github/dependabot.yml created with weekly npm dependency checks",
+        "GitHub Actions workflow runs 'npm audit --audit-level=high' on every PR",
+        "Known vulnerabilities documented with remediation plan or justification for acceptance",
+        "package.json has 'audit' script that runs npm audit",
+        "Critical/high vulnerabilities in direct dependencies resolved or documented with risk acceptance",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": "Some Web3 libraries may have known vulnerabilities in transitive dependencies that are not exploitable in browser context - document these exceptions."
+    },
+    {
+      "id": "US-028",
+      "title": "Create OpenAPI specification for public API",
+      "description": "Write an OpenAPI 3.0 specification documenting all public API endpoints including the v1 market data API, portfolio API, and health endpoints. Include request/response schemas, authentication requirements, and rate limits.",
+      "acceptanceCriteria": [
+        "docs/openapi.yaml created with OpenAPI 3.0.3 specification",
+        "All /api/v1/* endpoints documented with request/response schemas",
+        "Health check endpoints documented",
+        "Authentication schemes documented (Bearer token, API key)",
+        "Rate limiting documented per endpoint group",
+        "Error response schemas defined (400, 401, 403, 404, 429, 500)",
+        "Example requests and responses included for each endpoint",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "API routes are in functions/api/v1/. Reference existing API tier pricing: Starter ($29/mo) and Professional ($79/mo). Include pagination schemas."
+    },
+    {
+      "id": "US-029",
+      "title": "Add API versioning headers and deprecation strategy",
+      "description": "Implement API versioning via URL path (/api/v1/) and add version headers to all responses. Create a middleware that handles version negotiation and adds deprecation warnings for older versions.",
+      "acceptanceCriteria": [
+        "All API responses include X-API-Version header with current version",
+        "API middleware in functions/api/_middleware.ts adds version header automatically",
+        "Deprecated endpoints return Deprecation and Sunset headers per RFC 8594",
+        "API versioning strategy documented in docs/API_VERSIONING.md",
+        "V1 endpoints remain stable and backward-compatible",
+        "New endpoint structure supports future v2 without breaking v1",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "Current API is at v1 (functions/api/v1/). Versioning via URL path is already in place - this story formalizes the strategy and adds headers."
+    },
+    {
+      "id": "US-030",
+      "title": "Add database migration CI validation",
+      "description": "Create a CI step that validates all Supabase SQL migrations are syntactically correct, ordered properly, and don't have conflicts. Add a migration linting script.",
+      "acceptanceCriteria": [
+        "Script tools/validate-migrations.ts created that checks: all migration files have correct timestamp prefix, no duplicate timestamps, SQL syntax validation (basic parsing), migrations are in chronological order",
+        "Script can be run via 'npm run validate:migrations' in package.json",
+        "Script integrated into GitHub Actions CI pipeline",
+        "All 37 existing migrations pass validation",
+        "Script reports clear errors for invalid migrations",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "Migrations are in supabase/migrations/ with timestamp prefixes like 20241217_. Some have inconsistent naming (202512040000500_) - flag these but don't fail."
+    },
+    {
+      "id": "US-031",
+      "title": "Add WCAG 2.1 AA accessibility to navigation and forms",
+      "description": "Audit and fix accessibility issues in the main navigation, all form components, and modal dialogs. Ensure keyboard navigation, screen reader support, and proper ARIA attributes.",
+      "acceptanceCriteria": [
+        "Skip navigation link added as first focusable element on every page",
+        "Main navigation fully keyboard navigable (Tab, Enter, Escape for dropdowns)",
+        "All form inputs have associated <label> elements or aria-label",
+        "Form error messages associated with inputs via aria-describedby",
+        "Required fields marked with aria-required='true'",
+        "Modal dialogs trap focus, close on Escape, and return focus on close",
+        "All interactive elements have visible focus indicators (focus-visible ring)",
+        "Color contrast ratios meet 4.5:1 minimum for text, 3:1 for large text",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": "Use Tailwind's focus-visible: utilities for focus indicators. Test with keyboard-only navigation. Don't add aria-label to elements that already have visible text labels."
+    },
+    {
+      "id": "US-032",
+      "title": "Add screen reader announcements for dynamic content",
+      "description": "Implement ARIA live regions for dynamic content updates including price changes, portfolio updates, toast notifications, and form submission results.",
+      "acceptanceCriteria": [
+        "src/components/ui/LiveRegion.tsx created with aria-live='polite' and aria-live='assertive' variants",
+        "Price updates on dashboard announce changes via polite live region",
+        "Toast notifications use assertive live region for immediate announcement",
+        "Form submission success/error messages announced to screen readers",
+        "Portfolio add/remove actions announced",
+        "Loading state changes announced ('Loading portfolio...' → 'Portfolio loaded')",
+        "Live regions don't cause excessive announcements (debounced where appropriate)",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": "Use aria-live='polite' for most updates, 'assertive' only for critical alerts. Debounce rapid price updates to avoid overwhelming screen readers."
+    },
+    {
+      "id": "US-033",
+      "title": "Add structured data (JSON-LD) for SEO",
+      "description": "Add JSON-LD structured data to key pages for rich search results. Include Organization, WebSite, Article, FAQPage, Product, and BreadcrumbList schemas.",
+      "acceptanceCriteria": [
+        "src/components/SEO/StructuredData.tsx created to render JSON-LD script tags",
+        "Home page includes Organization and WebSite schemas",
+        "Blog posts include Article schema with author, datePublished, dateModified",
+        "Pricing page includes Product schemas for each subscription tier",
+        "FAQ/Glossary pages include FAQPage schema",
+        "All pages with breadcrumbs include BreadcrumbList schema",
+        "Calculator pages include SoftwareApplication schema",
+        "JSON-LD validates with Google Rich Results Test format",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": "Use schema.org vocabulary. Existing useSEO hook can be extended to include structured data. Don't add structured data for pages that don't benefit from it."
+    },
+    {
+      "id": "US-034",
+      "title": "Optimize meta tags and Open Graph for social sharing",
+      "description": "Ensure all pages have proper meta tags (title, description, canonical) and Open Graph tags (og:title, og:description, og:image, og:url) for social media sharing. Add Twitter Card meta tags.",
+      "acceptanceCriteria": [
+        "useSEO hook enhanced to support og:image, og:type, twitter:card, twitter:site properties",
+        "Every page has a unique <title> and meta description",
+        "Canonical URLs set on all pages to prevent duplicate content issues",
+        "Blog posts have og:type='article' with og:article:published_time and og:article:author",
+        "Default og:image fallback set for pages without specific images",
+        "Twitter card type set to 'summary_large_image' for content pages",
+        "Meta tags render correctly in view-source (SSR consideration documented if applicable)",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": "Since this is a client-side React SPA, meta tags set via document.head may not be visible to all crawlers. Document this limitation and note that SSR/prerendering may be needed for full SEO."
+    },
+    {
+      "id": "US-035",
+      "title": "Enhance sitemap generation with all dynamic routes",
+      "description": "Improve the existing /api/sitemap.xml endpoint to include all static pages, dynamic blog post URLs, glossary terms, calculator pages, and proper priority/changefreq attributes.",
+      "acceptanceCriteria": [
+        "Sitemap includes all 50+ static page routes with appropriate priority (1.0 for home, 0.8 for features, 0.6 for docs)",
+        "Blog post URLs dynamically fetched from Supabase and included",
+        "Glossary term pages included if they have individual routes",
+        "lastmod timestamps reflect actual last modification dates",
+        "changefreq set appropriately: daily for blog, weekly for features, monthly for static",
+        "Sitemap validates against sitemaps.org schema",
+        "robots.txt references the sitemap URL",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": "Existing sitemap endpoint is at functions/api/sitemap.xml.ts. robots.txt should be in the public/ directory."
+    },
+    {
+      "id": "US-036",
+      "title": "Add Role-Based Access Control (RBAC) system",
+      "description": "Implement a comprehensive RBAC system with defined roles (user, premium, advisor, admin, super_admin), permissions, and a permission checking utility that integrates with the existing auth system.",
+      "acceptanceCriteria": [
+        "src/lib/rbac.ts created with Role enum, Permission enum, and role-permission mapping",
+        "Roles defined: user (free), premium (subscriber), advisor (business plan), admin, super_admin",
+        "Permissions defined for: portfolio (read/write/share), blog (read/create/edit/delete/publish), forum (read/post/moderate), admin (users/subscriptions/analytics/content), api (read/write)",
+        "usePermission() hook created that checks current user's role against required permission",
+        "ProtectedRoute component updated to accept required permissions (not just auth check)",
+        "Admin routes restricted to admin/super_admin roles",
+        "Advisor routes restricted to advisor role and above",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": "Current system has basic role check (user.is_admin). This story formalizes it into a proper RBAC. Keep backward compatible with existing AdminRoute component."
+    },
+    {
+      "id": "US-037",
+      "title": "Add comprehensive audit logging for admin actions",
+      "description": "Implement an audit logging system that records all admin actions (user management, content moderation, subscription changes, system configuration) with timestamps, actor, action, and affected resources.",
+      "acceptanceCriteria": [
+        "Supabase migration adds audit_logs table: id, actor_id, actor_role, action, resource_type, resource_id, details (JSONB), ip_address, timestamp",
+        "src/services/auditLog.ts created with logAction() function",
+        "Admin user management actions logged (ban, unban, role change, delete)",
+        "Content moderation actions logged (approve, reject, flag, delete)",
+        "Subscription override actions logged",
+        "Admin analytics page shows filterable audit log table",
+        "Audit logs are append-only (no UPDATE or DELETE allowed via RLS)",
+        "Typecheck passes"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": "Audit logs must be immutable. RLS policy should allow INSERT for admins and SELECT for super_admins only. Regular admins can see their own audit entries."
+    },
+    {
+      "id": "US-038",
+      "title": "Add data export and GDPR compliance tools",
+      "description": "Implement user data export (download all my data) and account deletion functionality to comply with GDPR/CCPA requirements. Add privacy controls to user profile settings.",
+      "acceptanceCriteria": [
+        "Profile settings page has 'Download My Data' button that exports all user data as JSON",
+        "Export includes: profile, portfolios, holdings, transactions, alerts, forum posts, settings",
+        "Profile settings has 'Delete My Account' with confirmation flow requiring password re-entry",
+        "Account deletion soft-deletes user data (30-day recovery window) then hard-deletes",
+        "Deletion cascades properly to all related tables (holdings, transactions, posts, etc.)",
+        "Email notification sent on data export and deletion request",
+        "Privacy policy page updated to reference data export and deletion rights",
+        "Typecheck passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": "GDPR Article 17 (Right to Erasure) and Article 20 (Right to Data Portability). Stripe customer data must be handled separately via Stripe API. Don't delete audit logs."
+    },
+    {
+      "id": "US-039",
+      "title": "Add Web Vitals monitoring and performance dashboard",
+      "description": "Implement Core Web Vitals tracking (LCP, FID, CLS, TTFB, INP) using the existing useWebVitals hook, report metrics to an analytics endpoint, and create an admin performance dashboard.",
+      "acceptanceCriteria": [
+        "useWebVitals hook enhanced to report LCP, FID/INP, CLS, TTFB, FCP metrics",
+        "Metrics sent to /api/log-performance endpoint (new) in batches",
+        "Performance data stored in Supabase table: web_vitals (page, metric, value, timestamp, user_agent, connection_type)",
+        "Admin dashboard page /admin/performance shows: p50/p75/p95 for each metric, trend charts over time, breakdown by page route, breakdown by device type",
+        "Performance budgets defined: LCP < 2.5s, FID < 100ms, CLS < 0.1, INP < 200ms",
+        "Alerts triggered when p75 exceeds budget thresholds",
+        "Typecheck passes"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": "Existing useWebVitals hook is in src/hooks/. Use web-vitals library for standardized metric collection. Report in batches to avoid excessive API calls."
+    },
+    {
+      "id": "US-040",
+      "title": "Add environment configuration management",
+      "description": "Create a typed environment configuration system that validates all required environment variables at startup, provides defaults for optional ones, and fails fast with clear error messages for missing required vars.",
+      "acceptanceCriteria": [
+        "src/lib/env.ts created with Zod schema validating all VITE_ environment variables",
+        "Schema defines which vars are required vs optional with defaults",
+        "Application fails fast on startup with clear message if required vars are missing",
+        "Type-safe access: env.SUPABASE_URL instead of import.meta.env.VITE_SUPABASE_URL",
+        "functions/api/_shared/env.ts created for Cloudflare Worker environment validation",
+        "Worker env validates: STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY at request time",
+        ".env.example file updated with all variables and descriptions",
+        "Typecheck passes"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": "Vite exposes VITE_ prefixed vars via import.meta.env. Cloudflare Workers receive env as function parameter. Both need validation but with different mechanisms."
+    },
+    {
+      "id": "US-041",
+      "title": "Add database connection pooling and query optimization",
+      "description": "Optimize Supabase client configuration with connection pooling, add query performance monitoring, and optimize the most frequently called queries with proper indexing recommendations.",
+      "acceptanceCriteria": [
+        "Supabase client configured with proper connection settings (persistSession, autoRefreshToken, detectSessionInUrl)",
+        "Database queries in top 5 most-called services optimized with select() column filtering (no SELECT *)",
+        "Supabase migration adds indexes for: holdings(portfolio_id), transactions(portfolio_id, created_at), price_alerts(user_id, is_active), articles(slug, published), forum_posts(created_at, is_published)",
+        "Query performance baseline documented for key operations",
+        "React Query configured with proper staleTime (5min) and cacheTime (30min) for each query type",
+        "Unnecessary re-fetches eliminated via proper query key management",
+        "Typecheck passes"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": "Supabase uses PostgREST which handles connection pooling at the infrastructure level. Focus on query optimization and React Query cache configuration."
+    },
+    {
+      "id": "US-042",
+      "title": "Add data backup and recovery documentation",
+      "description": "Document the database backup strategy, create backup verification scripts, and add a disaster recovery runbook for the production Supabase instance.",
+      "acceptanceCriteria": [
+        "docs/BACKUP_AND_RECOVERY.md created with: automated backup schedule (Supabase built-in daily backups), manual backup procedure using pg_dump, point-in-time recovery steps, data restoration procedure",
+        "Script tools/backup-verify.sh created that tests backup connectivity and basic restore to a test database",
+        "Recovery Time Objective (RTO) and Recovery Point Objective (RPO) defined and documented",
+        "Runbook includes: incident response steps, communication templates, escalation contacts",
+        "Stripe data recovery documented (separate from database)",
+        "Cloudflare KV data recovery documented",
+        "Typecheck passes"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": "Supabase Pro plan includes daily automated backups with 7-day retention. Document how to access these and supplement with custom backup scripts."
+    },
+    {
+      "id": "US-043",
+      "title": "Add comprehensive README and developer onboarding guide",
+      "description": "Create a professional README.md with project overview, architecture diagram, setup instructions, development workflow, and contribution guidelines. Create a separate CONTRIBUTING.md.",
+      "acceptanceCriteria": [
+        "README.md includes: project description, key features list, architecture overview (frontend/backend/database/infra), tech stack badges, prerequisites (Node 20+, npm), quick start (clone, install, configure env, run), available npm scripts, project structure overview, deployment instructions",
+        "CONTRIBUTING.md includes: branch naming conventions, commit message format, PR template, code style guide, testing requirements",
+        "Architecture diagram shows: React SPA → Cloudflare Pages → API Functions → Supabase + External APIs",
+        "Environment setup clearly lists all required and optional env vars",
+        "Common issues and troubleshooting section included",
+        "Typecheck passes"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": "Current README may exist but is likely outdated. The docs/ folder has 31 files but no consolidated getting-started guide. This should be the single entry point for new developers."
+    },
+    {
+      "id": "US-044",
+      "title": "Add feature flags system for gradual rollouts",
+      "description": "Implement a simple feature flags system using Supabase that allows enabling/disabling features per user, per role, or globally without code deployments.",
+      "acceptanceCriteria": [
+        "Supabase migration adds feature_flags table: id, flag_key, description, enabled_globally, enabled_roles (text[]), enabled_users (uuid[]), created_at, updated_at",
+        "src/services/featureFlags.ts created with: isFeatureEnabled(flagKey, userId?, role?) function",
+        "useFeatureFlag(flagKey) React hook created for conditional rendering",
+        "Admin page /admin/feature-flags for managing flags (toggle, set roles, set users)",
+        "Feature flags cached client-side with 5-minute TTL to reduce database calls",
+        "At least 3 existing features wrapped in feature flags (e.g., web3Features, socialTrading, aiAssistant)",
+        "Typecheck passes"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": "Keep this simple - no need for a full feature flag service like LaunchDarkly. A Supabase table + React hook is sufficient for this scale."
+    },
+    {
+      "id": "US-045",
+      "title": "Add rate limit dashboard and abuse detection",
+      "description": "Create an admin dashboard showing API rate limit usage, blocked requests, and potential abuse patterns. Add automated alerting for sustained rate limit violations.",
+      "acceptanceCriteria": [
+        "Admin page /admin/rate-limits shows: requests per endpoint over time, top rate-limited IPs, blocked request count by endpoint, abuse pattern detection (sustained 429s from same IP)",
+        "Rate limit data aggregated from Cloudflare KV store into Supabase for historical analysis",
+        "Automated alert (email to admin) when an IP exceeds rate limits 50+ times in 1 hour",
+        "IP block list management: admin can manually block/unblock IPs",
+        "Dashboard shows real-time rate limit status for each endpoint category",
+        "Typecheck passes"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": "Rate limit data is in RATE_LIMIT_KV. Need a scheduled worker or API endpoint to aggregate this data. Keep the UI simple and focused on actionable insights."
+    },
+    {
+      "id": "US-046",
+      "title": "Add email template system for transactional emails",
+      "description": "Create a templated email system with responsive HTML email templates for all transactional emails (welcome, password reset, price alerts, newsletter, subscription confirmations).",
+      "acceptanceCriteria": [
+        "src/email-templates/ directory created with HTML template files",
+        "Templates created for: welcome, password-reset, price-alert, subscription-confirmed, subscription-cancelled, weekly-newsletter, data-export-ready, account-deletion-warning",
+        "All templates are responsive (mobile-friendly) using inline CSS",
+        "Templates use a consistent brand design (logo, colors, footer with unsubscribe link)",
+        "Template rendering function accepts data object and returns HTML string",
+        "Unsubscribe link included in all marketing emails (CAN-SPAM compliance)",
+        "Templates tested with Litmus or Email on Acid for cross-client rendering",
+        "Typecheck passes"
+      ],
+      "priority": 46,
+      "passes": false,
+      "notes": "Resend API and AWS SES are already configured for sending. Focus on the template HTML. Email HTML is notoriously tricky - use tables for layout, inline styles, and test in major clients."
+    },
+    {
+      "id": "US-047",
+      "title": "Add multi-tenant data isolation for business plans",
+      "description": "Implement data isolation between business plan organizations (Advisor and Enterprise tiers) so that each organization's data is completely segregated with organization-level admin controls.",
+      "acceptanceCriteria": [
+        "Supabase migration adds organizations table: id, name, plan_tier, owner_id, created_at",
+        "Supabase migration adds organization_members table: org_id, user_id, role (owner, admin, member), invited_at, joined_at",
+        "RLS policies updated so organization members only see their org's data",
+        "Organization admin can: invite/remove members, view org-wide portfolio analytics, manage billing",
+        "Data queries automatically scoped to user's organization when applicable",
+        "Free/premium users unaffected (null organization_id)",
+        "Typecheck passes"
+      ],
+      "priority": 47,
+      "passes": false,
+      "notes": "Business plans: Advisor ($49/mo) and Enterprise ($99/mo). Multi-tenancy is essential for enterprise. Use RLS policies with organization_id for data isolation."
+    },
+    {
+      "id": "US-048",
+      "title": "Add API key management for developer portal",
+      "description": "Enhance the existing developer portal with proper API key lifecycle management including key generation, rotation, revocation, usage tracking, and quota enforcement per API tier.",
+      "acceptanceCriteria": [
+        "Developer portal page shows all active API keys with creation date and last used timestamp",
+        "Generate new API key with name/description (key shown once, then hashed)",
+        "Revoke API key with confirmation dialog",
+        "Rotate API key (generates new, optionally keeps old active for grace period)",
+        "Usage dashboard shows: requests today, requests this month, quota remaining, rate limit status",
+        "API keys enforce tier limits: Starter (10K req/mo), Professional (100K req/mo)",
+        "Email notification when usage reaches 80% and 100% of quota",
+        "Typecheck passes"
+      ],
+      "priority": 48,
+      "passes": false,
+      "notes": "api_access table already exists in database. API tiers already defined: Starter ($29/mo monthly, $290/yr yearly), Professional ($79/mo monthly, $790/yr yearly)."
+    },
+    {
+      "id": "US-049",
+      "title": "Add comprehensive error pages (404, 500, 403, maintenance)",
+      "description": "Create polished, branded error pages for all HTTP error states with helpful messaging, navigation options, and error reporting. Include a maintenance mode page.",
+      "acceptanceCriteria": [
+        "404 page redesigned with: search bar, suggested popular pages, 'Go Home' button, animation/illustration",
+        "500 page created with: friendly error message, error ID for support reference, 'Try Again' button, link to status page",
+        "403 page created with: 'Access Denied' message, login prompt if unauthenticated, upgrade prompt if subscription-gated",
+        "Maintenance mode page created with: estimated return time, email signup for notification, social media links",
+        "Feature flag controls maintenance mode (from US-044 or environment variable)",
+        "All error pages match the existing design system",
+        "Typecheck passes"
+      ],
+      "priority": 49,
+      "passes": false,
+      "notes": "Current 404 page exists but may need polish. 500 and 403 pages likely don't exist. Maintenance mode can be triggered via feature flag or MAINTENANCE_MODE env var."
+    },
+    {
+      "id": "US-050",
+      "title": "Add end-to-end encryption for sensitive user data",
+      "description": "Implement client-side encryption for sensitive user data (API keys, wallet private notes, personal financial data) before storing in Supabase, with decryption only on the user's device.",
+      "acceptanceCriteria": [
+        "src/lib/encryption.ts created using Web Crypto API (AES-256-GCM)",
+        "Encryption key derived from user's password via PBKDF2 (100K iterations, SHA-256)",
+        "Encrypted fields: API keys stored by user, wallet notes/labels, custom portfolio notes with financial details",
+        "Encryption/decryption happens client-side only - server never sees plaintext",
+        "Key derivation cached in memory (sessionStorage) for session duration",
+        "User prompted to enter password for decryption if session expired",
+        "Clear documentation that password reset will make encrypted data unrecoverable (or implement key escrow)",
+        "Typecheck passes"
+      ],
+      "priority": 50,
+      "passes": false,
+      "notes": "Use SubtleCrypto API available in all modern browsers. AES-256-GCM provides both encryption and authentication. This is for additional data protection, not replacing HTTPS/TLS."
+    },
+    {
+      "id": "US-051",
+      "title": "Add webhook system for external integrations",
+      "description": "Build a webhook delivery system that allows enterprise users to receive real-time notifications for events (price alerts triggered, portfolio changes, subscription events) via HTTP callbacks.",
+      "acceptanceCriteria": [
+        "Supabase migration adds webhook_endpoints table: id, user_id, url, secret, events (text[]), is_active, created_at",
+        "Supabase migration adds webhook_deliveries table: id, endpoint_id, event, payload, status, attempts, response_code, delivered_at",
+        "Developer portal has webhook management UI: add endpoint URL, select events, view delivery history",
+        "Webhook payloads signed with HMAC-SHA256 using endpoint secret",
+        "Failed deliveries retried 3 times with exponential backoff (1min, 5min, 30min)",
+        "Webhook events: price_alert.triggered, portfolio.updated, subscription.changed",
+        "Delivery history shows last 100 deliveries with status and response",
+        "Typecheck passes"
+      ],
+      "priority": 51,
+      "passes": false,
+      "notes": "Enterprise feature. Use HMAC-SHA256 for webhook signatures (same pattern as Stripe webhooks). Delivery via Cloudflare Worker scheduled or triggered by database changes."
+    },
+    {
+      "id": "US-052",
+      "title": "Add internationalization (i18n) infrastructure",
+      "description": "Set up the i18n infrastructure using react-i18next so the platform can be translated into multiple languages. Extract all user-facing strings from core pages into translation files.",
+      "acceptanceCriteria": [
+        "react-i18next and i18next installed and configured",
+        "src/i18n/ directory created with: config.ts, locales/en.json as default locale",
+        "Translation namespace structure: common, auth, dashboard, portfolio, pricing, errors",
+        "At least the following pages fully extracted to translation keys: Home, Login, Signup, Pricing, Dashboard",
+        "useTranslation() hook used in extracted components",
+        "Language selector component created (hidden until more languages are added)",
+        "Locale detection from browser preferences implemented",
+        "Pluralization and interpolation patterns documented for translators",
+        "Typecheck passes"
+      ],
+      "priority": 52,
+      "passes": false,
+      "notes": "Start with English extraction only - actual translations come later. The infrastructure is what matters for enterprise readiness. Use namespaced translation keys."
+    },
+    {
+      "id": "US-053",
+      "title": "Add comprehensive admin analytics dashboard",
+      "description": "Enhance the admin analytics page with key business metrics: MRR, churn rate, user growth, feature adoption, conversion funnels, and cohort analysis.",
+      "acceptanceCriteria": [
+        "Admin analytics shows: MRR (Monthly Recurring Revenue) from Stripe, active subscriber count by tier, churn rate (monthly), new user signups over time (daily/weekly/monthly chart)",
+        "Feature adoption metrics: % users using portfolio tracker, % using price alerts, % using Web3 features, % using forum",
+        "Conversion funnel: visitor → signup → free user → premium subscriber with drop-off rates",
+        "Revenue per user segment (free, premium, advisor, enterprise)",
+        "Data exportable as CSV",
+        "Dashboard loads within 3 seconds",
+        "Typecheck passes"
+      ],
+      "priority": 53,
+      "passes": false,
+      "notes": "MRR data may need to come from Stripe API or be calculated from subscription records in Supabase. Use Chart.js (already installed) for visualizations."
+    },
+    {
+      "id": "US-054",
+      "title": "Add automated newsletter content generation pipeline",
+      "description": "Enhance the weekly newsletter automation with content curation from blog posts, price movements, and platform updates. Create newsletter preview and approval workflow for admins.",
+      "acceptanceCriteria": [
+        "Newsletter worker automatically curates: top 3 blog posts of the week, notable price movements (>10% change), new platform features, upcoming webinars/events",
+        "Admin page /admin/newsletter shows preview of next newsletter before sending",
+        "Admin can edit, approve, or reject the auto-generated newsletter",
+        "Newsletter includes personalized elements: user's portfolio performance summary (opt-in), relevant price alerts",
+        "Unsubscribe link works correctly and immediately removes from list",
+        "Newsletter metrics tracked: open rate, click-through rate, unsubscribe rate",
+        "Typecheck passes"
+      ],
+      "priority": 54,
+      "passes": false,
+      "notes": "Newsletter worker is in workers/weekly-newsletter-cron.ts, deployed via wrangler-newsletter.toml. Resend API handles sending. Enhance the content generation logic."
+    },
+    {
+      "id": "US-055",
+      "title": "Add SSL certificate pinning and API security hardening",
+      "description": "Implement additional API security measures including request signing for sensitive endpoints, API key hashing with bcrypt, and certificate transparency monitoring.",
+      "acceptanceCriteria": [
+        "API keys stored as bcrypt hashes in database, never plaintext",
+        "Sensitive mutation endpoints require request timestamp (within 5-minute window) to prevent replay attacks",
+        "All Cloudflare Worker responses include: X-Request-Id header, X-Response-Time header",
+        "Request body size limits enforced: 1MB for standard endpoints, 10MB for file uploads",
+        "SQL injection prevention verified: all Supabase queries use parameterized inputs (audit existing code)",
+        "Documented security checklist in docs/SECURITY_CHECKLIST.md covering OWASP Top 10",
+        "Typecheck passes"
+      ],
+      "priority": 55,
+      "passes": false,
+      "notes": "Cloudflare handles SSL/TLS termination. Focus on application-layer security. API key hashing is critical - current implementation may store keys in plaintext."
+    },
+    {
+      "id": "US-056",
+      "title": "Add load testing configuration and performance baselines",
+      "description": "Create load testing scripts using k6 or Artillery that simulate realistic traffic patterns and establish performance baselines for key API endpoints.",
+      "acceptanceCriteria": [
+        "Load test configuration created in tools/load-tests/ directory",
+        "Test scenarios: normal load (100 concurrent users), peak load (500 concurrent users), price alert spike (1000 alerts triggered simultaneously)",
+        "Key endpoints tested: /api/health, /api/v1/market/prices, /api/coingecko/*, /api/check-price-alerts",
+        "Performance baselines documented: p50, p95, p99 response times, error rates, throughput (req/sec)",
+        "Test results stored in test-reports/load-tests/ for comparison",
+        "package.json has 'test:load' script",
+        "Typecheck passes"
+      ],
+      "priority": 56,
+      "passes": false,
+      "notes": "k6 is recommended for its JavaScript-native test scripts. Load tests should target a staging environment, never production without explicit approval."
+    },
+    {
+      "id": "US-057",
+      "title": "Add Storybook for component documentation",
+      "description": "Set up Storybook for the UI component library. Document all reusable UI components (buttons, inputs, cards, modals, skeletons) with interactive examples, props documentation, and visual regression baselines.",
+      "acceptanceCriteria": [
+        "@storybook/react-vite installed and configured",
+        "Stories created for core UI components: Button, Input, Card, Modal, Skeleton, Toast, Badge, Alert, Dropdown",
+        "Each story shows all variants/states (default, hover, disabled, loading, error)",
+        "Props documented with argTypes and descriptions",
+        "Storybook builds without errors via 'npm run storybook:build'",
+        "package.json has 'storybook' and 'storybook:build' scripts",
+        "Typecheck passes"
+      ],
+      "priority": 57,
+      "passes": false,
+      "notes": "Use @storybook/react-vite for native Vite integration. Focus on reusable UI primitives, not page-level components. This becomes the design system documentation."
+    },
+    {
+      "id": "US-058",
+      "title": "Add real-time WebSocket notifications",
+      "description": "Implement real-time notifications using Supabase Realtime subscriptions for live portfolio value updates, price alert triggers, and admin notifications.",
+      "acceptanceCriteria": [
+        "src/services/realtime.ts created with Supabase Realtime subscription management",
+        "Dashboard receives live price updates without manual refresh",
+        "Price alert triggers push a real-time notification to the user's browser",
+        "Admin dashboard receives real-time new user signup notifications",
+        "Notification bell icon in header shows unread notification count with badge",
+        "Clicking notification bell shows dropdown with recent notifications",
+        "Notifications persisted in Supabase notifications table for history",
+        "WebSocket connection gracefully reconnects on disconnection",
+        "Typecheck passes"
+      ],
+      "priority": 58,
+      "passes": false,
+      "notes": "Supabase Realtime is already available via @supabase/supabase-js. Use postgres_changes for table change subscriptions. Handle reconnection gracefully."
+    },
+    {
+      "id": "US-059",
+      "title": "Add SSO/OAuth provider integration",
+      "description": "Add social login options (Google, GitHub) and prepare SSO/SAML infrastructure for enterprise customers using Supabase Auth's built-in OAuth support.",
+      "acceptanceCriteria": [
+        "Google OAuth login configured in Supabase Auth settings",
+        "GitHub OAuth login configured in Supabase Auth settings",
+        "Login page shows 'Continue with Google' and 'Continue with GitHub' buttons",
+        "OAuth flow properly creates/links user profile in users table",
+        "Existing email users can link OAuth accounts from profile settings",
+        "SSO/SAML configuration documented for enterprise customers (Supabase Enterprise feature)",
+        "OAuth users can still enable 2FA on their accounts",
+        "Typecheck passes"
+      ],
+      "priority": 59,
+      "passes": false,
+      "notes": "Supabase Auth supports OAuth out of the box. Google and GitHub are the most common. SAML is a Supabase Enterprise feature - document the path but don't implement."
+    },
+    {
+      "id": "US-060",
+      "title": "Final production readiness review and launch checklist",
+      "description": "Create and execute a comprehensive production readiness checklist that validates all enterprise requirements are met: security, performance, monitoring, documentation, and compliance.",
+      "acceptanceCriteria": [
+        "docs/PRODUCTION_READINESS_CHECKLIST.md created covering all categories",
+        "Security: CSP headers verified, rate limiting tested, input sanitization audited, OWASP Top 10 checked",
+        "Performance: Lighthouse score >90 for Performance, >90 for Accessibility, >90 for Best Practices, >90 for SEO",
+        "Monitoring: Sentry configured, health checks responding, logging operational",
+        "Testing: Unit test coverage >70% for core services, E2E tests passing for critical flows",
+        "Documentation: README complete, API docs complete, deployment guide verified",
+        "Compliance: GDPR data export works, CAN-SPAM unsubscribe works, Terms of Service and Privacy Policy links functional",
+        "All previous user stories verified as passing",
+        "Typecheck passes"
+      ],
+      "priority": 60,
+      "passes": false,
+      "notes": "This is the capstone story. Run through every checklist item and verify. Document any known issues or tech debt that should be addressed post-launch."
+    }
+  ]
+}

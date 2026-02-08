@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout/Layout';
@@ -9,10 +9,29 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminRoute } from './components/AdminRoute';
 import { SessionExpiredModal } from './components/SessionExpiredModal';
 import { SessionActivityTracker } from './components/SessionActivityTracker';
-import { AppErrorBoundary } from './components/ErrorBoundary';
+import { AppErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
 import { PageLoader } from './components/LoadingSkeletons';
 import { WebVitalsTracker } from './components/WebVitalsTracker';
 import { AccessibilityProvider } from './components/accessibility/AccessibilityContext';
+import { useApiToastBridge } from './hooks/useApiToastBridge';
+
+/**
+ * Wraps a page element in a PageErrorBoundary so that a crash in one route
+ * does not take down the entire application. The layout, header, and
+ * navigation remain functional even when a single page throws.
+ */
+function withErrorBoundary(element: ReactNode, pageName: string): ReactNode {
+  return <PageErrorBoundary pageName={pageName}>{element}</PageErrorBoundary>;
+}
+
+/**
+ * Bridges the apiClient error/warning notifications to the Toast UI.
+ * Must be rendered inside ToastProvider so it has access to toast context.
+ */
+function ApiToastBridge() {
+  useApiToastBridge();
+  return null;
+}
 
 // Eagerly loaded pages (critical path - only Home and Auth pages)
 import { Home } from './pages/Home';
@@ -112,6 +131,7 @@ function App() {
           <PageTracker />
           <WebVitalsTracker />
           <ToastProvider>
+          <ApiToastBridge />
           <AuthProvider>
             <SessionExpiredModal />
             <SessionActivityTracker />
@@ -119,95 +139,95 @@ function App() {
             <Routes>
                   {/* Admin Panel with dedicated layout */}
                   <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-                    <Route index element={<AdminOverview />} />
-                    <Route path="users" element={<UserManagement />} />
-                    <Route path="subscriptions" element={<AdminSubscriptions />} />
-                    <Route path="scam-database" element={<ScamDatabase />} />
-                    <Route path="content" element={<ContentModeration />} />
-                    <Route path="support" element={<SupportTickets />} />
-                    <Route path="ai-settings" element={<AdminAISettings />} />
-                    <Route path="audit-logs" element={<AuditLogs />} />
-                    <Route path="newsletters" element={<AdminNewsletters />} />
-                    <Route path="analytics" element={<AdminAnalytics />} />
-                    <Route path="settings" element={<AdminRoute requiredRole="super_admin"><SystemSettings /></AdminRoute>} />
+                    <Route index element={withErrorBoundary(<AdminOverview />, 'AdminOverview')} />
+                    <Route path="users" element={withErrorBoundary(<UserManagement />, 'UserManagement')} />
+                    <Route path="subscriptions" element={withErrorBoundary(<AdminSubscriptions />, 'AdminSubscriptions')} />
+                    <Route path="scam-database" element={withErrorBoundary(<ScamDatabase />, 'AdminScamDatabase')} />
+                    <Route path="content" element={withErrorBoundary(<ContentModeration />, 'ContentModeration')} />
+                    <Route path="support" element={withErrorBoundary(<SupportTickets />, 'SupportTickets')} />
+                    <Route path="ai-settings" element={withErrorBoundary(<AdminAISettings />, 'AdminAISettings')} />
+                    <Route path="audit-logs" element={withErrorBoundary(<AuditLogs />, 'AuditLogs')} />
+                    <Route path="newsletters" element={withErrorBoundary(<AdminNewsletters />, 'AdminNewsletters')} />
+                    <Route path="analytics" element={withErrorBoundary(<AdminAnalytics />, 'AdminAnalytics')} />
+                    <Route path="settings" element={<AdminRoute requiredRole="super_admin">{withErrorBoundary(<SystemSettings />, 'SystemSettings')}</AdminRoute>} />
                     {/* Blog Admin Routes */}
-                    <Route path="blog" element={<AdminBlogList />} />
-                    <Route path="blog/new" element={<AdminBlogEditor />} />
-                    <Route path="blog/edit/:id" element={<AdminBlogEditor />} />
-                    <Route path="blog/categories" element={<AdminBlogCategories />} />
+                    <Route path="blog" element={withErrorBoundary(<AdminBlogList />, 'AdminBlogList')} />
+                    <Route path="blog/new" element={withErrorBoundary(<AdminBlogEditor />, 'AdminBlogEditor')} />
+                    <Route path="blog/edit/:id" element={withErrorBoundary(<AdminBlogEditor />, 'AdminBlogEditor')} />
+                    <Route path="blog/categories" element={withErrorBoundary(<AdminBlogCategories />, 'AdminBlogCategories')} />
                   </Route>
 
                 <Route path="/" element={<Layout />}>
-                  <Route index element={<Home />} />
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="charts" element={<Charts />} />
-                  <Route path="calculators" element={<Calculators />} />
-                  <Route path="compare" element={<Compare />} />
-                  <Route path="compare/:type/:id" element={<Compare />} />
+                  <Route index element={withErrorBoundary(<Home />, 'Home')} />
+                  <Route path="dashboard" element={withErrorBoundary(<Dashboard />, 'Dashboard')} />
+                  <Route path="charts" element={withErrorBoundary(<Charts />, 'Charts')} />
+                  <Route path="calculators" element={withErrorBoundary(<Calculators />, 'Calculators')} />
+                  <Route path="compare" element={withErrorBoundary(<Compare />, 'Compare')} />
+                  <Route path="compare/:type/:id" element={withErrorBoundary(<Compare />, 'CompareDetail')} />
                   {/* Web3 routes - manual wallet tracking (no wallet connection) */}
-                  <Route path="web3" element={<Web3Features />} />
-                  <Route path="scam-database" element={<ScamDatabase />} />
-                  <Route path="scam/:id" element={<ScamReportDetail />} />
-                  <Route path="report-scam" element={<ProtectedRoute><ReportScam /></ProtectedRoute>} />
-                  <Route path="login" element={<Login />} />
-                  <Route path="signup" element={<Signup />} />
-                  <Route path="forgot-password" element={<ForgotPassword />} />
-                  <Route path="reset-password" element={<ResetPassword />} />
-                  <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="affiliate-stats" element={<ProtectedRoute><AffiliateStats /></ProtectedRoute>} />
-                  <Route path="ad-manager" element={<ProtectedRoute><AdManager /></ProtectedRoute>} />
-                  <Route path="tax-reports" element={<ProtectedRoute><TaxReports /></ProtectedRoute>} />
-                  <Route path="advisor" element={<ProtectedRoute><AdvisorDashboard /></ProtectedRoute>} />
-                  <Route path="affiliate" element={<ProtectedRoute><InfluencerDashboard /></ProtectedRoute>} />
-                  <Route path="backtesting" element={<Backtesting />} />
-                  <Route path="portfolio-analysis" element={<ProtectedRoute><PortfolioAnalysis /></ProtectedRoute>} />
+                  <Route path="web3" element={withErrorBoundary(<Web3Features />, 'Web3Features')} />
+                  <Route path="scam-database" element={withErrorBoundary(<ScamDatabase />, 'ScamDatabase')} />
+                  <Route path="scam/:id" element={withErrorBoundary(<ScamReportDetail />, 'ScamReportDetail')} />
+                  <Route path="report-scam" element={<ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute>} />
+                  <Route path="login" element={withErrorBoundary(<Login />, 'Login')} />
+                  <Route path="signup" element={withErrorBoundary(<Signup />, 'Signup')} />
+                  <Route path="forgot-password" element={withErrorBoundary(<ForgotPassword />, 'ForgotPassword')} />
+                  <Route path="reset-password" element={withErrorBoundary(<ResetPassword />, 'ResetPassword')} />
+                  <Route path="profile" element={<ProtectedRoute>{withErrorBoundary(<Profile />, 'Profile')}</ProtectedRoute>} />
+                  <Route path="affiliate-stats" element={<ProtectedRoute>{withErrorBoundary(<AffiliateStats />, 'AffiliateStats')}</ProtectedRoute>} />
+                  <Route path="ad-manager" element={<ProtectedRoute>{withErrorBoundary(<AdManager />, 'AdManager')}</ProtectedRoute>} />
+                  <Route path="tax-reports" element={<ProtectedRoute>{withErrorBoundary(<TaxReports />, 'TaxReports')}</ProtectedRoute>} />
+                  <Route path="advisor" element={<ProtectedRoute>{withErrorBoundary(<AdvisorDashboard />, 'AdvisorDashboard')}</ProtectedRoute>} />
+                  <Route path="affiliate" element={<ProtectedRoute>{withErrorBoundary(<InfluencerDashboard />, 'InfluencerDashboard')}</ProtectedRoute>} />
+                  <Route path="backtesting" element={withErrorBoundary(<Backtesting />, 'Backtesting')} />
+                  <Route path="portfolio-analysis" element={<ProtectedRoute>{withErrorBoundary(<PortfolioAnalysis />, 'PortfolioAnalysis')}</ProtectedRoute>} />
 
                   {/* Legacy Admin Routes - redirect to new admin panel */}
 
-                  <Route path="search" element={<SearchResults />} />
-                  <Route path="learn" element={<Learn />} />
-                  <Route path="learn/:guideId" element={<GuideDetail />} />
-                  <Route path="course/:courseId" element={<CourseLanding />} />
-                  <Route path="course/:courseId/:moduleId" element={<CourseModule />} />
-                  <Route path="glossary" element={<Glossary />} />
-                  <Route path="article/:slug" element={<Article />} />
+                  <Route path="search" element={withErrorBoundary(<SearchResults />, 'SearchResults')} />
+                  <Route path="learn" element={withErrorBoundary(<Learn />, 'Learn')} />
+                  <Route path="learn/:guideId" element={withErrorBoundary(<GuideDetail />, 'GuideDetail')} />
+                  <Route path="course/:courseId" element={withErrorBoundary(<CourseLanding />, 'CourseLanding')} />
+                  <Route path="course/:courseId/:moduleId" element={withErrorBoundary(<CourseModule />, 'CourseModule')} />
+                  <Route path="glossary" element={withErrorBoundary(<Glossary />, 'Glossary')} />
+                  <Route path="article/:slug" element={withErrorBoundary(<Article />, 'Article')} />
                   {/* Blog Routes */}
-                  <Route path="blog" element={<Blog />} />
-                  <Route path="blog/category/:category" element={<Blog />} />
-                  <Route path="blog/:slug" element={<BlogPost />} />
-                  <Route path="privacy" element={<Privacy />} />
-                  <Route path="terms" element={<Terms />} />
-                  <Route path="disclaimer" element={<Terms />} />
-                  <Route path="pricing" element={<Pricing />} />
-                  <Route path="developers/pricing" element={<ApiPricing />} />
-                  <Route path="developers/portal" element={<ProtectedRoute><DeveloperPortal /></ProtectedRoute>} />
-                  <Route path="developers/docs" element={<ApiPricing />} />
-                  <Route path="advertiser" element={<ProtectedRoute><AdvertiserDashboard /></ProtectedRoute>} />
+                  <Route path="blog" element={withErrorBoundary(<Blog />, 'Blog')} />
+                  <Route path="blog/category/:category" element={withErrorBoundary(<Blog />, 'BlogCategory')} />
+                  <Route path="blog/:slug" element={withErrorBoundary(<BlogPost />, 'BlogPost')} />
+                  <Route path="privacy" element={withErrorBoundary(<Privacy />, 'Privacy')} />
+                  <Route path="terms" element={withErrorBoundary(<Terms />, 'Terms')} />
+                  <Route path="disclaimer" element={withErrorBoundary(<Terms />, 'Disclaimer')} />
+                  <Route path="pricing" element={withErrorBoundary(<Pricing />, 'Pricing')} />
+                  <Route path="developers/pricing" element={withErrorBoundary(<ApiPricing />, 'ApiPricing')} />
+                  <Route path="developers/portal" element={<ProtectedRoute>{withErrorBoundary(<DeveloperPortal />, 'DeveloperPortal')}</ProtectedRoute>} />
+                  <Route path="developers/docs" element={withErrorBoundary(<ApiPricing />, 'ApiDocs')} />
+                  <Route path="advertiser" element={<ProtectedRoute>{withErrorBoundary(<AdvertiserDashboard />, 'AdvertiserDashboard')}</ProtectedRoute>} />
 
                   {/* Advanced Monetization Features */}
-                  <Route path="influencer-verification" element={<InfluencerVerification />} />
-                  <Route path="lending" element={<LendingComparison />} />
-                  <Route path="social-trading" element={<SocialTrading />} />
-                  <Route path="onchain-analytics" element={<OnChainAnalytics />} />
+                  <Route path="influencer-verification" element={withErrorBoundary(<InfluencerVerification />, 'InfluencerVerification')} />
+                  <Route path="lending" element={withErrorBoundary(<LendingComparison />, 'LendingComparison')} />
+                  <Route path="social-trading" element={withErrorBoundary(<SocialTrading />, 'SocialTrading')} />
+                  <Route path="onchain-analytics" element={withErrorBoundary(<OnChainAnalytics />, 'OnChainAnalytics')} />
 
                   {/* Premium Crypto Features */}
-                  <Route path="hardware-wallet" element={<HardwareWallet />} />
-                  <Route path="gas-optimizer" element={<GasOptimizer />} />
-                  <Route path="defi-yield" element={<DeFiYield />} />
-                  <Route path="retirement-calculator" element={<RetirementCalculator />} />
+                  <Route path="hardware-wallet" element={withErrorBoundary(<HardwareWallet />, 'HardwareWallet')} />
+                  <Route path="gas-optimizer" element={withErrorBoundary(<GasOptimizer />, 'GasOptimizer')} />
+                  <Route path="defi-yield" element={withErrorBoundary(<DeFiYield />, 'DeFiYield')} />
+                  <Route path="retirement-calculator" element={withErrorBoundary(<RetirementCalculator />, 'RetirementCalculator')} />
 
                   {/* New Premium Monetization Features */}
-                  <Route path="multi-exchange" element={<MultiExchange />} />
-                  <Route path="staking-calculator" element={<StakingCalculator />} />
-                  <Route path="trading-indicators" element={<TradingIndicators />} />
-                  <Route path="whale-tracking" element={<WhaleTrackingPage />} />
-                  <Route path="rebalancing-alerts" element={<RebalancingAlertsPage />} />
-                  <Route path="dca-automation" element={<DCAAutomationPage />} />
-                  <Route path="alert-bundles" element={<SmartAlertBundlesPage />} />
+                  <Route path="multi-exchange" element={withErrorBoundary(<MultiExchange />, 'MultiExchange')} />
+                  <Route path="staking-calculator" element={withErrorBoundary(<StakingCalculator />, 'StakingCalculator')} />
+                  <Route path="trading-indicators" element={withErrorBoundary(<TradingIndicators />, 'TradingIndicators')} />
+                  <Route path="whale-tracking" element={withErrorBoundary(<WhaleTrackingPage />, 'WhaleTracking')} />
+                  <Route path="rebalancing-alerts" element={withErrorBoundary(<RebalancingAlertsPage />, 'RebalancingAlerts')} />
+                  <Route path="dca-automation" element={withErrorBoundary(<DCAAutomationPage />, 'DCAAutomation')} />
+                  <Route path="alert-bundles" element={withErrorBoundary(<SmartAlertBundlesPage />, 'SmartAlertBundles')} />
 
-                  <Route path="accessibility" element={<Accessibility />} />
-                  <Route path="start" element={<Learn />} />
-                  <Route path="prices" element={<Dashboard />} />
+                  <Route path="accessibility" element={withErrorBoundary(<Accessibility />, 'Accessibility')} />
+                  <Route path="start" element={withErrorBoundary(<Learn />, 'Start')} />
+                  <Route path="prices" element={withErrorBoundary(<Dashboard />, 'Prices')} />
                   <Route path="404" element={<NotFound />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>

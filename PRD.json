@@ -1,6 +1,6 @@
 {
   "project": "Bitcoinvestments Enterprise Platform",
-  "branchName": "claude/create-ralph-prd-json-Xkq3Q",
+  "branchName": "claude/identify-impact-improvements-B5kU3",
   "description": "Transform the Bitcoinvestments cryptocurrency education and investment platform from its current ~92% complete state into a fully enterprise-grade, professional, production-ready SaaS product. The platform is built with React 18 + TypeScript on Vite, Supabase (PostgreSQL + Auth), Cloudflare Workers/Pages, Stripe payments, and Web3 integrations (RainbowKit, SIWE, wagmi/viem). It currently has 98+ components, 90+ services, 50+ pages, and 37 database migrations. This PRD covers all remaining gaps: code quality, testing, security hardening, performance optimization, monitoring/observability, CI/CD, API documentation, accessibility, SEO, and enterprise features needed to achieve production readiness.",
   "userStories": [
     {
@@ -176,8 +176,8 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": "@sentry/react is already installed. Use Sentry.ErrorBoundary or manual captureException. The fallback should match the existing design system (Tailwind classes)."
+      "passes": true,
+      "notes": "Implemented via withErrorBoundary() helper in App.tsx that wraps every route element in a PageErrorBoundary. AppErrorBoundary was already wrapping the app at top-level in main.tsx. PageErrorBoundary, ComponentErrorBoundary, and AppErrorBoundary all exist in ErrorBoundary.tsx with error logging via captureException. All 60+ routes now individually wrapped."
     },
     {
       "id": "US-012",
@@ -211,8 +211,8 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": "CoinGecko has rate limits (10-50 calls/min free tier) - retry logic must respect 429 responses with Retry-After header. Don't retry auth failures."
+      "passes": true,
+      "notes": "Implemented src/lib/apiClient.ts with get/post/put/delete methods, 3 retries with exponential backoff (1s/2s/4s), Retry-After header parsing for 429s, 30s request timeout, and toast notification bridge. Uses existing apiError.ts for error normalization. Toast bridge hook (useApiToastBridge) registered in App.tsx via ApiToastBridge component inside ToastProvider. Auth errors excluded from toasts (handled by auth context). CoinGecko service integration and Supabase wrapping are follow-up tasks."
     },
     {
       "id": "US-014",
@@ -1043,6 +1043,195 @@
       "priority": 60,
       "passes": false,
       "notes": "This is the capstone story. Run through every checklist item and verify. Document any known issues or tech debt that should be addressed post-launch."
+    },
+    {
+      "id": "US-061",
+      "title": "Add user onboarding wizard for first-time users",
+      "description": "Create a guided onboarding flow that walks new users through key platform features after signup: setting up a portfolio, exploring the dashboard, configuring price alerts, and discovering educational content.",
+      "acceptanceCriteria": [
+        "Onboarding wizard triggers automatically after first login (tracked via user metadata flag)",
+        "Step 1: Welcome screen with overview of platform capabilities",
+        "Step 2: Create your first portfolio with guided prompts",
+        "Step 3: Tour of the dashboard with highlighted key features (prices, Fear & Greed, news)",
+        "Step 4: Set up your first price alert",
+        "Step 5: Discover learning resources with recommendations based on experience level",
+        "Users can skip onboarding at any step and access it later from profile settings",
+        "Onboarding completion tracked in analytics (funnel drop-off per step)",
+        "Responsive design works on mobile and desktop",
+        "Typecheck passes"
+      ],
+      "priority": 61,
+      "passes": false,
+      "notes": "Onboarding is critical for new user retention. Users who complete onboarding are significantly more likely to become paying subscribers. Track each step completion as an analytics event."
+    },
+    {
+      "id": "US-062",
+      "title": "Add global search functionality across the platform",
+      "description": "Implement a comprehensive search feature accessible from the header that searches across blog posts, glossary terms, educational guides, exchanges, wallets, scam reports, and calculator tools.",
+      "acceptanceCriteria": [
+        "Search input in the header with Cmd/Ctrl+K keyboard shortcut to open",
+        "Search modal/dropdown with categorized results (Articles, Glossary, Guides, Tools, Exchanges)",
+        "Results include: title, description preview, category badge, and direct link",
+        "Debounced search (300ms) to reduce unnecessary queries",
+        "Recent searches stored in localStorage for quick access",
+        "Empty state shows popular searches and trending topics",
+        "SearchResults page updated to use the same search backend",
+        "Search queries logged for analytics (what users are looking for)",
+        "Typecheck passes"
+      ],
+      "priority": 62,
+      "passes": false,
+      "notes": "The SearchResults page exists but search is basic. A Cmd+K modal is the modern standard for SaaS platforms. Client-side search via a pre-built index (lunr.js or fuse.js) may be sufficient given the static content."
+    },
+    {
+      "id": "US-063",
+      "title": "Add user referral program with tracking and rewards",
+      "description": "Implement a referral program that gives existing users a unique referral link. When someone signs up via the link and subscribes, both the referrer and the new user receive a reward (e.g., 1 month free on premium).",
+      "acceptanceCriteria": [
+        "Each user has a unique referral code accessible from their profile page",
+        "Referral link format: https://bitcoinvestments.net/signup?ref=CODE",
+        "Referral tracking: store referrer_id on signup in the users table",
+        "Supabase migration adds referrals table: id, referrer_id, referred_id, status (pending/converted/rewarded), created_at, converted_at",
+        "Referral converts when the referred user subscribes to any paid plan",
+        "Reward: 1 month free extension on current plan for referrer (applied as Stripe coupon)",
+        "Referral stats displayed on profile: total referrals, conversions, rewards earned",
+        "Email notification sent to referrer when their referral converts",
+        "Typecheck passes"
+      ],
+      "priority": 63,
+      "passes": false,
+      "notes": "Referral programs are the cheapest user acquisition channel. The affiliate system already handles partner referrals - this is for user-to-user referrals. Use Stripe coupons for reward fulfillment."
+    },
+    {
+      "id": "US-064",
+      "title": "Add mobile-responsive audit and fix critical breakpoints",
+      "description": "Conduct a systematic audit of all major pages on mobile viewports (320px, 375px, 414px) and fix layout issues, overflow problems, touch target sizes, and navigation usability on mobile devices.",
+      "acceptanceCriteria": [
+        "All pages render without horizontal overflow on 320px viewport",
+        "Touch targets (buttons, links) meet minimum 44x44px requirement",
+        "Mobile navigation menu works correctly with all items accessible",
+        "Tables on Dashboard, Admin, and Compare pages are horizontally scrollable or use card layout on mobile",
+        "Calculator forms are usable on mobile with proper input types (numeric keyboard for numbers)",
+        "Chart components are responsive and readable on mobile",
+        "Modal dialogs don't extend beyond viewport on mobile",
+        "Font sizes readable without zooming (minimum 16px for body text on mobile)",
+        "Typecheck passes"
+      ],
+      "priority": 64,
+      "passes": false,
+      "notes": "Over 60% of crypto users access platforms on mobile. Tailwind's responsive utilities should handle most cases, but data-heavy pages (tables, charts) often need explicit mobile layouts."
+    },
+    {
+      "id": "US-065",
+      "title": "Add dark/light mode toggle with system preference detection",
+      "description": "Implement a dark/light mode toggle that persists the user's preference in localStorage and defaults to their system preference. Currently the platform is dark-mode only.",
+      "acceptanceCriteria": [
+        "Theme toggle button added to the header navigation (sun/moon icon)",
+        "Light mode theme defined with appropriate colors for all components",
+        "Theme preference stored in localStorage and respected on page load",
+        "System preference (prefers-color-scheme) detected as default when no explicit choice is set",
+        "Tailwind dark: variant classes used consistently across all components",
+        "No flash of wrong theme on page load (theme applied before first render)",
+        "All text meets WCAG 4.5:1 contrast ratio in both modes",
+        "Charts and data visualizations readable in both modes",
+        "Typecheck passes"
+      ],
+      "priority": 65,
+      "passes": false,
+      "notes": "Currently dark-mode only. Many users prefer light mode, especially during daytime. Use Tailwind's dark mode class strategy. Apply theme class to <html> element before React hydrates to prevent flash."
+    },
+    {
+      "id": "US-066",
+      "title": "Add notification preferences center for users",
+      "description": "Create a notification preferences page in user profile settings where users can control which notifications they receive (email, push, in-app) for different event categories.",
+      "acceptanceCriteria": [
+        "Profile settings page has a 'Notification Preferences' section",
+        "Categories: Price alerts, Portfolio updates, Newsletter, Security alerts, Product updates, Community activity",
+        "Each category has toggles for: Email, In-App (future), Push (future)",
+        "Preferences stored in user_preferences table in Supabase",
+        "Email sending functions check preferences before sending non-essential emails",
+        "Security alerts (login from new device, password change) are always sent (cannot be disabled)",
+        "Changes save automatically (optimistic UI with toast confirmation)",
+        "Unsubscribe links in emails respect these preferences",
+        "Typecheck passes"
+      ],
+      "priority": 66,
+      "passes": false,
+      "notes": "CAN-SPAM requires unsubscribe links but allowing granular control improves user experience and reduces total unsubscribes. Security notifications should be mandatory."
+    },
+    {
+      "id": "US-067",
+      "title": "Add two-factor authentication recovery codes",
+      "description": "Generate and display one-time recovery codes when users enable 2FA, so they can regain access if they lose their authenticator device. Store hashed recovery codes in the database.",
+      "acceptanceCriteria": [
+        "When 2FA is enabled, generate 10 one-time recovery codes",
+        "Recovery codes displayed once with option to download as text file or copy to clipboard",
+        "Recovery codes stored as bcrypt hashes in Supabase (never stored in plaintext after initial display)",
+        "Login flow accepts a recovery code as alternative to TOTP when 2FA is required",
+        "Each recovery code can only be used once (marked as used after successful auth)",
+        "User can regenerate recovery codes from profile settings (invalidates all previous codes)",
+        "Warning displayed when fewer than 3 unused recovery codes remain",
+        "Typecheck passes"
+      ],
+      "priority": 67,
+      "passes": false,
+      "notes": "2FA recovery codes are critical for account recovery. Without them, users who lose their phone are permanently locked out. Store hashes, not plaintext. Use a distinct table: user_recovery_codes(id, user_id, code_hash, used, created_at)."
+    },
+    {
+      "id": "US-068",
+      "title": "Add user-facing account activity log",
+      "description": "Show users a log of their own account activity including logins, password changes, 2FA changes, and sensitive actions. This builds trust and helps users detect unauthorized access.",
+      "acceptanceCriteria": [
+        "Profile settings page has an 'Account Activity' section",
+        "Activity log shows: login events (with device/browser info and approximate location from IP), password changes, 2FA enable/disable, email changes, profile updates",
+        "Entries show timestamp, action description, device info, and IP-derived location (city/country level)",
+        "Pagination with last 50 activities shown by default",
+        "Suspicious activity highlighted (login from new device, login from unusual location)",
+        "Option to 'Sign out all other devices' if suspicious activity is detected",
+        "Activity data stored in user_activity_log table with 90-day retention",
+        "Typecheck passes"
+      ],
+      "priority": 68,
+      "passes": false,
+      "notes": "This is both a security feature and a trust signal. Users handling cryptocurrency assets want visibility into who accessed their account. Use IP geolocation (free MaxMind GeoLite2 database) for location."
+    },
+    {
+      "id": "US-069",
+      "title": "Add smart API response caching layer to reduce CoinGecko calls",
+      "description": "Implement an intelligent caching layer in the CoinGecko Cloudflare Worker proxy that uses Cloudflare KV with tiered TTLs based on data freshness requirements, reducing API calls by 80%+.",
+      "acceptanceCriteria": [
+        "CoinGecko proxy worker uses Cloudflare KV (COINGECKO_CACHE_KV) for response caching",
+        "Cache TTL tiers: prices = 60s, market data = 5min, coin details = 1hr, historical data = 24hr",
+        "Stale-while-revalidate pattern: serve cached data while fetching fresh data in background",
+        "Cache key includes query parameters for proper isolation",
+        "Response headers include X-Cache-Status (HIT/MISS/STALE) for debugging",
+        "CoinGecko 429 rate limit responses trigger extended cache TTL (serve stale data for up to 30min)",
+        "Cache statistics endpoint for admin: total requests, hit rate, miss rate",
+        "Free tier users always get cached data (no real-time), premium users get fresher data",
+        "Typecheck passes"
+      ],
+      "priority": 69,
+      "passes": false,
+      "notes": "CoinGecko free tier allows 10-50 calls/min. With caching, we can serve thousands of users within this limit. The worker proxy already exists - this adds KV caching to it."
+    },
+    {
+      "id": "US-070",
+      "title": "Add automated accessibility testing in CI pipeline",
+      "description": "Integrate axe-core accessibility testing into the CI pipeline to automatically detect WCAG 2.1 AA violations on every pull request, preventing accessibility regressions.",
+      "acceptanceCriteria": [
+        "@axe-core/playwright or @axe-core/react installed as devDependency",
+        "Playwright accessibility test suite created that runs axe-core on 10 key pages: Home, Dashboard, Login, Signup, Pricing, Learn, Glossary, Compare, Blog, Profile",
+        "Tests fail on any critical or serious accessibility violations",
+        "Moderate violations reported as warnings (don't fail build)",
+        "Test results output includes violation details with remediation suggestions",
+        "CI pipeline step added for accessibility testing",
+        "package.json has 'test:a11y' script",
+        "Baseline of current violations documented so regressions can be tracked",
+        "Typecheck passes"
+      ],
+      "priority": 70,
+      "passes": false,
+      "notes": "Automated a11y testing catches ~30% of WCAG issues (color contrast, missing labels, ARIA misuse). Manual testing is still needed for keyboard navigation and screen reader flows."
     }
   ]
 }

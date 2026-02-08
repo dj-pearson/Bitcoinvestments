@@ -443,6 +443,75 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     description: 'Reset your Bitcoinvestments account password. We will send you a secure link to create a new password.',
     keywords: ['forgot password', 'reset password', 'password recovery'],
   },
+  blog: {
+    title: 'Crypto Blog - News, Analysis & Education',
+    description:
+      'Latest cryptocurrency news, market analysis, and educational content. Stay informed about Bitcoin, Ethereum, DeFi, and the broader crypto market with expert insights.',
+    keywords: [
+      'crypto blog',
+      'cryptocurrency news',
+      'Bitcoin analysis',
+      'crypto market update',
+      'DeFi news',
+      'blockchain education',
+      'crypto insights',
+      'market analysis',
+      'crypto trends',
+    ],
+  },
+  developerPortal: {
+    title: 'Developer Portal - API Documentation & Integration',
+    description:
+      'Access the Bitcoinvestments API for cryptocurrency data, scam database lookups, and portfolio tools. Comprehensive documentation for developers.',
+    keywords: [
+      'crypto API',
+      'cryptocurrency data API',
+      'developer documentation',
+      'API integration',
+      'scam database API',
+      'price data API',
+      'blockchain API',
+    ],
+  },
+  apiPricing: {
+    title: 'API Pricing - Developer Plans & Access',
+    description:
+      'Flexible API pricing plans for cryptocurrency data access. Free tier available with rate-limited access. Premium plans for production use.',
+    keywords: [
+      'API pricing',
+      'crypto API plans',
+      'data access pricing',
+      'developer plans',
+      'API subscription',
+    ],
+  },
+  accessibility: {
+    title: 'Accessibility Settings',
+    description:
+      'Customize your Bitcoinvestments experience with accessibility settings. Adjust font size, contrast, animations, and screen reader preferences.',
+    keywords: [
+      'accessibility',
+      'a11y settings',
+      'screen reader',
+      'high contrast',
+      'font size',
+      'WCAG compliance',
+    ],
+  },
+  reportScam: {
+    title: 'Report a Crypto Scam - Help Protect the Community',
+    description:
+      'Report cryptocurrency scams to our community database. Submit details about phishing sites, rug pulls, fake exchanges, and other crypto fraud to protect other investors.',
+    keywords: [
+      'report crypto scam',
+      'report fraud',
+      'crypto scam report',
+      'phishing report',
+      'rug pull report',
+      'scam submission',
+      'crypto fraud alert',
+    ],
+  },
 };
 
 // ============================================
@@ -817,6 +886,247 @@ export function generateArticleSchema({
       '@type': 'WebPage',
       '@id': url.startsWith('http') ? url : `${SEO_CONFIG.siteUrl}${url}`,
     },
+  };
+}
+
+// ============================================
+// GEO-Optimized Schema Generators
+// ============================================
+
+/**
+ * Generate enhanced Organization schema with GEO signals
+ * Includes founding date, description, and comprehensive contact info
+ */
+export function generateEnhancedOrganizationSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${SEO_CONFIG.siteUrl}/#organization`,
+    name: SEO_CONFIG.siteName,
+    url: SEO_CONFIG.siteUrl,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${SEO_CONFIG.siteUrl}/logo.png`,
+      width: 512,
+      height: 512,
+    },
+    description:
+      'Bitcoinvestments is a comprehensive cryptocurrency education and investment platform for beginners, offering free DCA calculators, exchange comparisons, educational courses, and a community-powered scam database.',
+    foundingDate: '2024',
+    sameAs: ['https://twitter.com/bitcoinvestments'],
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        email: 'support@bitcoinvestments.net',
+        contactType: 'customer support',
+        availableLanguage: 'English',
+      },
+      {
+        '@type': 'ContactPoint',
+        email: 'ai@bitcoinvestments.net',
+        contactType: 'technical support',
+        description: 'AI and data partnership inquiries',
+      },
+    ],
+    knowsAbout: [
+      'Bitcoin',
+      'Cryptocurrency',
+      'Blockchain',
+      'DeFi',
+      'Dollar Cost Averaging',
+      'Crypto Security',
+      'Exchange Comparison',
+      'Wallet Security',
+      'Crypto Scam Prevention',
+    ],
+  };
+}
+
+/**
+ * Generate Pricing/Offer schema for pricing pages
+ */
+export function generatePricingSchema({
+  plans,
+}: {
+  plans: Array<{
+    name: string;
+    description: string;
+    price: string;
+    priceCurrency?: string;
+    billingPeriod?: string;
+    features: string[];
+  }>;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Bitcoinvestments Pricing',
+    description: 'Pricing plans for Bitcoinvestments cryptocurrency tools and premium features.',
+    url: `${SEO_CONFIG.siteUrl}/pricing`,
+    mainEntity: {
+      '@type': 'ItemList',
+      name: 'Pricing Plans',
+      numberOfItems: plans.length,
+      itemListElement: plans.map((plan, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'Product',
+          name: plan.name,
+          description: plan.description,
+          offers: {
+            '@type': 'Offer',
+            price: plan.price,
+            priceCurrency: plan.priceCurrency || 'USD',
+            ...(plan.billingPeriod && {
+              priceSpecification: {
+                '@type': 'UnitPriceSpecification',
+                price: plan.price,
+                priceCurrency: plan.priceCurrency || 'USD',
+                billingDuration: plan.billingPeriod,
+              },
+            }),
+          },
+          ...(plan.features.length > 0 && {
+            additionalProperty: plan.features.map((feature) => ({
+              '@type': 'PropertyValue',
+              name: 'Feature',
+              value: feature,
+            })),
+          }),
+        },
+      })),
+    },
+  };
+}
+
+/**
+ * Generate DefinedTermSet schema for glossary pages
+ * Helps AI engines understand and cite glossary definitions
+ */
+export function generateGlossarySchema({
+  terms,
+}: {
+  terms: Array<{ term: string; definition: string }>;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTermSet',
+    name: 'Cryptocurrency Glossary',
+    description: 'Comprehensive glossary of 300+ cryptocurrency and blockchain terms explained in plain English.',
+    url: `${SEO_CONFIG.siteUrl}/glossary`,
+    hasDefinedTerm: terms.map((t) => ({
+      '@type': 'DefinedTerm',
+      name: t.term,
+      description: t.definition,
+    })),
+  };
+}
+
+/**
+ * Generate comprehensive FAQ schema optimized for AI citation
+ * Each Q&A is structured for direct extraction by LLMs
+ */
+export function generateGEOFAQSchema(
+  faqs: Array<{ question: string; answer: string }>,
+  pageUrl?: string
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    ...(pageUrl && {
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': pageUrl.startsWith('http') ? pageUrl : `${SEO_CONFIG.siteUrl}${pageUrl}`,
+      },
+    }),
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+        author: {
+          '@type': 'Organization',
+          name: SEO_CONFIG.siteName,
+          url: SEO_CONFIG.siteUrl,
+        },
+      },
+    })),
+  };
+}
+
+/**
+ * Generate comparison/review schema for "vs" pages
+ * AI engines heavily favor structured comparison data
+ */
+export function generateComparisonSchema({
+  title,
+  description,
+  items,
+  url,
+}: {
+  title: string;
+  description: string;
+  items: Array<{
+    name: string;
+    description: string;
+    rating?: number;
+    pros?: string[];
+    cons?: string[];
+  }>;
+  url: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: title,
+    description,
+    url: url.startsWith('http') ? url : `${SEO_CONFIG.siteUrl}${url}`,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'Product',
+        name: item.name,
+        description: item.description,
+        ...(item.rating && {
+          review: {
+            '@type': 'Review',
+            reviewRating: {
+              '@type': 'Rating',
+              ratingValue: item.rating,
+              bestRating: 5,
+            },
+            author: {
+              '@type': 'Organization',
+              name: SEO_CONFIG.siteName,
+            },
+            ...(item.pros && {
+              positiveNotes: {
+                '@type': 'ItemList',
+                itemListElement: item.pros.map((pro, i) => ({
+                  '@type': 'ListItem',
+                  position: i + 1,
+                  name: pro,
+                })),
+              },
+            }),
+            ...(item.cons && {
+              negativeNotes: {
+                '@type': 'ItemList',
+                itemListElement: item.cons.map((con, i) => ({
+                  '@type': 'ListItem',
+                  position: i + 1,
+                  name: con,
+                })),
+              },
+            }),
+          },
+        }),
+      },
+    })),
   };
 }
 

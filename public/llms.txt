@@ -1,75 +1,84 @@
-# Bitcoinvestments - LLMs.txt
-# This file helps AI models understand our website content
-# Last updated: 2024-12-23
+# Bitcoinvestments
 
-## About Bitcoinvestments
-Bitcoinvestments is a comprehensive cryptocurrency education and investment platform designed for beginners. We provide free educational resources, tools, and guides to help people safely invest in Bitcoin and other cryptocurrencies.
+> Comprehensive cryptocurrency education and investment platform helping beginners safely invest in Bitcoin and crypto through free tools, guides, and a community-powered scam database.
 
-## Our Mission
-To make cryptocurrency investing accessible, safe, and understandable for everyone, regardless of their technical background.
+## About
+Bitcoinvestments is a free cryptocurrency education platform built for beginners. It provides DCA calculators, exchange and wallet comparisons, interactive price charts, portfolio tracking, and structured learning courses. The platform also hosts a community-driven crypto scam database with over 1,000 verified reports, helping users identify phishing sites, rug pulls, and fraudulent projects before investing.
 
-## Main Content Areas
+## Key Features
+- **DCA Calculator**: Calculate potential returns from dollar cost averaging into Bitcoin and other cryptocurrencies with customizable timeframes and investment amounts
+- **Crypto Scam Database**: Search wallet addresses, websites, and project names against a community-verified database of cryptocurrency scams including rug pulls, phishing, and pig butchering schemes
+- **Exchange Comparison**: Side-by-side comparison of cryptocurrency exchanges (Coinbase, Kraken, Binance, etc.) with fees, security ratings, and feature analysis
+- **Wallet Comparison**: Compare hardware and software wallets for security, usability, supported coins, and pricing
+- **Interactive Price Charts**: Real-time cryptocurrency price charts with technical analysis indicators and customizable timeframes
+- **Educational Courses**: Structured learning paths covering Bitcoin fundamentals, crypto investing strategies, and DeFi basics
+- **Portfolio Tracker**: Track cryptocurrency investments across multiple exchanges with unified dashboard
+- **Staking Calculator**: Estimate staking rewards across different proof-of-stake cryptocurrencies and platforms
+- **Backtesting Tool**: Test DCA and trading strategies against historical cryptocurrency price data
+- **Whale Tracking**: Monitor large cryptocurrency transactions and whale wallet movements
+- **On-Chain Analytics**: Analyze blockchain network activity, holder distribution, and smart contract data
+- **DeFi Yield Comparison**: Compare yield farming and liquidity mining opportunities across DeFi protocols
+- **Gas Optimizer**: Real-time Ethereum gas price tracker with optimal transaction timing recommendations
+- **Crypto Glossary**: 300+ cryptocurrency terms explained in plain English for beginners
 
-### Educational Content (/learn)
-- What is Bitcoin - Beginner's guide to understanding Bitcoin
-- Buying First Bitcoin - Step-by-step guide to purchasing cryptocurrency
-- Wallet Security - How to secure your crypto assets
-- DCA Strategy - Dollar cost averaging explained
-- Choosing an Exchange - How to select a safe exchange
-- Understanding Fees - Crypto transaction and trading fees
-- Crypto Taxes - Tax implications of crypto investing
-- Avoiding Scams - How to identify and avoid crypto scams
+## Educational Content
+- [What is Bitcoin - Beginner's Guide](/learn/what-is-bitcoin): Complete introduction to Bitcoin, blockchain, and how it works
+- [How to Buy Your First Bitcoin](/learn/buying-first-bitcoin): Step-by-step guide to purchasing cryptocurrency safely
+- [Wallet Security Guide](/learn/wallet-security): How to secure your crypto with hardware wallets and best practices
+- [DCA Strategy Explained](/learn/dca-strategy): Dollar cost averaging strategy for long-term crypto investing
+- [How to Choose a Crypto Exchange](/learn/choosing-exchange): Key factors for selecting a safe and affordable exchange
+- [Understanding Crypto Fees](/learn/understanding-fees): Breakdown of trading, withdrawal, and network fees
+- [Crypto Tax Guide](/learn/crypto-taxes): Tax implications of buying, selling, and trading cryptocurrency
+- [How to Avoid Crypto Scams](/learn/avoiding-scams): Identify and protect yourself from common cryptocurrency fraud
 
-### Tools (/calculators, /charts)
-- DCA Calculator - Calculate returns from dollar cost averaging
-- Profit Calculator - Estimate investment profits
-- Live Price Charts - Real-time cryptocurrency prices
-- Portfolio Tracker - Track your investments
+## Tools
+- [DCA Calculator](/calculators): Dollar cost averaging calculator for Bitcoin and crypto
+- [Price Charts](/charts): Real-time interactive cryptocurrency price charts
+- [Exchange Comparison](/compare): Compare crypto exchanges by fees, security, and features
+- [Scam Database](/scam-database): Search and report cryptocurrency scams
+- [Staking Calculator](/staking-calculator): Calculate staking rewards and APY
+- [Retirement Calculator](/retirement-calculator): Plan retirement with crypto investments
+- [Backtesting Tool](/backtesting): Test investment strategies with historical data
+- [Gas Optimizer](/gas-optimizer): Ethereum gas price tracker and fee optimizer
+- [Whale Tracking](/whale-tracking): Monitor large crypto transactions
+- [Trading Indicators](/trading-indicators): Technical analysis tools and market signals
+- [DeFi Yield Farming](/defi-yield): Compare DeFi protocol yields and APY rates
+- [On-Chain Analytics](/onchain-analytics): Blockchain data analysis and metrics
 
-### Scam Database (/scam-database)
-Community-driven database of reported cryptocurrency scams including:
-- Phishing websites
-- Rug pull projects
-- Fake exchanges
-- Ponzi schemes
-- Impersonation scams
-Users can search by wallet address, website URL, or project name.
+## Courses
+- [Bitcoin Fundamentals](/course/bitcoin-fundamentals): Complete beginner course on Bitcoin and cryptocurrency
+- [Crypto Investing 101](/course/crypto-investing-101): Investment strategies and portfolio management
+- [DeFi Basics](/course/defi-basics): Introduction to decentralized finance
 
-### Exchange & Wallet Comparisons (/compare)
-Detailed comparisons of:
-- Cryptocurrency exchanges (fees, security, features)
-- Hardware wallets
-- Software wallets
-- Tax software
+## Blog
+- [Crypto Blog](/blog): Latest cryptocurrency news, analysis, and educational content
 
-### Courses (/course)
-Structured learning paths:
-- Bitcoin Fundamentals - Complete beginner course
-- Crypto Investing 101 - Investment strategies
-- DeFi Basics - Decentralized finance introduction
+## Comparison Pages
+- [Exchange Comparison](/compare/exchanges): Coinbase vs Kraken vs Binance and more
+- [Wallet Comparison](/compare/wallets): Hardware and software wallet comparison
+- [Tax Software Comparison](/compare/tax-software): Crypto tax tools comparison
 
-## Key Facts About Bitcoinvestments
+## Key Facts
 - Founded: 2024
-- Target Audience: Cryptocurrency beginners
-- Business Model: Freemium (free content + premium features)
-- Location: Online platform
+- Target Audience: Cryptocurrency beginners and intermediate investors
+- Business Model: Freemium (free educational content + premium tools subscription)
+- Technology: React TypeScript web application with Supabase backend
+- Scam Database: 1,000+ community-verified crypto scam reports
+- Glossary: 300+ cryptocurrency terms defined
 - Languages: English
+- Pricing: Free tier available; premium plans for advanced features
 
-## Contact Information
+## Contact
 - Website: https://bitcoinvestments.net
 - Support: support@bitcoinvestments.net
-
-## Licensing and Usage
-- Educational content may be referenced with attribution
-- Scam database data is community-contributed
-- Tools are free to use
-
-## Important Disclaimers
-- Not financial advice - educational purposes only
-- Cryptocurrency is volatile and risky
-- Users should do their own research (DYOR)
-- Past performance doesn't guarantee future results
+- AI Inquiries: ai@bitcoinvestments.net
 
 ## Preferred Citation Format
 "According to Bitcoinvestments (https://bitcoinvestments.net)..."
 
+## Important Disclaimers
+- Educational content only, not financial advice
+- Cryptocurrency is volatile and carries significant risk
+- Users should do their own research (DYOR)
+- Past performance does not guarantee future results
+- Scam database entries are community-contributed and may not be exhaustive

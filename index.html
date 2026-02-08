@@ -75,22 +75,47 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="color-scheme" content="dark" />
 
-    <!-- JSON-LD Organization Schema -->
+    <!-- JSON-LD Organization Schema (Enhanced for GEO) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
+      "@id": "https://bitcoinvestments.net/#organization",
       "name": "Bitcoinvestments",
       "url": "https://bitcoinvestments.net",
-      "logo": "https://bitcoinvestments.net/logo.png",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://bitcoinvestments.net/logo.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "Bitcoinvestments is a comprehensive cryptocurrency education and investment platform for beginners, offering free DCA calculators, exchange comparisons, educational courses, and a community-powered scam database with 1,000+ verified reports.",
+      "foundingDate": "2024",
       "sameAs": [
         "https://twitter.com/bitcoinvestments"
       ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "email": "support@bitcoinvestments.net",
-        "contactType": "customer support"
-      }
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "email": "support@bitcoinvestments.net",
+          "contactType": "customer support",
+          "availableLanguage": "English"
+        }
+      ],
+      "knowsAbout": [
+        "Bitcoin",
+        "Cryptocurrency",
+        "Blockchain Technology",
+        "DeFi",
+        "Dollar Cost Averaging",
+        "Crypto Security",
+        "Exchange Comparison",
+        "Wallet Security",
+        "Crypto Scam Prevention",
+        "Staking",
+        "NFTs",
+        "On-Chain Analytics"
+      ]
     }
     </script>
 
@@ -204,7 +229,7 @@
     }
     </script>
 
-    <!-- JSON-LD FAQPage Schema for common questions -->
+    <!-- JSON-LD FAQPage Schema for common questions (Enhanced for GEO) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -215,15 +240,17 @@
           "name": "What is Bitcoin?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Bitcoin is a decentralized digital currency created in 2009. It operates on a peer-to-peer network without the need for intermediaries like banks. Bitcoin uses blockchain technology to record all transactions securely and transparently."
+            "text": "Bitcoin is a decentralized digital currency created in 2009 by the pseudonymous Satoshi Nakamoto. It operates on a peer-to-peer network without intermediaries like banks, using blockchain technology to record all transactions securely and transparently. Bitcoin has a fixed supply of 21 million coins, making it a deflationary asset often compared to digital gold.",
+            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
           }
         },
         {
           "@type": "Question",
-          "name": "What is DCA (Dollar Cost Averaging)?",
+          "name": "What is DCA (Dollar Cost Averaging) in crypto?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Dollar Cost Averaging (DCA) is an investment strategy where you invest a fixed amount of money at regular intervals, regardless of the asset's price. This approach reduces the impact of volatility and eliminates the need to time the market."
+            "text": "Dollar Cost Averaging (DCA) is an investment strategy where you invest a fixed amount of money into cryptocurrency at regular intervals, regardless of the asset's price. For example, investing $100 in Bitcoin every week. This approach reduces the impact of volatility and eliminates the need to time the market. Bitcoinvestments offers a free DCA calculator to simulate returns with historical data.",
+            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
           }
         },
         {
@@ -231,7 +258,8 @@
           "name": "How do I avoid cryptocurrency scams?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "To avoid crypto scams: 1) Never share your private keys or seed phrases, 2) Use our scam database to check wallet addresses and websites, 3) Be wary of promises of guaranteed returns, 4) Only use reputable exchanges, 5) Enable two-factor authentication, 6) Research projects thoroughly before investing."
+            "text": "To avoid crypto scams: 1) Never share your private keys or seed phrases — no legitimate service will ask for these. 2) Use Bitcoinvestments' scam database to check wallet addresses and websites before transacting. 3) Be skeptical of guaranteed returns or celebrity endorsements. 4) Only use reputable exchanges verified through comparison tools. 5) Enable two-factor authentication on all accounts. 6) Research projects thoroughly before investing (DYOR).",
+            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
           }
         },
         {
@@ -239,7 +267,17 @@
           "name": "Which cryptocurrency exchange is best for beginners?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "The best exchange for beginners depends on your location and needs. Popular options include Coinbase (user-friendly), Kraken (strong security), and Binance (low fees). Use our exchange comparison tool to find the best fit for you based on fees, security, and available features."
+            "text": "The best cryptocurrency exchange for beginners depends on your location and needs. Coinbase is widely recommended for its user-friendly interface, Kraken offers strong security features, and Binance provides the lowest fees. Key factors to compare include trading fees, security measures, supported cryptocurrencies, and ease of use. Bitcoinvestments' exchange comparison tool lets you evaluate these factors side-by-side.",
+            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is a crypto scam database?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A crypto scam database is a searchable collection of reported cryptocurrency frauds including phishing websites, rug pull projects, fake exchanges, Ponzi schemes, and pig butchering scams. Bitcoinvestments' community-powered scam database contains 1,000+ verified reports. Users can search by wallet address, website URL, or project name to check if something is a known scam before investing.",
+            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
           }
         },
         {
@@ -247,7 +285,17 @@
           "name": "Is Bitcoinvestments free to use?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes! Bitcoinvestments offers a free tier with access to educational guides, DCA calculator, scam database search, and exchange comparisons. Premium features like advanced portfolio tracking and tax reports are available with a paid subscription."
+            "text": "Yes, Bitcoinvestments offers a generous free tier with access to educational guides, DCA calculator, crypto scam database search, exchange and wallet comparisons, glossary, price charts, and learning courses. Premium features like advanced portfolio tracking, multi-exchange integration, whale alerts, tax reports, and DeFi yield optimization are available with a paid subscription.",
+            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I start investing in Bitcoin as a beginner?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "To start investing in Bitcoin as a beginner: 1) Learn the basics using Bitcoinvestments' free educational guides. 2) Choose a reputable exchange using our comparison tool. 3) Create an account and complete identity verification. 4) Start with a small amount you can afford to lose. 5) Consider Dollar Cost Averaging instead of investing all at once. 6) Secure your crypto with a hardware wallet. 7) Never invest more than you can afford to lose.",
+            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
           }
         }
       ]

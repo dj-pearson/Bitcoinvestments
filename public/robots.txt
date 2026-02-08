@@ -1,6 +1,6 @@
 # Robots.txt for Bitcoinvestments
 # https://bitcoinvestments.net
-# Last updated: 2024-12-23
+# Last updated: 2026-02-08
 
 # ===========================================
 # Default rules for all crawlers
@@ -16,7 +16,6 @@ Disallow: /settings
 Disallow: /affiliate-stats
 Disallow: /ad-manager
 Disallow: /tax-reports
-Disallow: /*.json$
 Disallow: /assets/
 
 # Block search result pages with parameters
@@ -36,6 +35,20 @@ Allow: /report-scam
 Allow: /pricing
 Allow: /privacy
 Allow: /terms
+Allow: /blog
+Allow: /blog/
+Allow: /developer-portal
+Allow: /defi-yield
+Allow: /gas-optimizer
+Allow: /staking-calculator
+Allow: /retirement-calculator
+Allow: /whale-tracking
+Allow: /trading-indicators
+Allow: /hardware-wallet
+Allow: /onchain-analytics
+Allow: /backtesting
+Allow: /lending
+Allow: /social-trading
 
 # Crawl delay for courtesy
 Crawl-delay: 1
@@ -67,8 +80,11 @@ Disallow: /profile
 Crawl-delay: 1
 
 # ===========================================
-# AI Crawlers - Allow for AI search visibility
+# AI Search Crawlers - ALLOW
+# These bots power AI search features and citation
 # ===========================================
+
+# OpenAI - ChatGPT search
 User-agent: GPTBot
 Allow: /
 Disallow: /admin/
@@ -76,40 +92,75 @@ Disallow: /api/
 Disallow: /profile
 Crawl-delay: 2
 
+# OpenAI - ChatGPT user browsing
 User-agent: ChatGPT-User
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-User-agent: Claude-Web
+# OpenAI - Search bot
+User-agent: OAI-SearchBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-User-agent: Anthropic-AI
+# Anthropic - Claude search/citation
+User-agent: ClaudeBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 
+# Perplexity AI search
 User-agent: PerplexityBot
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-User-agent: Cohere-AI
-Allow: /
-Disallow: /admin/
-Disallow: /api/
-
+# Google AI (Gemini, AI Overviews)
 User-agent: Google-Extended
 Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-User-agent: CCBot
+# Cohere AI search
+User-agent: Cohere-AI
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+
+# Meta AI search
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Apple AI (Applebot-Extended for Apple Intelligence)
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# You.com AI search
+User-agent: YouBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# ===========================================
+# Block AI Training-Only Bots
+# These crawl purely for model training, not search
+# ===========================================
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
 
 # ===========================================
 # Social Media Crawlers
@@ -129,8 +180,14 @@ Allow: /
 User-agent: Discordbot
 Allow: /
 
+User-agent: Whatsapp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
 # ===========================================
-# Block Bad Bots
+# Block Aggressive SEO Tool Bots
 # ===========================================
 User-agent: AhrefsBot
 Disallow: /
@@ -142,6 +199,15 @@ User-agent: DotBot
 Disallow: /
 
 User-agent: MJ12bot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: serpstatbot
 Disallow: /
 
 # ===========================================

@@ -24,6 +24,7 @@ interface SEOProps {
   publishedTime?: string;
   modifiedTime?: string;
   section?: string;
+  tags?: string[];
   noindex?: boolean;
   nofollow?: boolean;
   schema?: Record<string, unknown> | Record<string, unknown>[];
@@ -76,6 +77,7 @@ export function SEO({
   publishedTime,
   modifiedTime,
   section,
+  tags,
   noindex = false,
   nofollow = false,
   schema,
@@ -154,6 +156,19 @@ export function SEO({
       if (section) {
         setMetaTag('property', 'article:section', section);
       }
+      if (tags && tags.length > 0) {
+        tags.forEach((tag, index) => {
+          setMetaTag('property', `article:tag:${index}`, tag);
+        });
+      }
+    }
+
+    // Content freshness signals for AI crawlers (GEO)
+    if (modifiedTime) {
+      setMetaTag('name', 'last-modified', modifiedTime);
+    }
+    if (publishedTime) {
+      setMetaTag('name', 'date', publishedTime);
     }
 
     // Twitter Card tags
@@ -195,6 +210,7 @@ export function SEO({
     publishedTime,
     modifiedTime,
     section,
+    tags,
     robotsContent,
   ]);
 

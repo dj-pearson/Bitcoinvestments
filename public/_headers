@@ -63,5 +63,10 @@
   Content-Type: text/plain; charset=utf-8
   Cache-Control: public, max-age=86400
 
+# AI crawler optimization - allow indexing signals
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=86400
+
 /.well-known/*
   Cache-Control: public, max-age=86400

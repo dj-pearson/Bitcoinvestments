@@ -27,6 +27,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsSuperAdmin, useUserRole } from '../AdminRoute';
+import { SkipLinks } from '../accessibility/SkipLinks';
+import { RouteAnnouncer } from '../accessibility/RouteAnnouncer';
+import { KeyboardShortcutsHelp } from '../accessibility/KeyboardShortcutsHelp';
+import { AccessibilityWidget } from '../accessibility/AccessibilityWidget';
 
 interface NavItem {
   name: string;
@@ -107,16 +111,23 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-[#0B0D14] flex">
+      <SkipLinks />
+      <RouteAnnouncer />
+      <KeyboardShortcutsHelp />
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setMobileOpen(false)}
+          role="presentation"
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <aside
+        aria-label="Admin sidebar navigation"
         className={`
           fixed lg:static inset-y-0 left-0 z-50
           flex flex-col
@@ -132,7 +143,7 @@ export function AdminLayout() {
           {!collapsed && (
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+                <Zap className="w-5 h-5 text-white" aria-hidden="true" />
               </div>
               <span className="font-bold text-white">Admin Panel</span>
             </div>
@@ -140,23 +151,28 @@ export function AdminLayout() {
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="hidden lg:flex p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            {collapsed ? <ChevronRight className="w-5 h-5" aria-hidden="true" /> : <ChevronLeft className="w-5 h-5" aria-hidden="true" />}
           </button>
           <button
             onClick={() => setMobileOpen(false)}
             className="lg:hidden p-2 rounded-lg hover:bg-white/5 text-slate-400"
+            aria-label="Close sidebar"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6" aria-label="Admin navigation">
           {filteredSections.map((section) => (
-            <div key={section.title}>
+            <div key={section.title} role="group" aria-labelledby={`nav-section-${section.title.replace(/\s+/g, '-').toLowerCase()}`}>
               {!collapsed && (
-                <h3 className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                <h3
+                  id={`nav-section-${section.title.replace(/\s+/g, '-').toLowerCase()}`}
+                  className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500"
+                >
                   {section.title}
                 </h3>
               )}
@@ -172,6 +188,7 @@ export function AdminLayout() {
                       key={item.path}
                       to={item.path}
                       onClick={() => setMobileOpen(false)}
+                      aria-current={isActive ? 'page' : undefined}
                       className={`
                         flex items-center gap-3 px-3 py-2.5 rounded-xl
                         transition-all duration-200 group relative
@@ -181,19 +198,19 @@ export function AdminLayout() {
                         }
                       `}
                     >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-orange-400' : ''}`} />
+                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-orange-400' : ''}`} aria-hidden="true" />
                       {!collapsed && (
                         <>
                           <span className="font-medium text-sm">{item.name}</span>
                           {item.badge !== undefined && item.badge > 0 && (
-                            <span className="ml-auto px-2 py-0.5 text-xs font-medium rounded-full bg-orange-500/20 text-orange-400">
+                            <span className="ml-auto px-2 py-0.5 text-xs font-medium rounded-full bg-orange-500/20 text-orange-400" aria-label={`${item.badge} notifications`}>
                               {item.badge}
                             </span>
                           )}
                         </>
                       )}
                       {collapsed && (
-                        <div className="absolute left-full ml-3 px-2 py-1 bg-slate-800 text-white text-sm rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                        <div className="absolute left-full ml-3 px-2 py-1 bg-slate-800 text-white text-sm rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50" role="tooltip">
                           {item.name}
                         </div>
                       )}
@@ -208,7 +225,7 @@ export function AdminLayout() {
         {/* User section */}
         <div className="p-3 border-t border-white/5">
           <div className={`flex items-center gap-3 p-2 rounded-xl bg-white/5 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0" aria-hidden="true">
               <span className="text-sm font-semibold text-white">
                 {user?.email?.charAt(0).toUpperCase() || 'A'}
               </span>
@@ -226,8 +243,9 @@ export function AdminLayout() {
             <button
               onClick={() => signOut()}
               className="w-full mt-2 flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              aria-label="Sign out of admin panel"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4" aria-hidden="true" />
               <span className="text-sm">Sign Out</span>
             </button>
           )}
@@ -237,13 +255,15 @@ export function AdminLayout() {
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top header */}
-        <header className="h-16 flex items-center justify-between px-4 lg:px-6 bg-[#0F1118]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-30">
+        <header className="h-16 flex items-center justify-between px-4 lg:px-6 bg-[#0F1118]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-30" role="banner">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setMobileOpen(true)}
               className="lg:hidden p-2 rounded-lg hover:bg-white/5 text-slate-400"
+              aria-label="Open sidebar navigation"
+              aria-expanded={mobileOpen}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5" aria-hidden="true" />
             </button>
             <div>
               <h1 className="text-lg font-semibold text-white">{currentPageTitle}</h1>
@@ -255,31 +275,37 @@ export function AdminLayout() {
 
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Search */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5 focus-within:border-orange-500/50 transition-colors">
-              <Search className="w-4 h-4 text-slate-500" />
+            <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/5 focus-within:border-orange-500/50 transition-colors" role="search">
+              <Search className="w-4 h-4 text-slate-500" aria-hidden="true" />
+              <label htmlFor="admin-search" className="sr-only">Search admin panel</label>
               <input
-                type="text"
+                id="admin-search"
+                type="search"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none w-40"
               />
-              <kbd className="hidden lg:inline-flex px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-white/5 rounded">
+              <kbd className="hidden lg:inline-flex px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-white/5 rounded" aria-hidden="true">
                 ⌘K
               </kbd>
             </div>
 
             {/* Quick actions */}
-            <button className="relative p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full" />
+            <button
+              className="relative p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5" aria-hidden="true" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full" aria-label="New notifications available" />
             </button>
 
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {darkMode ? <Sun className="w-5 h-5" aria-hidden="true" /> : <Moon className="w-5 h-5" aria-hidden="true" />}
             </button>
 
             <a
@@ -287,18 +313,21 @@ export function AdminLayout() {
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="View public site (opens in new tab)"
             >
-              <Globe className="w-4 h-4" />
+              <Globe className="w-4 h-4" aria-hidden="true" />
               <span className="text-sm">View Site</span>
             </a>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main id="main-content" className="flex-1 p-4 lg:p-6 overflow-auto" role="main" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
+
+      <AccessibilityWidget />
     </div>
   );
 }

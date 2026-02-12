@@ -14,3 +14,4 @@ export { FocusManager, useFocusManager } from './FocusManager';
 export { VisuallyHidden, srOnly } from './VisuallyHidden';
 export { AccessibleIcon, makeAccessibleIcon } from './AccessibleIcon';
 export { AccessibleTable, SimpleTable } from './AccessibleTable';
+export { AccessibilityWidget } from './AccessibilityWidget';

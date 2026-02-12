@@ -10,7 +10,7 @@ export function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
                     {/* Brand & Newsletter */}
                     <div className="lg:col-span-2 space-y-6">
-                        <Link to="/">
+                        <Link to="/" aria-label="Bitcoinvestments - Home">
                             <Logo />
                         </Link>
                         <p className="text-gray-400 text-sm leading-relaxed">
@@ -21,7 +21,7 @@ export function Footer() {
                     </div>
 
                     {/* Platform Links */}
-                    <div>
+                    <nav aria-label="Platform links">
                         <h3 className="font-semibold text-white mb-4">Platform</h3>
                         <ul className="space-y-3">
                             <li>
@@ -50,10 +50,10 @@ export function Footer() {
                                 </Link>
                             </li>
                         </ul>
-                    </div>
+                    </nav>
 
                     {/* Resources Links */}
-                    <div>
+                    <nav aria-label="Resources links">
                         <h3 className="font-semibold text-white mb-4">Resources</h3>
                         <ul className="space-y-3">
                             <li>
@@ -77,10 +77,10 @@ export function Footer() {
                                 </Link>
                             </li>
                         </ul>
-                    </div>
+                    </nav>
 
                     {/* Legal Links */}
-                    <div>
+                    <nav aria-label="Legal links">
                         <h3 className="font-semibold text-white mb-4">Legal</h3>
                         <ul className="space-y-3">
                             <li>
@@ -110,7 +110,7 @@ export function Footer() {
                                 </a>
                             </li>
                         </ul>
-                    </div>
+                    </nav>
                 </div>
 
                 {/* Bottom Section */}
@@ -124,44 +124,44 @@ export function Footer() {
                                 Cryptocurrency investments are subject to market risks. Not financial advice.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <nav aria-label="Social media links" className="flex items-center gap-4">
                             <a
                                 href="https://twitter.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="Twitter"
+                                aria-label="Follow us on Twitter (opens in new tab)"
                             >
-                                <Twitter className="w-5 h-5" />
+                                <Twitter className="w-5 h-5" aria-hidden="true" />
                             </a>
                             <a
                                 href="https://youtube.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="YouTube"
+                                aria-label="Subscribe on YouTube (opens in new tab)"
                             >
-                                <Youtube className="w-5 h-5" />
+                                <Youtube className="w-5 h-5" aria-hidden="true" />
                             </a>
                             <a
                                 href="https://github.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="GitHub"
+                                aria-label="View our GitHub (opens in new tab)"
                             >
-                                <Github className="w-5 h-5" />
+                                <Github className="w-5 h-5" aria-hidden="true" />
                             </a>
                             <a
                                 href="https://linkedin.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="LinkedIn"
+                                aria-label="Connect on LinkedIn (opens in new tab)"
                             >
-                                <Linkedin className="w-5 h-5" />
+                                <Linkedin className="w-5 h-5" aria-hidden="true" />
                             </a>
-                        </div>
+                        </nav>
                     </div>
                 </div>
             </div>

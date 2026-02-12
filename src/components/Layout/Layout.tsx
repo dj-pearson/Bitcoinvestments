@@ -6,6 +6,7 @@ import { Breadcrumbs } from '../Breadcrumbs';
 import { SkipLinks } from '../accessibility/SkipLinks';
 import { RouteAnnouncer } from '../accessibility/RouteAnnouncer';
 import { KeyboardShortcutsHelp } from '../accessibility/KeyboardShortcutsHelp';
+import { AccessibilityWidget } from '../accessibility/AccessibilityWidget';
 
 export function Layout() {
     return (
@@ -22,6 +23,7 @@ export function Layout() {
             </main>
             <Footer />
             <CookieConsent />
+            <AccessibilityWidget />
         </div>
     );
 }

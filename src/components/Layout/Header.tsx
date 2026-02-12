@@ -288,19 +288,24 @@ export function Header() {
                                 onMouseEnter={() => setUserDropdownOpen(true)}
                                 onMouseLeave={() => setUserDropdownOpen(false)}
                             >
-                                <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                                <button
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                                    aria-label="User account menu"
+                                    aria-expanded={userDropdownOpen}
+                                    aria-haspopup="menu"
+                                >
                                     <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center">
-                                        <User className="w-4 h-4 text-brand-primary" />
+                                        <User className="w-4 h-4 text-brand-primary" aria-hidden="true" />
                                     </div>
                                     <ChevronDown className={cn(
                                         'w-4 h-4 transition-transform',
                                         userDropdownOpen && 'rotate-180'
-                                    )} />
+                                    )} aria-hidden="true" />
                                 </button>
 
                                 {userDropdownOpen && (
                                     <div className="absolute top-full right-0 pt-2">
-                                        <div className="glass-card p-2 min-w-[200px] rounded-xl border border-white/10">
+                                        <div className="glass-card p-2 min-w-[200px] rounded-xl border border-white/10" role="menu" aria-label="User account menu">
                                             <div className="px-4 py-2 border-b border-white/10 mb-2">
                                                 <p className="text-sm text-gray-400">Signed in as</p>
                                                 <p className="text-sm text-white font-medium truncate">{user.email}</p>
@@ -308,68 +313,78 @@ export function Header() {
                                             <Link
                                                 to="/profile"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Profile Settings
                                             </Link>
                                             <Link
                                                 to="/dashboard"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Dashboard
                                             </Link>
-                                            <div className="border-t border-white/10 my-2"></div>
+                                            <div className="border-t border-white/10 my-2" role="separator"></div>
                                             <Link
                                                 to="/portfolio-analysis"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Portfolio Analysis
                                             </Link>
                                             <Link
                                                 to="/backtesting"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Backtesting
                                             </Link>
                                             <Link
                                                 to="/tax-reports"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Tax Reports
                                             </Link>
-                                            <div className="border-t border-white/10 my-2"></div>
+                                            <div className="border-t border-white/10 my-2" role="separator"></div>
                                             <Link
                                                 to="/developers/portal"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Developer Portal
                                             </Link>
                                             <Link
                                                 to="/affiliate"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Affiliate Dashboard
                                             </Link>
                                             <Link
                                                 to="/advertiser"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Advertiser Dashboard
                                             </Link>
                                             <Link
                                                 to="/advisor"
                                                 className="block px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                                                role="menuitem"
                                             >
                                                 Advisor Dashboard
                                             </Link>
                                             {/* Admin Dashboard link - only show for admin users */}
                                             {(user.role === 'admin' || user.role === 'super_admin') && (
                                                 <>
-                                                    <div className="border-t border-white/10 my-2"></div>
+                                                    <div className="border-t border-white/10 my-2" role="separator"></div>
                                                     <Link
                                                         to="/admin"
                                                         className="flex items-center gap-2 px-4 py-2 text-sm text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 rounded-lg transition-colors"
+                                                        role="menuitem"
                                                     >
-                                                        <Shield className="w-4 h-4" />
+                                                        <Shield className="w-4 h-4" aria-hidden="true" />
                                                         Admin Dashboard
                                                     </Link>
                                                 </>

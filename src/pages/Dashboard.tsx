@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
 import { PortfolioTracker } from '../components/PortfolioTracker';
@@ -43,6 +44,7 @@ export function Dashboard() {
   }[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
@@ -221,7 +223,8 @@ export function Dashboard() {
                   {filteredCryptos.map((crypto) => (
                     <div
                       key={crypto.id}
-                      className="bg-white/5 rounded-lg p-4 border border-white/10 active:bg-white/10 transition-colors"
+                      onClick={() => navigate(`/coin/${crypto.id}`)}
+                      className="bg-white/5 rounded-lg p-4 border border-white/10 active:bg-white/10 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -285,6 +288,7 @@ export function Dashboard() {
                       {filteredCryptos.map((crypto) => (
                         <tr
                           key={crypto.id}
+                          onClick={() => navigate(`/coin/${crypto.id}`)}
                           className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
                         >
                           <td className="py-4 px-2 text-gray-400">{crypto.market_cap_rank}</td>

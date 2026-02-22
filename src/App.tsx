@@ -46,6 +46,7 @@ const Calculators = lazy(() => import('./pages/Calculators').then(m => ({ defaul
 
 // Lazy loaded pages for better initial bundle size
 const Charts = lazy(() => import('./pages/Charts').then(m => ({ default: m.Charts })));
+const CoinDetail = lazy(() => import('./pages/CoinDetail').then(m => ({ default: m.CoinDetail })));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const Profile = lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
@@ -161,6 +162,7 @@ function App() {
                   <Route index element={withErrorBoundary(<Home />, 'Home')} />
                   <Route path="dashboard" element={withErrorBoundary(<Dashboard />, 'Dashboard')} />
                   <Route path="charts" element={withErrorBoundary(<Charts />, 'Charts')} />
+                  <Route path="coin/:id" element={withErrorBoundary(<CoinDetail />, 'CoinDetail')} />
                   <Route path="calculators" element={withErrorBoundary(<Calculators />, 'Calculators')} />
                   <Route path="compare" element={withErrorBoundary(<Compare />, 'Compare')} />
                   <Route path="compare/:type/:id" element={withErrorBoundary(<Compare />, 'CompareDetail')} />

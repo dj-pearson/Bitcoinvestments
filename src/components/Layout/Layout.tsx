@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { CookieConsent } from '../CookieConsent';
 import { Breadcrumbs } from '../Breadcrumbs';
+import { BackToTop } from '../BackToTop';
 import { SkipLinks } from '../accessibility/SkipLinks';
 import { RouteAnnouncer } from '../accessibility/RouteAnnouncer';
 import { KeyboardShortcutsHelp } from '../accessibility/KeyboardShortcutsHelp';
@@ -22,6 +23,7 @@ export function Layout() {
                 <Outlet />
             </main>
             <Footer />
+            <BackToTop />
             <CookieConsent />
             <AccessibilityWidget />
         </div>

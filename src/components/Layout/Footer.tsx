@@ -1,12 +1,55 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Twitter, Github, Linkedin, Youtube, Mail } from 'lucide-react';
+import { Twitter, Github, Linkedin, Youtube, Mail, Calculator, BarChart3, BookOpen, Shield, TrendingUp } from 'lucide-react';
 import { Newsletter } from '../Newsletter';
 import { Logo } from '../Logo';
+import { getCachedTopCryptocurrencies } from '../../services/coingecko';
 
 export function Footer() {
+    const [btcPrice, setBtcPrice] = useState<{ price: number; change: number } | null>(null);
+
+    useEffect(() => {
+        async function fetchBtc() {
+            try {
+                const data = await getCachedTopCryptocurrencies(1);
+                if (data[0]) {
+                    setBtcPrice({ price: data[0].current_price, change: data[0].price_change_percentage_24h });
+                }
+            } catch { /* silent */ }
+        }
+        fetchBtc();
+    }, []);
+
     return (
         <footer id="footer" className="bg-brand-dark border-t border-white/5 pt-16 pb-8" role="contentinfo" tabIndex={-1}>
             <div className="container mx-auto px-4">
+                {/* Popular Tools Quick Access */}
+                <div className="mb-12 pb-12 border-b border-white/5">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-6 text-center">Popular Tools</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <Link to="/calculators" className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group">
+                            <Calculator className="w-5 h-5 text-brand-primary" />
+                            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">DCA Calculator</span>
+                        </Link>
+                        <Link to="/dashboard" className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group">
+                            <BarChart3 className="w-5 h-5 text-green-400" />
+                            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">Market Dashboard</span>
+                        </Link>
+                        <Link to="/compare" className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group">
+                            <TrendingUp className="w-5 h-5 text-orange-400" />
+                            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">Compare Exchanges</span>
+                        </Link>
+                        <Link to="/learn" className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group">
+                            <BookOpen className="w-5 h-5 text-purple-400" />
+                            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">Learn Crypto</span>
+                        </Link>
+                        <Link to="/scam-database" className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group">
+                            <Shield className="w-5 h-5 text-red-400" />
+                            <span className="text-sm text-gray-300 group-hover:text-white transition-colors">Scam Database</span>
+                        </Link>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-12">
                     {/* Brand & Newsletter */}
                     <div className="lg:col-span-2 space-y-6">
@@ -124,6 +167,15 @@ export function Footer() {
                                 Cryptocurrency investments are subject to market risks. Not financial advice.
                             </p>
                         </div>
+                        {btcPrice && (
+                            <Link to="/coin/bitcoin" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-xs text-gray-400">BTC</span>
+                                <span className="text-sm font-medium text-white">${btcPrice.price.toLocaleString()}</span>
+                                <span className={`text-xs font-medium ${btcPrice.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {btcPrice.change >= 0 ? '+' : ''}{btcPrice.change.toFixed(2)}%
+                                </span>
+                            </Link>
+                        )}
                         <nav aria-label="Social media links" className="flex items-center gap-4">
                             <a
                                 href="https://twitter.com"

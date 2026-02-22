@@ -8,6 +8,7 @@ import { NewsFeed } from '../components/NewsFeed';
 import { FearGreedGauge } from '../components/FearGreedIndex';
 import { Hero } from '../components/Hero';
 import { SEO } from '../components/SEO';
+import { Testimonials } from '../components/Testimonials';
 import { useLazyAnimation } from '../hooks/useGSAPLazy';
 
 export function Home() {
@@ -281,6 +282,9 @@ export function Home() {
                     </div>
                 </div>
             </section>
+
+            {/* Testimonials Section */}
+            <Testimonials />
 
             {/* Newsletter CTA */}
             <section className="py-16">

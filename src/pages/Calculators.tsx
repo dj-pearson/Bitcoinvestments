@@ -1,15 +1,18 @@
-import { useState } from 'react';
-import { Calculator, DollarSign, Percent, Receipt, Coins } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Calculator, DollarSign, Percent, Receipt, Coins, ArrowDownUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SEO, generateBreadcrumbSchema } from '../components/SEO';
+import { getCachedTopCryptocurrencies } from '../services/coingecko';
+import type { Cryptocurrency } from '../types';
 
-type CalculatorType = 'dca' | 'fees' | 'staking' | 'tax';
+type CalculatorType = 'dca' | 'fees' | 'staking' | 'tax' | 'converter';
 
 export function Calculators() {
   const [activeCalculator, setActiveCalculator] = useState<CalculatorType>('dca');
 
   const calculators = [
     { id: 'dca' as const, name: 'DCA Calculator', icon: DollarSign, description: 'Calculate dollar-cost averaging returns' },
+    { id: 'converter' as const, name: 'Converter', icon: ArrowDownUp, description: 'Convert between crypto and fiat' },
     { id: 'fees' as const, name: 'Fee Calculator', icon: Receipt, description: 'Compare exchange fees' },
     { id: 'staking' as const, name: 'Staking Calculator', icon: Coins, description: 'Estimate staking rewards' },
     { id: 'tax' as const, name: 'Tax Calculator', icon: Percent, description: 'Estimate capital gains tax' },
@@ -148,6 +151,7 @@ export function Calculators() {
       {/* Calculator Content */}
       <div className="glass-card p-8">
         {activeCalculator === 'dca' && <DCACalculatorForm />}
+        {activeCalculator === 'converter' && <CryptoConverterForm />}
         {activeCalculator === 'fees' && <FeeCalculatorForm />}
         {activeCalculator === 'staking' && <StakingCalculatorForm />}
         {activeCalculator === 'tax' && <TaxCalculatorForm />}
@@ -164,12 +168,69 @@ function DCACalculatorForm() {
     frequency: 'weekly',
     duration: 12,
   });
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchPrice() {
+      setLoading(true);
+      try {
+        const data = await getCachedTopCryptocurrencies(20);
+        const coin = data.find(c => c.id === formData.cryptocurrency);
+        if (coin) setCurrentPrice(coin.current_price);
+      } catch { /* use previous price */ }
+      setLoading(false);
+    }
+    fetchPrice();
+  }, [formData.cryptocurrency]);
+
+  const results = useMemo(() => {
+    if (!currentPrice || formData.amount <= 0 || formData.duration <= 0) return null;
+
+    const frequencyMultipliers: Record<string, number> = {
+      daily: 30,
+      weekly: 4.33,
+      biweekly: 2.17,
+      monthly: 1,
+    };
+
+    const periodsPerMonth = frequencyMultipliers[formData.frequency] || 4.33;
+    const totalPeriods = Math.round(periodsPerMonth * formData.duration);
+    const totalInvested = formData.amount * totalPeriods;
+    const totalCoins = totalInvested / currentPrice;
+    const currentValue = totalCoins * currentPrice;
+    const averageCost = totalInvested / totalCoins;
+    const profitLoss = currentValue - totalInvested;
+    const profitLossPercent = totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
+
+    return {
+      totalInvested,
+      currentValue,
+      totalCoins,
+      averageCost,
+      profitLoss,
+      profitLossPercent,
+      totalPeriods,
+    };
+  }, [formData, currentPrice]);
+
+  const cryptoNames: Record<string, string> = {
+    bitcoin: 'BTC',
+    ethereum: 'ETH',
+    solana: 'SOL',
+    cardano: 'ADA',
+  };
 
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Dollar-Cost Averaging Calculator</h2>
       <p className="text-gray-400 mb-8">
-        See how your investment would have performed using a DCA strategy.
+        See how a DCA strategy works by investing a fixed amount at regular intervals.
+        {currentPrice && (
+          <span className="block mt-1 text-sm">
+            Current {cryptoNames[formData.cryptocurrency]} price: <span className="text-white font-medium">${currentPrice.toLocaleString()}</span>
+          </span>
+        )}
       </p>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -232,37 +293,188 @@ function DCACalculatorForm() {
               max="120"
             />
           </div>
-
-          <button className="w-full py-4 rounded-xl bg-brand-primary hover:bg-brand-primary/90 text-white font-bold transition-colors">
-            Calculate Returns
-          </button>
         </div>
 
         <div className="bg-white/5 rounded-xl p-6">
-          <h3 className="font-bold text-lg mb-4">Projected Results</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between py-3 border-b border-white/10">
-              <span className="text-gray-400">Total Invested</span>
-              <span className="font-bold text-white">$4,800.00</span>
+          <h3 className="font-bold text-lg mb-4">DCA Results</h3>
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-10 bg-white/5 rounded animate-pulse" />
+              ))}
             </div>
-            <div className="flex justify-between py-3 border-b border-white/10">
-              <span className="text-gray-400">Current Value</span>
-              <span className="font-bold text-green-400">$6,240.00</span>
+          ) : results ? (
+            <div className="space-y-4">
+              <div className="flex justify-between py-3 border-b border-white/10">
+                <span className="text-gray-400">Investment Periods</span>
+                <span className="font-bold text-white">{results.totalPeriods} {formData.frequency} buys</span>
+              </div>
+              <div className="flex justify-between py-3 border-b border-white/10">
+                <span className="text-gray-400">Total Invested</span>
+                <span className="font-bold text-white">${results.totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between py-3 border-b border-white/10">
+                <span className="text-gray-400">Coins Accumulated</span>
+                <span className="font-bold text-white">{results.totalCoins.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 })} {cryptoNames[formData.cryptocurrency]}</span>
+              </div>
+              <div className="flex justify-between py-3 border-b border-white/10">
+                <span className="text-gray-400">Current Value</span>
+                <span className="font-bold text-white">${results.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between py-3 border-b border-white/10">
+                <span className="text-gray-400">Average Cost / Coin</span>
+                <span className="font-bold text-white">${results.averageCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between py-3 bg-white/5 rounded-lg px-3 -mx-3">
+                <span className="text-gray-400 font-medium">Net Return</span>
+                <span className={cn('font-bold', results.profitLoss >= 0 ? 'text-green-400' : 'text-red-400')}>
+                  {results.profitLoss >= 0 ? '+' : ''}${results.profitLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({results.profitLossPercent.toFixed(1)}%)
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between py-3 border-b border-white/10">
-              <span className="text-gray-400">Total Return</span>
-              <span className="font-bold text-green-400">+$1,440.00 (30%)</span>
-            </div>
-            <div className="flex justify-between py-3">
-              <span className="text-gray-400">Average Cost</span>
-              <span className="font-bold text-white">$45,200.00</span>
-            </div>
-          </div>
+          ) : (
+            <p className="text-gray-500 text-sm">Enter valid inputs to see results.</p>
+          )}
           <p className="text-xs text-gray-500 mt-4">
-            * Results are based on historical data and do not guarantee future performance.
+            * Results use the current price as a baseline. Actual DCA returns depend on price fluctuations over the investment period.
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CryptoConverterForm() {
+  const [cryptos, setCryptos] = useState<Cryptocurrency[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cryptoId, setCryptoId] = useState('bitcoin');
+  const [cryptoAmount, setCryptoAmount] = useState('1');
+  const [fiatAmount, setFiatAmount] = useState('');
+  const [direction, setDirection] = useState<'crypto-to-fiat' | 'fiat-to-crypto'>('crypto-to-fiat');
+
+  useEffect(() => {
+    async function fetchPrices() {
+      setLoading(true);
+      try {
+        const data = await getCachedTopCryptocurrencies(20);
+        setCryptos(data);
+      } catch { /* handled */ }
+      setLoading(false);
+    }
+    fetchPrices();
+  }, []);
+
+  const selectedCrypto = useMemo(() => cryptos.find(c => c.id === cryptoId), [cryptos, cryptoId]);
+
+  useEffect(() => {
+    if (!selectedCrypto) return;
+    if (direction === 'crypto-to-fiat') {
+      const amount = parseFloat(cryptoAmount) || 0;
+      setFiatAmount((amount * selectedCrypto.current_price).toFixed(2));
+    } else {
+      const amount = parseFloat(fiatAmount) || 0;
+      setCryptoAmount((amount / selectedCrypto.current_price).toFixed(8));
+    }
+  }, [cryptoId, cryptoAmount, fiatAmount, direction, selectedCrypto]);
+
+  const handleCryptoChange = (value: string) => {
+    setDirection('crypto-to-fiat');
+    setCryptoAmount(value);
+  };
+
+  const handleFiatChange = (value: string) => {
+    setDirection('fiat-to-crypto');
+    setFiatAmount(value);
+  };
+
+  const handleSwap = () => {
+    setDirection(d => d === 'crypto-to-fiat' ? 'fiat-to-crypto' : 'crypto-to-fiat');
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-6">Crypto Converter</h2>
+      <p className="text-gray-400 mb-8">
+        Instantly convert between cryptocurrencies and USD using live market prices.
+      </p>
+
+      {loading ? (
+        <div className="max-w-lg mx-auto space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="max-w-lg mx-auto space-y-4">
+          {/* Crypto Input */}
+          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+            <label className="block text-xs text-gray-400 mb-2">Crypto</label>
+            <div className="flex items-center gap-3">
+              <select
+                value={cryptoId}
+                onChange={(e) => setCryptoId(e.target.value)}
+                className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-primary min-w-[140px]"
+              >
+                {cryptos.map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.symbol.toUpperCase()})</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                value={cryptoAmount}
+                onChange={(e) => handleCryptoChange(e.target.value)}
+                className="flex-1 bg-transparent text-right text-2xl font-bold text-white focus:outline-none"
+                placeholder="0.00"
+                min="0"
+                step="any"
+              />
+            </div>
+          </div>
+
+          {/* Swap Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleSwap}
+              className="p-3 rounded-full glass hover:bg-white/10 transition-colors group"
+              aria-label="Swap conversion direction"
+            >
+              <ArrowDownUp className="w-5 h-5 text-brand-primary group-hover:scale-110 transition-transform" />
+            </button>
+          </div>
+
+          {/* Fiat Input */}
+          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+            <label className="block text-xs text-gray-400 mb-2">USD</label>
+            <div className="flex items-center gap-3">
+              <span className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-medium">$ USD</span>
+              <input
+                type="number"
+                value={fiatAmount}
+                onChange={(e) => handleFiatChange(e.target.value)}
+                className="flex-1 bg-transparent text-right text-2xl font-bold text-white focus:outline-none"
+                placeholder="0.00"
+                min="0"
+                step="any"
+              />
+            </div>
+          </div>
+
+          {/* Rate Info */}
+          {selectedCrypto && (
+            <div className="text-center space-y-1 pt-2">
+              <p className="text-sm text-gray-400">
+                1 {selectedCrypto.symbol.toUpperCase()} = <span className="text-white font-medium">${selectedCrypto.current_price.toLocaleString()}</span>
+              </p>
+              <p className={cn('text-xs', selectedCrypto.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400')}>
+                {selectedCrypto.price_change_percentage_24h >= 0 ? '+' : ''}{selectedCrypto.price_change_percentage_24h.toFixed(2)}% (24h)
+              </p>
+              <p className="text-xs text-gray-500">
+                Last updated: {new Date(selectedCrypto.last_updated).toLocaleTimeString()}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

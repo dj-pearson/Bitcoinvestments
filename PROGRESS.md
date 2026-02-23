@@ -71,7 +71,7 @@
 
 ### Security & Auth (US-036 to US-038)
 - [x] **US-036**: RBAC system - `src/security/permissions.ts` with granular permissions (portfolio, holdings, transaction, alert, blog, forum, admin), role-permission mapping, `usePermission` hook
-- [ ] **US-037**: Audit logging for admin actions
+- [x] **US-037**: Audit logging - `src/services/auditLog.ts` with `logAuditEvent()`, admin AuditLogs page, comprehensive action types
 - [ ] **US-038**: GDPR data export and account deletion
 
 ### Monitoring & Config (US-039 to US-040)
@@ -102,7 +102,7 @@
 
 ### UX & Growth (US-061 to US-070)
 - [ ] **US-061**: User onboarding wizard
-- [ ] **US-062**: Global search (Cmd+K)
+- [x] **US-062**: Global search - `GlobalSearch.tsx` with Cmd+K shortcut, `SearchResults.tsx`, autocomplete, category filtering
 - [ ] **US-063**: Referral program
 - [ ] **US-064**: Mobile responsive audit
 - [ ] **US-065**: Dark/light mode toggle
@@ -191,8 +191,8 @@
 
 ## Summary
 
-### PRD Enterprise Stories: 24 of 70 complete (~34%)
-**Completed**: US-001, US-002, US-003, US-011, US-012, US-013, US-014, US-015, US-018, US-019, US-020, US-022, US-025, US-026, US-027, US-031, US-032, US-033, US-034, US-035, US-036, US-040, US-049
+### PRD Enterprise Stories: 25 of 70 complete (~36%)
+**Completed**: US-001, US-002, US-003, US-011, US-012, US-013, US-014, US-015, US-018, US-019, US-020, US-022, US-025, US-026, US-027, US-031, US-032, US-033, US-034, US-035, US-036, US-037, US-040, US-049, US-062
 
 ### Overall Platform Features: ~95%
 Core platform is feature-complete. Enterprise hardening stories (testing, advanced security, documentation, enterprise features) remain.

@@ -639,7 +639,7 @@
         "Typecheck passes"
       ],
       "priority": 37,
-      "passes": false,
+      "passes": true,
       "notes": "Audit logs must be immutable. RLS policy should allow INSERT for admins and SELECT for super_admins only. Regular admins can see their own audit entries."
     },
     {
@@ -1080,7 +1080,7 @@
         "Typecheck passes"
       ],
       "priority": 62,
-      "passes": false,
+      "passes": true,
       "notes": "The SearchResults page exists but search is basic. A Cmd+K modal is the modern standard for SaaS platforms. Client-side search via a pre-built index (lunr.js or fuse.js) may be sufficient given the static content."
     },
     {

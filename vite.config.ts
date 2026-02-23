@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import rollupNodePolyFill from 'rollup-plugin-polyfill-node'
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -59,6 +60,7 @@ export default defineConfig({
   resolve: {
     // Add fallbacks for Node.js modules used by Web3 libraries
     alias: {
+      '@': path.resolve(__dirname, './src'),
       process: 'process/browser',
       stream: 'stream-browserify',
       util: 'util',

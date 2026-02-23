@@ -16,7 +16,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "This is the foundation - nothing else works if the build is broken. Current tsconfig.app.json already has strict:true, noUnusedLocals:true, noUnusedParameters:true."
     },
     {
@@ -33,7 +33,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Current eslint.config.js uses typescript-eslint and react-hooks plugins. Prettier must not conflict."
     },
     {
@@ -48,7 +48,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "This improves developer experience and makes refactoring easier. Only update imports in files you directly touch - don't mass-rename all files at once."
     },
     {
@@ -194,7 +194,7 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Use Tailwind animate-pulse for skeleton animation. Match the exact layout dimensions of the loaded content to prevent CLS."
     },
     {
@@ -228,7 +228,7 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Zod 4.3.4 already installed. Use z.string().email() for emails, z.string().min(8) for passwords. Export types with z.infer<typeof schema>."
     },
     {
@@ -247,7 +247,7 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "CSP must allow: *.supabase.co, api.coingecko.com, js.stripe.com, *.sentry.io, *.walletconnect.com, wss:// for WebSocket connections. Use report-uri for monitoring violations before enforcing."
     },
     {
@@ -300,7 +300,7 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "DOMPurify 3.3.1 already installed. The TipTap rich text editor output needs special attention - allow formatting tags but strip scripts. react-markdown should use rehype-sanitize."
     },
     {
@@ -317,7 +317,7 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Cloudflare Pages supports image transformations. Use native loading='lazy' for broad browser support. Priority images (LCP candidates) must not be lazy loaded."
     },
     {
@@ -336,7 +336,7 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Vite already has manual chunks configured in vite.config.ts. React.lazy works with Vite code splitting. Use the Skeleton component from US-012 as the Suspense fallback."
     },
     {
@@ -373,7 +373,7 @@
         "Typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "@sentry/react 10.32.1 already installed. VITE_SENTRY_DSN and VITE_SENTRY_ENABLED already in env vars. Add @sentry/vite-plugin for source map uploads."
     },
     {
@@ -426,7 +426,7 @@
         "Typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Use actions/cache for node_modules to speed up builds. Run lint, typecheck, and test in parallel jobs for faster feedback."
     },
     {
@@ -444,7 +444,7 @@
         "Typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Use cloudflare/wrangler-action@v3 for deployments. Secrets must be configured in Cloudflare Dashboard, not in GitHub Actions."
     },
     {
@@ -460,7 +460,7 @@
         "Typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "Some Web3 libraries may have known vulnerabilities in transitive dependencies that are not exploitable in browser context - document these exceptions."
     },
     {
@@ -530,7 +530,7 @@
         "Typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "Use Tailwind's focus-visible: utilities for focus indicators. Test with keyboard-only navigation. Don't add aria-label to elements that already have visible text labels."
     },
     {
@@ -548,7 +548,7 @@
         "Typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": "Use aria-live='polite' for most updates, 'assertive' only for critical alerts. Debounce rapid price updates to avoid overwhelming screen readers."
     },
     {
@@ -567,7 +567,7 @@
         "Typecheck passes"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": "Use schema.org vocabulary. Existing useSEO hook can be extended to include structured data. Don't add structured data for pages that don't benefit from it."
     },
     {
@@ -585,7 +585,7 @@
         "Typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": "Since this is a client-side React SPA, meta tags set via document.head may not be visible to all crawlers. Document this limitation and note that SSR/prerendering may be needed for full SEO."
     },
     {
@@ -603,7 +603,7 @@
         "Typecheck passes"
       ],
       "priority": 35,
-      "passes": false,
+      "passes": true,
       "notes": "Existing sitemap endpoint is at functions/api/sitemap.xml.ts. robots.txt should be in the public/ directory."
     },
     {
@@ -621,7 +621,7 @@
         "Typecheck passes"
       ],
       "priority": 36,
-      "passes": false,
+      "passes": true,
       "notes": "Current system has basic role check (user.is_admin). This story formalizes it into a proper RBAC. Keep backward compatible with existing AdminRoute component."
     },
     {
@@ -692,7 +692,7 @@
         "Typecheck passes"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": "Vite exposes VITE_ prefixed vars via import.meta.env. Cloudflare Workers receive env as function parameter. Both need validation but with different mechanisms."
     },
     {
@@ -845,7 +845,7 @@
         "Typecheck passes"
       ],
       "priority": 49,
-      "passes": false,
+      "passes": true,
       "notes": "Current 404 page exists but may need polish. 500 and 403 pages likely don't exist. Maintenance mode can be triggered via feature flag or MAINTENANCE_MODE env var."
     },
     {

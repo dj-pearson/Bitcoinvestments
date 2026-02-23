@@ -1,19 +1,19 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Layout } from './components/Layout/Layout';
-import { AuthProvider } from './contexts/AuthContext';
-import { ToastProvider } from './contexts/ToastContext';
-import { AnalyticsProvider, PageTracker } from './components/AnalyticsProvider';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { AdminRoute } from './components/AdminRoute';
-import { SessionExpiredModal } from './components/SessionExpiredModal';
-import { SessionActivityTracker } from './components/SessionActivityTracker';
-import { AppErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
-import { PageLoader } from './components/LoadingSkeletons';
-import { WebVitalsTracker } from './components/WebVitalsTracker';
-import { AccessibilityProvider } from './components/accessibility/AccessibilityContext';
-import { useApiToastBridge } from './hooks/useApiToastBridge';
+import { Layout } from '@/components/Layout/Layout';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { AnalyticsProvider, PageTracker } from '@/components/AnalyticsProvider';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AdminRoute } from '@/components/AdminRoute';
+import { SessionExpiredModal } from '@/components/SessionExpiredModal';
+import { SessionActivityTracker } from '@/components/SessionActivityTracker';
+import { AppErrorBoundary, PageErrorBoundary } from '@/components/ErrorBoundary';
+import { PageLoader } from '@/components/LoadingSkeletons';
+import { WebVitalsTracker } from '@/components/WebVitalsTracker';
+import { AccessibilityProvider } from '@/components/accessibility/AccessibilityContext';
+import { useApiToastBridge } from '@/hooks/useApiToastBridge';
 
 /**
  * Wraps a page element in a PageErrorBoundary so that a crash in one route
@@ -34,9 +34,9 @@ function ApiToastBridge() {
 }
 
 // Eagerly loaded pages (critical path - only Home and Auth pages)
-import { Home } from './pages/Home';
-import { Login } from './pages/Login';
-import { Signup } from './pages/Signup';
+import { Home } from '@/pages/Home';
+import { Login } from '@/pages/Login';
+import { Signup } from '@/pages/Signup';
 
 // Lazy loaded main pages (improves initial bundle size)
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -92,6 +92,9 @@ const DCAAutomationPage = lazy(() => import('./pages/DCAAutomation'));
 const SmartAlertBundlesPage = lazy(() => import('./pages/SmartAlertBundles'));
 const Accessibility = lazy(() => import('./pages/Accessibility').then(m => ({ default: m.Accessibility })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
+const ServerError = lazy(() => import('./pages/ServerError'));
+const Forbidden = lazy(() => import('./pages/Forbidden'));
+const Maintenance = lazy(() => import('./pages/Maintenance'));
 
 // Admin Layout and Pages (lazy loaded)
 const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
@@ -230,7 +233,10 @@ function App() {
                   <Route path="accessibility" element={withErrorBoundary(<Accessibility />, 'Accessibility')} />
                   <Route path="start" element={withErrorBoundary(<Learn />, 'Start')} />
                   <Route path="prices" element={withErrorBoundary(<Dashboard />, 'Prices')} />
+                  <Route path="403" element={withErrorBoundary(<Forbidden />, 'Forbidden')} />
                   <Route path="404" element={<NotFound />} />
+                  <Route path="500" element={withErrorBoundary(<ServerError />, 'ServerError')} />
+                  <Route path="maintenance" element={<Maintenance />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

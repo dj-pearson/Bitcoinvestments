@@ -1,7 +1,7 @@
 {
   "project": "Bitcoinvestments Enterprise Platform",
-  "branchName": "claude/identify-impact-improvements-B5kU3",
-  "description": "Transform the Bitcoinvestments cryptocurrency education and investment platform from its current ~92% complete state into a fully enterprise-grade, professional, production-ready SaaS product. The platform is built with React 18 + TypeScript on Vite, Supabase (PostgreSQL + Auth), Cloudflare Workers/Pages, Stripe payments, and Web3 integrations (RainbowKit, SIWE, wagmi/viem). It currently has 98+ components, 90+ services, 50+ pages, and 37 database migrations. This PRD covers all remaining gaps: code quality, testing, security hardening, performance optimization, monitoring/observability, CI/CD, API documentation, accessibility, SEO, and enterprise features needed to achieve production readiness.",
+  "branchName": "claude/audit-platform-update-prd-8gN9V",
+  "description": "Comprehensive platform audit and improvement roadmap for the Bitcoinvestments cryptocurrency education and investment platform. Built with React 18 + TypeScript on Vite, Supabase (PostgreSQL + Auth), Cloudflare Workers/Pages, Stripe payments, and Web3 integrations (RainbowKit, SIWE, wagmi/viem). This PRD includes the original 70 user stories plus 30 new high-impact improvements identified through systematic audits of UI/UX, Security, Performance, Code Quality, and API architecture.",
   "userStories": [
     {
       "id": "US-001",
@@ -1232,6 +1232,506 @@
       "priority": 70,
       "passes": false,
       "notes": "Automated a11y testing catches ~30% of WCAG issues (color contrast, missing labels, ARIA misuse). Manual testing is still needed for keyboard navigation and screen reader flows."
+    },
+    {
+      "id": "US-071",
+      "title": "Fix XSS vulnerability in BlogPreview unsanitized HTML",
+      "description": "BlogPreview.tsx uses dangerouslySetInnerHTML without DOMPurify sanitization at line 188. All other components (InteractiveCourses, ResearchReports, SuccessStories) properly use sanitizeHtml() but BlogPreview was missed. This is the highest severity security issue found in the audit.",
+      "acceptanceCriteria": [
+        "BlogPreview.tsx wraps all dangerouslySetInnerHTML content with sanitizeHtml() from src/lib/sanitize",
+        "Audit all other dangerouslySetInnerHTML usage across codebase - confirm each uses sanitizeHtml()",
+        "Add ESLint rule to flag raw dangerouslySetInnerHTML usage without sanitization wrapper",
+        "No XSS payloads execute when injected into blog post content (test with <script>alert(1)</script> and <img onerror=alert(1)>)",
+        "Build passes with no TypeScript errors"
+      ],
+      "priority": 71,
+      "passes": false,
+      "notes": "CRITICAL SECURITY. File: src/components/blog/BlogPreview.tsx line 188. Other files already sanitized: InteractiveCourses.tsx:705, ResearchReports.tsx:301, SuccessStories.tsx:317. SEO.tsx:229,242 is JSON-LD only (safe)."
+    },
+    {
+      "id": "US-072",
+      "title": "Fix SIWE nonce and password generation using crypto.getRandomValues",
+      "description": "The SIWE (Sign-In with Ethereum) implementation in siwe.ts uses Math.random() for nonce generation (line 164) and temporary password generation (line 169). Math.random() is not cryptographically secure and nonces/passwords could be predicted by attackers to forge wallet authentication signatures.",
+      "acceptanceCriteria": [
+        "generateRandomNonce() in src/services/siwe.ts uses crypto.getRandomValues() instead of Math.random()",
+        "generateRandomPassword() in src/services/siwe.ts uses crypto.getRandomValues() with 32+ bytes of entropy",
+        "Nonce is at least 32 hex characters long",
+        "Password is at least 45 characters with mixed character types",
+        "SIWE login flow still works end-to-end with MetaMask and WalletConnect",
+        "Build passes with no TypeScript errors"
+      ],
+      "priority": 72,
+      "passes": false,
+      "notes": "HIGH SECURITY. File: src/services/siwe.ts lines 164-172. Replace Math.random().toString(36) pattern with crypto.getRandomValues(new Uint8Array(32)) and hex encoding."
+    },
+    {
+      "id": "US-073",
+      "title": "Add authentication to send-email and log-error API endpoints",
+      "description": "The /api/send-email and /api/log-error endpoints have no authentication, allowing anyone to send emails or flood error logs. send-email could be abused for spam, and log-error could be used for DoS attacks on logging infrastructure.",
+      "acceptanceCriteria": [
+        "functions/api/send-email.ts requires either a valid user JWT token or the SUPABASE_SERVICE_ROLE_KEY Bearer token",
+        "functions/api/log-error.ts requires either a valid user session or applies strict per-IP rate limiting (max 10/minute)",
+        "Unauthenticated requests to both endpoints return 401 Unauthorized",
+        "Legitimate email sending from authenticated contexts still works",
+        "Sentry error logging from authenticated frontend still works",
+        "Build and deploy succeed"
+      ],
+      "priority": 73,
+      "passes": false,
+      "notes": "HIGH SECURITY. send-email.ts has zero auth checks. log-error.ts has zero auth checks. Both are publicly accessible. The middleware rate limiting helps but is not sufficient for these sensitive endpoints."
+    },
+    {
+      "id": "US-074",
+      "title": "Add server-side authentication to checkout session endpoints",
+      "description": "create-checkout-session.ts and create-tax-package-checkout.ts accept userId from the client request body without verifying the user is actually authenticated. An attacker could create checkout sessions for arbitrary user IDs. Add JWT verification to ensure the requesting user matches the userId in the payload.",
+      "acceptanceCriteria": [
+        "functions/api/create-checkout-session.ts verifies the Supabase JWT token from the Authorization header",
+        "functions/api/create-tax-package-checkout.ts verifies the Supabase JWT token from the Authorization header",
+        "The userId from the JWT token must match the userId in the request body - reject with 403 if mismatched",
+        "Frontend checkout flow updated to pass the auth token in requests",
+        "All Stripe checkout flows still work end-to-end",
+        "Build passes"
+      ],
+      "priority": 74,
+      "passes": false,
+      "notes": "HIGH SECURITY. Both endpoints trust client-provided userId. File: functions/api/create-checkout-session.ts, functions/api/create-tax-package-checkout.ts. The create-portal-session.ts already validates ownership (good pattern to follow)."
+    },
+    {
+      "id": "US-075",
+      "title": "Update vulnerable dependencies (jsPDF, react-router-dom, xlsx)",
+      "description": "npm audit reveals critical and high vulnerabilities: jsPDF v3.0.4 has 5 CVEs (path traversal, JS injection, DoS, XMP injection, race condition), react-router-dom v7.10.1 has 3 CVEs (CSRF, open redirect XSS, SSR XSS), and xlsx v0.18.5 has prototype pollution and ReDoS. Update all to latest patched versions.",
+      "acceptanceCriteria": [
+        "jsPDF updated to latest version with all 5 CVEs resolved (or replaced with safer alternative)",
+        "react-router-dom updated to version that resolves GHSA-h5cw-625j-3rxh, GHSA-2w69-qvjg-hvjx, GHSA-8v8x-cx79-35w7",
+        "xlsx updated to version resolving prototype pollution and ReDoS",
+        "npm audit --audit-level=high returns 0 high/critical vulnerabilities",
+        "All PDF export, routing, and Excel export features still work correctly",
+        "Full build passes and all pages load without errors"
+      ],
+      "priority": 75,
+      "passes": false,
+      "notes": "CRITICAL SECURITY. Run npm audit to see full list. jsPDF CVEs: GHSA-f8cm-6447-x5h2, GHSA-pqxr-3g65-p328, GHSA-95fx-jjr5-f39c, GHSA-vm32-vv63-w422, GHSA-cjw8-79x6-5cj4."
+    },
+    {
+      "id": "US-076",
+      "title": "Remove debug logging and hardcoded keys from API endpoints",
+      "description": "Multiple API endpoints contain debug console.log statements that expose sensitive information: coingecko/[[path]].ts logs all environment variable keys (lines 47-48), v1/_middleware.ts logs API key substrings (line 65), and wrangler.toml contains committed Supabase and Stripe publishable keys that should be environment-only.",
+      "acceptanceCriteria": [
+        "All console.log/console.error calls in functions/api/ that output API keys, env var names, or sensitive data are removed",
+        "functions/api/coingecko/[[path]].ts lines 47-48 debug logging removed",
+        "functions/api/v1/_middleware.ts line 65 API key substring logging removed or replaced with hash",
+        "wrangler.toml VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, and VITE_STRIPE_PUBLISHABLE_KEY use environment variable references instead of literal values",
+        "All endpoints still function correctly after removing debug logs",
+        "Build and deploy succeed"
+      ],
+      "priority": 76,
+      "passes": false,
+      "notes": "HIGH SECURITY. Debug logging exposes env configuration. Committed keys in wrangler.toml are in git history. Create .dev.vars for local development and use Cloudflare dashboard for production secrets."
+    },
+    {
+      "id": "US-077",
+      "title": "Add React.memo to Header, Footer, and chart components",
+      "description": "The codebase has ZERO usage of React.memo across all components. Header.tsx, Footer.tsx, PriceChart.tsx, ComparisonChart.tsx, FearGreedIndex.tsx, and NewsFeed.tsx all re-render unnecessarily on every parent state change. This is the single biggest performance issue affecting INP (Interaction to Next Paint). Estimated 20-40% unnecessary re-renders.",
+      "acceptanceCriteria": [
+        "React.memo wraps Header component in src/components/Layout/Header.tsx",
+        "React.memo wraps Footer component in src/components/Layout/Footer.tsx",
+        "React.memo wraps PriceChart in src/components/charts/PriceChart.tsx",
+        "React.memo wraps ComparisonChart in src/components/charts/ComparisonChart.tsx",
+        "React.memo wraps FearGreedIndex component",
+        "React.memo wraps NewsFeed component",
+        "React DevTools Profiler shows reduced re-render counts on Dashboard page",
+        "Build passes with no TypeScript errors"
+      ],
+      "priority": 77,
+      "passes": false,
+      "notes": "CRITICAL PERFORMANCE. Grep for 'React.memo' returns 0 matches. This affects every page interaction. Also add useMemo for expensive computations in Charts.tsx (schema generation line 111), PortfolioTracker.tsx (allocation calculation line 132), and PriceChart.tsx (price change calculation lines 100-102)."
+    },
+    {
+      "id": "US-078",
+      "title": "Fix N+1 query pattern in portfolio service",
+      "description": "src/services/portfolio.ts lines 64-69 fetches all portfolios first, then separately fetches holdings for the selected portfolio in a second round-trip. This N+1 pattern adds 200-500ms latency to portfolio page load. Use Supabase join to fetch portfolio with holdings in a single query.",
+      "acceptanceCriteria": [
+        "Portfolio fetch in src/services/portfolio.ts uses Supabase select with join: .select('*, holdings(*)') instead of two separate queries",
+        "Default portfolio lookup uses .eq('is_default', true).single() to avoid fetching all portfolios",
+        "Portfolio page load makes 1 database round-trip instead of 2+",
+        "Portfolio data renders correctly with all holdings",
+        "Create database index: CREATE INDEX idx_portfolios_user_is_default ON portfolios(user_id, is_default)",
+        "Create database index: CREATE INDEX idx_holdings_portfolio ON holdings(portfolio_id)",
+        "Build passes"
+      ],
+      "priority": 78,
+      "passes": false,
+      "notes": "HIGH PERFORMANCE. File: src/services/portfolio.ts lines 64-69. Current code: getUserPortfolios(user.id) then getPortfolioHoldings(dbPortfolio.id). Should be single joined query. Also add indexes for holdings.portfolio_id and portfolios(user_id, is_default) to support efficient lookups as data grows."
+    },
+    {
+      "id": "US-079",
+      "title": "Lazy-load Three.js imports in Hero3D component",
+      "description": "Hero3D.tsx uses 'import * as THREE from three' (line 6) which imports the entire Three.js library (~490KB). Only AdditiveBlending and BufferGeometry are used. Additionally, Chart.js registers globally in PriceChart.tsx even before chart data loads. Both should use targeted/deferred imports to reduce bundle impact.",
+      "acceptanceCriteria": [
+        "Hero3D.tsx imports only { AdditiveBlending } from 'three' instead of * as THREE",
+        "Hero3D chunk size reduced by 100KB+ (verify with npm run build output)",
+        "Chart.js ChartJS.register() call in PriceChart.tsx moved inside useEffect, only runs when chart data is ready to render",
+        "Remove Chart.js and Three.js from optimizeDeps.include in vite.config.ts (lines 46-48)",
+        "Reduce chunkSizeWarningLimit from 1000 to 500 in vite.config.ts (line 78)",
+        "Hero 3D animation still renders correctly",
+        "All charts still render correctly",
+        "Build passes"
+      ],
+      "priority": 79,
+      "passes": false,
+      "notes": "HIGH PERFORMANCE. Files: src/components/Hero3D.tsx line 6, src/components/charts/PriceChart.tsx lines 18-27, vite.config.ts lines 46-48,78. Three.js barrel import wastes ~140KB. Chart.js global registration blocks rendering."
+    },
+    {
+      "id": "US-080",
+      "title": "Add route-level Suspense boundaries with specific skeletons",
+      "description": "App.tsx has a single Suspense boundary wrapping all 50+ routes (line 142). When navigating, the entire page shows a generic PageLoader instead of route-specific skeleton screens. This hurts perceived performance and causes CLS. Add individual Suspense boundaries with matching skeleton fallbacks for major pages.",
+      "acceptanceCriteria": [
+        "Dashboard route wrapped in Suspense with DashboardSkeleton fallback",
+        "Portfolio route wrapped in Suspense with TableSkeleton fallback",
+        "Charts route wrapped in Suspense with ChartSkeleton fallback",
+        "Blog listing route wrapped in Suspense with CardSkeleton fallback",
+        "Admin routes wrapped in Suspense with appropriate admin skeleton",
+        "LoadingSkeletons.tsx existing skeletons reused (DashboardSkeleton, ChartSkeleton, TableSkeleton, CardSkeleton)",
+        "CLS score improved - no full-page flash when navigating between routes",
+        "Build passes"
+      ],
+      "priority": 80,
+      "passes": false,
+      "notes": "MEDIUM PERFORMANCE. File: src/App.tsx line 142. LoadingSkeletons.tsx already has DashboardSkeleton, ChartSkeleton, TableSkeleton, CardSkeleton components - they just need to be wired up as Suspense fallbacks per route."
+    },
+    {
+      "id": "US-081",
+      "title": "Convert Hero and Footer data fetching to React Query",
+      "description": "Hero.tsx (lines 25-37) and Footer.tsx (lines 11-21) use raw useEffect + fetch for crypto price data, causing redundant API calls on every navigation and no cross-component caching. Convert to React Query (already installed and configured in App.tsx) for automatic caching, deduplication, and stale-while-revalidate behavior.",
+      "acceptanceCriteria": [
+        "Hero.tsx uses useQuery with queryKey ['crypto', 'top', 3] and 2-minute staleTime instead of raw useEffect",
+        "Footer.tsx uses useQuery with queryKey ['crypto', 'top', 1] and 5-minute staleTime instead of raw useEffect",
+        "No duplicate API calls when navigating between pages (React Query deduplicates by queryKey)",
+        "Price data renders correctly in both Hero and Footer",
+        "Loading and error states properly handled via isLoading and isError from useQuery",
+        "Build passes"
+      ],
+      "priority": 81,
+      "passes": false,
+      "notes": "MEDIUM PERFORMANCE. Hero.tsx lines 25-37 and Footer.tsx lines 11-21 both call getTopCryptocurrencies on every mount. React Query is already configured in App.tsx (lines 118-126) with 5-min staleTime and 30-min gcTime."
+    },
+    {
+      "id": "US-082",
+      "title": "Create standardized Button component with variants",
+      "description": "Button styles are inconsistent across 20+ files: Login.tsx uses bg-orange-500, Home.tsx uses white buttons, NotFound.tsx uses bg-brand-primary. Create a reusable Button component with defined variants (primary, secondary, ghost, danger) and sizes (sm, md, lg) to replace all inline button styling.",
+      "acceptanceCriteria": [
+        "src/components/ui/Button.tsx created with variants: primary, secondary, ghost, danger",
+        "Button supports sizes: sm, md, lg with consistent padding and font sizes",
+        "Button supports isLoading prop that shows spinner and disables interaction",
+        "Button supports asChild/as prop for rendering as Link when needed",
+        "All buttons in Login.tsx, Signup.tsx, NotFound.tsx, and Home.tsx updated to use <Button>",
+        "Minimum touch target of 44x44px enforced on all sizes (WCAG 2.5.5)",
+        "Build passes with no TypeScript errors"
+      ],
+      "priority": 82,
+      "passes": false,
+      "notes": "HIGH UI/UX. Current inconsistency: bg-brand-primary, bg-orange-500, bg-white/5 across different pages. Use tailwind-merge (already installed) for className merging. Design tokens: primary=brand-primary, secondary=white/5 border, ghost=transparent, danger=red-500/10."
+    },
+    {
+      "id": "US-083",
+      "title": "Create centralized number and date formatting utilities",
+      "description": "Each component formats numbers and dates independently, causing inconsistency (e.g., '$1,234.56' vs '$1234.56', '+12.34%' vs '12.34%'). Create a centralized formatting module using Intl.NumberFormat for currency, percentages, crypto amounts, and compact notation.",
+      "acceptanceCriteria": [
+        "src/lib/formatting.ts created with: formatCurrency(value, currency), formatPercent(value, decimals), formatCrypto(value, symbol, decimals), formatCompact(value), formatDate(date, format)",
+        "formatCurrency uses Intl.NumberFormat with proper locale and currency symbol",
+        "formatPercent prefixes with + for positive values",
+        "formatCrypto handles variable decimal places (2 for BTC price, 8 for small altcoins)",
+        "formatCompact abbreviates large numbers (1.2M, 3.5B, 1.2T)",
+        "At least Dashboard, Portfolio, and Charts pages updated to use these utilities",
+        "All formatted numbers display consistently across the platform",
+        "Build passes"
+      ],
+      "priority": 83,
+      "passes": false,
+      "notes": "MEDIUM UI/UX. No centralized formatting exists. Each component does its own formatting. Use Intl.NumberFormat for locale-aware formatting. Chart date formatting should vary by timeframe: 1d='HH:MM', 7d='Mon 12', 30d+='Jan 15'."
+    },
+    {
+      "id": "US-084",
+      "title": "Add prefers-reduced-motion support for all animations",
+      "description": "The platform has no prefers-reduced-motion support. Users with vestibular disorders or motion sensitivity see full GSAP scroll animations, framer-motion transitions, and CSS pulse/shimmer effects. Create a hook and apply it globally to respect the user's OS-level motion preference.",
+      "acceptanceCriteria": [
+        "src/hooks/usePrefersReducedMotion.ts created that reads matchMedia('(prefers-reduced-motion: reduce)')",
+        "Hook returns reactive boolean that updates if system preference changes",
+        "GSAP ScrollTrigger animations in Home.tsx disabled when reduced motion preferred",
+        "Framer-motion variants simplified to opacity-only (no translate/scale) when reduced motion preferred",
+        "CSS animations (pulse, shimmer in LoadingSkeletons.tsx) respect prefers-reduced-motion media query",
+        "Accessibility widget (AccessibilityWidget.tsx) includes manual toggle for reduced motion",
+        "Build passes"
+      ],
+      "priority": 84,
+      "passes": false,
+      "notes": "MEDIUM ACCESSIBILITY/UX. WCAG 2.3.3 Animation from Interactions. No matches found for 'prefers-reduced-motion' in the codebase. Add CSS: @media (prefers-reduced-motion: reduce) { .animate-pulse, .animate-shimmer { animation: none; } }"
+    },
+    {
+      "id": "US-085",
+      "title": "Fix color contrast and standardize breadcrumb styling",
+      "description": "Breadcrumbs.tsx uses text-slate-* colors while the rest of the app uses text-gray-*. Additionally, several low-contrast text colors (text-gray-400 on dark backgrounds) may not meet WCAG AA 4.5:1 contrast ratio. Audit and fix all contrast issues.",
+      "acceptanceCriteria": [
+        "All text-slate-* classes in Breadcrumbs.tsx replaced with text-gray-* equivalents for consistency",
+        "All text-gray-400 on bg-brand-dark combinations verified to meet WCAG AA 4.5:1 contrast ratio",
+        "Low-contrast text upgraded to text-gray-300 where contrast ratio fails AA",
+        "Focus-visible styles added consistently: outline: 2px solid brand-primary, outline-offset: 2px",
+        "All interactive elements (buttons, links, inputs) have visible focus indicators",
+        "Contrast checker tool confirms all text/background combinations pass AA",
+        "Build passes"
+      ],
+      "priority": 85,
+      "passes": false,
+      "notes": "MEDIUM ACCESSIBILITY. Breadcrumbs.tsx uses slate colors (text-slate-300, text-slate-400) inconsistent with gray palette used everywhere else. Check: text-gray-400 on #0f0f23 (brand-dark) has ~4.2:1 ratio - borderline fail for WCAG AA."
+    },
+    {
+      "id": "US-086",
+      "title": "Add mobile card view for data tables",
+      "description": "AccessibleTable.tsx has a mobileCardView prop but it's not used by all table instances. On mobile devices, tables with many columns become horizontally scrollable and hard to read. Convert table displays to stacked card layouts on mobile for all key data views.",
+      "acceptanceCriteria": [
+        "AccessibleTable.tsx mobileCardView prop is enabled by default (or at minimum for all portfolio and transaction tables)",
+        "Mobile breakpoint (< 768px) triggers card layout instead of table layout",
+        "Card layout shows key data (name, value, change) with proper hierarchy",
+        "Touch targets within cards meet 44x44px minimum (WCAG 2.5.5)",
+        "Portfolio holdings table, transaction history, and admin user management tables all use mobile card view",
+        "No horizontal scrolling needed on mobile for primary data views",
+        "Build passes"
+      ],
+      "priority": 86,
+      "passes": false,
+      "notes": "MEDIUM UI/UX. AccessibleTable.tsx already supports mobileCardView (line 72) but most table instances don't enable it. Mobile users currently get tiny horizontal-scrolling tables."
+    },
+    {
+      "id": "US-087",
+      "title": "Enable KV namespace for distributed rate limiting",
+      "description": "Rate limiting in functions/api/_middleware.ts falls back to in-memory storage because the KV namespace binding is commented out in wrangler.toml (lines 63-68). In-memory rate limiting is per-worker-instance, meaning distributed attacks across Cloudflare edge locations bypass limits entirely.",
+      "acceptanceCriteria": [
+        "Cloudflare KV namespace created for rate limiting via 'wrangler kv:namespace create rate-limit'",
+        "wrangler.toml updated with actual KV namespace ID in [[kv_namespaces]] binding",
+        "Rate limiting middleware uses KV store as primary storage (not in-memory fallback)",
+        "Rate limits enforced globally across all Cloudflare edge locations",
+        "In-memory fallback retained as secondary option if KV is temporarily unavailable",
+        "Rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining) returned in responses",
+        "Deploy succeeds with KV binding"
+      ],
+      "priority": 87,
+      "passes": false,
+      "notes": "HIGH SECURITY/INFRASTRUCTURE. File: wrangler.toml lines 63-68. KV namespace config is commented out. The _middleware.ts already has code to use KV (with in-memory fallback) - just needs the binding activated."
+    },
+    {
+      "id": "US-088",
+      "title": "Add missing security headers (COOP, COEP, Expect-CT)",
+      "description": "The security headers in _middleware.ts are comprehensive but missing Cross-Origin-Opener-Policy (COOP), Cross-Origin-Embedder-Policy (COEP), X-Permitted-Cross-Domain-Policies, and Expect-CT. These headers provide defense-in-depth against Spectre-type attacks and certificate transparency enforcement.",
+      "acceptanceCriteria": [
+        "functions/api/_middleware.ts security headers include Cross-Origin-Opener-Policy: same-origin",
+        "Cross-Origin-Embedder-Policy: require-corp added (or credentialless if CORS issues)",
+        "X-Permitted-Cross-Domain-Policies: none added",
+        "Expect-CT: max-age=86400, enforce added",
+        "CSP report-uri directive added pointing to /api/csp-report endpoint",
+        "New /api/csp-report endpoint created to receive and log CSP violations",
+        "All pages still load correctly with new headers (no broken resources)",
+        "Build and deploy succeed"
+      ],
+      "priority": 88,
+      "passes": false,
+      "notes": "MEDIUM SECURITY. Existing good headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS, Permissions-Policy. Missing: COOP, COEP, X-Permitted-Cross-Domain-Policies, Expect-CT. May need to test COEP carefully as it can break third-party resources."
+    },
+    {
+      "id": "US-089",
+      "title": "Add backend role verification for all admin API operations",
+      "description": "Admin route access is enforced only on the frontend via AdminRoute.tsx component. If an attacker bypasses the UI and calls Supabase RPCs or admin service functions directly, there's no backend authorization check. Every admin operation must verify the user's role server-side.",
+      "acceptanceCriteria": [
+        "All admin service functions in src/services/admin*.ts verify user role at the start of each function",
+        "Supabase RLS policies for admin tables (audit_logs, support_tickets admin view, user management) require role = 'admin' or 'super_admin'",
+        "Direct API calls without admin role return 403 Forbidden",
+        "Admin dashboard still works correctly for authenticated admin users",
+        "Regular users cannot access any admin data even with direct Supabase queries",
+        "Build passes"
+      ],
+      "priority": 89,
+      "passes": false,
+      "notes": "HIGH SECURITY. Frontend-only auth check in AdminRoute.tsx is insufficient. Need defense in depth - both frontend route guard AND backend RLS/service-level authorization."
+    },
+    {
+      "id": "US-090",
+      "title": "Add preload hints and preconnect for critical resources",
+      "description": "index.html has no resource hints for critical third-party origins or fonts. Adding preconnect for Supabase, CoinGecko, and Google Fonts, plus preload for critical fonts, will reduce LCP by 300-600ms.",
+      "acceptanceCriteria": [
+        "index.html includes <link rel='preconnect' href='https://api.coingecko.com'>",
+        "index.html includes <link rel='preconnect' href='https://fonts.googleapis.com'>",
+        "index.html includes <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>",
+        "index.html includes <link rel='dns-prefetch'> for api.alternative.me (Fear & Greed API)",
+        "Critical font files preloaded with <link rel='preload' as='font' type='font/woff2' crossorigin>",
+        "Lighthouse Performance score shows improvement in LCP metric",
+        "Build passes"
+      ],
+      "priority": 90,
+      "passes": false,
+      "notes": "MEDIUM PERFORMANCE. Zero resource hints in index.html currently. Preconnect saves ~100-200ms per origin by starting TCP+TLS handshake early. Font preload prevents FOIT/FOUT."
+    },
+    {
+      "id": "US-091",
+      "title": "Add PrefetchLink to primary navigation for faster transitions",
+      "description": "PrefetchLink.tsx component exists and supports hover/focus prefetching, but it's not used in the main Header navigation. Using it for the top 5-6 nav links (Dashboard, Portfolio, Charts, Learn, Pricing) would prefetch route chunks on hover, making navigation feel instant.",
+      "acceptanceCriteria": [
+        "Header.tsx navigation links for Dashboard, Portfolio, Charts, Learn, and Pricing use PrefetchLink instead of plain Link",
+        "Route chunks prefetch on hover (50-200ms before click)",
+        "PrefetchLink properly handles the active route styling",
+        "Mobile navigation also uses PrefetchLink for primary menu items",
+        "No unnecessary prefetching of routes the user doesn't interact with",
+        "Build passes"
+      ],
+      "priority": 91,
+      "passes": false,
+      "notes": "LOW PERFORMANCE. PrefetchLink component already built and working - just needs to be adopted in Header.tsx navigation. Also supports idle-time prefetching for common routes."
+    },
+    {
+      "id": "US-092",
+      "title": "Add loading error states with retry buttons to data pages",
+      "description": "Dashboard.tsx (line 64), Charts.tsx (line 80), and CoinDetail.tsx catch API errors with console.error but show no user-facing error UI. When data fetching fails, users see either a blank page or stale skeleton. Add proper error states using the existing ErrorStates.tsx components with retry functionality.",
+      "acceptanceCriteria": [
+        "Dashboard.tsx shows NetworkError or DataLoadError component when API call fails, with onRetry callback that re-fetches data",
+        "Charts.tsx shows error state with retry button when chart data fails to load",
+        "CoinDetail.tsx shows error state when coin data fetch fails",
+        "Error states use existing ErrorStates.tsx components (NetworkError, DataLoadError)",
+        "Retry button calls the original fetch function to attempt recovery",
+        "Error state includes 'Taking longer than usual...' message after 5 seconds of loading",
+        "Build passes"
+      ],
+      "priority": 92,
+      "passes": false,
+      "notes": "HIGH UI/UX. ErrorStates.tsx already has NetworkError, DataLoadError, NotFoundError, AuthError, PermissionError, ServerError, MaintenanceError components with onRetry props. They're just not connected to the data-fetching pages."
+    },
+    {
+      "id": "US-093",
+      "title": "Add page transition animations for smoother navigation",
+      "description": "Route changes are instant with no visual transition, creating a jarring experience. Add subtle fade-in animation when new pages load using framer-motion (already installed). Also implement a top progress bar for slower data loads using the existing PageLoader showProgress prop.",
+      "acceptanceCriteria": [
+        "Layout.tsx wraps Outlet in motion.div with fade-in animation (opacity 0→1, 200ms duration)",
+        "Animation respects prefers-reduced-motion (instant transition if reduced motion preferred)",
+        "Dashboard and Charts pages enable showProgress={true} on their PageLoader fallbacks",
+        "No CLS caused by page transitions (content area dimensions stay stable)",
+        "Transitions feel snappy (<300ms) and don't delay perceived navigation",
+        "Build passes"
+      ],
+      "priority": 93,
+      "passes": false,
+      "notes": "LOW UI/UX polish. framer-motion already in dependencies. PageLoader already has showProgress prop (LoadingSkeletons.tsx line 749). Just needs wiring up."
+    },
+    {
+      "id": "US-094",
+      "title": "Improve toast notifications for mobile and add deduplication",
+      "description": "Toast notifications (ToastContext.tsx) position at fixed bottom-4 right-4 which can overlap with mobile keyboards and doesn't account for safe-area-inset. Multiple identical errors also stack as separate toasts instead of being deduplicated. Add mobile-safe positioning and toast grouping.",
+      "acceptanceCriteria": [
+        "Toast container uses safe-area-inset-bottom padding for notch/home-indicator devices",
+        "Toast width on mobile is max-width: calc(100% - 2rem) to prevent overflow",
+        "Identical toast messages within 5 seconds are deduplicated with a count badge instead of stacking",
+        "Critical error toasts (security warnings) have persistent option (duration: 0, manual dismiss only)",
+        "Toast container doesn't overlap with mobile keyboard when visible",
+        "Build passes"
+      ],
+      "priority": 94,
+      "passes": false,
+      "notes": "LOW UI/UX. ToastContext.tsx positions fixed bottom-4 right-4. Add: pb-[calc(1rem + env(safe-area-inset-bottom))]. Deduplication: track last 5 messages, increment count if duplicate within window."
+    },
+    {
+      "id": "US-095",
+      "title": "Add API key rotation and expiration to developer API",
+      "description": "Developer API keys (v1/_middleware.ts) have no expiration mechanism and no rotation support. Once a key is issued, it's valid forever unless manually revoked. Add automatic expiration (90 days default), rotation workflow, and last-used tracking.",
+      "acceptanceCriteria": [
+        "api_keys table has expires_at TIMESTAMP column (90 days from creation by default)",
+        "api_keys table has last_rotated_at TIMESTAMP column",
+        "api_keys table has last_used_at TIMESTAMP column updated on each authenticated request",
+        "v1/_middleware.ts checks expires_at and rejects expired keys with 401 and clear error message",
+        "API key management UI allows users to rotate keys (generates new key, old key valid for 24h transition period)",
+        "Email notification sent 7 days before key expiration",
+        "Build passes"
+      ],
+      "priority": 95,
+      "passes": false,
+      "notes": "MEDIUM SECURITY. v1/_middleware.ts already hashes and validates keys but has no expiration. Add migration: ALTER TABLE api_keys ADD COLUMN expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '90 days'."
+    },
+    {
+      "id": "US-096",
+      "title": "Add localhost CORS conditional on environment",
+      "description": "functions/api/_cors.ts ALLOWED_ORIGINS includes localhost:5173 and localhost:4173 in production. These should only be allowed in development/preview environments, not in production deployments.",
+      "acceptanceCriteria": [
+        "functions/api/_cors.ts conditionally includes localhost origins only when environment is 'development' or 'preview'",
+        "Production CORS only allows: bitcoinvestments.net, bitcoinvestments.com, bitcoin-investments.pages.dev",
+        "Environment detection uses Cloudflare's environment variable or URL-based detection",
+        "Development mode still works with localhost:5173 and localhost:4173",
+        "CORS preflight (OPTIONS) requests still handled correctly in all environments",
+        "Build and deploy succeed"
+      ],
+      "priority": 96,
+      "passes": false,
+      "notes": "MEDIUM SECURITY. File: functions/api/_cors.ts. Localhost origins in production CORS are a minor security risk - could allow local tools to make cross-origin requests to the production API."
+    },
+    {
+      "id": "US-097",
+      "title": "Create reusable Card/Panel component to replace 50+ glass-card instances",
+      "description": "The glass-card pattern (glass effect with padding and border) is implemented inline across 50+ files with slight variations. Create a single Card component with variants (default, outline, minimal, elevated) to enforce consistency and reduce CSS duplication.",
+      "acceptanceCriteria": [
+        "src/components/ui/Card.tsx created with variants: default (glass-card), outline (border-only), minimal (no background), elevated (stronger shadow)",
+        "Card supports optional header, footer, and padding props",
+        "At least 10 high-visibility pages updated to use <Card> instead of inline glass-card className",
+        "Card component uses tailwind-merge for safe className composition",
+        "Consistent border-radius, padding, and backdrop-blur across all card instances",
+        "Build passes with no TypeScript errors"
+      ],
+      "priority": 97,
+      "passes": false,
+      "notes": "MEDIUM CODE QUALITY. Search for 'glass-card' shows 50+ instances across the codebase. Most use: className='glass-card p-6' or similar with minor variations."
+    },
+    {
+      "id": "US-098",
+      "title": "Add useMemo and useCallback to expensive Dashboard computations",
+      "description": "Dashboard.tsx, Charts.tsx, and PortfolioTracker.tsx perform expensive computations (JSON-LD schema generation, portfolio allocation calculations, price change calculations) on every render without memoization. Add useMemo for computed values and useCallback for event handlers passed to child components.",
+      "acceptanceCriteria": [
+        "Charts.tsx schema generation (line 111) wrapped in useMemo with appropriate dependencies",
+        "PortfolioTracker.tsx allocation calculation (line 132) wrapped in useMemo",
+        "PriceChart.tsx price change calculation (lines 100-102) wrapped in useMemo",
+        "Event handlers passed as props in Dashboard wrapped in useCallback",
+        "React DevTools Profiler confirms reduced unnecessary child re-renders",
+        "No functional changes to component behavior",
+        "Build passes"
+      ],
+      "priority": 98,
+      "passes": false,
+      "notes": "MEDIUM PERFORMANCE/CODE QUALITY. Dashboard.tsx already has one good useMemo example (filteredCryptos). Apply the same pattern to Charts.tsx, PortfolioTracker.tsx, and PriceChart.tsx."
+    },
+    {
+      "id": "US-099",
+      "title": "Standardize animation library usage and add will-change optimization",
+      "description": "The codebase mixes three animation approaches inconsistently: GSAP (Home.tsx), framer-motion (various components), and CSS animations (LoadingSkeletons, ToastContext). Standardize the approach: CSS for simple transitions, framer-motion for complex animations, GSAP only for scroll-triggered sequences. Add will-change CSS for animated elements.",
+      "acceptanceCriteria": [
+        "Document animation strategy: CSS for hover/focus/simple transitions, framer-motion for component enter/exit, GSAP for scroll-only",
+        "Add will-change: transform, opacity to elements animated by ScrollTrigger in Home.tsx",
+        "ScrollTrigger.config({ autoRefreshEvents: 'orientationchange,windowresize' }) added to prevent unnecessary recalculations",
+        "No new GSAP imports added outside Home.tsx (keep GSAP scope minimal)",
+        "CSS animations (pulse, shimmer) have @media (prefers-reduced-motion: reduce) { animation: none } rule",
+        "Build passes"
+      ],
+      "priority": 99,
+      "passes": false,
+      "notes": "LOW CODE QUALITY/PERFORMANCE. Three animation libraries increase bundle and maintenance cost. GSAP already lazy-loaded via useGSAPLazy (good). Focus on adding will-change for CLS prevention and reduced-motion support."
+    },
+    {
+      "id": "US-100",
+      "title": "Optimize Supabase queries with column selection and add missing indexes",
+      "description": "Multiple Supabase queries use .select('*') fetching all columns when only a few are needed. This wastes bandwidth especially for tables with many columns. Additionally, common query patterns are missing database indexes which will degrade performance as data grows.",
+      "acceptanceCriteria": [
+        "Portfolio queries use .select('id,name,created_at,is_default') instead of .select('*')",
+        "Holdings queries use .select('id,symbol,amount,purchase_price') instead of .select('*')",
+        "User profile queries use .select('id,email,role,subscription_tier') instead of .select('*')",
+        "Database migration added with indexes: portfolios(user_id, is_default), holdings(portfolio_id), transactions(portfolio_id, created_at), price_alerts(user_id, is_active), forum_posts(created_at), newsletter_subscribers(is_active)",
+        "Query response payload sizes reduced by 20-40%",
+        "All features still work correctly with reduced column selection",
+        "Build passes"
+      ],
+      "priority": 100,
+      "passes": false,
+      "notes": "MEDIUM PERFORMANCE. Multiple .select('*') patterns found in portfolio.ts, auth.ts, and admin services. Adding indexes is critical for tables that will grow: holdings, transactions, forum_posts, price_alerts."
     }
   ]
 }

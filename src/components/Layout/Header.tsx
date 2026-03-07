@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '../Logo';
 import {
@@ -122,7 +122,7 @@ const navItems = [
     },
 ];
 
-export function Header() {
+export const Header = memo(function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [mobileOpenSections, setMobileOpenSections] = useState<Set<string>>(new Set());
@@ -635,4 +635,4 @@ export function Header() {
             )}
         </header>
     );
-}
+});

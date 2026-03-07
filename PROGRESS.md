@@ -112,6 +112,42 @@
 - [ ] **US-069**: API response caching layer
 - [ ] **US-070**: Automated accessibility testing
 
+### Security Audit Fixes (US-071 to US-076)
+- [x] **US-071**: Fix XSS vulnerability in BlogPreview - `sanitizeHtml()` wrapper added to `dangerouslySetInnerHTML`
+- [x] **US-072**: Fix SIWE nonce/password generation - `crypto.getRandomValues()` replaces `Math.random()`
+- [ ] **US-073**: Add authentication to send-email and log-error endpoints
+- [ ] **US-074**: Add server-side auth to checkout session endpoints
+- [ ] **US-075**: Update vulnerable dependencies (jsPDF, react-router-dom, xlsx)
+- [ ] **US-076**: Remove debug logging and hardcoded keys from API endpoints
+
+### Performance Audit Fixes (US-077 to US-081)
+- [x] **US-077**: Add React.memo to Header, Footer, chart components - 7 components wrapped, useMemo for PriceChart
+- [ ] **US-078**: Fix N+1 query pattern in portfolio service
+- [ ] **US-079**: Lazy-load Three.js imports in Hero3D
+- [ ] **US-080**: Add route-level Suspense boundaries with skeletons
+- [ ] **US-081**: Convert Hero/Footer data fetching to React Query
+
+### UI/UX & Code Quality (US-082 to US-100)
+- [ ] **US-082**: Create standardized Button component
+- [ ] **US-083**: Centralized number/date formatting utilities
+- [ ] **US-084**: prefers-reduced-motion support
+- [ ] **US-085**: Fix color contrast and breadcrumb styling
+- [ ] **US-086**: Add mobile card view for data tables
+- [ ] **US-087**: Enable KV namespace for distributed rate limiting
+- [ ] **US-088**: Add missing security headers (COOP, COEP)
+- [ ] **US-089**: Add backend role verification for admin API operations
+- [x] **US-090**: Add preload hints and preconnect for critical resources - preconnect/dns-prefetch for fonts, Fear & Greed API
+- [ ] **US-091**: Add PrefetchLink to primary navigation
+- [ ] **US-092**: Add loading error states with retry buttons
+- [ ] **US-093**: Add page transition animations
+- [ ] **US-094**: Improve toast notifications for mobile
+- [ ] **US-095**: Add API key rotation and expiration
+- [ ] **US-096**: Add localhost CORS conditional on environment
+- [ ] **US-097**: Create reusable Card/Panel component
+- [ ] **US-098**: Add useMemo/useCallback to expensive computations
+- [ ] **US-099**: Standardize animation library usage
+- [ ] **US-100**: Optimize Supabase queries with column selection
+
 ---
 
 ## Phase 1: Foundation (PRD Months 1-2)
@@ -191,15 +227,17 @@
 
 ## Summary
 
-### PRD Enterprise Stories: 25 of 70 complete (~36%)
-**Completed**: US-001, US-002, US-003, US-011, US-012, US-013, US-014, US-015, US-018, US-019, US-020, US-022, US-025, US-026, US-027, US-031, US-032, US-033, US-034, US-035, US-036, US-037, US-040, US-049, US-062
+### PRD Enterprise Stories: 29 of 100 complete (~29%)
+**Completed**: US-001, US-002, US-003, US-011, US-012, US-013, US-014, US-015, US-018, US-019, US-020, US-022, US-025, US-026, US-027, US-031, US-032, US-033, US-034, US-035, US-036, US-037, US-040, US-049, US-062, US-071, US-072, US-077, US-090
 
 ### Overall Platform Features: ~95%
 Core platform is feature-complete. Enterprise hardening stories (testing, advanced security, documentation, enterprise features) remain.
 
 ### Remaining Enterprise Work
 - Testing infrastructure (Vitest, Playwright, unit tests) - US-004 to US-010
-- Advanced security (CSRF, rate limit audit, API hardening) - US-016, US-017, US-055
+- Advanced security (CSRF, rate limit audit, API hardening) - US-016, US-017, US-055, US-073, US-074, US-075, US-076, US-089
 - Enterprise features (feature flags, webhooks, multi-tenancy, i18n) - US-044 to US-052
 - Documentation (OpenAPI, README update, backup/recovery) - US-028, US-042, US-043
-- Growth features (onboarding wizard, global search, referral program) - US-061 to US-070
+- Performance optimization - US-078, US-079, US-080, US-081, US-098
+- UI/UX improvements - US-082, US-083, US-084, US-085, US-086, US-092, US-093, US-094, US-097
+- Growth features (onboarding wizard, referral program, etc.) - US-061 to US-070

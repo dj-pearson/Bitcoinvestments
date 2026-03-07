@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -48,7 +48,7 @@ const DEFAULT_COLORS = [
   '#ec4899', // Pink
 ];
 
-export function ComparisonChart({
+export const ComparisonChart = memo(function ComparisonChart({
   cryptocurrencies,
   days = 7,
   currency = 'usd',
@@ -358,6 +358,5 @@ export function ComparisonChart({
       )}
     </div>
   );
-}
-
+});
 

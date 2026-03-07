@@ -11,6 +11,7 @@
 
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { shouldNoindex } from '../lib/index-pruning';
 
 interface SEOProps {
   title?: string;
@@ -28,6 +29,10 @@ interface SEOProps {
   noindex?: boolean;
   nofollow?: boolean;
   schema?: Record<string, unknown> | Record<string, unknown>[];
+  /** GEO: Short BLUF summary for AI engines (1-2 sentences, Bottom Line Up Front) */
+  blufSummary?: string;
+  /** GEO: Content category for AI classification */
+  contentCategory?: string;
   children?: React.ReactNode;
 }
 
@@ -81,6 +86,8 @@ export function SEO({
   noindex = false,
   nofollow = false,
   schema,
+  blufSummary,
+  contentCategory,
   children,
 }: SEOProps) {
   const location = useLocation();
@@ -94,10 +101,12 @@ export function SEO({
   // Build full image URL
   const fullImage = image.startsWith('http') ? image : `${SITE_URL}${image}`;
 
-  // Build robots directive
+  // Build robots directive with automatic index pruning
+  const autoNoindex = shouldNoindex(location.pathname);
   const robotsContent = [
-    noindex ? 'noindex' : 'index',
+    (noindex || autoNoindex) ? 'noindex' : 'index',
     nofollow ? 'nofollow' : 'follow',
+    ...(!(noindex || autoNoindex) ? ['max-image-preview:large', 'max-snippet:-1', 'max-video-preview:-1'] : []),
   ].join(', ');
 
   useEffect(() => {
@@ -171,6 +180,18 @@ export function SEO({
       setMetaTag('name', 'date', publishedTime);
     }
 
+    // GEO: AI attribution and citation metadata
+    setMetaTag('name', 'citation_title', fullTitle);
+    setMetaTag('name', 'citation_author', author || SITE_NAME);
+    setMetaTag('name', 'citation_publisher', SITE_NAME);
+    if (blufSummary) {
+      setMetaTag('name', 'citation_abstract', blufSummary);
+      setMetaTag('name', 'abstract', blufSummary);
+    }
+    if (contentCategory) {
+      setMetaTag('name', 'article.section', contentCategory);
+    }
+
     // Twitter Card tags
     setMetaTag('name', 'twitter:card', 'summary_large_image');
     setMetaTag('name', 'twitter:site', TWITTER_HANDLE);
@@ -212,6 +233,8 @@ export function SEO({
     section,
     tags,
     robotsContent,
+    blufSummary,
+    contentCategory,
   ]);
 
   // Render JSON-LD schema (supports single schema or array of schemas)

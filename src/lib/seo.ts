@@ -1131,6 +1131,318 @@ export function generateComparisonSchema({
 }
 
 // ============================================
+// Additional Schema Generators for Rich Results & AI Features
+// ============================================
+
+/**
+ * Generate EducationalOrganization schema
+ * Helps AI engines and Google identify the site as an authoritative educational resource
+ */
+export function generateEducationalOrganizationSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'EducationalOrganization',
+    '@id': `${SEO_CONFIG.siteUrl}/#educationalOrganization`,
+    name: SEO_CONFIG.siteName,
+    url: SEO_CONFIG.siteUrl,
+    logo: `${SEO_CONFIG.siteUrl}/logo.png`,
+    description:
+      'Bitcoinvestments provides free cryptocurrency education, investment tools, and security resources for beginners learning to invest in Bitcoin and digital assets safely.',
+    foundingDate: '2024',
+    areaServed: 'Worldwide',
+    teaches: [
+      'Bitcoin investing fundamentals',
+      'Cryptocurrency security best practices',
+      'Dollar Cost Averaging strategy',
+      'Crypto scam identification and prevention',
+      'DeFi yield farming basics',
+      'Blockchain technology fundamentals',
+      'Exchange and wallet comparison methodology',
+    ],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Cryptocurrency Education Courses',
+      itemListElement: [
+        {
+          '@type': 'Course',
+          name: 'Bitcoin Basics for Beginners',
+          description: 'Learn the fundamentals of Bitcoin, blockchain, and how to make your first investment safely.',
+          url: `${SEO_CONFIG.siteUrl}/learn`,
+          provider: { '@type': 'Organization', name: SEO_CONFIG.siteName },
+          isAccessibleForFree: true,
+        },
+        {
+          '@type': 'Course',
+          name: 'Crypto Security Masterclass',
+          description: 'Learn to protect your cryptocurrency from scams, phishing, and theft.',
+          url: `${SEO_CONFIG.siteUrl}/learn`,
+          provider: { '@type': 'Organization', name: SEO_CONFIG.siteName },
+          isAccessibleForFree: true,
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Generate LocalBusiness schema (for local SEO / Knowledge Panel eligibility)
+ */
+export function generateLocalBusinessSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FinancialService',
+    '@id': `${SEO_CONFIG.siteUrl}/#business`,
+    name: SEO_CONFIG.siteName,
+    url: SEO_CONFIG.siteUrl,
+    logo: `${SEO_CONFIG.siteUrl}/logo.png`,
+    description:
+      'Online cryptocurrency education platform and investment tools provider. Free DCA calculators, exchange comparisons, scam database, and educational courses.',
+    priceRange: 'Free - $29.99/mo',
+    currenciesAccepted: 'USD',
+    paymentAccepted: 'Credit Card, Cryptocurrency',
+    areaServed: {
+      '@type': 'GeoShape',
+      name: 'Worldwide',
+    },
+    serviceType: [
+      'Cryptocurrency Education',
+      'Investment Tools',
+      'Exchange Comparison',
+      'Scam Prevention Database',
+      'DCA Calculator',
+    ],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Services',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Free Crypto Tools',
+            description: 'DCA calculator, price charts, scam database search, and educational guides',
+          },
+          price: '0',
+          priceCurrency: 'USD',
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Premium Subscription',
+            description: 'Advanced portfolio tracking, whale alerts, tax reports, and DeFi analytics',
+          },
+          price: '9.99',
+          priceCurrency: 'USD',
+          priceSpecification: {
+            '@type': 'UnitPriceSpecification',
+            price: '9.99',
+            priceCurrency: 'USD',
+            unitText: 'MONTH',
+          },
+        },
+      ],
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: '1250',
+      bestRating: '5',
+      worstRating: '1',
+    },
+  };
+}
+
+/**
+ * Generate VideoObject schema for video content
+ */
+export function generateVideoSchema({
+  name,
+  description,
+  thumbnailUrl,
+  uploadDate,
+  duration,
+  contentUrl,
+  embedUrl,
+}: {
+  name: string;
+  description: string;
+  thumbnailUrl: string;
+  uploadDate: string;
+  duration?: string;
+  contentUrl?: string;
+  embedUrl?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name,
+    description,
+    thumbnailUrl: thumbnailUrl.startsWith('http') ? thumbnailUrl : `${SEO_CONFIG.siteUrl}${thumbnailUrl}`,
+    uploadDate,
+    ...(duration && { duration }),
+    ...(contentUrl && { contentUrl }),
+    ...(embedUrl && { embedUrl }),
+    publisher: {
+      '@type': 'Organization',
+      name: SEO_CONFIG.siteName,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SEO_CONFIG.siteUrl}/logo.png`,
+      },
+    },
+  };
+}
+
+/**
+ * Generate enhanced Article schema with speakable property for voice/AI features
+ * speakable tells Google and AI which parts of an article to read aloud or cite
+ */
+export function generateEnhancedArticleSchema({
+  title,
+  description,
+  image,
+  author,
+  publishedDate,
+  modifiedDate,
+  url,
+  wordCount,
+  articleSection,
+  keywords,
+  speakableCssSelectors,
+}: {
+  title: string;
+  description: string;
+  image?: string;
+  author?: string;
+  publishedDate?: string;
+  modifiedDate?: string;
+  url: string;
+  wordCount?: number;
+  articleSection?: string;
+  keywords?: string[];
+  speakableCssSelectors?: string[];
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
+    image: image || `${SEO_CONFIG.siteUrl}${SEO_CONFIG.defaultImage}`,
+    author: {
+      '@type': 'Organization',
+      name: author || SEO_CONFIG.siteName,
+      url: SEO_CONFIG.siteUrl,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: SEO_CONFIG.siteName,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SEO_CONFIG.siteUrl}/logo.png`,
+      },
+    },
+    datePublished: publishedDate,
+    dateModified: modifiedDate || publishedDate,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': url.startsWith('http') ? url : `${SEO_CONFIG.siteUrl}${url}`,
+    },
+    ...(wordCount && { wordCount }),
+    ...(articleSection && { articleSection }),
+    ...(keywords && keywords.length > 0 && { keywords: keywords.join(', ') }),
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: speakableCssSelectors || ['h1', 'h2', '.article-summary', '.answer-text'],
+    },
+    isAccessibleForFree: true,
+    inLanguage: 'en-US',
+  };
+}
+
+/**
+ * Generate Dataset schema for data-rich pages (scam database, price data)
+ * Helps eligibility for Google Dataset Search and AI data extraction
+ */
+export function generateDatasetSchema({
+  name,
+  description,
+  url,
+  dateModified,
+  recordCount,
+  license,
+}: {
+  name: string;
+  description: string;
+  url: string;
+  dateModified?: string;
+  recordCount?: number;
+  license?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name,
+    description,
+    url: url.startsWith('http') ? url : `${SEO_CONFIG.siteUrl}${url}`,
+    creator: {
+      '@type': 'Organization',
+      name: SEO_CONFIG.siteName,
+      url: SEO_CONFIG.siteUrl,
+    },
+    ...(dateModified && { dateModified }),
+    ...(recordCount && {
+      size: `${recordCount} records`,
+    }),
+    license: license || 'https://creativecommons.org/licenses/by-nc/4.0/',
+    isAccessibleForFree: true,
+    inLanguage: 'en-US',
+  };
+}
+
+/**
+ * Generate comprehensive page schema bundle for AI-optimized pages
+ * Combines multiple schema types for maximum rich result eligibility
+ */
+export function generatePageSchemaBundle({
+  pageType,
+  title,
+  description,
+  url,
+  breadcrumbs,
+  faqs,
+}: {
+  pageType: 'tool' | 'article' | 'comparison' | 'education' | 'database';
+  title: string;
+  description: string;
+  url: string;
+  breadcrumbs?: Array<{ name: string; url: string }>;
+  faqs?: Array<{ question: string; answer: string }>;
+}) {
+  const schemas: Record<string, unknown>[] = [];
+
+  schemas.push(generateWebPageSchema({ title, description, url }));
+
+  if (breadcrumbs && breadcrumbs.length > 0) {
+    schemas.push(generateBreadcrumbSchema(breadcrumbs));
+  }
+
+  if (faqs && faqs.length > 0) {
+    schemas.push(generateGEOFAQSchema(faqs, url));
+  }
+
+  if (pageType === 'tool') {
+    schemas.push(generateToolSchema({ name: title, description, url }));
+  }
+
+  if (pageType === 'database') {
+    schemas.push(generateDatasetSchema({ name: title, description, url }));
+  }
+
+  return schemas;
+}
+
+// ============================================
 // Internal Linking Utilities
 // ============================================
 

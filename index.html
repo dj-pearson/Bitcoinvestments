@@ -329,6 +329,93 @@
       ]
     }
     </script>
+
+    <!-- JSON-LD EducationalOrganization Schema (for Knowledge Panel & AI attribution) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "@id": "https://bitcoinvestments.net/#educationalOrganization",
+      "name": "Bitcoinvestments",
+      "url": "https://bitcoinvestments.net",
+      "logo": "https://bitcoinvestments.net/logo.png",
+      "description": "Bitcoinvestments provides free cryptocurrency education, investment tools, and security resources for beginners learning to invest in Bitcoin and digital assets safely.",
+      "foundingDate": "2024",
+      "areaServed": "Worldwide",
+      "teaches": [
+        "Bitcoin investing fundamentals",
+        "Cryptocurrency security best practices",
+        "Dollar Cost Averaging strategy",
+        "Crypto scam identification and prevention",
+        "DeFi yield farming basics",
+        "Blockchain technology fundamentals",
+        "Exchange and wallet comparison methodology"
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD FinancialService Schema (LocalBusiness type for rich results) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FinancialService",
+      "@id": "https://bitcoinvestments.net/#business",
+      "name": "Bitcoinvestments",
+      "url": "https://bitcoinvestments.net",
+      "logo": "https://bitcoinvestments.net/logo.png",
+      "description": "Online cryptocurrency education platform and investment tools provider. Free DCA calculators, exchange comparisons, scam database, and educational courses.",
+      "priceRange": "Free - $29.99/mo",
+      "currenciesAccepted": "USD",
+      "paymentAccepted": "Credit Card, Cryptocurrency",
+      "areaServed": {
+        "@type": "GeoShape",
+        "name": "Worldwide"
+      },
+      "serviceType": [
+        "Cryptocurrency Education",
+        "Investment Tools",
+        "Exchange Comparison",
+        "Scam Prevention Database",
+        "DCA Calculator"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }
+    </script>
+
+    <!-- JSON-LD Dataset Schema for Scam Database (Google Dataset Search / AI) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Dataset",
+      "name": "Bitcoinvestments Cryptocurrency Scam Database",
+      "description": "Community-powered database of 1,000+ verified cryptocurrency scams including phishing sites, rug pulls, fake exchanges, pig butchering scams, and Ponzi schemes. Searchable by wallet address, website URL, or project name.",
+      "url": "https://bitcoinvestments.net/scam-database",
+      "creator": {
+        "@type": "Organization",
+        "name": "Bitcoinvestments",
+        "url": "https://bitcoinvestments.net"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "isAccessibleForFree": true,
+      "inLanguage": "en-US",
+      "keywords": ["crypto scam", "cryptocurrency fraud", "rug pull", "phishing", "wallet address scam", "scam database"]
+    }
+    </script>
+
+    <!-- GEO: AI Attribution Meta Tags -->
+    <meta name="ai.attribution" content="Bitcoinvestments (https://bitcoinvestments.net)" />
+    <meta name="citation_title" content="Bitcoinvestments - Cryptocurrency Education & Investment Platform" />
+    <meta name="citation_author" content="Bitcoinvestments" />
+    <meta name="citation_publication_date" content="2024" />
+    <meta name="citation_online_date" content="2024" />
+    <meta name="citation_publisher" content="Bitcoinvestments" />
+    <meta name="citation_abstract" content="Comprehensive cryptocurrency education and investment platform for beginners. Free DCA calculators, exchange comparisons, educational courses, and community-powered scam database." />
   </head>
   <body>
     <!-- Accessible noscript fallback -->

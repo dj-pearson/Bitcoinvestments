@@ -1,6 +1,11 @@
 # Robots.txt for Bitcoinvestments
 # https://bitcoinvestments.net
-# Last updated: 2026-02-08
+# Last updated: 2026-03-07
+#
+# Bot Governance Strategy:
+# - ALLOW: Search engines, AI search/citation crawlers, social media previews
+# - BLOCK: AI training-only scrapers, aggressive SEO tool bots
+# - RATE LIMIT: All crawlers via Crawl-delay directives
 
 # ===========================================
 # Default rules for all crawlers
@@ -18,10 +23,14 @@ Disallow: /ad-manager
 Disallow: /tax-reports
 Disallow: /assets/
 
-# Block search result pages with parameters
+# Block search result pages and faceted navigation parameters
 Disallow: /search?*
 Disallow: /*?utm_*
 Disallow: /*?ref=*
+Disallow: /*?sort=*
+Disallow: /*?filter=*
+Disallow: /*?page=*
+Disallow: /*?tab=*
 
 # Allow important public pages
 Allow: /learn/
@@ -146,9 +155,36 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
+# Brave Search AI
+User-agent: Amazonbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Microsoft Copilot / Bing AI
+User-agent: bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Crawl-delay: 1
+
+# Google Vertex AI / Gemini Search
+User-agent: GoogleOther
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Timpi AI search
+User-agent: Timpibot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
 # ===========================================
 # Block AI Training-Only Bots
 # These crawl purely for model training, not search
+# We differentiate between retrieval (allowed) and
+# training-only scrapers (blocked)
 # ===========================================
 User-agent: CCBot
 Disallow: /
@@ -160,6 +196,18 @@ User-agent: Bytespider
 Disallow: /
 
 User-agent: Diffbot
+Disallow: /
+
+User-agent: Omgilibot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: ImagesiftBot
+Disallow: /
+
+User-agent: Kangaroo Bot
 Disallow: /
 
 # ===========================================

@@ -3,11 +3,11 @@
  *
  * Tracks Core Web Vitals metrics:
  * - LCP (Largest Contentful Paint) - loading performance
- * - FID (First Input Delay) - interactivity
+ * - INP (Interaction to Next Paint) - responsiveness (replaced FID as of March 2024)
  * - CLS (Cumulative Layout Shift) - visual stability
  * - FCP (First Contentful Paint) - initial render
  * - TTFB (Time to First Byte) - server response time
- * - INP (Interaction to Next Paint) - responsiveness
+ * - FID (First Input Delay) - legacy metric, kept for backwards compatibility
  */
 
 import { useEffect, useCallback } from 'react';
@@ -351,17 +351,21 @@ export function useWebVitals(onReport?: ReportHandler) {
 
 /**
  * Get current performance score based on Core Web Vitals
+ * Updated: INP replaces FID as the primary responsiveness metric (March 2024+)
  */
 export function getPerformanceScore(metrics: Record<string, number>): number {
   let score = 100;
 
   // Weight each metric based on importance
+  // INP is the primary responsiveness metric (replaced FID in March 2024)
+  // FID kept at low weight for legacy compatibility
   const weights = {
     LCP: 0.25,
-    FID: 0.25,
+    INP: 0.30,
     CLS: 0.25,
-    FCP: 0.15,
-    TTFB: 0.10,
+    FCP: 0.10,
+    TTFB: 0.05,
+    FID: 0.05,
   };
 
   Object.entries(weights).forEach(([name, weight]) => {

@@ -10,7 +10,7 @@ interface FearGreedGaugeProps {
   historyDays?: number;
 }
 
-export function FearGreedGauge({
+export const FearGreedGauge = memo(function FearGreedGauge({
   className,
   showHistory = true,
   historyDays = 7,
@@ -145,7 +145,7 @@ export function FearGreedGauge({
       </div>
     </div>
   );
-}
+});
 
 function GaugeDisplay({
   value,
@@ -255,7 +255,7 @@ function getInterpretation(classification: FearGreedIndex['value_classification'
 /**
  * Compact version for dashboard widgets
  */
-export function FearGreedCompact({ className }: { className?: string }) {
+export const FearGreedCompact = memo(function FearGreedCompact({ className }: { className?: string }) {
   const [data, setData] = useState<FearGreedIndex | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -294,4 +294,4 @@ export function FearGreedCompact({ className }: { className?: string }) {
       </div>
     </div>
   );
-}
+});

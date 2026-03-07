@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { getLatestNews, formatTimeAgo, type NewsItem } from '../services/news';
 
 interface NewsFeedProps {
@@ -7,7 +7,7 @@ interface NewsFeedProps {
   variant?: 'compact' | 'full';
 }
 
-export function NewsFeed({ limit = 5, className = '', variant = 'compact' }: NewsFeedProps) {
+export const NewsFeed = memo(function NewsFeed({ limit = 5, className = '', variant = 'compact' }: NewsFeedProps) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +130,7 @@ export function NewsFeed({ limit = 5, className = '', variant = 'compact' }: New
       </div>
     </div>
   );
-}
+});
 
 // Trending topics component
 export function TrendingTopics({ className = '' }: { className?: string }) {

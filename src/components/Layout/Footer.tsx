@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Twitter, Github, Linkedin, Youtube, Mail, Calculator, BarChart3, BookOpen, Shield, TrendingUp } from 'lucide-react';
 import { Newsletter } from '../Newsletter';
 import { Logo } from '../Logo';
 import { getCachedTopCryptocurrencies } from '../../services/coingecko';
 
-export function Footer() {
+export const Footer = memo(function Footer() {
     const [btcPrice, setBtcPrice] = useState<{ price: number; change: number } | null>(null);
 
     useEffect(() => {
@@ -219,4 +219,4 @@ export function Footer() {
             </div>
         </footer>
     );
-}
+});

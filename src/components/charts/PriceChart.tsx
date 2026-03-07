@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -35,7 +35,7 @@ interface PriceChartProps {
   showVolume?: boolean;
 }
 
-export function PriceChart({
+export const PriceChart = memo(function PriceChart({
   cryptocurrencyId,
   cryptocurrencyName,
   days = 7,
@@ -97,9 +97,9 @@ export function PriceChart({
     }
   }
 
-  const priceChange = chartData.prices.length > 0
+  const priceChange = useMemo(() => chartData.prices.length > 0
     ? ((chartData.prices[chartData.prices.length - 1] - chartData.prices[0]) / chartData.prices[0]) * 100
-    : 0;
+    : 0, [chartData.prices]);
 
   const isPositive = priceChange >= 0;
 
@@ -350,6 +350,5 @@ export function PriceChart({
       )}
     </figure>
   );
-}
-
+});
 

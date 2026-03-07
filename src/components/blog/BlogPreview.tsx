@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { X, Monitor, Smartphone, Share2, Facebook, Twitter, Linkedin, Copy, Check } from 'lucide-react';
+import { sanitizeHtml } from '../../lib/validation';
 
 interface BlogPreviewProps {
   isOpen: boolean;
@@ -185,7 +186,7 @@ export function BlogPreview({ isOpen, onClose, post }: BlogPreviewProps) {
                   prose-blockquote:border-l-4 prose-blockquote:border-orange-500 prose-blockquote:italic
                   prose-img:rounded-lg
                 "
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
               />
             </div>
           </div>

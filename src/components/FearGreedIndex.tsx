@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { TrendingDown, TrendingUp, Minus, AlertCircle } from 'lucide-react';
 import type { FearGreedIndex, FearGreedHistorical } from '../types';
 import { getCachedFearGreedIndex, getFearGreedHistorical } from '../services/coingecko';

@@ -8,10 +8,10 @@
  * - Push notification handling
  */
 
-const CACHE_NAME = 'bitcoinvestments-v2';
-const STATIC_CACHE = 'static-v2';
-const DYNAMIC_CACHE = 'dynamic-v2';
-const API_CACHE = 'api-v2';
+const CACHE_NAME = 'bitcoinvestments-v3';
+const STATIC_CACHE = 'static-v3';
+const DYNAMIC_CACHE = 'dynamic-v3';
+const API_CACHE = 'api-v3';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
@@ -102,7 +102,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets - cache first, network fallback
+  // Navigation requests (HTML pages) - network first to always get fresh index.html
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request, DYNAMIC_CACHE));
+    return;
+  }
+
+  // Static assets with content hashes - cache first, network fallback
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;

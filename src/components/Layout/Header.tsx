@@ -35,6 +35,7 @@ import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
 import { GlobalSearch, MobileSearchTrigger } from '../GlobalSearch';
 import { PrefetchLink } from '../PrefetchLink';
+import { STATIC_MODE } from '../../config/staticMode';
 
 // Navigation items with icons for better visual hierarchy
 const navItems = [
@@ -76,18 +77,25 @@ const navItems = [
     },
     {
         label: 'Tools',
-        href: '/portfolio-analysis',
+        href: '/backtesting',
         icon: Wrench,
         description: 'Advanced trading tools',
-        children: [
-            { label: 'Portfolio Analysis', href: '/portfolio-analysis', icon: BarChart3, description: 'Analyze your holdings' },
-            { label: 'Backtesting', href: '/backtesting', icon: RefreshCw, description: 'Test trading strategies' },
-            { label: 'Tax Reports', href: '/tax-reports', icon: Receipt, description: 'Generate tax reports' },
-            { label: 'Multi-Exchange', href: '/multi-exchange', icon: Layers, description: 'Manage multiple exchanges' },
-            { label: 'DCA Automation', href: '/dca-automation', icon: TrendingUp, description: 'Automate DCA purchases' },
-            { label: 'Rebalancing Alerts', href: '/rebalancing-alerts', icon: Bell, description: 'Portfolio rebalancing' },
-            { label: 'Smart Alert Bundles', href: '/alert-bundles', icon: Bell, description: 'Custom alert packages' },
-        ],
+        children: STATIC_MODE
+            ? [
+                { label: 'Backtesting', href: '/backtesting', icon: RefreshCw, description: 'Test trading strategies' },
+                { label: 'Multi-Exchange', href: '/multi-exchange', icon: Layers, description: 'Manage multiple exchanges' },
+                { label: 'Rebalancing Alerts', href: '/rebalancing-alerts', icon: Bell, description: 'Portfolio rebalancing' },
+                { label: 'Smart Alert Bundles', href: '/alert-bundles', icon: Bell, description: 'Custom alert packages' },
+            ]
+            : [
+                { label: 'Portfolio Analysis', href: '/portfolio-analysis', icon: BarChart3, description: 'Analyze your holdings' },
+                { label: 'Backtesting', href: '/backtesting', icon: RefreshCw, description: 'Test trading strategies' },
+                { label: 'Tax Reports', href: '/tax-reports', icon: Receipt, description: 'Generate tax reports' },
+                { label: 'Multi-Exchange', href: '/multi-exchange', icon: Layers, description: 'Manage multiple exchanges' },
+                { label: 'DCA Automation', href: '/dca-automation', icon: TrendingUp, description: 'Automate DCA purchases' },
+                { label: 'Rebalancing Alerts', href: '/rebalancing-alerts', icon: Bell, description: 'Portfolio rebalancing' },
+                { label: 'Smart Alert Bundles', href: '/alert-bundles', icon: Bell, description: 'Custom alert packages' },
+            ],
     },
     {
         label: 'Research',
@@ -133,6 +141,7 @@ export const Header = memo(function Header() {
     const mobileMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        if (STATIC_MODE) return; // Skip auth check in static mode
         async function checkAuth() {
             const currentUser = await getCurrentUser();
             setUser(currentUser);
@@ -282,7 +291,14 @@ export const Header = memo(function Header() {
                         <GlobalSearch className="hidden lg:block" />
 
                         {/* Auth Section */}
-                        {user ? (
+                        {STATIC_MODE ? (
+                            <Link
+                                to="/pricing"
+                                className="px-6 py-2.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-medium text-sm transition-all hover:shadow-[0_0_20px_-5px_rgba(139,92,246,0.5)]"
+                            >
+                                View Plans
+                            </Link>
+                        ) : user ? (
                             <div
                                 className="relative"
                                 onMouseEnter={() => setUserDropdownOpen(true)}
@@ -532,7 +548,17 @@ export const Header = memo(function Header() {
 
                         {/* Mobile Auth */}
                         <div className="border-t border-white/10 mt-2 pt-4">
-                            {user ? (
+                            {STATIC_MODE ? (
+                                <div className="space-y-2">
+                                    <Link
+                                        to="/pricing"
+                                        className="block w-full text-center px-6 py-3 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white font-medium"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        View Plans
+                                    </Link>
+                                </div>
+                            ) : user ? (
                                 <div className="space-y-2">
                                     <div className="px-4 py-2">
                                         <p className="text-sm text-gray-400">Signed in as</p>

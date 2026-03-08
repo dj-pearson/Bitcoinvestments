@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout/Layout';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -14,6 +14,7 @@ import { PageLoader } from '@/components/LoadingSkeletons';
 import { WebVitalsTracker } from '@/components/WebVitalsTracker';
 import { AccessibilityProvider } from '@/components/accessibility/AccessibilityContext';
 import { useApiToastBridge } from '@/hooks/useApiToastBridge';
+import { STATIC_MODE } from '@/config/staticMode';
 
 /**
  * Wraps a page element in a PageErrorBoundary so that a crash in one route
@@ -37,6 +38,15 @@ function ApiToastBridge() {
 import { Home } from '@/pages/Home';
 import { Login } from '@/pages/Login';
 import { Signup } from '@/pages/Signup';
+import { ComingSoon } from '@/pages/ComingSoon';
+
+/**
+ * In static mode, wraps a route element so it renders ComingSoon instead.
+ * When STATIC_MODE is false, returns the original element unchanged.
+ */
+function staticGuard(element: ReactNode): ReactNode {
+  return STATIC_MODE ? <ComingSoon /> : element;
+}
 
 // Lazy loaded main pages (improves initial bundle size)
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -137,12 +147,12 @@ function App() {
           <ToastProvider>
           <ApiToastBridge />
           <AuthProvider>
-            <SessionExpiredModal />
-            <SessionActivityTracker />
+            {!STATIC_MODE && <SessionExpiredModal />}
+            {!STATIC_MODE && <SessionActivityTracker />}
             <Suspense fallback={<PageLoader message="Loading page..." />}>
             <Routes>
                   {/* Admin Panel with dedicated layout */}
-                  <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                  <Route path="/admin" element={STATIC_MODE ? <Navigate to="/" replace /> : <AdminRoute><AdminLayout /></AdminRoute>}>
                     <Route index element={withErrorBoundary(<AdminOverview />, 'AdminOverview')} />
                     <Route path="users" element={withErrorBoundary(<UserManagement />, 'UserManagement')} />
                     <Route path="subscriptions" element={withErrorBoundary(<AdminSubscriptions />, 'AdminSubscriptions')} />
@@ -173,19 +183,19 @@ function App() {
                   <Route path="web3" element={withErrorBoundary(<Web3Features />, 'Web3Features')} />
                   <Route path="scam-database" element={withErrorBoundary(<ScamDatabase />, 'ScamDatabase')} />
                   <Route path="scam/:id" element={withErrorBoundary(<ScamReportDetail />, 'ScamReportDetail')} />
-                  <Route path="report-scam" element={<ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute>} />
-                  <Route path="login" element={withErrorBoundary(<Login />, 'Login')} />
-                  <Route path="signup" element={withErrorBoundary(<Signup />, 'Signup')} />
-                  <Route path="forgot-password" element={withErrorBoundary(<ForgotPassword />, 'ForgotPassword')} />
-                  <Route path="reset-password" element={withErrorBoundary(<ResetPassword />, 'ResetPassword')} />
-                  <Route path="profile" element={<ProtectedRoute>{withErrorBoundary(<Profile />, 'Profile')}</ProtectedRoute>} />
-                  <Route path="affiliate-stats" element={<ProtectedRoute>{withErrorBoundary(<AffiliateStats />, 'AffiliateStats')}</ProtectedRoute>} />
-                  <Route path="ad-manager" element={<ProtectedRoute>{withErrorBoundary(<AdManager />, 'AdManager')}</ProtectedRoute>} />
-                  <Route path="tax-reports" element={<ProtectedRoute>{withErrorBoundary(<TaxReports />, 'TaxReports')}</ProtectedRoute>} />
-                  <Route path="advisor" element={<ProtectedRoute>{withErrorBoundary(<AdvisorDashboard />, 'AdvisorDashboard')}</ProtectedRoute>} />
-                  <Route path="affiliate" element={<ProtectedRoute>{withErrorBoundary(<InfluencerDashboard />, 'InfluencerDashboard')}</ProtectedRoute>} />
+                  <Route path="report-scam" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute>)} />
+                  <Route path="login" element={staticGuard(withErrorBoundary(<Login />, 'Login'))} />
+                  <Route path="signup" element={staticGuard(withErrorBoundary(<Signup />, 'Signup'))} />
+                  <Route path="forgot-password" element={staticGuard(withErrorBoundary(<ForgotPassword />, 'ForgotPassword'))} />
+                  <Route path="reset-password" element={staticGuard(withErrorBoundary(<ResetPassword />, 'ResetPassword'))} />
+                  <Route path="profile" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<Profile />, 'Profile')}</ProtectedRoute>)} />
+                  <Route path="affiliate-stats" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<AffiliateStats />, 'AffiliateStats')}</ProtectedRoute>)} />
+                  <Route path="ad-manager" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<AdManager />, 'AdManager')}</ProtectedRoute>)} />
+                  <Route path="tax-reports" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<TaxReports />, 'TaxReports')}</ProtectedRoute>)} />
+                  <Route path="advisor" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<AdvisorDashboard />, 'AdvisorDashboard')}</ProtectedRoute>)} />
+                  <Route path="affiliate" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<InfluencerDashboard />, 'InfluencerDashboard')}</ProtectedRoute>)} />
                   <Route path="backtesting" element={withErrorBoundary(<Backtesting />, 'Backtesting')} />
-                  <Route path="portfolio-analysis" element={<ProtectedRoute>{withErrorBoundary(<PortfolioAnalysis />, 'PortfolioAnalysis')}</ProtectedRoute>} />
+                  <Route path="portfolio-analysis" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<PortfolioAnalysis />, 'PortfolioAnalysis')}</ProtectedRoute>)} />
 
                   {/* Legacy Admin Routes - redirect to new admin panel */}
 
@@ -205,9 +215,9 @@ function App() {
                   <Route path="disclaimer" element={withErrorBoundary(<Terms />, 'Disclaimer')} />
                   <Route path="pricing" element={withErrorBoundary(<Pricing />, 'Pricing')} />
                   <Route path="developers/pricing" element={withErrorBoundary(<ApiPricing />, 'ApiPricing')} />
-                  <Route path="developers/portal" element={<ProtectedRoute>{withErrorBoundary(<DeveloperPortal />, 'DeveloperPortal')}</ProtectedRoute>} />
+                  <Route path="developers/portal" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<DeveloperPortal />, 'DeveloperPortal')}</ProtectedRoute>)} />
                   <Route path="developers/docs" element={withErrorBoundary(<ApiPricing />, 'ApiDocs')} />
-                  <Route path="advertiser" element={<ProtectedRoute>{withErrorBoundary(<AdvertiserDashboard />, 'AdvertiserDashboard')}</ProtectedRoute>} />
+                  <Route path="advertiser" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<AdvertiserDashboard />, 'AdvertiserDashboard')}</ProtectedRoute>)} />
 
                   {/* Advanced Monetization Features */}
                   <Route path="influencer-verification" element={withErrorBoundary(<InfluencerVerification />, 'InfluencerVerification')} />

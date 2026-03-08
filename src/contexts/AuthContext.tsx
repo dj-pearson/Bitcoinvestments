@@ -8,6 +8,7 @@ import {
 } from '../services/sessionManager';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database';
+import { STATIC_MODE } from '../config/staticMode';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];
 
@@ -33,8 +34,31 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(STATIC_MODE ? false : true);
   const [sessionExpired, setSessionExpired] = useState(false);
+
+  // In static mode, skip all auth — return null user immediately
+  // All the auth logic below is preserved for when STATIC_MODE is disabled
+  if (STATIC_MODE) {
+    return (
+      <AuthContext.Provider
+        value={{
+          user: null,
+          profile: null,
+          loading: false,
+          signOut: async () => {},
+          signOutAllDevices: async () => {},
+          refreshUser: async () => {},
+          initializeSession: async () => {},
+          sessionExpired: false,
+          clearSessionExpired: () => {},
+          markSessionExpired: async () => {},
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
   // Fetch user profile from database
   const fetchProfile = useCallback(async (userId: string) => {

@@ -126,8 +126,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error(`Claude API error (feature: ${feature}):`, errorData);
-
       let errorMessage = 'Claude API request failed';
       try {
         const errorJson = JSON.parse(errorData);
@@ -170,7 +168,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       }
     );
   } catch (error) {
-    console.error('Claude API error:', error);
     return new Response(
       JSON.stringify({
         success: false,

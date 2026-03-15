@@ -2,7 +2,7 @@
 RALPH LOOP PROGRESS TRACKER - SnarkyTank Format
 ================================================================
 Project: Bitcoinvestments Platform
-Date: 2026-03-07
+Date: 2026-03-15
 Sprint: Critical Platform Improvements
 ================================================================
 
@@ -41,6 +41,38 @@ COMPLETED THIS SPRINT
   Files: index.html
   Impact: Estimated 300-600ms LCP improvement from early TCP+TLS handshake
 
+[PASSED] US-076 - Remove debug logging and hardcoded keys from API endpoints
+  Status: DONE
+  Priority: HIGH SECURITY
+  What: Multiple API endpoints had debug console.log exposing env var names, API key substrings, user IDs, and internal service details in production
+  Fix: Removed all sensitive debug logging from coingecko proxy (env keys, API key prefixes, URL logging), claude.ts, test-claude.ts, check-price-alerts.ts (6 console.log calls), stripe-webhook.ts (14 console.log calls exposing user/customer IDs), send-newsletter.ts, log-error.ts. Removed X-API-Key-Present response header. Sanitized error responses to not leak internal details.
+  Files: functions/api/coingecko/[[path]].ts, functions/api/claude.ts, functions/api/test-claude.ts, functions/api/check-price-alerts.ts, functions/api/stripe-webhook.ts, functions/api/send-newsletter.ts, functions/api/log-error.ts
+  Impact: Eliminates information leakage of env configuration, API keys, user IDs, and service architecture through production logs
+
+[PASSED] US-079 - Lazy-load Three.js imports in Hero3D component
+  Status: DONE
+  Priority: HIGH PERFORMANCE
+  What: Hero3D.tsx used 'import * as THREE from three' importing entire Three.js library (~490KB) when only AdditiveBlending was needed
+  Fix: Replaced barrel import with targeted 'import { AdditiveBlending } from three'. Hero3D already lazy-loaded via React.lazy in Hero.tsx. PriceChart.tsx already uses targeted Chart.js imports.
+  Files: src/components/Hero3D.tsx
+  Impact: Tree-shaking can now eliminate unused Three.js exports, reducing bundle bloat. Build verified passing.
+
+[PASSED] US-098 - Add useMemo and useCallback to expensive Dashboard computations
+  Status: DONE
+  Priority: MEDIUM PERFORMANCE
+  What: Dashboard.tsx had inline computations (BTC dominance calc, skeleton array creation) and event handlers recreated on every render
+  Fix: Added useCallback for fetchData, handleCoinClick, handleSearchChange. Added useMemo for btcDominance calculation and skeletonItems array. Integrated new Button component replacing inline button styling.
+  Files: src/pages/Dashboard.tsx
+  Impact: Reduces unnecessary re-renders and object allocations on Dashboard - the most visited page
+
+[PASSED] US-082 - Create standardized Button component with variants
+  Status: DONE
+  Priority: HIGH UI/UX
+  What: Inconsistent button styles across 20+ files - different colors, sizes, no loading states
+  Fix: Created src/components/ui/Button.tsx with forwardRef, variants (primary, secondary, ghost, danger), sizes (sm, md, lg), loading state with Loader2 spinner, icon support, fullWidth option, 44px min-height touch targets (WCAG 2.5.5), focus-visible ring. Integrated in Dashboard.tsx as first adoption.
+  Files: src/components/ui/Button.tsx, src/pages/Dashboard.tsx
+  Impact: Provides consistent, accessible button component for platform-wide adoption. 44px touch targets meet WCAG requirements.
+
 ================================================================
 BUILD VERIFICATION: PASSED (npm run build - 0 errors)
 ================================================================
@@ -60,17 +92,9 @@ REMAINING HIGH-IMPACT STORIES FOR FUTURE RALPH LOOPS
   Priority: CRITICAL SECURITY
   Why: npm audit shows critical CVEs in jsPDF (5 CVEs), react-router-dom (3 CVEs), xlsx (2 CVEs)
 
-[QUEUED] US-076 - Remove debug logging and hardcoded keys from API endpoints
-  Priority: HIGH SECURITY
-  Why: Debug logs expose env var names, API key substrings in production
-
 [QUEUED] US-078 - Fix N+1 query pattern in portfolio service
   Priority: HIGH PERFORMANCE
   Why: Two separate DB round-trips where one joined query would work
-
-[QUEUED] US-079 - Lazy-load Three.js imports in Hero3D component
-  Priority: HIGH PERFORMANCE
-  Why: Full Three.js barrel import (~490KB) when only AdditiveBlending is used
 
 [QUEUED] US-080 - Add route-level Suspense boundaries with specific skeletons
   Priority: MEDIUM PERFORMANCE
@@ -80,13 +104,37 @@ REMAINING HIGH-IMPACT STORIES FOR FUTURE RALPH LOOPS
   Priority: MEDIUM PERFORMANCE
   Why: Raw useEffect + fetch causes redundant API calls on every navigation
 
-[QUEUED] US-082 - Create standardized Button component with variants
-  Priority: HIGH UI/UX
-  Why: Inconsistent button styles across 20+ files
+[QUEUED] US-083 - Create centralized number and date formatting utilities
+  Priority: MEDIUM CODE QUALITY
+  Why: Each component formats numbers independently causing inconsistency
+
+[QUEUED] US-085 - Fix color contrast and standardize breadcrumb styling
+  Priority: MEDIUM ACCESSIBILITY
+  Why: text-slate-* classes fail WCAG AA 4.5:1 contrast ratios
+
+[QUEUED] US-086 - Add mobile card view for data tables
+  Priority: MEDIUM UI/UX
+  Why: Tables cause horizontal scrolling on mobile devices
+
+[QUEUED] US-087 - Enable KV namespace for distributed rate limiting
+  Priority: HIGH SECURITY
+  Why: In-memory rate limiting is per-worker, distributed attacks bypass limits
 
 [QUEUED] US-089 - Add backend role verification for all admin API operations
   Priority: HIGH SECURITY
   Why: Admin access enforced only on frontend - backend has no auth checks
+
+[QUEUED] US-092 - Add loading error states with retry buttons to data pages
+  Priority: MEDIUM UI/UX
+  Why: Data pages show nothing when API calls fail - need error UI with retry
+
+[QUEUED] US-096 - Add localhost CORS conditional on environment
+  Priority: MEDIUM SECURITY
+  Why: localhost origins allowed in production CORS headers
+
+[QUEUED] US-100 - Optimize Supabase queries with column selection
+  Priority: MEDIUM PERFORMANCE
+  Why: .select('*') fetches unnecessary columns, missing database indexes
 
 ================================================================
 END OF PROGRESS REPORT

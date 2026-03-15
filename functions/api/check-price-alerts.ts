@@ -53,13 +53,10 @@ export async function onRequest(context: { request: Request; env: Env }) {
   }
 
   try {
-    console.log('Starting price alert check...');
-
     // Step 1: Fetch all active price alerts from Supabase
     const alerts = await fetchActiveAlerts(env);
-    
+
     if (alerts.length === 0) {
-      console.log('No active alerts found');
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -73,8 +70,6 @@ export async function onRequest(context: { request: Request; env: Env }) {
         }
       );
     }
-
-    console.log(`Found ${alerts.length} active alerts`);
 
     // Step 2: Get unique cryptocurrency IDs
     const cryptoIds = [...new Set(alerts.map(a => a.cryptocurrency_id))];
@@ -90,7 +85,6 @@ export async function onRequest(context: { request: Request; env: Env }) {
       const currentPrice = prices[alert.cryptocurrency_id]?.usd;
 
       if (!currentPrice) {
-        console.log(`No price data for ${alert.cryptocurrency_id}, skipping`);
         continue;
       }
 
@@ -100,10 +94,6 @@ export async function onRequest(context: { request: Request; env: Env }) {
         (alert.condition === 'below' && currentPrice <= alert.target_price);
 
       if (shouldTrigger) {
-        console.log(
-          `Alert triggered: ${alert.symbol} ${alert.condition} $${alert.target_price} (current: $${currentPrice})`
-        );
-
         // Send email notification
         const emailSent = await sendPriceAlertEmail(
           env,
@@ -138,8 +128,6 @@ export async function onRequest(context: { request: Request; env: Env }) {
       }
     }
 
-    console.log(`Price alert check complete. Triggered: ${triggeredCount}/${alerts.length}`);
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -153,7 +141,7 @@ export async function onRequest(context: { request: Request; env: Env }) {
       }
     );
   } catch (error) {
-    console.error('Error checking price alerts:', error);
+    console.error('Error checking price alerts');
     return new Response(
       JSON.stringify({
         error: 'Failed to check price alerts',
@@ -244,7 +232,6 @@ async function sendPriceAlertEmail(
   condition: 'above' | 'below'
 ): Promise<boolean> {
   if (!env.RESEND_API_KEY || !userEmail) {
-    console.warn('Email not configured or user email missing');
     return false;
   }
 
@@ -351,10 +338,8 @@ async function sendPriceAlertEmail(
       return false;
     }
 
-    console.log(`Email sent to ${userEmail} for ${symbol} alert`);
     return true;
-  } catch (error) {
-    console.error('Error sending email:', error);
+  } catch {
     return false;
   }
 }

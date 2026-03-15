@@ -3,7 +3,7 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Points, PointMaterial } from '@react-three/drei';
 import * as random from 'maath/random/dist/maath-random.esm';
-import * as THREE from 'three';
+import { AdditiveBlending } from 'three';
 
 function StarField(props: any) {
     const ref = useRef<any>(null);
@@ -38,7 +38,7 @@ function StarField(props: any) {
                     size={0.03}
                     sizeAttenuation={true}
                     depthWrite={false}
-                    blending={THREE.AdditiveBlending}
+                    blending={AdditiveBlending}
                 />
             </Points>
         </group>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   TrendingUp,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { Button } from '../components/ui/Button';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
 import { PortfolioTracker } from '../components/PortfolioTracker';
 import { PriceChart } from '../components/charts';
@@ -46,11 +47,7 @@ export function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [cryptoData, global, trendingData] = await Promise.all([
@@ -66,7 +63,11 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const filteredCryptos = useMemo(
     () =>
@@ -77,6 +78,25 @@ export function Dashboard() {
       ),
     [cryptos, searchQuery]
   );
+
+  const btcDominance = useMemo(() => {
+    if (filteredCryptos[0]?.market_cap && globalData?.total_market_cap.usd) {
+      return ((filteredCryptos[0].market_cap / globalData.total_market_cap.usd) * 100).toFixed(1);
+    }
+    return '--';
+  }, [filteredCryptos, globalData]);
+
+  const handleCoinClick = useCallback(
+    (coinId: string) => navigate(`/coin/${coinId}`),
+    [navigate]
+  );
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
+    []
+  );
+
+  const skeletonItems = useMemo(() => Array.from({ length: 10 }), []);
 
   const meta = PAGE_METADATA.dashboard;
   const dashboardSchema = useMemo(
@@ -118,14 +138,14 @@ export function Dashboard() {
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Market Dashboard</h1>
           <p className="text-gray-400">Real-time cryptocurrency market data</p>
         </div>
-        <button
+        <Button
+          variant="secondary"
           onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg glass hover:bg-white/10 text-gray-300 transition-colors"
+          loading={loading}
+          icon={!loading ? <RefreshCw className="w-4 h-4" /> : undefined}
         >
-          <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           Refresh
-        </button>
+        </Button>
       </div>
 
       {/* Global Stats */}
@@ -157,9 +177,7 @@ export function Dashboard() {
           <div className="glass-card p-4">
             <p className="text-xs text-gray-400 mb-1">BTC Dominance</p>
             <p className="text-xl font-bold text-white">
-              {filteredCryptos[0]?.market_cap && globalData.total_market_cap.usd
-                ? ((filteredCryptos[0].market_cap / globalData.total_market_cap.usd) * 100).toFixed(1)
-                : '--'}%
+              {btcDominance}%
             </p>
           </div>
 
@@ -204,7 +222,7 @@ export function Dashboard() {
                   type="text"
                   placeholder="Search..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchChange}
                   className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-brand-primary"
                 />
               </div>
@@ -212,7 +230,7 @@ export function Dashboard() {
 
             {loading ? (
               <div className="space-y-4">
-                {[...Array(10)].map((_, i) => (
+                {skeletonItems.map((_, i) => (
                   <div key={i} className="h-16 bg-white/5 rounded-lg animate-pulse" />
                 ))}
               </div>
@@ -223,7 +241,7 @@ export function Dashboard() {
                   {filteredCryptos.map((crypto) => (
                     <div
                       key={crypto.id}
-                      onClick={() => navigate(`/coin/${crypto.id}`)}
+                      onClick={() => handleCoinClick(crypto.id)}
                       className="bg-white/5 rounded-lg p-4 border border-white/10 active:bg-white/10 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -288,7 +306,7 @@ export function Dashboard() {
                       {filteredCryptos.map((crypto) => (
                         <tr
                           key={crypto.id}
-                          onClick={() => navigate(`/coin/${crypto.id}`)}
+                          onClick={() => handleCoinClick(crypto.id)}
                           className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
                         >
                           <td className="py-4 px-2 text-gray-400">{crypto.market_cap_rank}</td>

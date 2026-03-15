@@ -124,7 +124,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const priceToTierMap = buildPriceToTierMap(context.env);
 
     // Handle the event
-    console.log(`Received Stripe webhook event: ${event.type}`);
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -158,7 +157,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return new Response(
@@ -210,7 +208,6 @@ async function handleCheckoutComplete(
     } else if (productType === 'lifetime' || session.metadata?.type === 'lifetime') {
       await handleLifetimePurchase(session, supabase, customerId);
     } else {
-      console.log(`Unknown one-time payment type: ${productType}`);
     }
     return;
   }
@@ -255,7 +252,6 @@ async function handleCheckoutComplete(
       throw error;
     }
 
-    console.log(`✅ Subscription created for user ${userId}: ${tierInfo.status}/${tierInfo.tier}`);
   }
 }
 
@@ -295,7 +291,6 @@ async function handleLifetimePurchase(
     throw error;
   }
 
-  console.log(`✅ Lifetime deal purchased for user ${userId} ($${amountTotal})`);
 }
 
 /**
@@ -339,7 +334,6 @@ async function handleApiSubscription(
     throw error;
   }
 
-  console.log(`✅ API subscription created for user ${userId}: ${apiTier}`);
 }
 
 /**
@@ -372,7 +366,6 @@ async function handleSubscriptionUpdate(
       throw error;
     }
 
-    console.log(`✅ API subscription updated for customer ${customerId}: ${isActive ? 'active' : 'inactive'}`);
     return;
   }
 
@@ -400,7 +393,6 @@ async function handleSubscriptionUpdate(
     throw error;
   }
 
-  console.log(`✅ Subscription updated for customer ${customerId}: ${subscriptionStatus}/${subscriptionTier}`);
 }
 
 /**
@@ -429,7 +421,6 @@ async function handleSubscriptionCanceled(
       throw error;
     }
 
-    console.log(`✅ API subscription canceled for customer ${customerId}`);
     return;
   }
 
@@ -449,7 +440,6 @@ async function handleSubscriptionCanceled(
     throw error;
   }
 
-  console.log(`✅ Subscription canceled for customer ${customerId}`);
 }
 
 /**
@@ -489,7 +479,6 @@ async function handlePaymentSucceeded(
       throw error;
     }
 
-    console.log(`✅ API payment succeeded for customer ${customerId}`);
     return;
   }
 
@@ -512,7 +501,6 @@ async function handlePaymentSucceeded(
     throw error;
   }
 
-  console.log(`✅ Payment succeeded for customer ${customerId}: ${tierInfo.status}/${tierInfo.tier}`);
 }
 
 /**
@@ -526,7 +514,6 @@ async function handlePaymentFailed(
   const subscriptionId = invoice.subscription as string;
 
   // Log the failure - Stripe will automatically retry
-  console.log(`⚠️ Payment failed for customer ${customerId}`);
 
   // Optionally update a payment_failed flag in the database
   // to show a warning to the user in the UI
@@ -585,5 +572,4 @@ async function handleTaxPackagePurchase(
     throw error;
   }
 
-  console.log(`✅ Tax package purchased for user ${userId}: ${packageType} for year ${taxYear}`);
 }

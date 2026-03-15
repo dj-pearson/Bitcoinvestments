@@ -71,7 +71,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     };
 
     // Log to Cloudflare (visible in Logpush/Workers Logs)
-    console.error('[Error Report]', JSON.stringify(errorReport, null, 2));
+    // Forward to Sentry if configured; avoid logging full report to console
 
     // If Sentry DSN is configured, forward to Sentry
     if (env.SENTRY_DSN) {

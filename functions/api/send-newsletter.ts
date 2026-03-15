@@ -428,8 +428,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       }
     }
 
-    console.log(`Newsletter sent: ${result.sent}/${result.totalSubscribers} successful`);
-
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

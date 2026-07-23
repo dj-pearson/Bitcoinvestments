@@ -1,5 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 
+// Fixed date these terms were last updated. Update when the content changes;
+// do not render a live clock, which would misrepresent the last-updated date.
+const LAST_UPDATED = 'July 23, 2026';
+
 export function Terms() {
   const location = useLocation();
   const isDisclaimer = location.pathname === '/disclaimer';
@@ -11,7 +15,7 @@ export function Terms() {
 
         <div className="prose prose-invert max-w-none space-y-8">
           <p className="text-gray-400 text-lg">
-            Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            Last updated: {LAST_UPDATED}
           </p>
 
           <section>
@@ -140,7 +144,7 @@ export function Terms() {
 
       <div className="prose prose-invert max-w-none space-y-8">
         <p className="text-gray-400 text-lg">
-          Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          Last updated: {LAST_UPDATED}
         </p>
 
         <section>

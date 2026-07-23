@@ -309,6 +309,10 @@ export const Header = memo(function Header() {
                                     aria-label="User account menu"
                                     aria-expanded={userDropdownOpen}
                                     aria-haspopup="menu"
+                                    onClick={() => setUserDropdownOpen((v) => !v)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Escape') setUserDropdownOpen(false);
+                                    }}
                                 >
                                     <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center">
                                         <User className="w-4 h-4 text-brand-primary" aria-hidden="true" />

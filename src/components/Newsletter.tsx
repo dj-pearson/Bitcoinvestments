@@ -42,6 +42,7 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter email"
             required
+            aria-label="Email address for newsletter"
             className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
           <button
@@ -52,6 +53,11 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
             {status === 'loading' ? '...' : 'Join'}
           </button>
         </form>
+        <p className="text-gray-400 text-xs mt-2">
+          By subscribing you agree to our{' '}
+          <a href="/privacy" className="text-orange-500 hover:text-orange-400 underline">Privacy Policy</a>.
+          Unsubscribe anytime.
+        </p>
         {status === 'success' && (
           <div className="mt-3 p-3 bg-green-900/30 border border-green-700/50 rounded-lg flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -79,6 +85,7 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email for crypto updates"
               required
+              aria-label="Email address for newsletter"
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
@@ -90,6 +97,11 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
             {status === 'loading' ? 'Subscribing...' : 'Subscribe Free'}
           </button>
         </form>
+        <p className="text-gray-400 text-xs mt-3">
+          By subscribing you agree to our{' '}
+          <a href="/privacy" className="text-orange-500 hover:text-orange-400 underline">Privacy Policy</a>.
+          Unsubscribe anytime.
+        </p>
         {status === 'success' && (
           <div className="mt-3 p-3 bg-green-900/30 border border-green-700/50 rounded-lg flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
@@ -139,6 +151,7 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             required
+            aria-label="Email address for newsletter"
             className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
           />
           <button
@@ -154,8 +167,9 @@ export function Newsletter({ source = 'website', variant = 'card' }: NewsletterP
               <p className="text-red-400 text-sm">{message}</p>
             </div>
           )}
-          <p className="text-gray-500 text-xs text-center">
-            No spam, unsubscribe anytime. We respect your privacy.
+          <p className="text-gray-400 text-xs text-center">
+            No spam, unsubscribe anytime. By subscribing you agree to our{' '}
+            <a href="/privacy" className="text-orange-500 hover:text-orange-400 underline">Privacy Policy</a>.
           </p>
         </form>
       )}

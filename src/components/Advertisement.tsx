@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getActiveAds, trackAdImpression, trackAdClick } from '../services/database';
 import { useAuth } from '../contexts/AuthContext';
 import { hasAdFree } from '../services/subscriptionLimits';
+import { hasConsent } from '@/lib/consent';
 import type { Advertisement as AdType } from '../types/database';
 
 interface AdvertisementProps {
@@ -33,8 +34,10 @@ export function Advertisement({ zone, className = '' }: AdvertisementProps) {
         // Select random ad from available ones
         const selectedAd = ads[Math.floor(Math.random() * ads.length)];
         setAd(selectedAd);
-        // Track impression
-        trackAdImpression(selectedAd.id);
+        // Track impression only with marketing consent (GDPR/ePrivacy).
+        if (hasConsent('marketing')) {
+          trackAdImpression(selectedAd.id);
+        }
       }
       setLoading(false);
     }
@@ -42,7 +45,7 @@ export function Advertisement({ zone, className = '' }: AdvertisementProps) {
   }, [zone, profile]);
 
   const handleClick = () => {
-    if (ad) {
+    if (ad && hasConsent('marketing')) {
       trackAdClick(ad.id);
     }
   };

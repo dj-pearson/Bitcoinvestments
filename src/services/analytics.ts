@@ -4,6 +4,9 @@
  * Provides a unified interface for analytics tracking using Plausible.
  * Plausible is privacy-focused and doesn't use cookies.
  *
+ * GDPR/ePrivacy: the Plausible script is only injected, and events are only
+ * sent, once the user has granted analytics consent via the cookie banner.
+ *
  * Features:
  * - Page view tracking (automatic with script)
  * - Custom event tracking
@@ -11,6 +14,8 @@
  * - Revenue tracking
  * - User properties
  */
+
+import { hasConsent } from '@/lib/consent';
 
 // Plausible event type
 declare global {
@@ -63,6 +68,13 @@ export function initializeAnalytics(customConfig?: Partial<AnalyticsConfig>): vo
     return;
   }
 
+  // GDPR/ePrivacy: do not load the analytics script until the user has
+  // granted analytics consent via the cookie banner.
+  if (!hasConsent('analytics')) {
+    console.log('[Analytics] Waiting for consent');
+    return;
+  }
+
   // Check if script is already loaded
   if (document.querySelector('script[data-domain]')) {
     return;
@@ -105,6 +117,11 @@ export function trackEvent(
     return;
   }
 
+  // Never send analytics events without consent.
+  if (!hasConsent('analytics')) {
+    return;
+  }
+
   if (window.plausible) {
     window.plausible(eventName, props ? { props } : undefined);
     console.log('[Analytics] Event:', eventName, props);
@@ -118,6 +135,10 @@ export function trackEvent(
  */
 export function trackPageview(url?: string): void {
   if (!config.enabled && !isLocalhost()) {
+    return;
+  }
+
+  if (!hasConsent('analytics')) {
     return;
   }
 
@@ -143,6 +164,10 @@ export function trackRevenue(
   props?: Record<string, string | number | boolean>
 ): void {
   if (!config.enabled && !isLocalhost()) {
+    return;
+  }
+
+  if (!hasConsent('analytics')) {
     return;
   }
 

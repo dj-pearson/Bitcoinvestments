@@ -7,6 +7,16 @@ export function SessionExpiredModal() {
   const { sessionExpired, clearSessionExpired } = useAuth();
   const navigate = useNavigate();
 
+  const handleLogin = () => {
+    clearSessionExpired();
+    navigate('/login');
+  };
+
+  const handleDismiss = () => {
+    clearSessionExpired();
+    navigate('/');
+  };
+
   useEffect(() => {
     // Prevent scrolling when modal is open
     if (sessionExpired) {
@@ -20,19 +30,20 @@ export function SessionExpiredModal() {
     };
   }, [sessionExpired]);
 
+  // Close on Escape for keyboard users.
+  useEffect(() => {
+    if (!sessionExpired) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleDismiss();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionExpired]);
+
   if (!sessionExpired) {
     return null;
   }
-
-  const handleLogin = () => {
-    clearSessionExpired();
-    navigate('/login');
-  };
-
-  const handleDismiss = () => {
-    clearSessionExpired();
-    navigate('/');
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -40,10 +51,17 @@ export function SessionExpiredModal() {
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={handleDismiss}
+        aria-hidden="true"
       />
 
       {/* Modal */}
-      <div className="relative bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-2xl border border-slate-700">
+      <div
+        className="relative bg-slate-800 rounded-xl p-6 max-w-md mx-4 shadow-2xl border border-slate-700"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="session-expired-title"
+        aria-describedby="session-expired-desc"
+      >
         <button
           onClick={handleDismiss}
           aria-label="Close dialog"
@@ -59,10 +77,10 @@ export function SessionExpiredModal() {
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-bold text-white mb-2">Session Expired</h2>
+          <h2 id="session-expired-title" className="text-xl font-bold text-white mb-2">Session Expired</h2>
 
           {/* Description */}
-          <p className="text-slate-400 mb-6">
+          <p id="session-expired-desc" className="text-slate-400 mb-6">
             Your session has expired due to inactivity. Please sign in again to continue using your account.
           </p>
 

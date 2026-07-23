@@ -8,6 +8,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { initializeAnalytics, trackPageview } from '../services/analytics';
+import { CONSENT_CHANGED_EVENT } from '@/lib/consent';
 
 interface AnalyticsProviderProps {
   children: React.ReactNode;
@@ -32,17 +33,23 @@ export function AnalyticsProvider({
   domain = 'bitcoinvestments.net',
   enabled = true,
 }: AnalyticsProviderProps) {
-  // Initialize analytics on mount
+  // Initialize analytics on mount, and again if/when the user grants consent.
+  // initializeAnalytics() itself no-ops until analytics consent exists, so it
+  // is safe to call eagerly and re-call on consent changes.
   useEffect(() => {
-    // Check environment
     const isProduction = import.meta.env.PROD;
     const shouldEnable = enabled && isProduction;
 
-    initializeAnalytics({
-      domain,
-      enabled: shouldEnable,
-      trackLocalhost: false,
-    });
+    const init = () =>
+      initializeAnalytics({
+        domain,
+        enabled: shouldEnable,
+        trackLocalhost: false,
+      });
+
+    init();
+    window.addEventListener(CONSENT_CHANGED_EVENT, init);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, init);
   }, [domain, enabled]);
 
   return <>{children}</>;

@@ -224,7 +224,9 @@ export function Pricing() {
 
       {/* Individual Plans */}
       {viewMode === 'individual' && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-16">
+        <div className="max-w-7xl mx-auto mb-16">
+          <h2 className="sr-only">Individual plans</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Free Tier */}
           <div className="glass-card p-8 flex flex-col">
             <div className="mb-6">
@@ -473,12 +475,15 @@ export function Pricing() {
                 : 'Get Lifetime Access'}
             </button>
           </div>
+          </div>
         </div>
       )}
 
       {/* Business Plans */}
       {viewMode === 'business' && (
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
+        <div className="max-w-4xl mx-auto mb-16">
+          <h2 className="sr-only">Business plans</h2>
+          <div className="grid md:grid-cols-2 gap-8">
           {/* Advisor Tier */}
           <div className="glass-card p-8 flex flex-col border-2 border-blue-500/50">
             <div className="mb-6">
@@ -587,6 +592,7 @@ export function Pricing() {
                 ? 'Loading...'
                 : 'Start Enterprise Plan'}
             </button>
+          </div>
           </div>
         </div>
       )}

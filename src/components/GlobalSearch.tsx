@@ -195,10 +195,10 @@ export function GlobalSearch({
             variant === 'mobile' && 'w-full'
           )}
         >
-          <Search className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Search className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" aria-hidden="true" />
           <input
             ref={inputRef}
-            type="text"
+            type="search"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -207,6 +207,7 @@ export function GlobalSearch({
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
+            aria-label="Search the site"
             className={cn(
               'w-full pl-10 pr-10 py-2.5 sm:py-2 rounded-lg bg-white/5 border border-white/10',
               'text-white placeholder-gray-400 text-sm sm:text-base',

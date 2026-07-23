@@ -1,13 +1,40 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) with Consent Mode v2 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-BLC0N9LCE5"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-BLC0N9LCE5');
+
+      // GDPR / ePrivacy: deny all tracking storage by default until the user
+      // opts in via the cookie banner. No analytics/ads cookies are set until
+      // consent is granted (Consent Mode v2).
+      gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: 'denied',
+        wait_for_update: 500
+      });
+
+      // Restore a returning visitor's saved choice before the first hit fires.
+      try {
+        var storedConsent = JSON.parse(
+          window.localStorage.getItem('bitcoin_investments_cookie_consent') || 'null'
+        );
+        if (storedConsent) {
+          gtag('consent', 'update', {
+            analytics_storage: storedConsent.analytics ? 'granted' : 'denied',
+            ad_storage: storedConsent.marketing ? 'granted' : 'denied',
+            ad_user_data: storedConsent.marketing ? 'granted' : 'denied',
+            ad_personalization: storedConsent.marketing ? 'granted' : 'denied'
+          });
+        }
+      } catch (e) { /* ignore malformed consent */ }
+
+      gtag('config', 'G-BLC0N9LCE5', { anonymize_ip: true });
     </script>
 
     <meta charset="UTF-8" />

@@ -26,6 +26,10 @@ import {
 import { useSEO } from '../hooks/useSEO';
 import { useAccessibility } from '../components/accessibility/AccessibilityContext';
 
+// Fixed date of the last accessibility review. Update when a review is done;
+// do not render a live clock, which would falsely show today's date every visit.
+const LAST_REVIEWED = 'July 23, 2026';
+
 interface AccessibilityFeature {
     icon: React.ElementType;
     title: string;
@@ -114,22 +118,22 @@ const wcagCriteria = [
         title: 'Level A (Minimum)',
         criteria: [
             { id: '1.1.1', name: 'Non-text Content', status: 'pass' },
-            { id: '1.3.1', name: 'Info and Relationships', status: 'pass' },
+            { id: '1.3.1', name: 'Info and Relationships', status: 'partial' },
             { id: '1.3.2', name: 'Meaningful Sequence', status: 'pass' },
             { id: '1.4.1', name: 'Use of Color', status: 'pass' },
-            { id: '2.1.1', name: 'Keyboard', status: 'pass' },
+            { id: '2.1.1', name: 'Keyboard', status: 'partial' },
             { id: '2.1.2', name: 'No Keyboard Trap', status: 'pass' },
             { id: '2.4.1', name: 'Bypass Blocks', status: 'pass' },
             { id: '2.4.2', name: 'Page Titled', status: 'pass' },
-            { id: '2.4.3', name: 'Focus Order', status: 'pass' },
+            { id: '2.4.3', name: 'Focus Order', status: 'partial' },
             { id: '2.4.4', name: 'Link Purpose (In Context)', status: 'pass' },
             { id: '3.1.1', name: 'Language of Page', status: 'pass' },
             { id: '3.2.1', name: 'On Focus', status: 'pass' },
             { id: '3.2.2', name: 'On Input', status: 'pass' },
             { id: '3.3.1', name: 'Error Identification', status: 'pass' },
-            { id: '3.3.2', name: 'Labels or Instructions', status: 'pass' },
+            { id: '3.3.2', name: 'Labels or Instructions', status: 'partial' },
             { id: '4.1.1', name: 'Parsing', status: 'pass' },
-            { id: '4.1.2', name: 'Name, Role, Value', status: 'pass' },
+            { id: '4.1.2', name: 'Name, Role, Value', status: 'partial' },
         ],
     },
     {
@@ -138,7 +142,7 @@ const wcagCriteria = [
         criteria: [
             { id: '1.3.4', name: 'Orientation', status: 'pass' },
             { id: '1.3.5', name: 'Identify Input Purpose', status: 'pass' },
-            { id: '1.4.3', name: 'Contrast (Minimum)', status: 'pass' },
+            { id: '1.4.3', name: 'Contrast (Minimum)', status: 'partial' },
             { id: '1.4.4', name: 'Resize Text', status: 'pass' },
             { id: '1.4.5', name: 'Images of Text', status: 'pass' },
             { id: '1.4.10', name: 'Reflow', status: 'pass' },
@@ -186,24 +190,22 @@ export function Accessibility() {
 
                 {/* Conformance Status */}
                 <section aria-labelledby="conformance-heading" className="mb-12">
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6">
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
                         <div className="flex items-start gap-4">
-                            <CheckCircle2 className="w-8 h-8 text-green-400 flex-shrink-0" aria-hidden="true" />
+                            <AlertCircle className="w-8 h-8 text-amber-400 flex-shrink-0" aria-hidden="true" />
                             <div>
                                 <h2 id="conformance-heading" className="text-xl font-semibold text-white mb-2">
-                                    WCAG 2.1 Level AA Conformance
+                                    WCAG 2.1 Level AA — Partially Conformant
                                 </h2>
                                 <p className="text-gray-300">
-                                    This website conforms to the Web Content Accessibility Guidelines (WCAG) 2.1
-                                    Level AA success criteria. These guidelines explain how to make web content
-                                    more accessible for people with disabilities.
+                                    Bitcoinvestments aims to conform to the Web Content Accessibility Guidelines
+                                    (WCAG) 2.1 Level AA. We are currently <strong>partially conformant</strong>:
+                                    most of the site meets these standards, and we are actively remediating the
+                                    remaining known issues (see the success-criteria list below). "Partially
+                                    conformant" means some parts of the content do not yet fully conform.
                                 </p>
                                 <p className="text-sm text-gray-400 mt-2">
-                                    Last reviewed: {new Date().toLocaleDateString('en-US', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    })}
+                                    Last reviewed: {LAST_REVIEWED}
                                 </p>
                             </div>
                         </div>
@@ -442,7 +444,8 @@ export function Accessibility() {
                     </h2>
                     <div className="bg-white/5 border border-white/10 rounded-xl p-6">
                         <p className="text-gray-300 mb-4">
-                            This website has been tested and is compatible with the following assistive technologies:
+                            This website is designed and being tested for compatibility with the following
+                            assistive technologies:
                         </p>
                         <ul className="grid sm:grid-cols-2 gap-3">
                             {[

@@ -4,6 +4,7 @@ import { Twitter, Github, Linkedin, Youtube, Mail, Calculator, BarChart3, BookOp
 import { Newsletter } from '../Newsletter';
 import { Logo } from '../Logo';
 import { getCachedTopCryptocurrencies } from '../../services/coingecko';
+import { reopenConsentBanner } from '@/lib/consent';
 
 export const Footer = memo(function Footer() {
     const [btcPrice, setBtcPrice] = useState<{ price: number; change: number } | null>(null);
@@ -147,6 +148,15 @@ export const Footer = memo(function Footer() {
                                 </Link>
                             </li>
                             <li>
+                                <button
+                                    type="button"
+                                    onClick={reopenConsentBanner}
+                                    className="text-gray-400 hover:text-brand-primary text-sm transition-colors text-left"
+                                >
+                                    Cookie Preferences
+                                </button>
+                            </li>
+                            <li>
                                 <a href="mailto:support@bitcoinvestments.net" className="text-gray-400 hover:text-brand-primary text-sm transition-colors flex items-center gap-1">
                                     <Mail className="w-3 h-3" aria-hidden="true" />
                                     Contact Us
@@ -160,10 +170,10 @@ export const Footer = memo(function Footer() {
                 <div className="border-t border-white/5 pt-8">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="text-center md:text-left">
-                            <p className="text-gray-500 text-sm">
+                            <p className="text-gray-400 text-sm">
                                 © {new Date().getFullYear()} Bitcoinvestments. All rights reserved.
                             </p>
-                            <p className="text-gray-600 text-xs mt-1">
+                            <p className="text-gray-400 text-xs mt-1">
                                 Cryptocurrency investments are subject to market risks. Not financial advice.
                             </p>
                         </div>

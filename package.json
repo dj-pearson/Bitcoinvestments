@@ -18,7 +18,9 @@
     "deploy:newsletter": "npx wrangler deploy --config wrangler-newsletter.toml",
     "newsletter:tail": "npx wrangler tail weekly-newsletter-cron",
     "newsletter:test": "curl -X POST https://bitcoinvestments.net/api/send-newsletter -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"",
-    "deploy:all": "npm run build && npm run cf:deploy && npm run deploy:cron && npm run deploy:newsletter",
+    "deploy:google-indexing": "npx wrangler deploy --config wrangler-google-indexing.toml",
+    "google-indexing:tail": "npx wrangler tail google-indexing-worker",
+    "deploy:all": "npm run build && npm run cf:deploy && npm run deploy:cron && npm run deploy:newsletter && npm run deploy:google-indexing",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
     "audit": "npm audit --audit-level=high"

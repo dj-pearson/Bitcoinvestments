@@ -8,11 +8,13 @@ import { Link } from 'react-router-dom';
 import { Home, LogIn, ShieldAlert, CreditCard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
+import { SEO } from '../components/SEO';
 export function Forbidden() {
   const { user } = useAuth();
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center py-12">
+      <SEO title="Access Denied (403)" description="You do not have permission to view this page. Sign in with an account that has access, or head back to the homepage." noindex />
       <div className="max-w-xl mx-auto px-4 text-center">
         <div className="mb-8">
           <div

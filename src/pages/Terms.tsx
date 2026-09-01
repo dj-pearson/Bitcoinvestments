@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 
+import { PageSEO } from '../components/PageSEO';
 // Fixed date these terms were last updated. Update when the content changes;
 // do not render a live clock, which would misrepresent the last-updated date.
 const LAST_UPDATED = 'July 23, 2026';
@@ -140,6 +141,7 @@ export function Terms() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <PageSEO pageKey="terms" urlPath="/terms" />
       <h1 className="text-4xl font-bold text-white mb-8">Terms of Service</h1>
 
       <div className="prose prose-invert max-w-none space-y-8">

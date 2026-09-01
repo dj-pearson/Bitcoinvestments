@@ -13,6 +13,7 @@ import {
 } from '../../services/blogAI';
 import type { NewsSourceForGeneration, AIContentGenerationOptions, GeneratedBlogContent } from '../../types/blog';
 
+import { sanitizeHtml } from '../../lib/validation';
 interface BlogAIPanelProps {
   onInsertContent: (content: GeneratedBlogContent) => void;
 }
@@ -44,7 +45,7 @@ export function BlogAIPanel({ onInsertContent }: BlogAIPanelProps) {
       setNews(newsItems);
       setSelectedNews(newsItems.slice(0, 3).map((n) => n.id));
       setStep('sources');
-    } catch (err) {
+    } catch {
       setError('Failed to fetch news. Please try again.');
     } finally {
       setIsLoading(false);
@@ -80,7 +81,7 @@ export function BlogAIPanel({ onInsertContent }: BlogAIPanelProps) {
         setGeneratedContent(result.data);
         setStep('preview');
       }
-    } catch (err) {
+    } catch {
       setError('Generation failed. Please try again.');
       setStep('options');
     } finally {
@@ -360,7 +361,7 @@ export function BlogAIPanel({ onInsertContent }: BlogAIPanelProps) {
             <p className="text-sm text-slate-400 mb-4">{generatedContent.excerpt}</p>
             <div
               className="prose prose-invert prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: generatedContent.content.replace(/\n/g, '<br>') }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(generatedContent.content) }}
             />
           </div>
 

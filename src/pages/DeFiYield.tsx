@@ -36,6 +36,7 @@ import {
 } from '../services/defiYield';
 import type { DeFiPool, DeFiProtocol, YieldOpportunity, DeFiProtocolType, DeFiRiskLevel } from '../types/premiumFeatures';
 
+import { PageSEO } from '../components/PageSEO';
 export default function DeFiYieldPage() {
   const { user } = useAuth();
   const [isPremium] = useState(false);
@@ -93,6 +94,7 @@ export default function DeFiYieldPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="defiYield" urlPath="/defi-yield" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

@@ -227,9 +227,9 @@ npx wrangler pages deployment tail
 
 ### Setup
 
-1. Install dependencies:
+1. Install dependencies (this project uses pnpm):
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. Create `.dev.vars` file with your test keys

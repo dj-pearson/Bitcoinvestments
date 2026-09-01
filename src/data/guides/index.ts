@@ -8,6 +8,8 @@ import { riskManagementGuide } from './risk-management';
 import { defiBasicsGuide } from './defi-basics';
 import { yieldFarmingGuide } from './yield-farming';
 import { defiRisksGuide } from './defi-risks';
+import { understandingBlockchainGuide } from './understanding-blockchain';
+import { cryptoTaxesBasicsGuide } from './crypto-taxes-basics';
 
 export interface GuideContent {
   id: string;
@@ -21,9 +23,12 @@ export interface GuideContent {
 
 export const guides: Record<string, GuideContent> = {
   'what-is-bitcoin': whatIsBitcoinGuide,
+  'understanding-blockchain': understandingBlockchainGuide,
   'how-to-buy-crypto': howToBuyCryptoGuide,
   'crypto-wallets-explained': cryptoWalletsExplainedGuide,
   'common-crypto-mistakes': commonCryptoMistakesGuide,
+  // Taxes
+  'crypto-taxes-basics': cryptoTaxesBasicsGuide,
   // Advanced Trading Strategies
   'dca-strategies': dcaStrategiesGuide,
   'portfolio-rebalancing': portfolioRebalancingGuide,

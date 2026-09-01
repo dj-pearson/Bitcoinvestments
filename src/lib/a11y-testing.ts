@@ -316,7 +316,7 @@ export function logAuditResults(): void {
 /**
  * Hook to run accessibility audit in development mode
  */
-export function useAccessibilityAudit(enabled: boolean = process.env.NODE_ENV === 'development'): void {
+export function useAccessibilityAudit(enabled: boolean = import.meta.env.DEV): void {
     if (typeof window === 'undefined' || !enabled) return;
 
     // Run audit after page load

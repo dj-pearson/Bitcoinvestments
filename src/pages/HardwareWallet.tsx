@@ -46,6 +46,7 @@ import type {
   HardwareWalletSubscription,
 } from '../types/premiumFeatures';
 
+import { PageSEO } from '../components/PageSEO';
 export default function HardwareWalletPage() {
   const { user } = useAuth();
   const [subscription] = useState<HardwareWalletSubscription | null>(null);
@@ -89,7 +90,7 @@ export default function HardwareWalletPage() {
     try {
       await syncWalletBalances(selectedWallet.id);
       await loadData();
-    } catch (err) {
+    } catch {
       setError('Failed to sync wallet balances');
     } finally {
       setIsSyncing(false);
@@ -122,6 +123,7 @@ export default function HardwareWalletPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="hardwareWallet" urlPath="/hardware-wallet" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

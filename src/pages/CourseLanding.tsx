@@ -2,6 +2,7 @@ import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Clock, BookOpen, CheckCircle, GraduationCap, Target, ChevronRight } from 'lucide-react';
 import { getCourse } from '../data/courses';
 import { Newsletter } from '../components/Newsletter';
+import { SEO, generateCourseSchema, generateBreadcrumbSchema } from '../components/SEO';
 
 export function CourseLanding() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -22,8 +23,35 @@ export function CourseLanding() {
     Advanced: 'bg-red-500/20 text-red-500'
   };
 
+  const courseUrl = `https://bitcoinvestments.net/course/${course.id}`;
+
   return (
     <div className="min-h-screen bg-brand-dark">
+      <SEO
+        title={`${course.title} - Free Crypto Course`}
+        description={course.description}
+        keywords={[
+          'crypto course',
+          'cryptocurrency course',
+          `${course.difficulty.toLowerCase()} crypto course`,
+          'free crypto education',
+          course.title,
+        ]}
+        blufSummary={course.description}
+        contentCategory="Education"
+        schema={[
+          generateCourseSchema({
+            name: course.title,
+            description: course.description,
+            url: courseUrl,
+          }),
+          generateBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Learn', url: '/learn' },
+            { name: course.title, url: `/course/${course.id}` },
+          ]),
+        ]}
+      />
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-gray-900 to-brand-dark border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-8">

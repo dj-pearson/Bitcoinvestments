@@ -4,6 +4,7 @@ import { signUp, validatePassword, validateEmail } from '../services/auth';
 import { useToast } from '../contexts/ToastContext';
 import { Check, X } from 'lucide-react';
 
+import { PageSEO } from '../components/PageSEO';
 export function Signup() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -102,6 +103,7 @@ export function Signup() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-8">
+      <PageSEO pageKey="signup" urlPath="/signup" />
       <div className="max-w-md w-full">
         <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
           <div className="text-center mb-8">

@@ -268,7 +268,7 @@ export async function getGasPriceForChain(
 
     gasCache.set(cacheKey, { data: chainGasInfo, timestamp: Date.now() });
     return chainGasInfo;
-  } catch (error) {
+  } catch {
     // Silently handle errors - gas prices are nice-to-have, not critical
     // Only log in development
     if (import.meta.env.DEV) {

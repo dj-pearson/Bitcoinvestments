@@ -400,7 +400,7 @@ export async function getUserWebinarRegistrations(userId: string): Promise<{
     if (error) throw error;
 
     return { registrations: (data as WebinarRegistration[]) || [], error: null };
-  } catch (err) {
+  } catch {
     return { registrations: [], error: null };
   }
 }

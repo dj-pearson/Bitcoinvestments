@@ -1,10 +1,11 @@
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { Twitter, Github, Linkedin, Youtube, Mail, Calculator, BarChart3, BookOpen, Shield, TrendingUp } from 'lucide-react';
+import { Mail, Calculator, BarChart3, BookOpen, Shield, TrendingUp } from 'lucide-react';
 import { Newsletter } from '../Newsletter';
 import { Logo } from '../Logo';
 import { getCachedTopCryptocurrencies } from '../../services/coingecko';
 import { reopenConsentBanner } from '@/lib/consent';
+
 
 export const Footer = memo(function Footer() {
     const [btcPrice, setBtcPrice] = useState<{ price: number; change: number } | null>(null);
@@ -111,6 +112,11 @@ export const Footer = memo(function Footer() {
                                 </Link>
                             </li>
                             <li>
+                                <Link to="/blog" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
+                                    Blog
+                                </Link>
+                            </li>
+                            <li>
                                 <Link to="/scam-database" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
                                     Scam Database
                                 </Link>
@@ -186,44 +192,6 @@ export const Footer = memo(function Footer() {
                                 </span>
                             </Link>
                         )}
-                        <nav aria-label="Social media links" className="flex items-center gap-4">
-                            <a
-                                href="https://twitter.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="Follow us on Twitter (opens in new tab)"
-                            >
-                                <Twitter className="w-5 h-5" aria-hidden="true" />
-                            </a>
-                            <a
-                                href="https://youtube.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="Subscribe on YouTube (opens in new tab)"
-                            >
-                                <Youtube className="w-5 h-5" aria-hidden="true" />
-                            </a>
-                            <a
-                                href="https://github.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="View our GitHub (opens in new tab)"
-                            >
-                                <Github className="w-5 h-5" aria-hidden="true" />
-                            </a>
-                            <a
-                                href="https://linkedin.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-white transition-colors"
-                                aria-label="Connect on LinkedIn (opens in new tab)"
-                            >
-                                <Linkedin className="w-5 h-5" aria-hidden="true" />
-                            </a>
-                        </nav>
                     </div>
                 </div>
             </div>

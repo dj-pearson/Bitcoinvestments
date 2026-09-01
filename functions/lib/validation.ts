@@ -244,7 +244,7 @@ export async function parseAndValidateBody<T extends Record<string, unknown>>(
     const sanitized = sanitizeObject(body);
 
     return { data: sanitized as T, error: null };
-  } catch (e) {
+  } catch {
     return { data: null, error: 'Invalid JSON body' };
   }
 }

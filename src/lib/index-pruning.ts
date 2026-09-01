@@ -37,6 +37,9 @@ const NOINDEX_PATHS: string[] = [
 /** Path prefixes that should be noindexed */
 const NOINDEX_PREFIXES: string[] = [
   '/admin',
+  // Paid placements: advertising, not editorial. Indexing them risks both
+  // thin-content and paid-link penalties.
+  '/sponsored',
 ];
 
 /** Pages that should only be indexed if they have substantial content */

@@ -24,7 +24,6 @@ const routeModules: Record<string, () => Promise<unknown>> = {
   '/pricing': () => import('../pages/Pricing'),
   '/glossary': () => import('../pages/Glossary'),
   '/scam-database': () => import('../pages/ScamDatabase'),
-  '/web3': () => import('../pages/Web3Features'),
   '/profile': () => import('../pages/Profile'),
   '/backtesting': () => import('../pages/Backtesting'),
   '/defi-yield': () => import('../pages/DeFiYield'),
@@ -118,7 +117,7 @@ export function PrefetchLink({
   onFocus,
   ...props
 }: PrefetchLinkProps) {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const linkRef = useRef<HTMLAnchorElement>(null);
   const [isPrefetched, setIsPrefetched] = useState(false);
 

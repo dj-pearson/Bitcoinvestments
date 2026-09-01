@@ -7,6 +7,7 @@ import {
 } from '../services/influencerVerification';
 import type { VerifiedInfluencer } from '../types/monetization';
 
+import { PageSEO } from '../components/PageSEO';
 const InfluencerVerification: React.FC = () => {
   const { user } = useAuth();
   const [influencers] = useState<Partial<VerifiedInfluencer>[]>(DEMO_INFLUENCERS);
@@ -37,6 +38,7 @@ const InfluencerVerification: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
+      <PageSEO pageKey="influencerVerification" urlPath="/influencer-verification" />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

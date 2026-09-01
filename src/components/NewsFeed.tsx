@@ -18,7 +18,7 @@ export const NewsFeed = memo(function NewsFeed({ limit = 5, className = '', vari
       try {
         const items = await getLatestNews(limit);
         setNews(items);
-      } catch (err) {
+      } catch {
         setError('Failed to load news');
       }
       setLoading(false);

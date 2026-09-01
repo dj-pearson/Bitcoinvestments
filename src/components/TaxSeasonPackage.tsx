@@ -164,7 +164,7 @@ export function TaxSeasonPackage({
               You have access to generate your {TAX_PACKAGE.taxYear} tax reports.
             </p>
             <Link
-              to="/calculators/tax"
+              to="/calculators?type=tax"
               className="inline-block py-3 px-6 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors"
             >
               Generate Tax Report

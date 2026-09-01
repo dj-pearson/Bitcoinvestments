@@ -1,8 +1,10 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Share2, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getGuide } from '../data/guides';
 import { Newsletter } from '../components/Newsletter';
+import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
 
 export function GuideDetail() {
   const { guideId } = useParams<{ guideId: string }>();
@@ -24,7 +26,7 @@ export function GuideDetail() {
     if (navigator.share) {
       try {
         await navigator.share({ title, url });
-      } catch (err) {
+      } catch {
         // User cancelled or error occurred
         console.log('Share cancelled or failed');
       }
@@ -33,14 +35,37 @@ export function GuideDetail() {
       try {
         await navigator.clipboard.writeText(url);
         alert('Link copied to clipboard!');
-      } catch (err) {
+      } catch {
         console.error('Failed to copy link');
       }
     }
   };
 
+  const guideUrl = `https://bitcoinvestments.net/learn/${guide.id}`;
+
   return (
     <div className="min-h-screen bg-brand-dark">
+      <SEO
+        title={guide.title}
+        description={guide.description}
+        keywords={[guide.category, 'crypto guide', 'cryptocurrency education', guide.title]}
+        type="article"
+        section={guide.category}
+        blufSummary={guide.description}
+        contentCategory={guide.category}
+        schema={[
+          generateArticleSchema({
+            title: guide.title,
+            description: guide.description,
+            url: guideUrl,
+          }),
+          generateBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Learn', url: '/learn' },
+            { name: guide.title, url: `/learn/${guide.id}` },
+          ]),
+        ]}
+      />
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-gray-900 to-brand-dark border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -91,6 +116,7 @@ export function GuideDetail() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         <article className="prose prose-invert prose-orange max-w-none">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               h1: ({ children }) => (
                 <h1 className="text-3xl font-bold text-white mb-6 mt-8">{children}</h1>

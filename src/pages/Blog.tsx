@@ -11,6 +11,7 @@ import { BlogPostCard } from '../components/blog';
 import type { BlogPost, BlogCategory } from '../types/blog';
 import { motion } from 'framer-motion';
 
+import { PageSEO } from '../components/PageSEO';
 export function Blog() {
   const { category: categoryParam } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -92,6 +93,7 @@ export function Blog() {
 
   return (
     <div className="min-h-screen py-12">
+      <PageSEO pageKey="blog" urlPath="/blog" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">

@@ -4,7 +4,7 @@
  * Manages sponsored articles, native ads, and advertiser integrations.
  */
 
-import { db } from '../lib/supabase';
+import { db, isSupabaseConfigured } from '../lib/supabase';
 
 // Types
 export type ContentType = 'article' | 'native_ad' | 'banner';
@@ -243,6 +243,14 @@ export async function getSponsoredArticles(options: {
 }
 
 export async function getSponsoredArticleBySlug(slug: string): Promise<SponsoredArticle | null> {
+  // Without a configured backend the query cannot succeed, and firing it anyway
+  // leaves the caller awaiting a request that may never settle — which stranded
+  // the article page on its loading skeleton. Fall straight through to the demo
+  // set, matching how the blog service guards every query.
+  if (!isSupabaseConfigured()) {
+    return demoSponsoredArticles.find((a) => a.slug === slug) || null;
+  }
+
   try {
     const { data, error } = await db
       .from('sponsored_articles')

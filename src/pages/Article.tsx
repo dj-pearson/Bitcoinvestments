@@ -6,6 +6,7 @@ import { Newsletter } from '../components/Newsletter';
 import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
 import type { Article as ArticleType } from '../types/database';
 
+import { sanitizeArticleHtml } from '../lib/validation';
 export function Article() {
   const { slug } = useParams<{ slug: string }>();
   const [article, setArticle] = useState<ArticleType | null>(null);
@@ -200,7 +201,7 @@ export function Article() {
       {/* Article Content */}
       <div
         className="prose prose-lg prose-invert max-w-none mb-12"
-        dangerouslySetInnerHTML={{ __html: article.content }}
+        dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(article.content) }}
       />
 
       {/* Share Section */}

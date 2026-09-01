@@ -13,6 +13,8 @@ import type { Portfolio } from '../types';
 import type { TaxReport } from './taxReportService';
 import { canUseExportFormat, type ExportFormat } from './subscriptionLimits';
 
+import { writeWorkbook, type ExcelSheet } from './xlsxWriter';
+
 // ==================== Types ====================
 
 export interface ExportOptions {
@@ -49,14 +51,8 @@ export async function exportPortfolioToExcel(
   options: Partial<ExportOptions> = {}
 ): Promise<ExportResult> {
   try {
-    // Dynamically import xlsx library
-    const XLSX = await import('xlsx');
-
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-
     // Holdings sheet
-    const holdingsData = portfolio.holdings.map((h) => ({
+    const holdingsData: Array<Record<string, string | number>> = portfolio.holdings.map((h) => ({
       Symbol: h.symbol,
       Name: h.name,
       Amount: h.amount,
@@ -81,23 +77,6 @@ export async function exportPortfolioToExcel(
       'Profit/Loss %': `${portfolio.total_profit_loss_percentage.toFixed(2)}%`,
     });
 
-    const holdingsSheet = XLSX.utils.json_to_sheet(holdingsData);
-
-    // Set column widths
-    holdingsSheet['!cols'] = [
-      { wch: 10 }, // Symbol
-      { wch: 20 }, // Name
-      { wch: 15 }, // Amount
-      { wch: 15 }, // Avg Buy Price
-      { wch: 15 }, // Current Price
-      { wch: 15 }, // Cost Basis
-      { wch: 15 }, // Current Value
-      { wch: 15 }, // Profit/Loss
-      { wch: 15 }, // Profit/Loss %
-    ];
-
-    XLSX.utils.book_append_sheet(workbook, holdingsSheet, 'Holdings');
-
     // Summary sheet
     const summaryData = [
       { Metric: 'Portfolio Name', Value: portfolio.name },
@@ -108,10 +87,6 @@ export async function exportPortfolioToExcel(
       { Metric: 'Total Return %', Value: `${portfolio.total_profit_loss_percentage.toFixed(2)}%` },
       { Metric: 'Generated At', Value: new Date().toLocaleString() },
     ];
-
-    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-    summarySheet['!cols'] = [{ wch: 20 }, { wch: 25 }];
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
 
     // Allocation sheet (for pie chart data)
     const allocationData = portfolio.holdings
@@ -125,48 +100,42 @@ export async function exportPortfolioToExcel(
       }))
       .sort((a, b) => b.Value - a.Value);
 
-    const allocationSheet = XLSX.utils.json_to_sheet(allocationData);
-    allocationSheet['!cols'] = [{ wch: 20 }, { wch: 10 }, { wch: 15 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(workbook, allocationSheet, 'Allocation');
-
     // Transactions sheet (if holdings have transactions)
-    if (options.includeTransactions !== false) {
-      const transactions = portfolio.holdings.flatMap((h) =>
-        h.transactions.map((t) => ({
-          Date: new Date(t.date).toLocaleDateString(),
-          Asset: h.name,
-          Symbol: h.symbol,
-          Type: t.type,
-          Amount: t.amount,
-          'Price per Unit': t.price_per_unit,
-          'Total Value': t.total_value,
-          Exchange: t.exchange || '',
-          Notes: t.notes || '',
-        }))
-      );
+    const transactionsData = options.includeTransactions !== false
+      ? portfolio.holdings.flatMap((h) =>
+          h.transactions.map((t) => ({
+            Date: new Date(t.date).toLocaleDateString(),
+            Asset: h.name,
+            Symbol: h.symbol,
+            Type: t.type,
+            Amount: t.amount,
+            'Price per Unit': t.price_per_unit,
+            'Total Value': t.total_value,
+            Exchange: t.exchange || '',
+            Notes: t.notes || '',
+          }))
+        )
+      : [];
 
-      if (transactions.length > 0) {
-        const transactionsSheet = XLSX.utils.json_to_sheet(transactions);
-        transactionsSheet['!cols'] = [
-          { wch: 12 },
-          { wch: 20 },
-          { wch: 10 },
-          { wch: 12 },
-          { wch: 12 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 15 },
-          { wch: 25 },
-        ];
-        XLSX.utils.book_append_sheet(workbook, transactionsSheet, 'Transactions');
-      }
+    const sheets: ExcelSheet[] = [
+      {
+        name: 'Holdings',
+        rows: holdingsData,
+        columnWidths: [10, 20, 15, 15, 15, 15, 15, 15, 15],
+      },
+      { name: 'Summary', rows: summaryData, columnWidths: [20, 25] },
+      { name: 'Allocation', rows: allocationData, columnWidths: [20, 10, 15, 15] },
+    ];
+
+    if (transactionsData.length > 0) {
+      sheets.push({
+        name: 'Transactions',
+        rows: transactionsData,
+        columnWidths: [12, 20, 10, 12, 12, 15, 15, 15, 25],
+      });
     }
 
-    // Generate Excel file
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
+    const blob = await writeWorkbook(sheets);
 
     const filename = `${portfolio.name.replace(/\s+/g, '_')}_Portfolio_${formatDateForFilename(new Date())}.xlsx`;
 
@@ -193,8 +162,6 @@ export async function exportTaxReportToExcel(
   _options: Partial<ExportOptions> = {}
 ): Promise<ExportResult> {
   try {
-    const XLSX = await import('xlsx');
-    const workbook = XLSX.utils.book_new();
     const s = report.summary;
 
     // Summary sheet
@@ -229,86 +196,53 @@ export async function exportTaxReportToExcel(
       { Category: 'Total Tax', Value: formatCurrency(s.estimatedTotalTax) },
     ];
 
-    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
-    summarySheet['!cols'] = [{ wch: 25 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-
-    // Form 8949 Short-Term sheet
-    if (report.form8949ShortTerm.length > 0) {
-      const shortTermData = report.form8949ShortTerm.map((line) => ({
-        Description: line.description,
-        'Date Acquired': line.dateAcquired,
-        'Date Sold': line.dateSold,
-        Proceeds: line.proceeds,
-        'Cost Basis': line.costBasis,
-        'Gain/Loss': line.gainOrLoss,
-      }));
-
-      const shortTermSheet = XLSX.utils.json_to_sheet(shortTermData);
-      shortTermSheet['!cols'] = [
-        { wch: 40 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, shortTermSheet, 'Short-Term (8949)');
-    }
-
-    // Form 8949 Long-Term sheet
-    if (report.form8949LongTerm.length > 0) {
-      const longTermData = report.form8949LongTerm.map((line) => ({
-        Description: line.description,
-        'Date Acquired': line.dateAcquired,
-        'Date Sold': line.dateSold,
-        Proceeds: line.proceeds,
-        'Cost Basis': line.costBasis,
-        'Gain/Loss': line.gainOrLoss,
-      }));
-
-      const longTermSheet = XLSX.utils.json_to_sheet(longTermData);
-      longTermSheet['!cols'] = [
-        { wch: 40 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, longTermSheet, 'Long-Term (8949)');
-    }
-
-    // Income Events sheet
-    if (report.incomeEvents.length > 0) {
-      const incomeData = report.incomeEvents.map((e) => ({
-        Date: new Date(e.date).toLocaleDateString(),
-        Type: e.type,
-        Asset: e.asset,
-        Symbol: e.symbol,
-        Amount: e.amount,
-        'Fair Market Value': e.fairMarketValueUSD,
-        Exchange: e.exchange || '',
-      }));
-
-      const incomeSheet = XLSX.utils.json_to_sheet(incomeData);
-      incomeSheet['!cols'] = [
-        { wch: 12 },
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 10 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, incomeSheet, 'Income');
-    }
-
-    // Generate Excel file
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    const form8949Row = (line: TaxReport['form8949ShortTerm'][number]) => ({
+      Description: line.description,
+      'Date Acquired': line.dateAcquired,
+      'Date Sold': line.dateSold,
+      Proceeds: line.proceeds,
+      'Cost Basis': line.costBasis,
+      'Gain/Loss': line.gainOrLoss,
     });
+    const form8949Widths = [40, 15, 15, 15, 15, 15];
+
+    const sheets: ExcelSheet[] = [
+      { name: 'Summary', rows: summaryData, columnWidths: [25, 20] },
+    ];
+
+    if (report.form8949ShortTerm.length > 0) {
+      sheets.push({
+        name: 'Short-Term (8949)',
+        rows: report.form8949ShortTerm.map(form8949Row),
+        columnWidths: form8949Widths,
+      });
+    }
+
+    if (report.form8949LongTerm.length > 0) {
+      sheets.push({
+        name: 'Long-Term (8949)',
+        rows: report.form8949LongTerm.map(form8949Row),
+        columnWidths: form8949Widths,
+      });
+    }
+
+    if (report.incomeEvents.length > 0) {
+      sheets.push({
+        name: 'Income',
+        rows: report.incomeEvents.map((e) => ({
+          Date: new Date(e.date).toLocaleDateString(),
+          Type: e.type,
+          Asset: e.asset,
+          Symbol: e.symbol,
+          Amount: e.amount,
+          'Fair Market Value': e.fairMarketValueUSD,
+          Exchange: e.exchange || '',
+        })),
+        columnWidths: [12, 15, 20, 10, 15, 15, 15],
+      });
+    }
+
+    const blob = await writeWorkbook(sheets);
 
     const filename = `Tax_Report_${s.taxYear}_${formatDateForFilename(new Date())}.xlsx`;
 

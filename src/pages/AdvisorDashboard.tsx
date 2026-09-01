@@ -19,6 +19,7 @@ import { hasAdvisorAccess, getTierLimits } from '../services/subscriptionLimits'
 import { cn } from '../lib/utils';
 import type { AdvisorClient } from '../types';
 
+import { DemoDataBanner } from '../components/DemoDataBanner';
 // Mock data for clients (in production, this would come from database)
 const mockClients: AdvisorClient[] = [
   {
@@ -113,6 +114,7 @@ export function AdvisorDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <DemoDataBanner source="client portfolios" />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>

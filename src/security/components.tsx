@@ -406,7 +406,7 @@ export function ShowIfOwnerOrPermission({
   return canAccess ? <>{children}</> : <>{fallback}</>;
 }
 
-interface ShowIfAuthenticatedProps extends ShowIfProps {}
+type ShowIfAuthenticatedProps = ShowIfProps;
 
 /**
  * Conditionally render content for authenticated users

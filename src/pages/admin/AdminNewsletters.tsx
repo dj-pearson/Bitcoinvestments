@@ -16,6 +16,7 @@ import {
   Calendar,
 } from 'lucide-react';
 
+import { DemoDataBanner } from '../../components/DemoDataBanner';
 interface Newsletter {
   id: string;
   subject: string;
@@ -125,6 +126,7 @@ export function AdminNewsletters() {
 
   return (
     <div className="space-y-6">
+      <DemoDataBanner source="the newsletter service" />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

@@ -180,7 +180,7 @@ export function InArticleSponsored({ className = '' }: { className?: string }) {
 
   useEffect(() => {
     loadAd();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   if (!ad) return null;

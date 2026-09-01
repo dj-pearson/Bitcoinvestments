@@ -28,8 +28,9 @@ import {
     AlertTriangle,
     Percent,
     Fuel,
-    Globe,
-    HardDrive
+    HardDrive,
+    BookOpen,
+    Newspaper
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
@@ -118,7 +119,6 @@ const navItems = [
         children: [
             { label: 'DeFi Yield', href: '/defi-yield', icon: Percent, description: 'Find the best yields' },
             { label: 'Gas Optimizer', href: '/gas-optimizer', icon: Fuel, description: 'Optimize gas costs' },
-            { label: 'Web3 Features', href: '/web3', icon: Globe, description: 'Web3 integrations' },
             { label: 'Hardware Wallet Guide', href: '/hardware-wallet', icon: HardDrive, description: 'Secure your crypto' },
         ],
     },
@@ -127,6 +127,11 @@ const navItems = [
         href: '/learn',
         icon: GraduationCap,
         description: 'Educational resources',
+        children: [
+            { label: 'Guides & Courses', href: '/learn', icon: GraduationCap, description: 'Free crypto guides and courses' },
+            { label: 'Blog', href: '/blog', icon: Newspaper, description: 'Latest crypto news and analysis' },
+            { label: 'Glossary', href: '/glossary', icon: BookOpen, description: 'Crypto terms explained' },
+        ],
     },
 ];
 

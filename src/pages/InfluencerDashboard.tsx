@@ -25,6 +25,7 @@ import {
 } from '../services/influencerAffiliate';
 import { cn } from '../lib/utils';
 
+import { DemoDataBanner } from '../components/DemoDataBanner';
 // Mock influencer data (in production, fetch from database)
 const mockInfluencerProfile: InfluencerProfile | null = null; // Set to profile for returning users
 
@@ -347,12 +348,19 @@ export function InfluencerDashboard() {
   }
 
   // Use demo data for demonstration
+  // `mockInfluencerProfile` is hardcoded to null, so `influencer` is always
+  // null and every affiliate currently sees `demoInfluencer` — fabricated
+  // referral counts, commission totals and payout history. Until this reads a
+  // real profile, say so on the page rather than showing someone invented
+  // earnings figures.
   const displayInfluencer = influencer || demoInfluencer;
+  const isDemoData = influencer === null;
   const affiliateLink = generateAffiliateLink(displayInfluencer.affiliate_code);
 
   // Approved Influencer Dashboard
   return (
     <div className="container mx-auto px-4 py-8">
+      {isDemoData && <DemoDataBanner source="your affiliate account" />}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>

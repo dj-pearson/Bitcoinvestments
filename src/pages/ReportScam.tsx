@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { createScamReport, SUPPORTED_BLOCKCHAINS } from '../services/scamDatabase';
 import type { ScamType, ScamSeverity, InsertScamReport } from '../types/admin-database';
 
+import { PageSEO } from '../components/PageSEO';
 const SCAM_TYPES: { value: ScamType; label: string; description: string; icon: string }[] = [
   { value: 'phishing', label: 'Phishing', description: 'Fake websites/emails stealing credentials', icon: '🎣' },
   { value: 'ponzi', label: 'Ponzi Scheme', description: 'Fraudulent investment promising high returns', icon: '🔺' },
@@ -134,7 +135,7 @@ export function ReportScam() {
       } else {
         setSubmitted(true);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     }
 
@@ -208,6 +209,7 @@ export function ReportScam() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="reportScam" urlPath="/report-scam" />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <Link

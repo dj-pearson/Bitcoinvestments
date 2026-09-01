@@ -38,6 +38,7 @@ import type {
   TradingSignal,
 } from '../types/premiumFeatures';
 
+import { PageSEO } from '../components/PageSEO';
 const INDICATOR_PRESETS_DATA = [
   { id: 'rsi-14', name: 'RSI (14)', description: 'Relative Strength Index', is_premium: true },
   { id: 'macd-12-26-9', name: 'MACD', description: 'Moving Average Convergence Divergence', is_premium: true },
@@ -110,6 +111,7 @@ export default function TradingIndicatorsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="tradingIndicators" urlPath="/trading-indicators" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

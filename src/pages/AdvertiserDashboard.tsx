@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getSponsorByUserId,
@@ -201,9 +201,12 @@ export function AdvertiserDashboard() {
             </div>
           </div>
 
-          <Link to="/contact?subject=advertising" className="btn-primary">
+          <a
+            href="mailto:sales@bitcoinvestments.net?subject=Advertising%20enquiry"
+            className="btn-primary"
+          >
             Contact Us to Get Started
-          </Link>
+          </a>
         </div>
       </div>
     );

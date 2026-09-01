@@ -70,7 +70,6 @@ const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms }
 const AffiliateStats = lazy(() => import('./pages/AffiliateStats').then(m => ({ default: m.AffiliateStats })));
 const AdManager = lazy(() => import('./pages/AdManager').then(m => ({ default: m.AdManager })));
 const Pricing = lazy(() => import('./pages/Pricing').then(m => ({ default: m.Pricing })));
-const Web3Features = lazy(() => import('./pages/Web3Features').then(m => ({ default: m.Web3Features })));
 const UserManagement = lazy(() => import('./pages/UserManagement').then(m => ({ default: m.UserManagement })));
 const ScamDatabase = lazy(() => import('./pages/ScamDatabase').then(m => ({ default: m.ScamDatabase })));
 const ScamReportDetail = lazy(() => import('./pages/ScamReportDetail').then(m => ({ default: m.ScamReportDetail })));
@@ -122,6 +121,7 @@ const AdminBlogCategories = lazy(() => import('./pages/admin/AdminBlogCategories
 
 // Public Blog Pages (lazy loaded)
 const Blog = lazy(() => import('./pages/Blog').then(m => ({ default: m.Blog })));
+const SponsoredArticle = lazy(() => import('./pages/SponsoredArticle').then(m => ({ default: m.SponsoredArticle })));
 const BlogPost = lazy(() => import('./pages/BlogPost').then(m => ({ default: m.BlogPost })));
 
 const queryClient = new QueryClient({
@@ -179,8 +179,6 @@ function App() {
                   <Route path="calculators" element={withErrorBoundary(<Calculators />, 'Calculators')} />
                   <Route path="compare" element={withErrorBoundary(<Compare />, 'Compare')} />
                   <Route path="compare/:type/:id" element={withErrorBoundary(<Compare />, 'CompareDetail')} />
-                  {/* Web3 routes - manual wallet tracking (no wallet connection) */}
-                  <Route path="web3" element={withErrorBoundary(<Web3Features />, 'Web3Features')} />
                   <Route path="scam-database" element={withErrorBoundary(<ScamDatabase />, 'ScamDatabase')} />
                   <Route path="scam/:id" element={withErrorBoundary(<ScamReportDetail />, 'ScamReportDetail')} />
                   <Route path="report-scam" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute>)} />
@@ -210,6 +208,8 @@ function App() {
                   <Route path="blog" element={withErrorBoundary(<Blog />, 'Blog')} />
                   <Route path="blog/category/:category" element={withErrorBoundary(<Blog />, 'BlogCategory')} />
                   <Route path="blog/:slug" element={withErrorBoundary(<BlogPost />, 'BlogPost')} />
+                  {/* Paid placements. Linked from SponsoredArticleCard; noindexed on the page itself. */}
+                  <Route path="sponsored/:slug" element={withErrorBoundary(<SponsoredArticle />, 'SponsoredArticle')} />
                   <Route path="privacy" element={withErrorBoundary(<Privacy />, 'Privacy')} />
                   <Route path="terms" element={withErrorBoundary(<Terms />, 'Terms')} />
                   <Route path="disclaimer" element={withErrorBoundary(<Terms />, 'Disclaimer')} />

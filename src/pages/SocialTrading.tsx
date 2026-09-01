@@ -6,6 +6,7 @@ import {
 } from '../services/socialTrading';
 import type { PublishedPortfolio } from '../types/monetization';
 
+import { PageSEO } from '../components/PageSEO';
 const SocialTrading: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'discover' | 'following' | 'my-portfolios'>('discover');
@@ -57,6 +58,7 @@ const SocialTrading: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
+      <PageSEO pageKey="socialTrading" urlPath="/social-trading" />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

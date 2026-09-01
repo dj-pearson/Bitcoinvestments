@@ -17,7 +17,6 @@ const ROUTE_LABELS: Record<string, string> = {
   '/charts': 'Charts',
   '/calculators': 'Calculators',
   '/compare': 'Compare',
-  '/web3': 'Web3 Features',
   '/scam-database': 'Scam Database',
   '/pricing': 'Pricing',
   '/backtesting': 'Backtesting',

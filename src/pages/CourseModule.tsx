@@ -1,8 +1,10 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Clock, Target, CheckCircle, Share2, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getCourse, getCourseModule } from '../data/courses';
 import { Newsletter } from '../components/Newsletter';
+import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
 
 export function CourseModule() {
   const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
@@ -31,21 +33,45 @@ export function CourseModule() {
     if (navigator.share) {
       try {
         await navigator.share({ title, url });
-      } catch (err) {
+      } catch {
         console.log('Share cancelled or failed');
       }
     } else {
       try {
         await navigator.clipboard.writeText(url);
         alert('Link copied to clipboard!');
-      } catch (err) {
+      } catch {
         console.error('Failed to copy link');
       }
     }
   };
 
+  const moduleUrl = `https://bitcoinvestments.net/course/${course.id}/${module.id}`;
+
   return (
     <div className="min-h-screen bg-brand-dark">
+      <SEO
+        title={`${module.title} - ${course.title}`}
+        description={module.description}
+        keywords={['crypto course', course.title, module.title, 'cryptocurrency lesson']}
+        type="article"
+        section={course.title}
+        blufSummary={module.description}
+        contentCategory="Education"
+        schema={[
+          generateArticleSchema({
+            title: module.title,
+            description: module.description,
+            url: moduleUrl,
+          }),
+          generateBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Learn', url: '/learn' },
+            { name: course.title, url: `/course/${course.id}` },
+            { name: module.title, url: `/course/${course.id}/${module.id}` },
+          ]),
+        ]}
+      />
       {/* Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-gray-800 z-50">
         <div
@@ -126,6 +152,7 @@ export function CourseModule() {
         {/* Module Content */}
         <article className="prose prose-invert prose-orange max-w-none">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               h1: ({ children }) => (
                 <h1 className="text-3xl font-bold text-white mb-6 mt-8">{children}</h1>

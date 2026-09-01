@@ -12,19 +12,12 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Search, ArrowLeft, AlertTriangle, HelpCircle } from 'lucide-react';
-import { useSEO } from '../hooks/useSEO';
+import { SEO } from '../components/SEO';
 
 export function NotFound() {
     const location = useLocation();
 
-    useSEO({
-        title: 'Page Not Found (404)',
-        description: 'The page you are looking for could not be found. Please check the URL or navigate to another page.',
-    });
-
     useEffect(() => {
-        document.title = 'Page Not Found | Bitcoinvestments';
-
         // Announce the error to screen readers
         const announcement = document.createElement('div');
         announcement.setAttribute('role', 'alert');
@@ -46,6 +39,16 @@ export function NotFound() {
 
     return (
         <div className="min-h-[70vh] flex items-center justify-center py-12">
+            {/*
+              * Every unmatched URL renders this page, so it must carry an explicit
+              * noindex. `shouldNoindex` only matches the literal `/404` path, which
+              * meant arbitrary bad URLs were being served as `index, follow`.
+              */}
+            <SEO
+                title="Page Not Found (404)"
+                description="The page you are looking for could not be found. Please check the URL or navigate to another page."
+                noindex
+            />
             <div className="max-w-xl mx-auto px-4 text-center">
                 {/* Error Icon */}
                 <div className="mb-8">

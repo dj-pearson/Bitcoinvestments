@@ -4,112 +4,24 @@ import { GraduationCap, Clock, BookOpen, ChevronRight, Target } from 'lucide-rea
 import { getPublishedArticles } from '../services/database';
 import { Newsletter } from '../components/Newsletter';
 import { getAllCourses } from '../data/courses';
+import { getAllGuides } from '../data/guides';
 import { SEO, generateBreadcrumbSchema } from '../components/SEO';
 import type { Article } from '../types/database';
 
-// Static beginner guides (can be moved to database later)
-const BEGINNER_GUIDES = [
-  {
-    id: 'what-is-bitcoin',
-    title: 'What is Bitcoin? A Beginner\'s Guide',
-    description: 'Learn the basics of Bitcoin, how it works, and why it matters for the future of money.',
-    category: 'Basics',
-    readTime: 8,
-    icon: '₿',
-  },
-  {
-    id: 'how-to-buy-crypto',
-    title: 'How to Buy Your First Cryptocurrency',
-    description: 'Step-by-step guide to purchasing Bitcoin and other cryptocurrencies safely.',
-    category: 'Getting Started',
-    readTime: 10,
-    icon: '🛒',
-  },
-  {
-    id: 'crypto-wallets-explained',
-    title: 'Crypto Wallets Explained',
-    description: 'Understanding hot wallets, cold wallets, and how to keep your crypto secure.',
-    category: 'Security',
-    readTime: 12,
-    icon: '🔐',
-  },
-  {
-    id: 'understanding-blockchain',
-    title: 'Understanding Blockchain Technology',
-    description: 'The technology behind cryptocurrencies and why it\'s revolutionary.',
-    category: 'Basics',
-    readTime: 15,
-    icon: '⛓️',
-  },
-  {
-    id: 'crypto-taxes-basics',
-    title: 'Cryptocurrency Taxes: What You Need to Know',
-    description: 'A beginner-friendly guide to crypto tax obligations in the US.',
-    category: 'Taxes',
-    readTime: 10,
-    icon: '📊',
-  },
-  {
-    id: 'common-crypto-mistakes',
-    title: '10 Common Crypto Mistakes to Avoid',
-    description: 'Learn from others\' mistakes and protect your investment.',
-    category: 'Tips',
-    readTime: 7,
-    icon: '⚠️',
-  },
-  // Advanced Trading Strategies
-  {
-    id: 'dca-strategies',
-    title: 'Advanced DCA Strategies',
-    description: 'Master sophisticated DCA variations including value averaging and dynamic strategies.',
-    category: 'Trading',
-    readTime: 15,
-    icon: '📈',
-  },
-  {
-    id: 'portfolio-rebalancing',
-    title: 'Crypto Portfolio Rebalancing',
-    description: 'Learn when and how to rebalance your portfolio for optimal allocation.',
-    category: 'Trading',
-    readTime: 14,
-    icon: '⚖️',
-  },
-  {
-    id: 'risk-management',
-    title: 'Crypto Risk Management',
-    description: 'Position sizing, stop-losses, and portfolio protection strategies.',
-    category: 'Trading',
-    readTime: 16,
-    icon: '🛡️',
-  },
-  // DeFi Explained Series
-  {
-    id: 'defi-basics',
-    title: 'DeFi Explained: Understanding DeFi',
-    description: 'A comprehensive introduction to decentralized finance protocols and how they work.',
-    category: 'DeFi',
-    readTime: 18,
-    icon: '🏦',
-  },
-  {
-    id: 'yield-farming',
-    title: 'Yield Farming Guide',
-    description: 'Learn yield farming strategies, liquidity provision, and how to maximize returns.',
-    category: 'DeFi',
-    readTime: 20,
-    icon: '🌾',
-  },
-  {
-    id: 'defi-risks',
-    title: 'DeFi Risks Explained',
-    description: 'Smart contract risks, rug pulls, and how to protect yourself in DeFi.',
-    category: 'DeFi',
-    readTime: 17,
-    icon: '⚠️',
-  },
-];
+/**
+ * Guide cards are derived straight from the guide registry rather than kept in a
+ * parallel hand-written list. The two lists had drifted: `/learn` advertised
+ * "understanding-blockchain" and "crypto-taxes-basics", neither of which is
+ * registered, so GuideDetail bounced those clicks back to `/learn` with no
+ * explanation. Deriving them means a card can only exist if its guide does.
+ */
+const BEGINNER_GUIDES = getAllGuides();
 
-const CATEGORIES = ['All', 'Basics', 'Getting Started', 'Security', 'Trading', 'DeFi', 'Taxes', 'Tips'];
+/** Category filters, derived so a filter can never render an empty list. */
+const CATEGORIES = [
+  'All',
+  ...Array.from(new Set(BEGINNER_GUIDES.map((g) => g.category))),
+];
 
 export function Learn() {
   const [articles, setArticles] = useState<Article[]>([]);

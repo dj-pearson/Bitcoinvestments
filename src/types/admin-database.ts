@@ -152,6 +152,20 @@ export type ScamType =
 export type ScamSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type ScamStatus = 'pending' | 'verified' | 'rejected' | 'investigating';
 
+/**
+ * Where a scam report originated. Mirrors the `source` column added in
+ * migration 202512230000000_add_community_scam_voting.sql (defaults to
+ * 'user_reported'). Widened with `string` so importers can introduce new
+ * sources without a type break.
+ */
+export type ScamReportSource =
+  | 'user_reported'
+  | 'community_import'
+  | 'admin_added'
+  | 'chainabuse'
+  | 'cryptoscamdb'
+  | (string & {});
+
 export interface ScamReport {
   id: string;
   title: string;
@@ -188,6 +202,15 @@ export interface ScamReport {
   evidence_links: string[] | null;
   screenshots: Record<string, any> | null;
 
+  // Provenance & community trust (migration 202512230000000_add_community_scam_voting)
+  source: ScamReportSource;
+  external_id: string | null;
+  upvotes: number;
+  downvotes: number;
+  dispute_count: number;
+  trust_score: number;
+  last_activity_at: string;
+
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -215,6 +238,13 @@ export interface InsertScamReport {
   reported_by?: string | null;
   evidence_links?: string[] | null;
   screenshots?: Record<string, any> | null;
+  source?: ScamReportSource;
+  external_id?: string | null;
+  upvotes?: number;
+  downvotes?: number;
+  dispute_count?: number;
+  trust_score?: number;
+  last_activity_at?: string;
 }
 
 export interface UpdateScamReport {
@@ -239,6 +269,13 @@ export interface UpdateScamReport {
   verified_at?: string | null;
   evidence_links?: string[] | null;
   screenshots?: Record<string, any> | null;
+  source?: ScamReportSource;
+  external_id?: string | null;
+  upvotes?: number;
+  downvotes?: number;
+  dispute_count?: number;
+  trust_score?: number;
+  last_activity_at?: string;
 }
 
 // Scam Report Comments

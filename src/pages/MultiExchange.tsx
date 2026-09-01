@@ -40,6 +40,7 @@ import type {
   AggregatedPortfolio,
 } from '../types/premiumFeatures';
 
+import { PageSEO } from '../components/PageSEO';
 const SUPPORTED_EXCHANGES_LIST = [
   { exchange: 'coinbase' as SupportedExchange, name: 'Coinbase', logo: '🟡' },
   { exchange: 'binance' as SupportedExchange, name: 'Binance', logo: '🟠' },
@@ -92,7 +93,7 @@ export default function MultiExchange() {
     try {
       await syncAllExchanges(user.id);
       await loadData();
-    } catch (err) {
+    } catch {
       setError('Failed to sync exchanges');
     } finally {
       setIsSyncing(false);
@@ -104,7 +105,7 @@ export default function MultiExchange() {
     try {
       await disconnectExchange(credentialId);
       await loadData();
-    } catch (err) {
+    } catch {
       setError('Failed to disconnect exchange');
     }
   }
@@ -119,6 +120,7 @@ export default function MultiExchange() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="multiExchange" urlPath="/multi-exchange" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

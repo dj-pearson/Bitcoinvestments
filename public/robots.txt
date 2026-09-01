@@ -22,6 +22,7 @@ Disallow: /affiliate-stats
 Disallow: /ad-manager
 Disallow: /tax-reports
 Disallow: /assets/
+Disallow: /sponsored/
 
 # Block search result pages and faceted navigation parameters
 Disallow: /search?*

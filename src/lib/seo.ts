@@ -18,7 +18,6 @@ export const SEO_CONFIG = {
   defaultDescription:
     'Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners.',
   defaultImage: '/og-image.png',
-  twitterHandle: '@bitcoinvestments',
   locale: 'en_US',
   themeColor: '#f97316',
 } as const;
@@ -182,21 +181,6 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
       'tax reports',
       'advanced analytics',
       'premium crypto tools',
-    ],
-  },
-  web3: {
-    title: 'Web3 Features - Connect Your Wallet',
-    description:
-      'Connect your cryptocurrency wallet to access Web3 features. View DeFi positions, NFT portfolio, and on-chain analytics with secure wallet connection.',
-    keywords: [
-      'Web3',
-      'connect wallet',
-      'DeFi portfolio',
-      'NFT portfolio',
-      'on-chain analytics',
-      'MetaMask',
-      'wallet connect',
-      'decentralized finance',
     ],
   },
   backtesting: {
@@ -528,9 +512,7 @@ export function generateOrganizationSchema() {
     name: SEO_CONFIG.siteName,
     url: SEO_CONFIG.siteUrl,
     logo: `${SEO_CONFIG.siteUrl}/logo.png`,
-    sameAs: [
-      'https://twitter.com/bitcoinvestments',
-    ],
+    // See the note in src/components/SEO.tsx — only assert profiles that exist.
     contactPoint: {
       '@type': 'ContactPoint',
       email: 'support@bitcoinvestments.net',
@@ -913,7 +895,6 @@ export function generateEnhancedOrganizationSchema() {
     description:
       'Bitcoinvestments is a comprehensive cryptocurrency education and investment platform for beginners, offering free DCA calculators, exchange comparisons, educational courses, and a community-powered scam database.',
     foundingDate: '2024',
-    sameAs: ['https://twitter.com/bitcoinvestments'],
     contactPoint: [
       {
         '@type': 'ContactPoint',

@@ -59,8 +59,15 @@ A comprehensive cryptocurrency education and investment platform built with Reac
    ```
 
 2. **Install dependencies**
+
+   This project uses **pnpm** (see `packageManager` in `package.json`). The
+   `pnpm.overrides` block there pins patched versions of several transitive
+   dependencies, and `npm install` would ignore it — reintroducing a set of
+   high-severity advisories and writing a competing `package-lock.json`.
+
    ```bash
-   npm install
+   corepack enable
+   pnpm install
    ```
 
 3. **Configure environment variables**
@@ -95,7 +102,7 @@ A comprehensive cryptocurrency education and investment platform built with Reac
 
 5. **Start development server**
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
    Open [http://localhost:5173](http://localhost:5173) in your browser.
@@ -105,7 +112,7 @@ A comprehensive cryptocurrency education and investment platform built with Reac
 ### Build the project
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 This creates an optimized production build in the `dist/` directory.
@@ -113,7 +120,7 @@ This creates an optimized production build in the `dist/` directory.
 ### Preview production build locally
 
 ```bash
-npm run preview
+pnpm run preview
 ```
 
 ## 🌐 Deployment
@@ -122,12 +129,12 @@ npm run preview
 
 1. **Build your project**
    ```bash
-   npm run build
+   pnpm run build
    ```
 
 2. **Deploy using Wrangler**
    ```bash
-   npm run deploy
+   pnpm run deploy
    ```
 
    Or connect via GitHub:
@@ -135,7 +142,7 @@ npm run preview
    - Click **Create a project**
    - Connect your GitHub repository
    - Build settings:
-     - Build command: `npm run build`
+     - Build command: `pnpm run build`
      - Build output directory: `dist`
 
 3. **Configure environment variables**
@@ -196,12 +203,12 @@ Bitcoinvestments/
 
 ## 🔧 Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run deploy` - Build and deploy to Cloudflare Pages
-- `npm run dev:wrangler` - Test with Cloudflare Workers locally
+- `pnpm run dev` - Start development server
+- `pnpm run build` - Build for production
+- `pnpm run preview` - Preview production build
+- `pnpm run lint` - Run ESLint
+- `pnpm run deploy` - Build and deploy to Cloudflare Pages
+- `pnpm run dev:wrangler` - Test with Cloudflare Workers locally
 - `npm run cf:tail` - View Cloudflare Workers logs
 
 ## 💰 Monetization Setup

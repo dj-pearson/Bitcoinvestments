@@ -29,17 +29,29 @@ docs/              # Setup guides
 
 ## Commands
 
+This project uses **pnpm** (pinned via `packageManager` in `package.json`).
+`package.json` carries a `pnpm.overrides` block pinning patched versions of
+transitive dependencies; `npm install` ignores it and reintroduces several
+high-severity advisories, so install with pnpm.
+
 ```bash
-npm run dev               # Dev server
-npm run build             # Production build
-npm run lint              # ESLint
-npm run deploy            # Deploy to Cloudflare Pages
-npm run deploy:cron       # Deploy price-alert cron
-npm run deploy:newsletter # Deploy newsletter cron
-npm run deploy:all        # Deploy everything
-npm run cf:tail           # Tail Cloudflare logs
-npm run cron:tail         # Tail cron worker logs
+corepack enable
+pnpm install              # Install (never `npm install`)
+
+pnpm run dev              # Dev server
+pnpm run build            # Production build (tsc -b && vite build)
+pnpm run lint             # ESLint — must report 0 errors
+pnpm audit --audit-level=high   # Must be clean; CI gates on this
+pnpm run deploy           # Deploy to Cloudflare Pages
+pnpm run deploy:cron      # Deploy price-alert cron
+pnpm run deploy:newsletter# Deploy newsletter cron
+pnpm run deploy:all       # Deploy everything
+pnpm run cf:tail          # Tail Cloudflare logs
+pnpm run cron:tail        # Tail cron worker logs
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, build and audit, and
+gates on all four.
 
 ## API Endpoints (`functions/api/`)
 
@@ -74,10 +86,28 @@ npm run cron:tail         # Tail cron worker logs
 - `PRD.md` / `PROGRESS.md` — Requirements & status
 - `docs/STRIPE_SETUP.md`, `docs/EMAIL_SETUP.md`, `docs/BACKEND_SETUP.md`, `docs/CLOUDFLARE_SETUP.md`, `docs/AD_SYSTEM.md`
 
+## Lint Policy
+
+`eslint.config.js` splits findings deliberately: **errors** are defects and gate
+CI; **warnings** are tracked tech debt. There are currently 0 errors and ~230
+warnings, dominated by `no-explicit-any` and the React Compiler rules. Each
+demoted rule carries a comment saying what it takes to promote it back.
+
 ## Known Gaps
 
-- Test coverage (only Playwright wired up; no unit tests)
-- React error boundaries
-- Bundle size / code splitting
-- SEO structured data, WCAG accessibility
+- Test coverage — Playwright is wired up but there are no unit tests
+- ~230 lint warnings to burn down (see Lint Policy above)
+- The wagmi / RainbowKit / viem / siwe stack is declared but **unreachable**:
+  `Web3ProviderWrapper` and `Web3Route` are never mounted, `components/Web3`
+  is never imported, and no build chunk references wagmi. Either wire it up or
+  remove it — it currently ships zero bytes while carrying a large dependency
+  subtree.
+- Several dashboards render hardcoded sample data behind a simulated delay
+  (`AdminSubscriptions`, `AdminNewsletters`, `AdvisorDashboard`,
+  `InfluencerDashboard`). They show a `DemoDataBanner`; delete the banner in
+  the same change that connects the real data source.
+- `STATIC_MODE` (`src/config/staticMode.ts`) is `true`, so auth and all
+  database-backed features are disabled and protected routes render ComingSoon
+- `Claude.md` and `claude.md` are byte-identical and differ only in case, which
+  collides on case-insensitive filesystems — worth consolidating to one
 - API docs (OpenAPI), i18n

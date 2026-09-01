@@ -88,16 +88,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return addCorsHeaders(jsonError('Invalid billing cycle. Must be "monthly" or "yearly"', 400));
     }
 
-    // For enterprise tier, redirect to contact sales
+    // For enterprise tier, redirect to contact sales.
+    // There is no /contact route, so enterprise enquiries go to sales directly;
+    // the response is a mailto rather than a site URL, so no origin is needed.
     if (tier === 'enterprise') {
-      const requestOrigin = context.request.headers.get('Origin');
-      const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)
-        ? requestOrigin
-        : ALLOWED_ORIGINS[0];
-
       return addCorsHeaders(jsonSuccess({
         sessionId: null,
-        url: `${origin}/contact?plan=enterprise-api`,
+        url: 'mailto:sales@bitcoinvestments.net?subject=Enterprise%20API%20plan%20enquiry',
         isContactSales: true,
       }));
     }

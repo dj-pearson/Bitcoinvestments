@@ -24,8 +24,6 @@ const envSchema = z.object({
   VITE_STRIPE_PRICE_ENTERPRISE: z.string().optional().default(''),
 
   // Optional: Web3
-  VITE_ALCHEMY_API_KEY: z.string().optional().default(''),
-  VITE_WALLETCONNECT_PROJECT_ID: z.string().optional().default(''),
 
   // Optional: Monitoring
   VITE_SENTRY_DSN: z.string().optional().default(''),
@@ -52,8 +50,6 @@ function loadEnv(): EnvConfig {
     VITE_STRIPE_PRICE_LIFETIME: import.meta.env.VITE_STRIPE_PRICE_LIFETIME ?? '',
     VITE_STRIPE_PRICE_ADVISOR: import.meta.env.VITE_STRIPE_PRICE_ADVISOR ?? '',
     VITE_STRIPE_PRICE_ENTERPRISE: import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE ?? '',
-    VITE_ALCHEMY_API_KEY: import.meta.env.VITE_ALCHEMY_API_KEY ?? '',
-    VITE_WALLETCONNECT_PROJECT_ID: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ?? '',
     VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN ?? '',
     VITE_SENTRY_ENABLED: import.meta.env.VITE_SENTRY_ENABLED ?? 'false',
     VITE_PLAUSIBLE_DOMAIN: import.meta.env.VITE_PLAUSIBLE_DOMAIN ?? '',

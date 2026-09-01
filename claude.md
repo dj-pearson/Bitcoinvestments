@@ -5,7 +5,6 @@ Cryptocurrency education and investment platform for beginner-to-intermediate in
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript 5 + Vite 7, TailwindCSS, Framer Motion, Chart.js
-- **Web3**: RainbowKit + Wagmi + Viem + ethers.js (Ethereum, Polygon, Arbitrum, Optimism)
 - **Backend**: Cloudflare Workers + Pages, Supabase (Postgres with RLS)
 - **Services**: Stripe (payments), Resend/MailChannels (email), Sentry (monitoring)
 
@@ -18,7 +17,7 @@ src/
 ├── services/      # Business logic modules
 ├── contexts/      # AuthContext, ToastContext
 ├── hooks/         # Custom React hooks
-├── lib/           # seo, validation, wagmi, supabase clients
+├── lib/           # seo, validation, env, supabase clients
 ├── data/          # Static data (guides, exchanges, wallets)
 └── App.tsx        # Router (100+ routes)
 functions/api/     # Cloudflare Workers endpoints
@@ -72,7 +71,7 @@ gates on all four.
 
 ## Feature Areas
 
-- **Auth**: Email/password + Web3 (SIWE)
+- **Auth**: Email/password (Supabase)
 - **Portfolio**: Cloud-synced tracker, performance charts, multi-chain wallet integration
 - **Education**: Guides, glossary, courses, video library, platform comparisons
 - **Calculators**: DCA, fees, tax, staking, retirement, backtesting
@@ -86,6 +85,15 @@ gates on all four.
 - `PRD.md` / `PROGRESS.md` — Requirements & status
 - `docs/STRIPE_SETUP.md`, `docs/EMAIL_SETUP.md`, `docs/BACKEND_SETUP.md`, `docs/CLOUDFLARE_SETUP.md`, `docs/AD_SYSTEM.md`
 
+## No Web3
+
+Wallet connection was removed: the site runs as static content (`STATIC_MODE`),
+and the wagmi / RainbowKit / viem / siwe / alchemy / solana stack was entirely
+unreachable — never mounted, shipping zero bytes. Removed with it were the Node
+polyfills in `vite.config.ts` (they existed only for those libraries) and the
+wallet RPC hosts in the `_headers` CSP. Do not reintroduce a wallet dependency
+without a mounted entry point and the CSP and polyfill config to match.
+
 ## Lint Policy
 
 `eslint.config.js` splits findings deliberately: **errors** are defects and gate
@@ -97,11 +105,9 @@ demoted rule carries a comment saying what it takes to promote it back.
 
 - Test coverage — Playwright is wired up but there are no unit tests
 - ~230 lint warnings to burn down (see Lint Policy above)
-- The wagmi / RainbowKit / viem / siwe stack is declared but **unreachable**:
-  `Web3ProviderWrapper` and `Web3Route` are never mounted, `components/Web3`
-  is never imported, and no build chunk references wagmi. Either wire it up or
-  remove it — it currently ships zero bytes while carrying a large dependency
-  subtree.
+- `src/services/cryptoScamDbSync.ts` has no consumers (dead code)
+- `@sentry/react` is a dependency but `Sentry.init` is never called, so error
+  monitoring is not actually running
 - Several dashboards render hardcoded sample data behind a simulated delay
   (`AdminSubscriptions`, `AdminNewsletters`, `AdvisorDashboard`,
   `InfluencerDashboard`). They show a `DemoDataBanner`; delete the banner in

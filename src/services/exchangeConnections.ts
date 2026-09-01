@@ -318,8 +318,17 @@ export function getOAuthUrl(exchangeId: string, userId: string): string | null {
   const state = encodeURIComponent(JSON.stringify({ exchangeId, userId }));
 
   switch (exchangeId) {
-    case 'coinbase':
-      return `https://www.coinbase.com/oauth/authorize?response_type=code&client_id=${process.env.COINBASE_CLIENT_ID}&redirect_uri=${redirectUri}&state=${state}&scope=wallet:accounts:read,wallet:transactions:read`;
+    case 'coinbase': {
+      // `process.env` does not exist in the browser — this previously
+      // interpolated `client_id=undefined` into the authorize URL. Vite exposes
+      // client-side config through `import.meta.env` with a VITE_ prefix.
+      const clientId = import.meta.env.VITE_COINBASE_CLIENT_ID;
+      if (!clientId) {
+        console.error('VITE_COINBASE_CLIENT_ID is not configured; cannot build Coinbase OAuth URL');
+        return null;
+      }
+      return `https://www.coinbase.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${redirectUri}&state=${state}&scope=wallet:accounts:read,wallet:transactions:read`;
+    }
     default:
       return null;
   }

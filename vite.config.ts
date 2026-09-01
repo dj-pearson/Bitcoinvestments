@@ -1,43 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import rollupNodePolyFill from 'rollup-plugin-polyfill-node'
 import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    nodePolyfills({
-      // Enable polyfills for Web3 libraries
-      globals: {
-        Buffer: true,
-        global: true,
-        process: true,
-      },
-      // Include specific module polyfills
-      include: [
-        'buffer',
-        'process',
-        'util',
-        'stream',
-        'events',
-        'querystring',
-        'url',
-        'crypto',
-      ],
-      // Don't polyfill these (causes conflicts)
-      protocolImports: true,
-    }),
   ],
   optimizeDeps: {
-    // Exclude problematic Web3 packages from pre-bundling
-    exclude: [
-      '@reown/appkit',
-      '@reown/appkit-scaffold-ui',
-      '@reown/appkit-controllers',
-    ],
-    // Include commonly used packages
     include: [
       'react',
       'react-dom',
@@ -47,34 +17,14 @@ export default defineConfig({
       'react-chartjs-2',
       'three',
       '@react-three/fiber',
-      'buffer',
-      'process/browser',
     ],
-    esbuildOptions: {
-      // Node.js global to browser globalThis
-      define: {
-        global: 'globalThis',
-      },
-    },
   },
   resolve: {
-    // Add fallbacks for Node.js modules used by Web3 libraries
     alias: {
       '@': path.resolve(__dirname, './src'),
-      process: 'process/browser',
-      stream: 'stream-browserify',
-      util: 'util',
-      buffer: 'buffer',
-      events: 'events',
-      crypto: 'crypto-browserify',
     },
   },
-  define: {
-    // Define global for Web3 libraries - critical for SIWE
-    global: 'globalThis',
-  },
   build: {
-    // Increase chunk size warning limit for Web3 libraries
     chunkSizeWarningLimit: 1000,
     // Enable source maps for production debugging
     sourcemap: false,
@@ -85,20 +35,9 @@ export default defineConfig({
     // modules to be fetched and parsed immediately, triggering SIWE before React mounts
     modulePreload: false,
     // Common.js options to handle problematic packages
-    commonjsOptions: {
-      transformMixedEsModules: true,
-      requireReturnsDefault: 'auto', // This is critical for SIWE/Web3 CommonJS modules
-      include: [/node_modules/], // Ensure all CJS in node_modules are handled
-    },
     rollupOptions: {
-      plugins: [
-        rollupNodePolyFill(), // Add rollup polyfill plugin for better Node.js compatibility
-      ],
-      // Handle missing modules gracefully
       onwarn(warning, warn) {
-        // Suppress warnings about missing modules in Web3 packages
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
-        if (warning.code === 'UNRESOLVED_IMPORT') return;
         warn(warning);
       },
       output: {
@@ -159,31 +98,11 @@ export default defineConfig({
             return 'vendor-three';
           }
 
-          // Web3 core - wagmi, viem, tanstack query
-          if (id.includes('node_modules/wagmi/') ||
-              id.includes('node_modules/viem/') ||
-              id.includes('node_modules/@tanstack/')) {
-            return 'vendor-web3-core';
+          // Data fetching - used app-wide by the query client
+          if (id.includes('node_modules/@tanstack/')) {
+            return 'vendor-query';
           }
 
-          // Web3 wallet connectors - RainbowKit, WalletConnect
-          if (id.includes('node_modules/@rainbow-me/') ||
-              id.includes('node_modules/@walletconnect/') ||
-              id.includes('node_modules/@reown/')) {
-            return 'vendor-web3-wallets';
-          }
-
-          // Ethereum/blockchain utilities
-          if (id.includes('node_modules/ethers/') ||
-              id.includes('node_modules/siwe/') ||
-              id.includes('node_modules/alchemy-sdk/')) {
-            return 'vendor-web3-utils';
-          }
-
-          // Solana - separate from EVM chains
-          if (id.includes('node_modules/@solana/')) {
-            return 'vendor-solana';
-          }
 
           // Supabase - database client
           if (id.includes('node_modules/@supabase/')) {

@@ -28,7 +28,6 @@ import {
     AlertTriangle,
     Percent,
     Fuel,
-    Globe,
     HardDrive,
     BookOpen,
     Newspaper
@@ -120,7 +119,6 @@ const navItems = [
         children: [
             { label: 'DeFi Yield', href: '/defi-yield', icon: Percent, description: 'Find the best yields' },
             { label: 'Gas Optimizer', href: '/gas-optimizer', icon: Fuel, description: 'Optimize gas costs' },
-            { label: 'Web3 Features', href: '/web3', icon: Globe, description: 'Web3 integrations' },
             { label: 'Hardware Wallet Guide', href: '/hardware-wallet', icon: HardDrive, description: 'Secure your crypto' },
         ],
     },

@@ -23,6 +23,9 @@ import {
 import { sanitizeArticleHtml } from '../lib/validation';
 import { SEO, generateBreadcrumbSchema } from '../components/SEO';
 
+/** Give up on the fetch after this long and show the unavailable state. */
+const LOAD_TIMEOUT_MS = 8000;
+
 export function SponsoredArticle() {
   const { slug } = useParams<{ slug: string }>();
   const [article, setArticle] = useState<SponsoredArticleType | null>(null);
@@ -45,7 +48,21 @@ export function SponsoredArticle() {
       setLoading(true);
       setNotFound(false);
 
-      const data = await getSponsoredArticleBySlug(slug);
+      // The whole page depends on this one request, so it must always settle.
+      // A request that hangs — an unreachable database, an offline client, a
+      // dropped connection — would otherwise leave the reader on the loading
+      // skeleton indefinitely with no way to tell something went wrong.
+      let data: SponsoredArticleType | null = null;
+      try {
+        data = await Promise.race([
+          getSponsoredArticleBySlug(slug),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), LOAD_TIMEOUT_MS)),
+        ]);
+      } catch (err) {
+        console.error('Failed to load sponsored article:', err);
+        data = null;
+      }
+
       if (cancelled) return;
 
       if (!data) {

@@ -67,8 +67,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Gates. The tree is clean of high and critical advisories, and the
-      # `pnpm.overrides` block in package.json is what keeps it that way — so
-      # this failing means a new advisory landed and needs an override or an
-      # upgrade, not a `|| true`.
+      # Gates. The tree currently reports no known vulnerabilities at any
+      # severity, so this failing means a new advisory landed and needs an
+      # upgrade or a `pnpm.overrides` entry — not a `|| true`.
       - run: pnpm audit --audit-level=high

@@ -114,13 +114,6 @@
 
   <!-- ==================== DeFi & Web3 ==================== -->
   <url>
-    <loc>https://bitcoinvestments.net/web3</loc>
-    <lastmod>2026-02-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <url>
     <loc>https://bitcoinvestments.net/defi-yield</loc>
     <lastmod>2026-02-08</lastmod>
     <changefreq>daily</changefreq>

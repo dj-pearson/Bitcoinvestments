@@ -183,21 +183,6 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
       'premium crypto tools',
     ],
   },
-  web3: {
-    title: 'Web3 Features - Connect Your Wallet',
-    description:
-      'Connect your cryptocurrency wallet to access Web3 features. View DeFi positions, NFT portfolio, and on-chain analytics with secure wallet connection.',
-    keywords: [
-      'Web3',
-      'connect wallet',
-      'DeFi portfolio',
-      'NFT portfolio',
-      'on-chain analytics',
-      'MetaMask',
-      'wallet connect',
-      'decentralized finance',
-    ],
-  },
   backtesting: {
     title: 'Crypto Backtesting Tool - Test Trading Strategies',
     description:

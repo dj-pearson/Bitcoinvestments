@@ -104,11 +104,19 @@ export default defineConfig({
       output: {
         // Improved code splitting configuration for better performance
         manualChunks: (id) => {
-          // Core React bundle - loaded on every page
+          // Core React bundle - loaded on every page.
+          //
+          // `use-sync-external-store` must live here. It is a React API shim
+          // depended on by several unrelated libraries (zustand via
+          // @react-three/fiber, and TipTap among others). Without an explicit
+          // home, Rollup folded it into whichever vendor chunk it processed
+          // first — vendor-three — which meant every page importing it, /blog
+          // included, downloaded 782 kB of Three.js it never used.
           if (id.includes('node_modules/react/') ||
               id.includes('node_modules/react-dom/') ||
               id.includes('node_modules/react-router-dom/') ||
-              id.includes('node_modules/scheduler/')) {
+              id.includes('node_modules/scheduler/') ||
+              id.includes('node_modules/use-sync-external-store/')) {
             return 'vendor-react';
           }
 

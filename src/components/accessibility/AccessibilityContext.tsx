@@ -38,34 +38,73 @@ const AccessibilityContext = createContext<AccessibilityContextType | undefined>
 
 const STORAGE_KEY = 'accessibility-settings';
 
+/**
+ * Read the OS-level accessibility preferences synchronously.
+ *
+ * These must be known on the very first render, not applied afterwards in an
+ * effect: consumers use `reducedMotion` to decide whether to mount heavy
+ * animated components at all, and a render that starts with `false` has already
+ * kicked off the work by the time an effect could correct it.
+ */
+function readSystemPreferences(): Pick<AccessibilitySettings, 'reducedMotion' | 'highContrastMode'> {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+        return { reducedMotion: false, highContrastMode: false };
+    }
+    return {
+        reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        highContrastMode: window.matchMedia('(prefers-contrast: more)').matches,
+    };
+}
+
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useState<AccessibilitySettings>(() => {
+        const system = readSystemPreferences();
+
         // Load settings from localStorage
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
                 try {
-                    return { ...defaultSettings, ...JSON.parse(saved) };
+                    const stored = JSON.parse(saved) as Partial<AccessibilitySettings>;
+                    return {
+                        ...defaultSettings,
+                        ...stored,
+                        // A stored `false` never overrides an active system
+                        // preference; the in-app toggles can only add to it.
+                        reducedMotion: stored.reducedMotion || system.reducedMotion,
+                        highContrastMode: stored.highContrastMode || system.highContrastMode,
+                    };
                 } catch {
                     // Invalid JSON, use defaults
                 }
             }
         }
-        return defaultSettings;
+        return { ...defaultSettings, ...system };
     });
 
     const [announcement, setAnnouncement] = useState<{ message: string; priority: 'polite' | 'assertive' } | null>(null);
 
-    // Check system preferences on mount
+    // The initial values are read synchronously above; this only keeps up with a
+    // preference the visitor changes while the tab is open.
     useEffect(() => {
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const prefersHighContrast = window.matchMedia('(prefers-contrast: more)').matches;
+        const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const contrastQuery = window.matchMedia('(prefers-contrast: more)');
 
-        setSettings((prev) => ({
-            ...prev,
-            reducedMotion: prev.reducedMotion || prefersReducedMotion,
-            highContrastMode: prev.highContrastMode || prefersHighContrast,
-        }));
+        const sync = () => {
+            setSettings((prev) => ({
+                ...prev,
+                reducedMotion: prev.reducedMotion || motionQuery.matches,
+                highContrastMode: prev.highContrastMode || contrastQuery.matches,
+            }));
+        };
+
+        motionQuery.addEventListener('change', sync);
+        contrastQuery.addEventListener('change', sync);
+
+        return () => {
+            motionQuery.removeEventListener('change', sync);
+            contrastQuery.removeEventListener('change', sync);
+        };
     }, []);
 
     // Persist settings to localStorage

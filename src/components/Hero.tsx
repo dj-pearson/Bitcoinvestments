@@ -4,6 +4,7 @@ import { ArrowRight, TrendingUp } from 'lucide-react';
 import { getTopCryptocurrencies } from '../services/coingecko';
 import type { Cryptocurrency } from '../types';
 import { useLazyAnimation } from '../hooks/useGSAPLazy';
+import { useAccessibility } from './accessibility/AccessibilityContext';
 
 // Lazy load the heavy 3D component (Three.js ~490KB)
 const Hero3D = lazy(() => import('./Hero3D').then(m => ({ default: m.Hero3D })));
@@ -21,6 +22,10 @@ export function Hero() {
     const heroRef = useRef<HTMLDivElement>(null);
     const [prices, setPrices] = useState<Cryptocurrency[]>([]);
     const [loadingPrices, setLoadingPrices] = useState(true);
+    // Covers both the OS-level `prefers-reduced-motion` media query and the
+    // in-app accessibility toggle; the context seeds itself from the former.
+    const { settings } = useAccessibility();
+    const prefersReducedMotion = settings.reducedMotion;
 
     useEffect(() => {
         async function loadPrices() {
@@ -57,10 +62,20 @@ export function Hero() {
 
     return (
         <section ref={heroRef} className="relative min-h-[90vh] flex items-center justify-center pt-20 overflow-hidden">
-            {/* 3D Background - Lazy loaded */}
-            <Suspense fallback={<Hero3DFallback />}>
-                <Hero3D />
-            </Suspense>
+            {/*
+              3D Background — lazy loaded, and skipped entirely when the visitor
+              has asked for reduced motion. The starfield is decorative, so an
+              animated particle field is exactly what that preference is about;
+              skipping it also avoids downloading the ~800 KB three.js chunk
+              (212 KB gzipped) on the site's LCP page for those users.
+            */}
+            {prefersReducedMotion ? (
+                <Hero3DFallback />
+            ) : (
+                <Suspense fallback={<Hero3DFallback />}>
+                    <Hero3D />
+                </Suspense>
+            )}
 
             {/* Overlay Gradient for readability (provisional) - ensure text pops over the stars */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-brand-dark/50 pointer-events-none" />

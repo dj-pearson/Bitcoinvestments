@@ -41,6 +41,12 @@ jobs:
       deployments: write
     steps:
       - uses: actions/checkout@v4
+      # wrangler-action installs Wrangler with the repo's declared package
+      # manager, which `packageManager` in package.json now pins to pnpm. This
+      # job only downloads the build artifact, so without this step pnpm is not
+      # on PATH and the action fails with "Unable to locate executable file:
+      # pnpm" before it ever reaches the deploy.
+      - uses: pnpm/action-setup@v4
       - uses: actions/download-artifact@v4
         with:
           name: dist

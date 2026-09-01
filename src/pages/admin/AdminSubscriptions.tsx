@@ -18,6 +18,7 @@ import {
   Ban,
 } from 'lucide-react';
 
+import { DemoDataBanner } from '../../components/DemoDataBanner';
 interface Subscription {
   id: string;
   user_email: string;
@@ -171,6 +172,7 @@ export function AdminSubscriptions() {
 
   return (
     <div className="space-y-6">
+      <DemoDataBanner source="Stripe billing" />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

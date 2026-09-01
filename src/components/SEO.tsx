@@ -622,10 +622,10 @@ export function generateScamFAQSchema() {
       },
       {
         '@type': 'Question',
-        name: 'What are the most common crypto scams in 2024?',
+        name: 'What are the most common crypto scams?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'The most common crypto scams include: Pig Butchering (romance investment scams - $5.8B in 2024), Phishing sites impersonating wallets like MetaMask, Rug Pulls where developers abandon projects, Fake Exchanges that steal deposits, Crypto ATM fraud ($246.7M in 2024), and Celebrity Impersonation giveaway scams. The FBI reported $9.3 billion in total crypto fraud losses in 2024.',
+          text: 'The most common crypto scams are: Pig Butchering (long-con romance and investment scams), Phishing sites impersonating wallets like MetaMask, Rug Pulls where developers abandon a project and take the liquidity, Fake Exchanges that accept deposits and block withdrawals, Crypto ATM fraud, and Celebrity Impersonation giveaway scams. For scale, the FBI\'s IC3 report for 2024 — the most recent full year of federal data — recorded $9.3 billion in total crypto fraud losses, of which pig butchering accounted for roughly $5.8 billion and crypto ATM fraud $246.7 million.',
         },
       },
       {
@@ -649,7 +649,7 @@ export function generateScamFAQSchema() {
         name: 'What is pig butchering crypto scam?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Pig butchering is a sophisticated romance/investment scam where fraudsters build trust over weeks via dating apps or social media before convincing victims to invest in fake crypto platforms. The scam caused $5.8 billion in losses in 2024. Warning signs include: contact via WhatsApp/Telegram, claims of successful trading, fake platforms showing fabricated profits, and inability to withdraw without paying "fees".',
+          text: 'Pig butchering is a sophisticated romance/investment scam where fraudsters build trust over weeks via dating apps or social media before convincing victims to invest in fake crypto platforms. It is the single largest category of crypto fraud by loss: the FBI\'s IC3 report for 2024 attributed roughly $5.8 billion to it. Warning signs include: contact moving to WhatsApp or Telegram, claims of consistently successful trading, a platform showing fabricated profits, and being unable to withdraw without first paying "fees" or "taxes".',
         },
       },
       {

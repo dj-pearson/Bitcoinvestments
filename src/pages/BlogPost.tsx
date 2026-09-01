@@ -26,6 +26,7 @@ import { BlogPostCard } from '../components/blog';
 import type { BlogPost as BlogPostType } from '../types/blog';
 import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
 
+import { sanitizeArticleHtml } from '../lib/validation';
 /** Byline used for article schema when a post has a linked author record. */
 const SITE_AUTHOR = 'Bitcoinvestments Editorial';
 
@@ -326,7 +327,10 @@ export function BlogPost() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             dangerouslySetInnerHTML={{
-              __html: post.content.replace(
+              // Stored article HTML is untrusted on the read path: anyone with
+              // write access to `articles` could otherwise inject script that
+              // runs for every reader. Sanitize first, then add heading anchors.
+              __html: sanitizeArticleHtml(post.content).replace(
                 /<h2([^>]*)>/g,
                 (_, attrs, i) => `<h2${attrs} id="heading-${i}">`
               ),

@@ -650,6 +650,96 @@ export function createSafeHtml(html: string, convertNewlines = true): { __html: 
 }
 
 // ============================================================================
+// RICH ARTICLE CONTENT
+// ============================================================================
+
+/**
+ * Hosts allowed as the `src` of an embedded iframe.
+ *
+ * The blog editor's YouTube extension is the only thing that legitimately
+ * produces an iframe, so the list stays narrow. Anything else is dropped even
+ * though the `iframe` tag itself is permitted below.
+ */
+const ALLOWED_EMBED_HOSTS = [
+  'www.youtube.com',
+  'youtube.com',
+  'www.youtube-nocookie.com',
+  'youtube-nocookie.com',
+  'player.vimeo.com',
+];
+
+/**
+ * Article/blog bodies are authored in a rich text editor that emits images and
+ * YouTube embeds, so they need a wider allowlist than `sanitizeHtml` — but the
+ * script, handler and form vectors stay closed.
+ */
+const ARTICLE_ALLOWED_TAGS = [
+  ...DOMPURIFY_ALLOWED_TAGS,
+  'img', 'figure', 'figcaption', 'iframe',
+];
+
+const ARTICLE_ALLOWED_ATTR = [
+  ...DOMPURIFY_ALLOWED_ATTR,
+  'src', 'alt', 'title', 'width', 'height', 'loading', 'decoding',
+  'allow', 'allowfullscreen', 'frameborder', 'referrerpolicy', 'start',
+];
+
+let embedHookRegistered = false;
+
+/**
+ * Register a one-time DOMPurify hook that strips any iframe pointing somewhere
+ * other than an allowlisted embed host. Allowing the `iframe` tag without this
+ * would let an author frame arbitrary origins.
+ */
+function ensureEmbedHook(): void {
+  if (embedHookRegistered) return;
+  embedHookRegistered = true;
+
+  DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+    if (data.tagName !== 'iframe') return;
+
+    const src = (node as Element).getAttribute?.('src') || '';
+    let host = '';
+    try {
+      // Resolve protocol-relative and relative URLs against the current origin
+      // so `//evil.com/x` cannot slip through as a same-origin path.
+      host = new URL(src, window.location.origin).hostname;
+    } catch {
+      host = '';
+    }
+
+    if (!ALLOWED_EMBED_HOSTS.includes(host)) {
+      (node as Element).remove?.();
+    }
+  });
+}
+
+/**
+ * Sanitize rich article/blog HTML for `dangerouslySetInnerHTML`.
+ *
+ * Article bodies come out of the database, where any admin or sponsored-content
+ * author can put arbitrary markup, so they are untrusted input on the read path
+ * regardless of who wrote them.
+ *
+ * @param html - Stored article HTML
+ * @returns Sanitized HTML safe to render
+ */
+export function sanitizeArticleHtml(html: string): string {
+  if (!html || typeof html !== 'string') return '';
+
+  ensureEmbedHook();
+
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ARTICLE_ALLOWED_TAGS,
+    ALLOWED_ATTR: ARTICLE_ALLOWED_ATTR,
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: DOMPURIFY_FORBID_TAGS.filter((tag) => tag !== 'iframe'),
+    FORBID_ATTR: DOMPURIFY_FORBID_ATTR,
+    ADD_ATTR: ['target'],
+  });
+}
+
+// ============================================================================
 // ZOD SCHEMA VALIDATION
 // ============================================================================
 

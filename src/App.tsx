@@ -122,6 +122,7 @@ const AdminBlogCategories = lazy(() => import('./pages/admin/AdminBlogCategories
 
 // Public Blog Pages (lazy loaded)
 const Blog = lazy(() => import('./pages/Blog').then(m => ({ default: m.Blog })));
+const SponsoredArticle = lazy(() => import('./pages/SponsoredArticle').then(m => ({ default: m.SponsoredArticle })));
 const BlogPost = lazy(() => import('./pages/BlogPost').then(m => ({ default: m.BlogPost })));
 
 const queryClient = new QueryClient({
@@ -210,6 +211,8 @@ function App() {
                   <Route path="blog" element={withErrorBoundary(<Blog />, 'Blog')} />
                   <Route path="blog/category/:category" element={withErrorBoundary(<Blog />, 'BlogCategory')} />
                   <Route path="blog/:slug" element={withErrorBoundary(<BlogPost />, 'BlogPost')} />
+                  {/* Paid placements. Linked from SponsoredArticleCard; noindexed on the page itself. */}
+                  <Route path="sponsored/:slug" element={withErrorBoundary(<SponsoredArticle />, 'SponsoredArticle')} />
                   <Route path="privacy" element={withErrorBoundary(<Privacy />, 'Privacy')} />
                   <Route path="terms" element={withErrorBoundary(<Terms />, 'Terms')} />
                   <Route path="disclaimer" element={withErrorBoundary(<Terms />, 'Disclaimer')} />

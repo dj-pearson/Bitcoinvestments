@@ -6,9 +6,11 @@
 
 import { Wrench, Twitter, Mail } from 'lucide-react';
 
+import { SEO } from '../components/SEO';
 export function Maintenance() {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 bg-brand-dark">
+      <SEO title="Scheduled Maintenance" description="Bitcoinvestments is temporarily offline for scheduled maintenance. We will be back shortly." noindex />
       <div className="max-w-xl mx-auto px-4 text-center">
         <div className="mb-8">
           <div

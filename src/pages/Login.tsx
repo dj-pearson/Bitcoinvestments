@@ -8,6 +8,7 @@ import { loginFormSchema, validateWithZod, getFieldError } from '../lib/validati
 import { handleError } from '../lib/apiError';
 import type { UserRole } from '../types/admin-database';
 
+import { PageSEO } from '../components/PageSEO';
 interface LocationState {
   from?: string | { pathname: string };
   isAdmin?: boolean;
@@ -288,6 +289,7 @@ export function Login() {
   // Standard Login Screen
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <PageSEO pageKey="login" urlPath="/login" />
       <div className="max-w-md w-full">
         <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
           <div className="text-center mb-8">

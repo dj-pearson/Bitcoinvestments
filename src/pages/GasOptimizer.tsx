@@ -40,6 +40,7 @@ import {
 import { GAS_USAGE_ESTIMATES } from '../types/premiumFeatures';
 import type { GasPriceData, GasPricePrediction, GasAlert, GasPriceTier } from '../types/premiumFeatures';
 
+import { PageSEO } from '../components/PageSEO';
 export default function GasOptimizerPage() {
   const { user } = useAuth();
   const [isPremium] = useState(false); // Would check subscription
@@ -100,6 +101,7 @@ export default function GasOptimizerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="gasOptimizer" urlPath="/gas-optimizer" isTool toolName="Gas Fee Optimizer" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

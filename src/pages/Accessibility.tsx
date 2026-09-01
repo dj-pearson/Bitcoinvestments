@@ -8,7 +8,6 @@
  * - All applicable criteria documented
  */
 
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Eye,
@@ -23,7 +22,7 @@ import {
     Mail,
     ExternalLink,
 } from 'lucide-react';
-import { useSEO } from '../hooks/useSEO';
+import { SEO } from '../components/SEO';
 import { useAccessibility } from '../components/accessibility/AccessibilityContext';
 
 // Fixed date of the last accessibility review. Update when a review is done;
@@ -165,17 +164,12 @@ const wcagCriteria = [
 export function Accessibility() {
     const { settings, toggleHighContrast, toggleReducedMotion, setFontSize } = useAccessibility();
 
-    useSEO({
-        title: 'Accessibility Statement',
-        description: 'Learn about our commitment to accessibility and WCAG 2.1 AA compliance at Bitcoinvestments.',
-    });
-
-    useEffect(() => {
-        document.title = 'Accessibility Statement | Bitcoinvestments';
-    }, []);
-
     return (
         <div className="min-h-screen py-12">
+            <SEO
+                title="Accessibility Statement"
+                description="Learn about our commitment to accessibility and WCAG 2.1 AA compliance at Bitcoinvestments."
+            />
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <header className="text-center mb-12">

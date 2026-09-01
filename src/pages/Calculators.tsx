@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Calculator, DollarSign, Percent, Receipt, Coins, ArrowDownUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SEO, generateBreadcrumbSchema } from '../components/SEO';
@@ -7,8 +8,40 @@ import type { Cryptocurrency } from '../types';
 
 type CalculatorType = 'dca' | 'fees' | 'staking' | 'tax' | 'converter';
 
+const CALCULATOR_TYPES: CalculatorType[] = ['dca', 'fees', 'staking', 'tax', 'converter'];
+const DEFAULT_CALCULATOR: CalculatorType = 'dca';
+
+/** Narrow an arbitrary `?type=` value to a known calculator, falling back to DCA. */
+function parseCalculatorType(value: string | null): CalculatorType {
+  return CALCULATOR_TYPES.includes(value as CalculatorType)
+    ? (value as CalculatorType)
+    : DEFAULT_CALCULATOR;
+}
+
 export function Calculators() {
-  const [activeCalculator, setActiveCalculator] = useState<CalculatorType>('dca');
+  // The header links deep into individual calculators via `/calculators?type=tax`,
+  // so the active tab is driven by the URL rather than local-only state. This also
+  // makes each calculator linkable, shareable, and back-button friendly.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCalculator = parseCalculatorType(searchParams.get('type'));
+
+  const selectCalculator = useCallback(
+    (next: CalculatorType) => {
+      setSearchParams(
+        (params) => {
+          const updated = new URLSearchParams(params);
+          if (next === DEFAULT_CALCULATOR) {
+            updated.delete('type');
+          } else {
+            updated.set('type', next);
+          }
+          return updated;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   const calculators = [
     { id: 'dca' as const, name: 'DCA Calculator', icon: DollarSign, description: 'Calculate dollar-cost averaging returns' },
@@ -130,7 +163,7 @@ export function Calculators() {
         {calculators.map((calc) => (
           <button
             key={calc.id}
-            onClick={() => setActiveCalculator(calc.id)}
+            onClick={() => selectCalculator(calc.id)}
             className={cn(
               'p-4 rounded-xl transition-all text-left',
               activeCalculator === calc.id

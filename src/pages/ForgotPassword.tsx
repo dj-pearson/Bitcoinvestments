@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { resetPassword } from '../services/auth';
 
+import { PageSEO } from '../components/PageSEO';
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +55,7 @@ export function ForgotPassword() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <PageSEO pageKey="forgotPassword" urlPath="/forgot-password" />
       <div className="max-w-md w-full">
         <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
           <div className="text-center mb-8">

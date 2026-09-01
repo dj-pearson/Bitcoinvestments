@@ -16,6 +16,7 @@ import {
   type ApiTier,
 } from '../services/apiAccess';
 
+import { PageSEO } from '../components/PageSEO';
 type TabId = 'keys' | 'docs' | 'usage' | 'settings';
 
 export function DeveloperPortal() {
@@ -152,6 +153,7 @@ export function DeveloperPortal() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <PageSEO pageKey="developerPortal" urlPath="/developers/portal" />
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>

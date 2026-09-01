@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getApiTiers, type ApiTierDetails } from '../services/apiAccess';
 import { isStripeConfigured, formatPrice } from '../services/stripe';
 
+import { PageSEO } from '../components/PageSEO';
 // API tier Stripe price IDs
 const API_STRIPE_PRICES = {
   starter: import.meta.env.VITE_STRIPE_API_STARTER || 'price_api_starter_placeholder',
@@ -85,6 +86,7 @@ export function ApiPricing() {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      <PageSEO pageKey="apiPricing" urlPath="/developers/pricing" />
       {/* Header */}
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full mb-6">
@@ -440,9 +442,12 @@ const data = await response.json();
           <Link to="/developers/docs" className="btn-secondary">
             View Documentation
           </Link>
-          <Link to="/contact" className="btn-secondary">
+          <a
+            href="mailto:sales@bitcoinvestments.net?subject=Bitcoinvestments%20API%20enquiry"
+            className="btn-secondary"
+          >
             Contact Sales
-          </Link>
+          </a>
         </div>
       </div>
     </div>

@@ -29,7 +29,9 @@ import {
     Percent,
     Fuel,
     Globe,
-    HardDrive
+    HardDrive,
+    BookOpen,
+    Newspaper
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getCurrentUser, type AuthUser } from '../../services/auth';
@@ -127,6 +129,11 @@ const navItems = [
         href: '/learn',
         icon: GraduationCap,
         description: 'Educational resources',
+        children: [
+            { label: 'Guides & Courses', href: '/learn', icon: GraduationCap, description: 'Free crypto guides and courses' },
+            { label: 'Blog', href: '/blog', icon: Newspaper, description: 'Latest crypto news and analysis' },
+            { label: 'Glossary', href: '/glossary', icon: BookOpen, description: 'Crypto terms explained' },
+        ],
     },
 ];
 

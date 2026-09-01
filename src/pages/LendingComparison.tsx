@@ -6,6 +6,7 @@ import {
 } from '../services/lendingComparison';
 import type { LendingPlatform } from '../types/monetization';
 
+import { PageSEO } from '../components/PageSEO';
 const LendingComparison: React.FC = () => {
   const [selectedAsset, setSelectedAsset] = useState('USDC');
   const [selectedType, setSelectedType] = useState<'all' | 'cefi' | 'defi'>('all');
@@ -48,6 +49,7 @@ const LendingComparison: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
+      <PageSEO pageKey="lending" urlPath="/lending" />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

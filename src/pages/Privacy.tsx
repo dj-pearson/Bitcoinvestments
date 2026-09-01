@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { reopenConsentBanner } from '@/lib/consent';
 
+import { PageSEO } from '../components/PageSEO';
 // Fixed date the policy was last substantively reviewed/updated. Update this
 // value whenever the policy changes — do not render a live clock, which would
 // misrepresent the policy as always "just updated".
@@ -9,6 +10,7 @@ const LAST_UPDATED = 'July 23, 2026';
 export function Privacy() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <PageSEO pageKey="privacy" urlPath="/privacy" />
       <h1 className="text-4xl font-bold text-white mb-8">Privacy Policy</h1>
 
       <div className="prose prose-invert max-w-none space-y-8">

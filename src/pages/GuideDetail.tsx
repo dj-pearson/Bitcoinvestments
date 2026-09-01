@@ -3,6 +3,7 @@ import { ArrowLeft, Clock, Share2, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getGuide } from '../data/guides';
 import { Newsletter } from '../components/Newsletter';
+import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
 
 export function GuideDetail() {
   const { guideId } = useParams<{ guideId: string }>();
@@ -39,8 +40,31 @@ export function GuideDetail() {
     }
   };
 
+  const guideUrl = `https://bitcoinvestments.net/learn/${guide.id}`;
+
   return (
     <div className="min-h-screen bg-brand-dark">
+      <SEO
+        title={guide.title}
+        description={guide.description}
+        keywords={[guide.category, 'crypto guide', 'cryptocurrency education', guide.title]}
+        type="article"
+        section={guide.category}
+        blufSummary={guide.description}
+        contentCategory={guide.category}
+        schema={[
+          generateArticleSchema({
+            title: guide.title,
+            description: guide.description,
+            url: guideUrl,
+          }),
+          generateBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Learn', url: '/learn' },
+            { name: guide.title, url: `/learn/${guide.id}` },
+          ]),
+        ]}
+      />
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-gray-900 to-brand-dark border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-8">

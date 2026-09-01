@@ -6,6 +6,7 @@ import {
 import { ON_CHAIN_METRIC_CATEGORIES } from '../types/monetization';
 import type { OnChainMetric, OnChainMetricType, OnChainTier } from '../types/monetization';
 
+import { PageSEO } from '../components/PageSEO';
 const OnChainAnalytics: React.FC = () => {
   const [selectedAsset, setSelectedAsset] = useState('BTC');
   const [selectedMetric, setSelectedMetric] = useState<OnChainMetricType>('active_addresses');
@@ -69,6 +70,7 @@ const OnChainAnalytics: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
+      <PageSEO pageKey="onChainAnalytics" urlPath="/onchain-analytics" />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

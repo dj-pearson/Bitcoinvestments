@@ -12,6 +12,7 @@ import {
 } from '../services/stripe';
 import { TAX_PACKAGE, isTaxSeasonActive } from '../services/subscriptionLimits';
 
+import { PageSEO } from '../components/PageSEO';
 type ViewMode = 'individual' | 'business';
 
 export function Pricing() {
@@ -180,6 +181,7 @@ export function Pricing() {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      <PageSEO pageKey="pricing" urlPath="/pricing" />
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -863,9 +865,12 @@ export function Pricing() {
           >
             {loading === SUBSCRIPTION_TIERS.annual.id ? 'Loading...' : 'Go Premium'}
           </button>
-          <Link to="/contact" className="btn-secondary">
+          <a
+            href="mailto:sales@bitcoinvestments.net?subject=Bitcoinvestments%20Premium%20enquiry"
+            className="btn-secondary"
+          >
             Contact Sales
-          </Link>
+          </a>
         </div>
       </div>
     </div>

@@ -34,6 +34,7 @@ import type {
   BundlePerformance,
 } from '../types/premiumFeatures';
 
+import { PageSEO } from '../components/PageSEO';
 const BUNDLE_ICONS: Record<string, any> = {
   'TrendingUp': TrendingUp,
   'Shield': Shield,
@@ -98,6 +99,7 @@ export default function SmartAlertBundlesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="alertBundles" urlPath="/alert-bundles" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

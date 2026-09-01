@@ -35,6 +35,7 @@ import type {
   PortfolioRebalanceConfig,
 } from '../types/premiumFeatures';
 
+import { PageSEO } from '../components/PageSEO';
 export default function RebalancingAlertsPage() {
   const { user, profile } = useAuth();
   const [alerts, setAlerts] = useState<RebalanceAlert[]>([]);
@@ -99,6 +100,7 @@ export default function RebalancingAlertsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="rebalancingAlerts" urlPath="/rebalancing-alerts" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">

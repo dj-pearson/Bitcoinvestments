@@ -24,6 +24,10 @@ import {
 import { getBlogPostBySlug, getRelatedPosts } from '../services/blog';
 import { BlogPostCard } from '../components/blog';
 import type { BlogPost as BlogPostType } from '../types/blog';
+import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
+
+/** Byline used for article schema when a post has a linked author record. */
+const SITE_AUTHOR = 'Bitcoinvestments Editorial';
 
 export function BlogPost() {
   const { slug } = useParams();
@@ -131,25 +135,39 @@ export function BlogPost() {
     text: h.replace(/<[^>]*>/g, ''),
   }));
 
-  // Update document title and meta tags
-  useEffect(() => {
-    if (post) {
-      document.title = `${post.seo_title || post.title} | Bitcoinvestments Blog`;
-
-      // Update meta description
-      const metaDescription = document.querySelector('meta[name="description"]');
-      if (metaDescription) {
-        metaDescription.setAttribute('content', post.seo_description || post.excerpt);
-      }
-    }
-
-    return () => {
-      document.title = 'Bitcoinvestments';
-    };
-  }, [post]);
-
   return (
     <>
+      <SEO
+        title={post.seo_title || post.title}
+        description={post.seo_description || post.excerpt}
+        keywords={post.meta_keywords?.length ? post.meta_keywords : post.tags}
+        image={post.og_image || post.featured_image || undefined}
+        imageAlt={post.title}
+        type="article"
+        author={post.author?.email ? SITE_AUTHOR : undefined}
+        publishedTime={post.published_at || undefined}
+        modifiedTime={post.updated_at}
+        section={post.category}
+        tags={post.tags}
+        blufSummary={post.excerpt}
+        contentCategory={post.category}
+        schema={[
+          generateArticleSchema({
+            title: post.seo_title || post.title,
+            description: post.seo_description || post.excerpt,
+            image: post.og_image || post.featured_image || undefined,
+            publishedDate: post.published_at || post.created_at,
+            modifiedDate: post.updated_at,
+            url: `https://bitcoinvestments.net/blog/${post.slug}`,
+          }),
+          generateBreadcrumbSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Blog', url: '/blog' },
+            { name: post.title, url: `/blog/${post.slug}` },
+          ]),
+        ]}
+      />
+
 
       <article className="min-h-screen py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Json } from '../types/database';
 import type { UserRole } from '../types/admin-database';
-import { verifyTOTP, useRecoveryCode as useRecoveryCodeService } from './twoFactor';
+import { verifyTOTP, redeemRecoveryCode } from './twoFactor';
 
 export interface AuthUser {
   id: string;
@@ -310,7 +310,7 @@ export async function signInWithTwoFactor(
 
   if (isRecoveryCode) {
     // Verify recovery code
-    const result = await useRecoveryCodeService(userId, code);
+    const result = await redeemRecoveryCode(userId, code);
     isValid = result.success;
     if (result.error) {
       if (email) recordFailedAttempt(email);

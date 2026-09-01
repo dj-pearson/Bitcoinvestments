@@ -25,7 +25,7 @@ export function GuideDetail() {
     if (navigator.share) {
       try {
         await navigator.share({ title, url });
-      } catch (err) {
+      } catch {
         // User cancelled or error occurred
         console.log('Share cancelled or failed');
       }
@@ -34,7 +34,7 @@ export function GuideDetail() {
       try {
         await navigator.clipboard.writeText(url);
         alert('Link copied to clipboard!');
-      } catch (err) {
+      } catch {
         console.error('Failed to copy link');
       }
     }

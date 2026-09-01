@@ -90,7 +90,7 @@ export default function HardwareWalletPage() {
     try {
       await syncWalletBalances(selectedWallet.id);
       await loadData();
-    } catch (err) {
+    } catch {
       setError('Failed to sync wallet balances');
     } finally {
       setIsSyncing(false);

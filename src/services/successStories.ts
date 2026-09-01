@@ -501,7 +501,7 @@ export async function getStoryComments(storyId: string): Promise<{
     if (error) throw error;
 
     return { comments: (data as StoryComment[]) || [], error: null };
-  } catch (err) {
+  } catch {
     return { comments: [], error: null };
   }
 }

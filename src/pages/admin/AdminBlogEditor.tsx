@@ -202,7 +202,7 @@ export function AdminBlogEditor() {
           navigate(`/admin/blog/edit/${result.data.id}`, { replace: true });
         }
       }
-    } catch (err) {
+    } catch {
       toastError('Failed to save post');
     } finally {
       setSaving(false);

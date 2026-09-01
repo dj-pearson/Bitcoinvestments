@@ -32,14 +32,14 @@ export function CourseModule() {
     if (navigator.share) {
       try {
         await navigator.share({ title, url });
-      } catch (err) {
+      } catch {
         console.log('Share cancelled or failed');
       }
     } else {
       try {
         await navigator.clipboard.writeText(url);
         alert('Link copied to clipboard!');
-      } catch (err) {
+      } catch {
         console.error('Failed to copy link');
       }
     }

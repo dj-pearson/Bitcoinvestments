@@ -462,7 +462,7 @@ export async function getUserRegistrations(userId: string): Promise<{
     if (error) throw error;
 
     return { registrations: (data as AMARegistration[]) || [], error: null };
-  } catch (err) {
+  } catch {
     return { registrations: [], error: null };
   }
 }
@@ -482,7 +482,7 @@ export async function getExperts(): Promise<AMAExpert[]> {
       .order('total_sessions', { ascending: false });
 
     return (data as AMAExpert[]) || DEMO_EXPERTS;
-  } catch (err) {
+  } catch {
     return DEMO_EXPERTS;
   }
 }

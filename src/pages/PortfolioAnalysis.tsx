@@ -82,7 +82,7 @@ export function PortfolioAnalysis() {
       } else {
         setError(response.error || 'Failed to generate analysis. Please try again.');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);

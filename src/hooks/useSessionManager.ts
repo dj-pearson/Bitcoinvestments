@@ -127,7 +127,7 @@ export function useSessionTimeRemaining(): number {
   const { user } = useAuth();
 
   // Use useMemo to avoid recalculating on every render while still being lint-compliant
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   return useMemo(() => {
     if (!user) return 0;
 

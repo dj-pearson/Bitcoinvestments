@@ -148,7 +148,7 @@ export function calculateMultipleTransactionsTax(
   transactions: TaxCalculatorResult[];
 } {
   // Sort transactions based on method
-  let sortedTransactions = [...transactions];
+  const sortedTransactions = [...transactions];
 
   switch (method) {
     case 'fifo':

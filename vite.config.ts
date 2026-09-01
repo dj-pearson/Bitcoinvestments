@@ -134,7 +134,8 @@ export default defineConfig({
           }
 
           // Excel/spreadsheet - only for exports
-          if (id.includes('node_modules/xlsx/')) {
+          if (id.includes('node_modules/write-excel-file/') ||
+              id.includes('node_modules/fflate/')) {
             return 'vendor-excel';
           }
 

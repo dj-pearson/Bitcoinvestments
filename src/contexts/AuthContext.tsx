@@ -31,34 +31,40 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+/**
+ * Context value used when the site runs as static content: no auth, no session,
+ * and every action a no-op. Frozen at module scope so the object identity is
+ * stable and consumers never re-render because of it.
+ */
+const STATIC_AUTH_VALUE: AuthContextType = {
+  user: null,
+  profile: null,
+  loading: false,
+  signOut: async () => {},
+  signOutAllDevices: async () => {},
+  refreshUser: async () => {},
+  initializeSession: async () => {},
+  sessionExpired: false,
+  clearSessionExpired: () => {},
+  markSessionExpired: async () => {},
+};
+
+function StaticAuthProvider({ children }: AuthProviderProps) {
+  return <AuthContext.Provider value={STATIC_AUTH_VALUE}>{children}</AuthContext.Provider>;
+}
+
+/**
+ * The real provider. Previously this body began with an early `return` for
+ * STATIC_MODE, which left the nine hooks below it conditional — the hook order
+ * only happened to be stable because STATIC_MODE is a compile-time constant.
+ * Splitting the two paths into separate components makes that safe by
+ * construction rather than by coincidence.
+ */
+function LiveAuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(STATIC_MODE ? false : true);
+  const [loading, setLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
-
-  // In static mode, skip all auth — return null user immediately
-  // All the auth logic below is preserved for when STATIC_MODE is disabled
-  if (STATIC_MODE) {
-    return (
-      <AuthContext.Provider
-        value={{
-          user: null,
-          profile: null,
-          loading: false,
-          signOut: async () => {},
-          signOutAllDevices: async () => {},
-          refreshUser: async () => {},
-          initializeSession: async () => {},
-          sessionExpired: false,
-          clearSessionExpired: () => {},
-          markSessionExpired: async () => {},
-        }}
-      >
-        {children}
-      </AuthContext.Provider>
-    );
-  }
 
   // Fetch user profile from database
   const fetchProfile = useCallback(async (userId: string) => {
@@ -222,6 +228,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     >
       {children}
     </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  // STATIC_MODE is a build-time constant, so exactly one of these mounts for
+  // the life of the app and neither ever swaps for the other.
+  return STATIC_MODE ? (
+    <StaticAuthProvider>{children}</StaticAuthProvider>
+  ) : (
+    <LiveAuthProvider>{children}</LiveAuthProvider>
   );
 }
 

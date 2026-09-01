@@ -72,7 +72,6 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       maxTokens = 4096,
       temperature = 0.7,
       system,
-      feature,
     } = body;
 
     if (!messages || messages.length === 0) {

@@ -15,7 +15,7 @@ import { getFiles } from '../utils/helpers';
 // Types
 // ============================================================================
 
-interface RouteMatch {
+export interface RouteMatch {
   path: string;
   component?: string;
   element?: string;

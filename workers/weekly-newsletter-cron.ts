@@ -16,7 +16,7 @@ export default {
   async scheduled(
     event: ScheduledEvent,
     env: Env,
-    ctx: ExecutionContext
+    _ctx: ExecutionContext
   ): Promise<void> {
     console.log('Running scheduled weekly newsletter send...');
     console.log('Trigger time:', new Date(event.scheduledTime).toISOString());

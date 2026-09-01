@@ -93,7 +93,7 @@ export default function MultiExchange() {
     try {
       await syncAllExchanges(user.id);
       await loadData();
-    } catch (err) {
+    } catch {
       setError('Failed to sync exchanges');
     } finally {
       setIsSyncing(false);
@@ -105,7 +105,7 @@ export default function MultiExchange() {
     try {
       await disconnectExchange(credentialId);
       await loadData();
-    } catch (err) {
+    } catch {
       setError('Failed to disconnect exchange');
     }
   }

@@ -135,7 +135,7 @@ export function ReportScam() {
       } else {
         setSubmitted(true);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     }
 

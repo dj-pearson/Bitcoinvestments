@@ -338,6 +338,22 @@ const A11Y_RULES: A11yRule[] = [
           });
         }
 
+        if (!hasNav) {
+          violations.push({
+            html: '<body>...</body>',
+            target: ['body'],
+            failureSummary: 'Page is missing navigation landmark',
+          });
+        }
+
+        if (!hasHeader) {
+          violations.push({
+            html: '<body>...</body>',
+            target: ['body'],
+            failureSummary: 'Page is missing banner landmark',
+          });
+        }
+
         return violations;
       });
 

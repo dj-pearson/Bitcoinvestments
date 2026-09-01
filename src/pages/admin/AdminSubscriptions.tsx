@@ -122,7 +122,7 @@ export function AdminSubscriptions() {
 
   useEffect(() => {
     loadSubscriptions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [statusFilter, planFilter, page]);
 
   const stats = [

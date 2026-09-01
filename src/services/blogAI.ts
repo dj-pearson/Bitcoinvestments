@@ -320,7 +320,7 @@ Just respond with the excerpt text, nothing else.`;
     }
 
     return response.content.trim().substring(0, maxLength);
-  } catch (error) {
+  } catch {
     // Fallback
     const firstPara = content.replace(/<[^>]*>/g, '').split('\n')[0];
     return firstPara.substring(0, maxLength);

@@ -208,6 +208,15 @@ async function handleCheckoutComplete(
     } else if (productType === 'lifetime' || session.metadata?.type === 'lifetime') {
       await handleLifetimePurchase(session, supabase, customerId);
     } else {
+      // A one-time payment succeeded that we have no fulfilment path for. The
+      // customer has been charged, so this needs to surface rather than be
+      // silently dropped (this branch used to be an empty block).
+      console.error(
+        'Unhandled one-time payment productType:',
+        productType ?? '(none)',
+        'session:',
+        session.id
+      );
     }
     return;
   }

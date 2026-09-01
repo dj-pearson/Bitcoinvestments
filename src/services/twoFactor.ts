@@ -337,9 +337,12 @@ export async function verifyTwoFactorCode(
 }
 
 /**
- * Use a recovery code (one-time use)
+ * Redeem a recovery code (one-time use).
+ *
+ * Not a React hook — the previous `useRecoveryCode` name tripped the
+ * rules-of-hooks lint rule everywhere it was called.
  */
-export async function useRecoveryCode(
+export async function redeemRecoveryCode(
   userId: string,
   code: string
 ): Promise<{ success: boolean; error: string | null }> {

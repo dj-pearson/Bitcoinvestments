@@ -15,7 +15,6 @@ import {
   parseAndValidateBody,
   validateEmail,
   validateUuid,
-  validateStripePriceId,
   jsonError,
   jsonSuccess,
 } from '../lib/validation';

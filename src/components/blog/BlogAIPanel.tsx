@@ -44,7 +44,7 @@ export function BlogAIPanel({ onInsertContent }: BlogAIPanelProps) {
       setNews(newsItems);
       setSelectedNews(newsItems.slice(0, 3).map((n) => n.id));
       setStep('sources');
-    } catch (err) {
+    } catch {
       setError('Failed to fetch news. Please try again.');
     } finally {
       setIsLoading(false);
@@ -80,7 +80,7 @@ export function BlogAIPanel({ onInsertContent }: BlogAIPanelProps) {
         setGeneratedContent(result.data);
         setStep('preview');
       }
-    } catch (err) {
+    } catch {
       setError('Generation failed. Please try again.');
       setStep('options');
     } finally {

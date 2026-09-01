@@ -252,7 +252,7 @@ function calculateDCA(
   }
 
   // DCA investments
-  let currentDate = new Date(start);
+  const currentDate = new Date(start);
   currentDate.setDate(currentDate.getDate() + intervalDays);
 
   while (currentDate <= end) {

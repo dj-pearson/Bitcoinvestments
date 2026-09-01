@@ -116,28 +116,31 @@ function calculateNextExecution(
   const now = new Date();
   const [hours, minutes] = timeUtc.split(':').map(Number);
 
-  let next = new Date(now);
+  const next = new Date(now);
   next.setUTCHours(hours, minutes, 0, 0);
 
   switch (frequency) {
     case 'daily':
       if (next <= now) next.setDate(next.getDate() + 1);
       break;
-    case 'weekly':
+    case 'weekly': {
       const targetDay = dayOfWeek || 1;
       const daysUntilTarget = (targetDay - now.getDay() + 7) % 7;
       next.setDate(next.getDate() + (daysUntilTarget === 0 && next <= now ? 7 : daysUntilTarget));
       break;
-    case 'biweekly':
+    }
+    case 'biweekly': {
       const biweeklyTarget = dayOfWeek || 1;
       const daysUntilBiweekly = (biweeklyTarget - now.getDay() + 7) % 7;
       next.setDate(next.getDate() + (daysUntilBiweekly === 0 && next <= now ? 14 : daysUntilBiweekly));
       break;
-    case 'monthly':
+    }
+    case 'monthly': {
       const targetDate = dayOfMonth || 1;
       next.setDate(targetDate);
       if (next <= now) next.setMonth(next.getMonth() + 1);
       break;
+    }
   }
 
   return next.toISOString();
@@ -151,7 +154,7 @@ export async function getUserDCASchedules(
   tier: 'free' | 'basic' | 'premium' = 'free'
 ): Promise<DCASchedule[]> {
   // In production, fetch from database
-  let schedules = mockSchedules.filter(s => s.user_id === userId || s.user_id === 'user-1');
+  const schedules = mockSchedules.filter(s => s.user_id === userId || s.user_id === 'user-1');
 
   if (tier === 'free') {
     return []; // Free users can't create DCA schedules

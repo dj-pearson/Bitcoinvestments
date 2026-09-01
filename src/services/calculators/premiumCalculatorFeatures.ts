@@ -426,12 +426,32 @@ export async function analyzeTaxOptimization(
     totalShortTermGains * shortTermTaxRate +
     totalLongTermGains * longTermTaxRate;
 
-  // Calculate optimized liability (harvest losses)
-  const harvestedLosses = harvestingOpportunities.reduce((sum, h) => sum + h.unrealizedLoss, 0);
-  const netShortTerm = Math.max(0, totalShortTermGains - harvestedLosses);
+  // Calculate optimized liability by harvesting the losses above.
+  //
+  // Losses net against gains of the SAME holding period first, and only the
+  // remainder crosses over to the other period (IRC 1211/1212). The previous
+  // implementation pooled every loss together and applied the whole pool to
+  // short-term gains only, which left long-term gains entirely un-offset — so
+  // it over-stated savings for a portfolio whose losses were long-term and
+  // gains short-term, and under-stated them for the reverse. The
+  // `totalShortTermLosses` / `totalLongTermLosses` buckets were already being
+  // accumulated for this and then went unused.
+  const netShortTerm = totalShortTermGains - totalShortTermLosses;
+  const netLongTerm = totalLongTermGains - totalLongTermLosses;
+
+  // Cross-apply whichever period came out negative against the other.
+  let taxableShortTerm = Math.max(0, netShortTerm);
+  let taxableLongTerm = Math.max(0, netLongTerm);
+
+  if (netShortTerm < 0) {
+    taxableLongTerm = Math.max(0, taxableLongTerm + netShortTerm);
+  } else if (netLongTerm < 0) {
+    taxableShortTerm = Math.max(0, taxableShortTerm + netLongTerm);
+  }
+
   const optimizedTaxLiability =
-    netShortTerm * shortTermTaxRate +
-    totalLongTermGains * longTermTaxRate;
+    taxableShortTerm * shortTermTaxRate +
+    taxableLongTerm * longTermTaxRate;
 
   const strategies: TaxStrategy[] = [
     {

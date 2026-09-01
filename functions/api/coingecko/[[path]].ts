@@ -34,7 +34,7 @@ export async function onRequest(context: {
   params?: { path?: string[] };
   waitUntil?: (promise: Promise<any>) => void;
 }) {
-  const { request, env, waitUntil } = context;
+  const { request, env, _waitUntil } = context;
   
   // Get the path from the URL
   const url = new URL(request.url);
@@ -90,7 +90,7 @@ export async function onRequest(context: {
         'X-Rate-Limit-Remaining': response.headers.get('x-ratelimit-remaining') || 'unknown',
       },
     });
-  } catch (error) {
+  } catch {
     return new Response(
       JSON.stringify({
         error: 'Proxy failed to fetch from CoinGecko',

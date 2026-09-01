@@ -263,7 +263,7 @@ export async function getFeature(idOrSlug: string): Promise<{
     if (error) throw error;
 
     return { feature: data as EarlyAccessFeature, error: null };
-  } catch (err) {
+  } catch {
     return { feature: demoFeature || null, error: demoFeature ? null : 'Feature not found' };
   }
 }
@@ -347,7 +347,7 @@ export async function getUserEnrollments(userId: string): Promise<{
     if (error) throw error;
 
     return { enrollments: (data as BetaEnrollment[]) || [], error: null };
-  } catch (err) {
+  } catch {
     return { enrollments: [], error: null };
   }
 }

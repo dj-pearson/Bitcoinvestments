@@ -6,7 +6,7 @@
  */
 
 import { chromium, firefox, webkit, Browser, BrowserContext, Page } from 'playwright';
-import type { TestConfig, TestResult, DiscoveredPage, PageTestReport } from '../types';
+import type { TestConfig, DiscoveredPage, PageTestReport } from '../types';
 import { Logger } from '../utils/logger';
 import { parallelLimit, sleep, generateId } from '../utils/helpers';
 
@@ -117,7 +117,7 @@ export class ParallelRunner {
     // Process tasks using worker pool
     await parallelLimit(
       [...this.taskQueue],
-      async (task, index) => {
+      async (task, _index) => {
         // Find available worker
         const worker = await this.getAvailableWorker();
         worker.busy = true;

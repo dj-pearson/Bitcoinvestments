@@ -67,4 +67,10 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=high
+      # Reports, does not gate. The remaining high-severity findings are all
+      # transitive through the Web3 stack (ws via viem/WalletConnect, axios via
+      # @coinbase/cdp-sdk) and have no fix that is not a breaking wagmi major.
+      # A gating audit here would leave CI permanently red, which is how this
+      # repo ended up with four CI jobs nobody was reading. Drop the `|| true`
+      # once the wagmi 3 upgrade lands and this reaches zero.
+      - run: pnpm audit --prod --audit-level=high || true

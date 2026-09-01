@@ -7,6 +7,7 @@ import {
   type CookiePreferences,
 } from '@/lib/consent';
 
+import { cn } from '../lib/utils';
 export function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -114,11 +115,23 @@ export function CookieConsent() {
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Overlay (only interactive/visible when the details panel is open) */}
+      {/*
+        Overlay — only interactive/visible when the details panel is open.
+
+        `pointer-events` must be set in exactly one place. Previously the base
+        classes carried `pointer-events-auto` and the closed branch appended
+        `pointer-events-none`; both landed on the element, and at equal
+        specificity the winner is decided by order in Tailwind's stylesheet
+        (where `auto` comes after `none`), not by order in the class attribute.
+        The result was a transparent full-screen overlay with
+        `pointer-events: auto` swallowing every click on the page for any
+        visitor who had not yet dismissed the cookie banner.
+      */}
       <div
-        className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity pointer-events-auto ${
-          showDetails ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={cn(
+          'absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity',
+          showDetails ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        )}
         onClick={() => setShowDetails(false)}
         aria-hidden="true"
       />

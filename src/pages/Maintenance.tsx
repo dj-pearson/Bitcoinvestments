@@ -4,7 +4,7 @@
  * Displayed when the platform is undergoing scheduled maintenance.
  */
 
-import { Wrench, Twitter, Mail } from 'lucide-react';
+import { Wrench, Mail } from 'lucide-react';
 
 import { SEO } from '../components/SEO';
 export function Maintenance() {
@@ -32,18 +32,9 @@ export function Maintenance() {
 
         <div className="glass-card p-6 mb-8">
           <p className="text-sm text-gray-400">
-            Stay updated on our progress:
+            Need help in the meantime?
           </p>
           <div className="flex justify-center gap-4 mt-4">
-            <a
-              href="https://twitter.com/bitcoinvestments"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-colors"
-            >
-              <Twitter className="w-4 h-4" aria-hidden="true" />
-              Twitter
-            </a>
             <a
               href="mailto:support@bitcoinvestments.net"
               className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-gray-300 hover:text-white transition-colors"

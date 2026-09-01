@@ -54,7 +54,6 @@ const DEFAULT_KEYWORDS = [
   'Bitcoin guide',
   'cryptocurrency for beginners',
 ];
-const TWITTER_HANDLE = '@bitcoinvestments';
 
 /**
  * SEO Component
@@ -194,7 +193,6 @@ export function SEO({
 
     // Twitter Card tags
     setMetaTag('name', 'twitter:card', 'summary_large_image');
-    setMetaTag('name', 'twitter:site', TWITTER_HANDLE);
     setMetaTag('name', 'twitter:title', fullTitle);
     setMetaTag('name', 'twitter:description', description);
     setMetaTag('name', 'twitter:image', fullImage);
@@ -291,10 +289,8 @@ export function generateOrganizationSchema() {
     name: SITE_NAME,
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
-    sameAs: [
-      'https://twitter.com/bitcoinvestments',
-      // Add other social profiles
-    ],
+    // `sameAs` intentionally omitted: it asserts to search engines that these
+    // profiles are ours, so add entries only for accounts that actually exist.
     contactPoint: {
       '@type': 'ContactPoint',
       email: 'support@bitcoinvestments.net',

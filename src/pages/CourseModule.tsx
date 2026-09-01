@@ -1,6 +1,7 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Clock, Target, CheckCircle, Share2, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getCourse, getCourseModule } from '../data/courses';
 import { Newsletter } from '../components/Newsletter';
 import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
@@ -151,6 +152,7 @@ export function CourseModule() {
         {/* Module Content */}
         <article className="prose prose-invert prose-orange max-w-none">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               h1: ({ children }) => (
                 <h1 className="text-3xl font-bold text-white mb-6 mt-8">{children}</h1>

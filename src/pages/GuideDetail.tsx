@@ -1,6 +1,7 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Share2, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getGuide } from '../data/guides';
 import { Newsletter } from '../components/Newsletter';
 import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
@@ -115,6 +116,7 @@ export function GuideDetail() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         <article className="prose prose-invert prose-orange max-w-none">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             components={{
               h1: ({ children }) => (
                 <h1 className="text-3xl font-bold text-white mb-6 mt-8">{children}</h1>

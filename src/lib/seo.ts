@@ -18,7 +18,6 @@ export const SEO_CONFIG = {
   defaultDescription:
     'Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners.',
   defaultImage: '/og-image.png',
-  twitterHandle: '@bitcoinvestments',
   locale: 'en_US',
   themeColor: '#f97316',
 } as const;
@@ -528,9 +527,7 @@ export function generateOrganizationSchema() {
     name: SEO_CONFIG.siteName,
     url: SEO_CONFIG.siteUrl,
     logo: `${SEO_CONFIG.siteUrl}/logo.png`,
-    sameAs: [
-      'https://twitter.com/bitcoinvestments',
-    ],
+    // See the note in src/components/SEO.tsx — only assert profiles that exist.
     contactPoint: {
       '@type': 'ContactPoint',
       email: 'support@bitcoinvestments.net',
@@ -913,7 +910,6 @@ export function generateEnhancedOrganizationSchema() {
     description:
       'Bitcoinvestments is a comprehensive cryptocurrency education and investment platform for beginners, offering free DCA calculators, exchange comparisons, educational courses, and a community-powered scam database.',
     foundingDate: '2024',
-    sameAs: ['https://twitter.com/bitcoinvestments'],
     contactPoint: [
       {
         '@type': 'ContactPoint',

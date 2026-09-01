@@ -1,27 +1,11 @@
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { Twitter, Mail, Calculator, BarChart3, BookOpen, Shield, TrendingUp } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Mail, Calculator, BarChart3, BookOpen, Shield, TrendingUp } from 'lucide-react';
 import { Newsletter } from '../Newsletter';
 import { Logo } from '../Logo';
 import { getCachedTopCryptocurrencies } from '../../services/coingecko';
 import { reopenConsentBanner } from '@/lib/consent';
 
-
-/**
- * Social profiles rendered in the footer.
- *
- * Only add an entry once the account actually exists — an icon linking to a
- * bare platform homepage (https://youtube.com) reads as a broken link to both
- * visitors and crawlers, which is what these previously did. The Twitter/X
- * handle here must stay in sync with `sameAs` in `generateOrganizationSchema`
- * (src/components/SEO.tsx) so structured data and the footer agree.
- *
- * TODO: add YouTube, GitHub and LinkedIn here once those profiles are live.
- */
-const SOCIAL_LINKS: Array<{ href: string; label: string; Icon: LucideIcon }> = [
-    { href: 'https://x.com/bitcoinvestments', label: 'Follow us on X', Icon: Twitter },
-];
 
 export const Footer = memo(function Footer() {
     const [btcPrice, setBtcPrice] = useState<{ price: number; change: number } | null>(null);
@@ -207,22 +191,6 @@ export const Footer = memo(function Footer() {
                                     {btcPrice.change >= 0 ? '+' : ''}{btcPrice.change.toFixed(2)}%
                                 </span>
                             </Link>
-                        )}
-                        {SOCIAL_LINKS.length > 0 && (
-                            <nav aria-label="Social media links" className="flex items-center gap-4">
-                                {SOCIAL_LINKS.map(({ href, label, Icon }) => (
-                                    <a
-                                        key={label}
-                                        href={href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-400 hover:text-white transition-colors"
-                                        aria-label={`${label} (opens in new tab)`}
-                                    >
-                                        <Icon className="w-5 h-5" aria-hidden="true" />
-                                    </a>
-                                ))}
-                            </nav>
                         )}
                     </div>
                 </div>

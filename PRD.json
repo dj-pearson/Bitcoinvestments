@@ -1732,6 +1732,23 @@
       "priority": 100,
       "passes": false,
       "notes": "MEDIUM PERFORMANCE. Multiple .select('*') patterns found in portfolio.ts, auth.ts, and admin services. Adding indexes is critical for tables that will grow: holdings, transactions, forum_posts, price_alerts."
+    },
+    {
+      "id": "US-101",
+      "title": "Make Stripe webhook processing idempotent",
+      "description": "The Stripe webhook handler processes every delivery unconditionally, with no record of which event IDs it has already applied. Stripe guarantees at-least-once delivery and retries any non-2xx response, so a duplicate or retried delivery re-applies its side effects. This matters most where the handler is not naturally idempotent: granting entitlements for one-time purchases (lifetime access, tax packages) and appending payment history rows. It also matters after the signature-verification fix in this branch, because Stripe will now redeliver the backlog of events that previously failed with 400, potentially replaying months of accumulated events in a burst.",
+      "acceptanceCriteria": [
+        "A stripe_webhook_events table exists via a Supabase migration, keyed on the Stripe event id as primary key, with a received_at timestamp",
+        "functions/api/stripe-webhook.ts records each event id before dispatching to a handler, and skips dispatch when the id is already present",
+        "The insert-and-check is a single atomic operation so two concurrent deliveries of the same event cannot both proceed",
+        "An already-processed event returns 200 so Stripe stops retrying it",
+        "A delivery that fails mid-handler does not leave the event marked processed, so Stripe's retry can still apply it",
+        "One-time purchase handlers (lifetime, tax packages) are verified to grant entitlement exactly once under duplicate delivery",
+        "A retention policy or index is in place so the table does not grow unbounded"
+      ],
+      "priority": 101,
+      "passes": false,
+      "notes": "Found during the iteration-5 audit of functions/api/stripe-webhook.ts, alongside the constructEventAsync signature bug fixed in commit 276f5a9. Deliberately NOT bundled with that fix: this needs a database migration plus handler restructuring, which is more than one iteration of work. Sequence matters - the signature fix means events now actually reach the handlers, so idempotency should land before the endpoint is re-enabled in the Stripe dashboard and the retry backlog is replayed."
     }
   ]
 }

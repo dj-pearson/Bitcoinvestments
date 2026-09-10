@@ -1,4 +1,5 @@
 import type { TaxCalculatorInput, TaxCalculatorResult } from '../../types';
+import { classifyHoldingPeriod } from './holdingPeriod';
 
 // US Federal capital gains tax brackets for 2024
 // Short-term gains are taxed as ordinary income (user's tax bracket is used)
@@ -105,11 +106,7 @@ export function calculateCapitalGainsTax(
   const purchaseDate = new Date(purchase_date);
   const saleDate = new Date(sale_date);
 
-  const oneYearAfterPurchase = new Date(purchaseDate);
-  oneYearAfterPurchase.setFullYear(oneYearAfterPurchase.getFullYear() + 1);
-
-  const holdingPeriod: 'short_term' | 'long_term' =
-    saleDate.getTime() > oneYearAfterPurchase.getTime() ? 'long_term' : 'short_term';
+  const holdingPeriod = classifyHoldingPeriod(purchaseDate, saleDate);
 
   // Calculate federal tax rate
   let federalTaxRate: number;
@@ -262,11 +259,7 @@ export function findTaxLossHarvestingOpportunities(
     // Only include losses
     if (unrealizedGainLoss < 0) {
       const purchaseDate = new Date(holding.purchaseDate);
-      const holdingDays = Math.floor(
-        (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const holdingPeriod: 'short_term' | 'long_term' =
-        holdingDays > 365 ? 'long_term' : 'short_term';
+      const holdingPeriod = classifyHoldingPeriod(purchaseDate, now);
 
       // Estimate tax savings at 22% (middle tax bracket)
       const estimatedTaxRate = holdingPeriod === 'short_term' ? 0.22 : 0.15;

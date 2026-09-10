@@ -10,6 +10,7 @@
  */
 
 import type { Transaction, Portfolio } from '../types';
+import { classifyHoldingPeriod } from './calculators/holdingPeriod';
 import { STATE_TAX_RATES } from './calculators/taxCalculator';
 
 // ==================== Types ====================
@@ -303,10 +304,12 @@ function calculateTaxableEvents(
       // Calculate holding period
       const acquiredDate = new Date(lot.date);
       const soldDate = new Date(sale.date);
+      const holdingPeriod = classifyHoldingPeriod(acquiredDate, soldDate);
+      // Reported alongside the classification for the user's own records. It is
+      // deliberately not what decides short vs long term - see classifyHoldingPeriod.
       const holdingDays = Math.floor(
         (soldDate.getTime() - acquiredDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      const holdingPeriod: 'short_term' | 'long_term' = holdingDays > 365 ? 'long_term' : 'short_term';
 
       taxableEvents.push({
         id: `${sale.id}-${lot.date}`,

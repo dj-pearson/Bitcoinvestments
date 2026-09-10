@@ -89,14 +89,27 @@ export function calculateCapitalGainsTax(
   const proceeds = sale_price * amount;
   const gainLoss = proceeds - costBasis;
 
-  // Determine holding period
+  // Determine holding period.
+  //
+  // The IRS test is calendar-based, not a day count: a gain is long-term only
+  // if the asset was held MORE than one year, so a sale on the one-year
+  // anniversary is still short-term. Counting "> 365 days" got this wrong for
+  // any holding period spanning a leap day - buy 2024-01-01, sell 2025-01-01 is
+  // 366 calendar days but exactly one year, and was reported as long-term a day
+  // early. At a 37% ordinary bracket that understates the tax on the gain by
+  // more than half.
+  //
+  // Comparing against the anniversary handles leap years for free, including a
+  // Feb 29 purchase: setFullYear rolls it to Mar 1 in a non-leap year, which is
+  // the date the IRS uses too.
   const purchaseDate = new Date(purchase_date);
   const saleDate = new Date(sale_date);
-  const holdingDays = Math.floor(
-    (saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
+
+  const oneYearAfterPurchase = new Date(purchaseDate);
+  oneYearAfterPurchase.setFullYear(oneYearAfterPurchase.getFullYear() + 1);
+
   const holdingPeriod: 'short_term' | 'long_term' =
-    holdingDays > 365 ? 'long_term' : 'short_term';
+    saleDate.getTime() > oneYearAfterPurchase.getTime() ? 'long_term' : 'short_term';
 
   // Calculate federal tax rate
   let federalTaxRate: number;
@@ -106,11 +119,28 @@ export function calculateCapitalGainsTax(
     // Short-term uses ordinary income tax rates
     federalTaxRate = tax_bracket / 100;
   } else {
-    // Long-term capital gains rates
+    // Long-term capital gains rates.
+    //
+    // The 0/15/20% thresholds apply to total taxable income with the gain
+    // stacked on top of ordinary income, not to the gain in isolation. Bracketing
+    // on gainLoss alone told anyone with a gain under $47,025 that they owed 0%
+    // federal tax regardless of what they earn - a filer in the 37% bracket with
+    // a $40k long-term gain was quoted $0 instead of $8,000.
+    //
+    // tax_bracket is the filer's ordinary rate, so use the income floor of that
+    // bracket as a conservative stand-in for ordinary taxable income and stack
+    // the gain above it.
+    const ordinaryRate = tax_bracket / 100;
+    const ordinaryBracket = [...SHORT_TERM_BRACKETS]
+      .reverse()
+      .find(b => ordinaryRate >= b.rate);
+    const ordinaryIncomeFloor = ordinaryBracket?.min ?? 0;
+    const incomeIncludingGain = ordinaryIncomeFloor + gainLoss;
+
     const bracket = LONG_TERM_BRACKETS.find(
-      b => gainLoss >= b.min && gainLoss < b.max
+      b => incomeIncludingGain >= b.min && incomeIncludingGain < b.max
     );
-    federalTaxRate = bracket?.rate || 0.20;
+    federalTaxRate = bracket?.rate ?? 0.20;
   }
 
   // Add state tax if applicable

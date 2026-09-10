@@ -1800,6 +1800,21 @@
       "priority": 104,
       "passes": false,
       "notes": "Found during the iteration-14 audit while fixing the max-drawdown metric, which was returning a hardcoded-zero result (commit on branch claude/lucid-goodall-mi34c1). Deliberately not bundled: switching the return model changes every number this premium feature outputs - percentiles, expected return, probability of profit - so it wants its own change with before/after comparison at several volatility levels, not a quiet edit inside a bug fix. The drawdown metric is capped at 100% in the meantime so the displayed figure stays well-formed; that cap is a symptom of this issue and should become redundant once the model is corrected."
+    },
+    {
+      "id": "US-105",
+      "title": "Review whether the wash sale rule should apply to crypto at all",
+      "description": "calculateWashSaleImpact in taxCalculator.ts applies the 30-day wash sale rule to cryptocurrency disposals. The wash sale rule in IRC section 1091 is written for 'stock or securities', and the IRS treats cryptocurrency as property rather than a security, so the rule has generally not applied to crypto. If that is right, the calculator tells users a loss is disallowed when it is claimable, which would lead them to delay a repurchase for 30 days or forgo a deduction they are entitled to - the calculator causing the harm it exists to prevent. This needs a position taken by someone qualified rather than a code change made on assumption: proposals to extend the rule to digital assets have recurred in Congress, so the answer may also be time-dependent and may differ for tokens held in ways that look more like securities.",
+      "acceptanceCriteria": [
+        "A documented position on whether section 1091 applies to the assets this platform covers, with a date and source",
+        "If the rule does not apply, calculateWashSaleImpact either says so plainly or is removed rather than silently reporting a disallowed loss",
+        "If the position is that it may apply in future, the wording distinguishes current treatment from proposed legislation",
+        "findTaxLossHarvestingOpportunities is checked for the same assumption, since its whole premise is harvesting losses",
+        "Any user-facing wording is reviewed against the existing 'estimate only, consult a tax professional' disclaimer"
+      ],
+      "priority": 105,
+      "passes": false,
+      "notes": "Found during the iteration-15 audit. Deliberately NOT changed in code: unlike the arithmetic defects fixed in this branch, this is a question of tax law rather than a bug with a demonstrably correct answer, and it is exactly the kind of call that should be made by a qualified professional and recorded, not inferred by an agent from a code comment. Flagging it as a question, not a defect. Also note that the assumed harvesting tax rates in findTaxLossHarvestingOpportunities are hardcoded to 22% short-term and 15% long-term regardless of the filer's actual bracket, which is worth revisiting in the same pass."
     }
   ]
 }

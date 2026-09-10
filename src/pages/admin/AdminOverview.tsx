@@ -24,6 +24,7 @@ import { getUserStats, getScamDatabaseStats } from '../../services/admin';
 import { getSubscriptionAnalytics, formatCurrency } from '../../services/subscriptionAnalytics';
 import { getAuditSummary } from '../../services/auditLog';
 import type { UserStats, ScamStats } from '../../types/admin-database';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 interface QuickStat {
   name: string;
@@ -46,6 +47,7 @@ interface RecentActivity {
 }
 
 export function AdminOverview() {
+  usePageTitle('Overview | Admin');
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [scamStats, setScamStats] = useState<ScamStats | null>(null);
   const [subscriptionMetrics, setSubscriptionMetrics] = useState<any>(null);

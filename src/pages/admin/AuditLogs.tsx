@@ -16,6 +16,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { getAuditLogs, type AuditLogEntry } from '../../services/auditLog';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 const actionCategories = [
   { id: 'all', label: 'All Actions', icon: ScrollText },
@@ -54,6 +55,7 @@ const getActionIcon = (action: string) => {
 };
 
 export function AuditLogs() {
+  usePageTitle('Audit Logs | Admin');
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

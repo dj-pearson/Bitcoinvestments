@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { SubscriptionAnalytics as SubscriptionAnalyticsComponent } from '../../components/admin/SubscriptionAnalytics';
 import { getSubscriptionAnalytics } from '../../services/subscriptionAnalytics';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 type TimeRange = '7d' | '30d' | '90d' | '1y' | 'all';
 
@@ -24,6 +25,7 @@ interface MetricData {
 }
 
 export function AdminAnalytics() {
+  usePageTitle('Analytics | Admin');
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [loading, setLoading] = useState(true);
 

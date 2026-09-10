@@ -33,8 +33,10 @@ import {
 import type { BlogCategory, BlogRevision, GeneratedBlogContent } from '../../types/blog';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 export function AdminBlogEditor() {
+  usePageTitle('Blog Editor | Admin');
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();

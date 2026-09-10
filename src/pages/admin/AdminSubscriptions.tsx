@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { DemoDataBanner } from '../../components/DemoDataBanner';
+import { usePageTitle } from '../../hooks/usePageTitle';
 interface Subscription {
   id: string;
   user_email: string;
@@ -46,6 +47,7 @@ const statusIcons: Record<string, React.ElementType> = {
 };
 
 export function AdminSubscriptions() {
+  usePageTitle('Subscriptions | Admin');
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

@@ -196,6 +196,9 @@ export async function runMonteCarloSimulation(
 
   const finalValues: number[] = [];
   const allReturns: number[] = [];
+  // Each simulation's own peak-to-trough decline. The per-path figure was
+  // already being computed in the loop below and then discarded.
+  const maxDrawdowns: number[] = [];
 
   // Run simulations
   for (let sim = 0; sim < simulations; sim++) {
@@ -212,13 +215,18 @@ export async function runMonteCarloSimulation(
       const monthReturn = monthlyReturn + monthlyVolatility * z;
       value = value * (1 + monthReturn) + monthlyContribution;
 
-      // Track max drawdown
+      // Track max drawdown. Capped at 1: an unlevered portfolio cannot decline
+      // by more than everything it had. The cap is reachable because returns are
+      // modelled additively, so a month worse than -100% drives value negative
+      // at very high volatility inputs. That is a limitation of the return model
+      // rather than of this metric - see US-104.
       if (value > maxValue) maxValue = value;
-      const drawdown = (maxValue - value) / maxValue;
+      const drawdown = Math.min((maxValue - value) / maxValue, 1);
       if (drawdown > maxDrawdown) maxDrawdown = drawdown;
     }
 
     finalValues.push(value);
+    maxDrawdowns.push(maxDrawdown);
     const totalContributed = currentValue + monthlyContribution * months;
     allReturns.push((value - totalContributed) / totalContributed);
   }
@@ -254,11 +262,21 @@ export async function runMonteCarloSimulation(
     expectedReturn: avgReturn,
     volatility: returnStdDev,
     sharpeRatio,
-    maxDrawdown: Math.max(...allReturns.map((_, i) => {
-      const vals = finalValues.slice(0, i + 1);
-      const max = Math.max(...vals);
-      return (max - vals[vals.length - 1]) / max;
-    })),
+    // Average of each simulation's maximum peak-to-trough decline - the decline
+    // an investor should expect to sit through on a typical path. Reported as a
+    // percentage, matching runAdvancedBacktest below and the "-X%" the UI renders.
+    //
+    // The previous expression walked finalValues, which by this point has been
+    // sorted ascending for the percentile calculation. It is a cross-section of
+    // outcomes across simulations, not a time series, and on a sorted array the
+    // running maximum is always the last element sliced - so (max - last) / max
+    // was identically zero for every element. This premium risk metric reported
+    // exactly 0% drawdown for every projection, no matter how volatile the
+    // inputs, while the real per-path value was computed and dropped on the
+    // floor. It was also O(n^2) and spread a growing array into Math.max, which
+    // throws once a caller asks for a large enough simulation count.
+    maxDrawdown:
+      (maxDrawdowns.reduce((sum, d) => sum + d, 0) / maxDrawdowns.length) * 100,
     probabilityOfProfit: (profitableSimulations / simulations) * 100,
     scenarios: [
       {

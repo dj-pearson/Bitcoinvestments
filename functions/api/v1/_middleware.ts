@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { ALLOWED_ORIGINS } from '../_cors';
 
 interface Env {
   SUPABASE_URL: string;
@@ -41,12 +42,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
    * The wildcard '*' is a security risk as it allows any website to make
    * requests to your API, enabling CSRF attacks and credential theft.
    */
-  const defaultAllowedOrigins = [
-    'https://bitcoin-investments.pages.dev',
-    'https://bitcoinvestments.com',
-    'http://localhost:5173', // Vite dev server
-    'http://localhost:4173', // Vite preview
-  ];
+  // Shared with the rest of the API via ../_cors rather than duplicated here.
+  // The two copies had already drifted: this one carried the wrong production
+  // domain, so browser calls from the live site were answered with
+  // Access-Control-Allow-Origin: null and blocked.
+  const defaultAllowedOrigins = ALLOWED_ORIGINS;
 
   // Determine if origin is allowed (will be refined after API key validation)
   const isOriginAllowed = (allowedOrigins: string[]) => {

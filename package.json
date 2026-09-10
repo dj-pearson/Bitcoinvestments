@@ -22,7 +22,8 @@
     "deploy:all": "npm run build && npm run cf:deploy && npm run deploy:cron && npm run deploy:newsletter",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
-    "audit": "pnpm audit --audit-level=high"
+    "audit": "pnpm audit --audit-level=high",
+    "audit:routes": "node scripts/audit-route-indexing.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

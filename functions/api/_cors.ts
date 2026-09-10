@@ -10,8 +10,13 @@
  * Add your production and development domains here
  */
 export const ALLOWED_ORIGINS = [
+  // The canonical production origin MUST stay first. The checkout endpoints use
+  // ALLOWED_ORIGINS[0] as the fallback when a request's Origin is not on this
+  // list, and that value becomes the Stripe success_url and cancel_url - so a
+  // preview domain in this slot sends paying customers to the wrong site.
+  'https://bitcoinvestments.net',
+  'https://www.bitcoinvestments.net',
   'https://bitcoin-investments.pages.dev',
-  'https://bitcoinvestments.com',
   'http://localhost:5173', // Vite dev server
   'http://localhost:4173', // Vite preview
 ];

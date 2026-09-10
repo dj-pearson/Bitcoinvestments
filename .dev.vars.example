@@ -79,3 +79,19 @@ VITE_STRIPE_API_PROFESSIONAL_MONTHLY=price_xxxxxxxxxxxxxxxxxxxxx
 
 # API Professional Yearly
 VITE_STRIPE_API_PROFESSIONAL_YEARLY=price_xxxxxxxxxxxxxxxxxxxxx
+
+# ============================================================================
+# COINGECKO
+# ============================================================================
+# Server-side only - this is read by functions/api/coingecko/[[path]].ts and is
+# never exposed to the browser. Do NOT move it into wrangler.toml [vars]: those
+# are embedded in the client bundle.
+COINGECKO_API_KEY=CG-xxxxxxxxxxxxxxxxxxxxx
+
+# Which CoinGecko plan the key above belongs to: "demo" (default) or "pro".
+# This picks the API host and the auth header together, and the two must match
+# the plan - a demo key only works as x-cg-demo-api-key against
+# api.coingecko.com, a pro key only as x-cg-pro-api-key against
+# pro-api.coingecko.com. Set this to "pro" when upgrading, or the key is
+# silently ignored and requests fall back to the shared unauthenticated quota.
+COINGECKO_API_PLAN=demo

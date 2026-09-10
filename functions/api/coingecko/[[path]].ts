@@ -3,9 +3,40 @@
 // Includes aggressive caching to minimize API calls
 
 interface Env {
+  /** Preferred name, matching the label shown in admin System Settings. */
+  COINGECKO_API_KEY?: string;
+  /** Legacy name still honoured so an existing deployment keeps working. */
   VITE_COINGECKO_API_KEY?: string;
+  /** 'pro' selects the paid tier. Anything else, including unset, means demo. */
+  COINGECKO_API_PLAN?: string;
   COINGECKO_CACHE?: KVNamespace;
 }
+
+/**
+ * CoinGecko's two tiers need a matching host AND header, and they are not
+ * interchangeable: a demo key is only accepted as x-cg-demo-api-key on
+ * api.coingecko.com, and a pro key only as x-cg-pro-api-key on
+ * pro-api.coingecko.com. Crossing them over is rejected.
+ *
+ * They are paired here so the two halves cannot be chosen independently. The
+ * previous code picked the header from apiKey.startsWith('CG-1V') while the
+ * host stayed hardcoded to the demo endpoint. Every CoinGecko key begins with
+ * 'CG-', so that test keyed on the random tail of one specific key: rotating
+ * to any other demo key sent it as a pro key to the demo host, and a pro key
+ * could never work at all. Either way CoinGecko ignores the key and applies
+ * the shared unauthenticated quota, which surfaces as intermittent 429s and
+ * stale prices with nothing in the logs naming the key as the cause.
+ */
+const COINGECKO_TIERS = {
+  demo: {
+    baseUrl: 'https://api.coingecko.com/api/v3',
+    headerName: 'x-cg-demo-api-key',
+  },
+  pro: {
+    baseUrl: 'https://pro-api.coingecko.com/api/v3',
+    headerName: 'x-cg-pro-api-key',
+  },
+} as const;
 
 // Cache durations based on endpoint volatility
 const CACHE_DURATIONS: Record<string, number> = {
@@ -34,7 +65,7 @@ export async function onRequest(context: {
   params?: { path?: string[] };
   waitUntil?: (promise: Promise<any>) => void;
 }) {
-  const { request, env, _waitUntil } = context;
+  const { request, env } = context;
   
   // Get the path from the URL
   const url = new URL(request.url);
@@ -42,11 +73,26 @@ export async function onRequest(context: {
   const apiPath = url.pathname.replace(/^\/api\/coingecko\/?/, '');
   const searchParams = url.searchParams.toString();
   
-  // Construct CoinGecko API URL
-  const apiKey = env.VITE_COINGECKO_API_KEY || '';
+  // This proxy is read-only; it exists so the browser can reach CoinGecko.
+  if (request.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: {
+        'Content-Type': 'application/json',
+        'Allow': 'GET, OPTIONS',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
 
-  const baseUrl = 'https://api.coingecko.com/api/v3';
-  const targetUrl = `${baseUrl}/${apiPath}${searchParams ? `?${searchParams}` : ''}`;
+  // Construct CoinGecko API URL
+  const apiKey = env.COINGECKO_API_KEY || env.VITE_COINGECKO_API_KEY || '';
+  const tier =
+    env.COINGECKO_API_PLAN?.trim().toLowerCase() === 'pro'
+      ? COINGECKO_TIERS.pro
+      : COINGECKO_TIERS.demo;
+
+  const targetUrl = `${tier.baseUrl}/${apiPath}${searchParams ? `?${searchParams}` : ''}`;
 
   try {
     // Build headers
@@ -56,14 +102,12 @@ export async function onRequest(context: {
     };
 
     if (apiKey) {
-      // CoinGecko uses different headers for demo vs pro keys
-      const headerName = apiKey.startsWith('CG-1V') ? 'x-cg-demo-api-key' : 'x-cg-pro-api-key';
-      headers[headerName] = apiKey;
+      headers[tier.headerName] = apiKey;
     }
-    
+
     // Fetch from CoinGecko with Cloudflare caching
     const response = await fetch(targetUrl, {
-      method: request.method,
+      method: 'GET',
       headers,
       cf: {
         // Let Cloudflare cache this at the edge

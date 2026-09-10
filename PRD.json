@@ -1732,6 +1732,89 @@
       "priority": 100,
       "passes": false,
       "notes": "MEDIUM PERFORMANCE. Multiple .select('*') patterns found in portfolio.ts, auth.ts, and admin services. Adding indexes is critical for tables that will grow: holdings, transactions, forum_posts, price_alerts."
+    },
+    {
+      "id": "US-101",
+      "title": "Make Stripe webhook processing idempotent",
+      "description": "The Stripe webhook handler processes every delivery unconditionally, with no record of which event IDs it has already applied. Stripe guarantees at-least-once delivery and retries any non-2xx response, so a duplicate or retried delivery re-applies its side effects. This matters most where the handler is not naturally idempotent: granting entitlements for one-time purchases (lifetime access, tax packages) and appending payment history rows. It also matters after the signature-verification fix in this branch, because Stripe will now redeliver the backlog of events that previously failed with 400, potentially replaying months of accumulated events in a burst.",
+      "acceptanceCriteria": [
+        "A stripe_webhook_events table exists via a Supabase migration, keyed on the Stripe event id as primary key, with a received_at timestamp",
+        "functions/api/stripe-webhook.ts records each event id before dispatching to a handler, and skips dispatch when the id is already present",
+        "The insert-and-check is a single atomic operation so two concurrent deliveries of the same event cannot both proceed",
+        "An already-processed event returns 200 so Stripe stops retrying it",
+        "A delivery that fails mid-handler does not leave the event marked processed, so Stripe's retry can still apply it",
+        "One-time purchase handlers (lifetime, tax packages) are verified to grant entitlement exactly once under duplicate delivery",
+        "A retention policy or index is in place so the table does not grow unbounded"
+      ],
+      "priority": 101,
+      "passes": false,
+      "notes": "Found during the iteration-5 audit of functions/api/stripe-webhook.ts, alongside the constructEventAsync signature bug fixed in commit 276f5a9. Deliberately NOT bundled with that fix: this needs a database migration plus handler restructuring, which is more than one iteration of work. Sequence matters - the signature fix means events now actually reach the handlers, so idempotency should land before the endpoint is re-enabled in the Stripe dashboard and the retry backlog is replayed."
+    },
+    {
+      "id": "US-102",
+      "title": "Authenticate and rate limit /api/send-email",
+      "description": "functions/api/send-email.ts performs no authentication. Any client can POST a recipient, subject and up to 100 KB of HTML and have it delivered through our SMTP credentials and domain. The sender-spoofing half of this was fixed by pinning the sender to configuration, but an unauthenticated caller can still send mail that genuinely originates from us, to any address, with any content. CORS does not mitigate this - it constrains browsers, not curl. The only limit today is the generic 100 requests/minute default tier in functions/api/_middleware.ts, and because RATE_LIMIT_KV is not bound in wrangler.toml that limit falls back to an in-memory Map which is per-isolate and therefore close to unenforced across Cloudflare's edge.",
+      "acceptanceCriteria": [
+        "POST /api/send-email without valid credentials returns 401 and sends no mail",
+        "Browser callers (email.ts, invoicing.ts, transactionEmails.ts, supportTickets.ts) attach the Supabase session JWT, and the endpoint verifies it",
+        "The verified caller identity, not the request body, determines the recipient wherever the mail is addressed to the user themselves",
+        "Any flow that must send before a session exists (e.g. newsletter welcome) is identified and given an explicit design - either a server-side trigger or a scoped single-use token - rather than being left open",
+        "send-email is given its own strict rate limit tier in functions/api/_middleware.ts rather than the shared 100/min default",
+        "A KV namespace is created and bound as RATE_LIMIT_KV in wrangler.toml so rate limits are enforced across isolates rather than per-instance",
+        "An abuse test confirms an unauthenticated caller cannot send, and an authenticated caller cannot exceed the new limit"
+      ],
+      "priority": 102,
+      "passes": false,
+      "notes": "SECURITY - HIGH. Found during the iteration-7 audit. The sender-spoofing vector was closed separately by pinning the sender server-side, which was safe to do immediately because no caller ever set a from address. Authentication was NOT bundled with it because it requires changing four browser call sites to attach a session token AND a product decision about flows that legitimately send before a user is signed in - notably sendNewsletterWelcomeEmail. Requiring auth without resolving that would silently break newsletter signup. Related: the in-memory rate limiter in functions/api/_middleware.ts is a stated fallback, but with no KV binding it is the ONLY path, and its own comment understates the impact - Workers isolates are per-colo and short-lived, so counters reset constantly."
+    },
+    {
+      "id": "US-103",
+      "title": "Authenticate /api/claude and attribute AI spend per user",
+      "description": "functions/api/claude.ts performs no authentication. Anyone who finds the URL can use our Anthropic API key as a general-purpose LLM proxy: they control the full message list, the system prompt, and the sampling parameters, and the cost lands on our bill. Per-request cost is now bounded (model restricted to known aliases, maxTokens clamped, prompt sizes capped), but request volume is not: the endpoint falls under the generic 100/min default tier in functions/api/_middleware.ts, which with RATE_LIMIT_KV unbound degrades to a per-isolate in-memory Map. There is also no record of who spent what - the response carries Anthropic's usage object but nothing is persisted, so there is no way to attribute cost, detect abuse, or enforce per-tier AI quotas.",
+      "acceptanceCriteria": [
+        "POST /api/claude without a valid session returns 401 and makes no upstream Anthropic call",
+        "src/services/ai.ts attaches the Supabase session JWT and the endpoint verifies it",
+        "Each request's input_tokens and output_tokens are persisted against the calling user",
+        "AI usage is subject to a per-user quota derived from subscription tier, enforced server-side",
+        "Exceeding the quota returns 429 with a message naming the limit, without calling Anthropic",
+        "/api/claude has its own rate limit tier rather than sharing the 100/min default",
+        "functions/api/test-claude.ts is either removed or placed behind admin-only auth",
+        "An abuse test confirms an unauthenticated caller cannot reach Anthropic"
+      ],
+      "priority": 103,
+      "passes": false,
+      "notes": "SECURITY / COST - HIGH. Found during the iteration-8 audit. Input bounds were fixed immediately because they were safe and behaviour-preserving; authentication was not, because it needs src/services/ai.ts to attach a session token and a decision about which AI features may run for signed-out visitors (the learning assistant and article summaries may be intended as public). Shares the unbound RATE_LIMIT_KV problem described in US-102 - fixing the KV binding once addresses both. Also flagged: functions/api/test-claude.ts is a second unauthenticated Claude endpoint and should be checked as part of this story."
+    },
+    {
+      "id": "US-104",
+      "title": "Model Monte Carlo returns log-normally instead of additively",
+      "description": "runMonteCarloSimulation draws a normal monthly return and applies it as value * (1 + r). A normal draw is unbounded below, so at high volatility inputs - and 60-120% annual volatility is ordinary for crypto, which is what this tool projects - a single month can return worse than -100% and drive the simulated portfolio value negative. A negative balance then compounds, so the affected paths are not merely pessimistic but meaningless, and they contaminate the percentile bands, the average return and the probability-of-profit figure that sit beside the drawdown metric. Real prices cannot go below zero; the standard treatment is geometric Brownian motion, where the log return is normal and the price factor exp(r) is always positive.",
+      "acceptanceCriteria": [
+        "Simulated portfolio value never goes negative for any volatility input",
+        "Monthly growth is drawn as a log-normal factor, with the drift term corrected for volatility drag so the mean annual return still matches the caller's expectedReturn",
+        "At low volatility the percentile bands stay close to the current output, so the change is visibly a refinement rather than a different tool",
+        "probabilityOfProfit and the percentile bands are re-checked at 60% and 120% volatility and no longer include impossible paths",
+        "The 100% cap on drawdown becomes unreachable in practice rather than load-bearing",
+        "The same review is applied to the volatility and Sharpe figures in compareMultipleAssets, which use the same additive assumption"
+      ],
+      "priority": 104,
+      "passes": false,
+      "notes": "Found during the iteration-14 audit while fixing the max-drawdown metric, which was returning a hardcoded-zero result (commit on branch claude/lucid-goodall-mi34c1). Deliberately not bundled: switching the return model changes every number this premium feature outputs - percentiles, expected return, probability of profit - so it wants its own change with before/after comparison at several volatility levels, not a quiet edit inside a bug fix. The drawdown metric is capped at 100% in the meantime so the displayed figure stays well-formed; that cap is a symptom of this issue and should become redundant once the model is corrected."
+    },
+    {
+      "id": "US-105",
+      "title": "Review whether the wash sale rule should apply to crypto at all",
+      "description": "calculateWashSaleImpact in taxCalculator.ts applies the 30-day wash sale rule to cryptocurrency disposals. The wash sale rule in IRC section 1091 is written for 'stock or securities', and the IRS treats cryptocurrency as property rather than a security, so the rule has generally not applied to crypto. If that is right, the calculator tells users a loss is disallowed when it is claimable, which would lead them to delay a repurchase for 30 days or forgo a deduction they are entitled to - the calculator causing the harm it exists to prevent. This needs a position taken by someone qualified rather than a code change made on assumption: proposals to extend the rule to digital assets have recurred in Congress, so the answer may also be time-dependent and may differ for tokens held in ways that look more like securities.",
+      "acceptanceCriteria": [
+        "A documented position on whether section 1091 applies to the assets this platform covers, with a date and source",
+        "If the rule does not apply, calculateWashSaleImpact either says so plainly or is removed rather than silently reporting a disallowed loss",
+        "If the position is that it may apply in future, the wording distinguishes current treatment from proposed legislation",
+        "findTaxLossHarvestingOpportunities is checked for the same assumption, since its whole premise is harvesting losses",
+        "Any user-facing wording is reviewed against the existing 'estimate only, consult a tax professional' disclaimer"
+      ],
+      "priority": 105,
+      "passes": false,
+      "notes": "Found during the iteration-15 audit. Deliberately NOT changed in code: unlike the arithmetic defects fixed in this branch, this is a question of tax law rather than a bug with a demonstrably correct answer, and it is exactly the kind of call that should be made by a qualified professional and recorded, not inferred by an agent from a code comment. Flagging it as a question, not a defect. Also note that the assumed harvesting tax rates in findTaxLossHarvestingOpportunities are hardcoded to 22% short-term and 15% long-term regardless of the filer's actual bracket, which is worth revisiting in the same pass."
     }
   ]
 }

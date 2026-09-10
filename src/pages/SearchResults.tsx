@@ -30,6 +30,7 @@ import {
 import { GlobalSearch } from '../components/GlobalSearch';
 import { cn } from '../lib/utils';
 import { trackSearch, trackSearchResultClick } from '../services/analytics';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 // Get icon for result type
 function getResultIcon(type: SearchResultType) {
@@ -56,6 +57,7 @@ const CONTENT_TYPES: { type: SearchResultType; label: string; icon: typeof BookO
 ];
 
 export function SearchResults() {
+  usePageTitle('Search');
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   const typeFilter = searchParams.get('type') as SearchResultType | null;

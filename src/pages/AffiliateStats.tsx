@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getAffiliateStatsDb } from '../services/database';
 import { supabase } from '../lib/supabase';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 interface Stats {
   totalClicks: number;
@@ -39,6 +40,7 @@ interface PlatformStats {
 }
 
 export function AffiliateStats() {
+  usePageTitle('Affiliate Stats');
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentClicks, setRecentClicks] = useState<Click[]>([]);
   const [platformStats, setPlatformStats] = useState<PlatformStats[]>([]);

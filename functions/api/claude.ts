@@ -42,6 +42,33 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
 const LIGHTWEIGHT_MODEL = 'claude-haiku-4-5-20251001';
 
+/**
+ * Models this endpoint is willing to bill for, by alias.
+ *
+ * The request body used to be able to name any model as a raw string, which
+ * went straight through to Anthropic on our API key. Callers in this repo only
+ * ever send 'default' or 'lightweight', so accepting arbitrary identifiers
+ * bought nothing and let a caller pick the most expensive model available.
+ */
+const ALLOWED_MODELS: Record<string, string> = {
+  default: DEFAULT_MODEL,
+  lightweight: LIGHTWEIGHT_MODEL,
+};
+
+/**
+ * Request bounds.
+ *
+ * Every field below is caller-controlled and every one of them multiplies what
+ * a single request costs us. The ceilings are set above the largest values any
+ * caller in this repo sends (maxTokens tops out at 4096) so legitimate traffic
+ * is unaffected, while a single abusive request can no longer ask for an
+ * unbounded completion over an unbounded prompt.
+ */
+const MAX_OUTPUT_TOKENS = 4096;
+const MAX_MESSAGES = 100;
+const MAX_TOTAL_INPUT_CHARS = 256_000;
+const MAX_SYSTEM_CHARS = 32_000;
+
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const { request, env } = context;
 
@@ -74,37 +101,65 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       system,
     } = body;
 
-    if (!messages || messages.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Messages are required',
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            ...getCorsHeaders(request),
-          },
-        }
+    const badRequest = (error: string) =>
+      new Response(JSON.stringify({ success: false, error }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCorsHeaders(request),
+        },
+      });
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return badRequest('Messages are required');
+    }
+
+    if (messages.length > MAX_MESSAGES) {
+      return badRequest(`A conversation may contain at most ${MAX_MESSAGES} messages`);
+    }
+
+    let totalInputChars = 0;
+    for (const message of messages) {
+      if (
+        !message ||
+        (message.role !== 'user' && message.role !== 'assistant') ||
+        typeof message.content !== 'string'
+      ) {
+        return badRequest('Each message must have a role of user or assistant and string content');
+      }
+      totalInputChars += message.content.length;
+    }
+
+    if (totalInputChars > MAX_TOTAL_INPUT_CHARS) {
+      return badRequest('Conversation is too long');
+    }
+
+    if (system !== undefined && (typeof system !== 'string' || system.length > MAX_SYSTEM_CHARS)) {
+      return badRequest('System prompt is too long');
+    }
+
+    // Resolve model ID. Only the known aliases are billable - an unrecognised
+    // value is rejected rather than forwarded to Anthropic verbatim.
+    const modelId = ALLOWED_MODELS[model];
+    if (!modelId) {
+      return badRequest(
+        `Unknown model "${model}". Supported values: ${Object.keys(ALLOWED_MODELS).join(', ')}`
       );
     }
 
-    // Resolve model ID
-    let modelId: string;
-    if (model === 'default') {
-      modelId = DEFAULT_MODEL;
-    } else if (model === 'lightweight') {
-      modelId = LIGHTWEIGHT_MODEL;
-    } else {
-      modelId = model;
-    }
+    // Clamp the cost-bearing numeric fields rather than rejecting, so a caller
+    // asking for slightly more than we allow still gets a useful answer.
+    const boundedMaxTokens = Math.min(
+      Math.max(Math.floor(Number(maxTokens) || 1), 1),
+      MAX_OUTPUT_TOKENS
+    );
+    const boundedTemperature = Math.min(Math.max(Number(temperature) || 0, 0), 1);
 
     // Build request payload
     const payload: Record<string, unknown> = {
       model: modelId,
-      max_tokens: maxTokens,
-      temperature,
+      max_tokens: boundedMaxTokens,
+      temperature: boundedTemperature,
       messages,
     };
 

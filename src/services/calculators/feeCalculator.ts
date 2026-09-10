@@ -37,10 +37,15 @@ export function calculateTradeFees(input: FeeCalculatorInput): FeeCalculatorResu
   }
 
   const totalFees = tradingFee + depositFee + withdrawalFee;
-  const netAmount = trade_type === 'buy'
-    ? trade_amount - totalFees
-    : trade_amount - totalFees;
-  const feePercentage = (totalFees / trade_amount) * 100;
+
+  // Both branches of the previous ternary on trade_type were identical, so the
+  // behaviour is unchanged: a buyer spends trade_amount and receives
+  // trade_amount - fees worth of crypto, a seller receives proceeds less fees.
+  const netAmount = trade_amount - totalFees;
+
+  // A zero trade amount is reachable from the form before the user types a
+  // figure, and 0/0 rendered as "NaN%" in the fee breakdown.
+  const feePercentage = trade_amount > 0 ? (totalFees / trade_amount) * 100 : 0;
 
   return {
     exchange_name: exchange.name,
@@ -144,7 +149,9 @@ export function calculateCryptoWithdrawalFee(
 
   const feeInUsd = feeInCrypto * currentPrice;
   const totalValueUsd = amount * currentPrice;
-  const feePercentage = (feeInUsd / totalValueUsd) * 100;
+  // Guard the empty-form case: a zero amount or an unloaded price made this
+  // Infinity, which reached the UI as "Infinity%".
+  const feePercentage = totalValueUsd > 0 ? (feeInUsd / totalValueUsd) * 100 : 0;
   const netAmount = amount - feeInCrypto;
 
   return {
@@ -205,7 +212,12 @@ export function compareMakerTakerFees(
   const makerFee = trade_amount * exchange.fees.maker_fee;
   const takerFee = trade_amount * exchange.fees.taker_fee;
   const difference = takerFee - makerFee;
-  const percentageSavings = (difference / takerFee) * 100;
+
+  // Robinhood and Uphold both ship with maker_fee and taker_fee of 0, so this
+  // divided 0 by 0 and reported the maker/taker saving as "NaN%" for two of the
+  // eight exchanges in the comparison. With no taker fee there is nothing to
+  // save by posting a maker order, so the saving is 0%.
+  const percentageSavings = takerFee > 0 ? (difference / takerFee) * 100 : 0;
 
   return {
     makerFee,

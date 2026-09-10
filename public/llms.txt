@@ -54,8 +54,8 @@ Bitcoinvestments is a free cryptocurrency education platform built for beginners
 - [Crypto Blog](/blog): Latest cryptocurrency news, analysis, and educational content
 
 ## Comparison Pages
-- [Exchange Comparison](/compare/exchanges): Coinbase vs Kraken vs Binance and more
-- [Wallet Comparison](/compare/wallets): Hardware and software wallet comparison
+- [Exchange Comparison](/compare): Coinbase vs Kraken vs Binance and more
+- [Wallet Comparison](/compare): Hardware and software wallet comparison
 - [Tax Software Comparison](/compare/tax-software): Crypto tax tools comparison
 
 ## Key Facts

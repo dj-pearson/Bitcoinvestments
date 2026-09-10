@@ -24,7 +24,6 @@ interface EmailRequest {
   to: string;
   subject: string;
   html: string;
-  from?: string;
 }
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
@@ -41,7 +40,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       return jsonError(parseError || 'Invalid request body', 400);
     }
 
-    const { to, subject, html, from } = body;
+    const { to, subject, html } = body;
 
     // Validate email content
     const contentValidation = validateEmailContent({ to, subject, html });
@@ -52,7 +51,12 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     // Sanitize subject (keep HTML in email body but sanitize subject)
     const sanitizedSubject = sanitizeString(subject);
 
-    const fromEmail = from || env.VITE_FROM_EMAIL || 'Bitcoin Investments <noreply@bitcoinvestments.net>';
+    // The sender is configuration, never request input. This endpoint sends
+    // through our own SMTP credentials and domain, so honouring a caller
+    // supplied "from" let anyone send mail that authenticates as us - arbitrary
+    // spoofed sender, arbitrary recipient, arbitrary HTML body. Any "from" in
+    // the request body is ignored; no caller in this repo ever set one.
+    const fromEmail = env.VITE_FROM_EMAIL || 'Bitcoin Investments <noreply@bitcoinvestments.net>';
 
     // Use MailChannels (free for Cloudflare Workers)
     const response = await fetch('https://api.mailchannels.net/tx/v1/send', {

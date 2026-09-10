@@ -18,6 +18,8 @@ const NOINDEX_PATHS: string[] = [
   '/forgot-password',
   '/reset-password',
   '/profile',
+  // Login-walled: crawlers only ever reach the auth redirect, not the form.
+  '/report-scam',
   '/affiliate-stats',
   '/ad-manager',
   '/tax-reports',

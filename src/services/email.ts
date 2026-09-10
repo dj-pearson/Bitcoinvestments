@@ -12,10 +12,7 @@ interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
-  from?: string;
 }
-
-const FROM_EMAIL = import.meta.env.VITE_FROM_EMAIL || 'Bitcoin Investments <noreply@bitcoinvestments.net>';
 
 // Email API endpoint (Cloudflare Function -> Supabase Edge Function -> Amazon SES)
 const EMAIL_API_URL = import.meta.env.DEV 
@@ -41,7 +38,6 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ success: b
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: options.from || FROM_EMAIL,
         to: options.to,
         subject: options.subject,
         html: options.html,

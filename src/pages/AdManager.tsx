@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { AD_ZONES } from '../services/ads';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import type { Advertisement } from '../types/database';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 type AdFormData = {
   campaign_name: string;
@@ -37,6 +38,7 @@ function getInitialFormData(): AdFormData {
 }
 
 export function AdManager() {
+  usePageTitle('Ad Manager');
   const [ads, setAds] = useState<Advertisement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);

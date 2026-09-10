@@ -28,10 +28,6 @@ const STATIC_PAGES: SitemapEntry[] = [
 
   // Security
   { loc: '/scam-database', changefreq: 'daily', priority: 0.8 },
-  { loc: '/report-scam', changefreq: 'monthly', priority: 0.5 },
-
-  // Web3
-  { loc: '/web3', changefreq: 'weekly', priority: 0.7 },
 
   // Tools & Calculators
   { loc: '/staking-calculator', changefreq: 'weekly', priority: 0.8 },
@@ -55,15 +51,10 @@ const STATIC_PAGES: SitemapEntry[] = [
 
   // Developer
   { loc: '/developers/pricing', changefreq: 'monthly', priority: 0.5 },
-  { loc: '/developers/docs', changefreq: 'weekly', priority: 0.5 },
 
   // Legal
   { loc: '/privacy', changefreq: 'yearly', priority: 0.3 },
   { loc: '/terms', changefreq: 'yearly', priority: 0.3 },
-
-  // Auth (low priority - not for search ranking)
-  { loc: '/login', changefreq: 'monthly', priority: 0.2 },
-  { loc: '/signup', changefreq: 'monthly', priority: 0.3 },
 ];
 
 // Exchange pages (programmatic SEO)
@@ -146,7 +137,7 @@ export const onRequest: PagesFunction = async () => {
   // Add exchange pages
   EXCHANGES.forEach((id) => {
     allEntries.push({
-      loc: `/compare/exchanges/${id}`,
+      loc: `/compare/exchange/${id}`,
       changefreq: 'weekly',
       priority: 0.8,
     });
@@ -155,7 +146,7 @@ export const onRequest: PagesFunction = async () => {
   // Add wallet pages
   WALLETS.forEach((id) => {
     allEntries.push({
-      loc: `/compare/wallets/${id}`,
+      loc: `/compare/wallet/${id}`,
       changefreq: 'weekly',
       priority: 0.8,
     });

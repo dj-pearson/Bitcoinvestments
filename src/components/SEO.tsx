@@ -56,6 +56,20 @@ const DEFAULT_KEYWORDS = [
 ];
 
 /**
+ * Content each managed meta tag had before <SEO> first modified it.
+ *
+ * `null` means the tag did not exist in the document and was created by <SEO>,
+ * so it can be removed outright. A string means the tag came from index.html and
+ * must be restored to that value rather than deleted.
+ *
+ * Keyed by `"${attribute}|${key}"`.
+ */
+const originalMetaContent = new Map<string, string | null>();
+
+/** Meta tag keys written by the most recent <SEO> render. */
+let previouslyAppliedKeys = new Set<string>();
+
+/**
  * SEO Component
  *
  * Use this component on any page to set SEO meta tags.
@@ -102,6 +116,14 @@ export function SEO({
 
   // Build robots directive with automatic index pruning
   const autoNoindex = shouldNoindex(location.pathname);
+  // Serialise the array props so the effect below depends on their contents
+  // rather than on array identity. Callers such as PageSEO build these arrays
+  // inline, which produced a new reference — and a full effect re-run — on
+  // every render.
+  const keywordsContent = keywords.join(', ');
+  // NUL-joined so a tag containing a comma survives the round trip.
+  const tagsContent = tags ? tags.join('\u0000') : '';
+
   const robotsContent = [
     (noindex || autoNoindex) ? 'noindex' : 'index',
     nofollow ? 'nofollow' : 'follow',
@@ -112,24 +134,38 @@ export function SEO({
     // Update document title
     document.title = fullTitle;
 
+    // Meta tag keys written during this pass. Anything the previous page wrote
+    // that is absent here is stale and gets cleaned up below.
+    const appliedKeys = new Set<string>();
+
     // Helper to set or update meta tags
     const setMetaTag = (
       attribute: 'name' | 'property',
       key: string,
       content: string
     ) => {
+      const id = `${attribute}|${key}`;
       let element = document.querySelector(`meta[${attribute}="${key}"]`);
       if (!element) {
         element = document.createElement('meta');
         element.setAttribute(attribute, key);
         document.head.appendChild(element);
+        // Created by us, so it can be removed when no longer applicable.
+        if (!originalMetaContent.has(id)) {
+          originalMetaContent.set(id, null);
+        }
+      } else if (!originalMetaContent.has(id)) {
+        // Pre-existing tag from index.html — remember its value so we can put
+        // it back instead of deleting a document-level default.
+        originalMetaContent.set(id, element.getAttribute('content'));
       }
       element.setAttribute('content', content);
+      appliedKeys.add(id);
     };
 
     // Basic meta tags
     setMetaTag('name', 'description', description);
-    setMetaTag('name', 'keywords', keywords.join(', '));
+    setMetaTag('name', 'keywords', keywordsContent);
     setMetaTag('name', 'robots', robotsContent);
 
     // Author
@@ -164,8 +200,8 @@ export function SEO({
       if (section) {
         setMetaTag('property', 'article:section', section);
       }
-      if (tags && tags.length > 0) {
-        tags.forEach((tag, index) => {
+      if (tagsContent) {
+        tagsContent.split('\u0000').forEach((tag, index) => {
           setMetaTag('property', `article:tag:${index}`, tag);
         });
       }
@@ -212,6 +248,36 @@ export function SEO({
     }
     canonicalLink.setAttribute('href', fullUrl);
 
+    // Clear metadata the previous page set that this page does not.
+    //
+    // Many tags here are conditional: article:published_time, article:author,
+    // article:section and article:tag:N are only written for type="article";
+    // abstract/citation_abstract only when blufSummary is given; author,
+    // date, last-modified and *:image:alt only when their prop is present.
+    // Because setMetaTag only ever creates or updates, those tags used to
+    // survive client-side navigation and go on describing the page the user
+    // just left — a blog post's publish date and tag list would still be in
+    // the head on the calculators page. article:tag:N was worse than stale:
+    // moving from an eight-tag post to a two-tag post left tags 2-7 behind,
+    // silently merging two posts' tag sets.
+    previouslyAppliedKeys.forEach((id) => {
+      if (appliedKeys.has(id)) return;
+
+      const separator = id.indexOf('|');
+      const attribute = id.slice(0, separator);
+      const key = id.slice(separator + 1);
+      const element = document.querySelector(`meta[${attribute}="${key}"]`);
+      if (!element) return;
+
+      const original = originalMetaContent.get(id);
+      if (original == null) {
+        element.remove();
+      } else {
+        element.setAttribute('content', original);
+      }
+    });
+    previouslyAppliedKeys = appliedKeys;
+
     // Cleanup on unmount
     return () => {
       // Reset to defaults on unmount
@@ -220,7 +286,7 @@ export function SEO({
   }, [
     fullTitle,
     description,
-    keywords,
+    keywordsContent,
     fullImage,
     imageAlt,
     fullUrl,
@@ -229,7 +295,7 @@ export function SEO({
     publishedTime,
     modifiedTime,
     section,
-    tags,
+    tagsContent,
     robotsContent,
     blufSummary,
     contentCategory,

@@ -98,10 +98,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       apiVersion: '2024-11-20.acacia',
     });
 
-    // Verify webhook signature - critical for security
+    // Verify webhook signature - critical for security.
+    //
+    // Must be constructEventAsync, not constructEvent. Pages Functions run on
+    // workerd, so the Stripe SDK resolves to its worker build, whose crypto
+    // provider is SubtleCryptoProvider. That provider implements only the async
+    // HMAC path: its synchronous computeHMACSignature throws unconditionally
+    // ("SubtleCryptoProvider cannot be used in a synchronous context"), and the
+    // SDK appends "Use `await constructEventAsync(...)`" to the message.
+    //
+    // The synchronous call therefore threw on every delivery and was caught
+    // below as a signature failure, so every Stripe webhook was rejected with
+    // 400 and no subscription event ever reached Supabase. Running this on Node
+    // instead would need the nodejs_compat flag, which wrangler.toml does not
+    // set; the async call is correct either way.
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(
+      event = await stripe.webhooks.constructEventAsync(
         body,
         signature,
         context.env.STRIPE_WEBHOOK_SECRET

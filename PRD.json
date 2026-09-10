@@ -1784,6 +1784,22 @@
       "priority": 103,
       "passes": false,
       "notes": "SECURITY / COST - HIGH. Found during the iteration-8 audit. Input bounds were fixed immediately because they were safe and behaviour-preserving; authentication was not, because it needs src/services/ai.ts to attach a session token and a decision about which AI features may run for signed-out visitors (the learning assistant and article summaries may be intended as public). Shares the unbound RATE_LIMIT_KV problem described in US-102 - fixing the KV binding once addresses both. Also flagged: functions/api/test-claude.ts is a second unauthenticated Claude endpoint and should be checked as part of this story."
+    },
+    {
+      "id": "US-104",
+      "title": "Model Monte Carlo returns log-normally instead of additively",
+      "description": "runMonteCarloSimulation draws a normal monthly return and applies it as value * (1 + r). A normal draw is unbounded below, so at high volatility inputs - and 60-120% annual volatility is ordinary for crypto, which is what this tool projects - a single month can return worse than -100% and drive the simulated portfolio value negative. A negative balance then compounds, so the affected paths are not merely pessimistic but meaningless, and they contaminate the percentile bands, the average return and the probability-of-profit figure that sit beside the drawdown metric. Real prices cannot go below zero; the standard treatment is geometric Brownian motion, where the log return is normal and the price factor exp(r) is always positive.",
+      "acceptanceCriteria": [
+        "Simulated portfolio value never goes negative for any volatility input",
+        "Monthly growth is drawn as a log-normal factor, with the drift term corrected for volatility drag so the mean annual return still matches the caller's expectedReturn",
+        "At low volatility the percentile bands stay close to the current output, so the change is visibly a refinement rather than a different tool",
+        "probabilityOfProfit and the percentile bands are re-checked at 60% and 120% volatility and no longer include impossible paths",
+        "The 100% cap on drawdown becomes unreachable in practice rather than load-bearing",
+        "The same review is applied to the volatility and Sharpe figures in compareMultipleAssets, which use the same additive assumption"
+      ],
+      "priority": 104,
+      "passes": false,
+      "notes": "Found during the iteration-14 audit while fixing the max-drawdown metric, which was returning a hardcoded-zero result (commit on branch claude/lucid-goodall-mi34c1). Deliberately not bundled: switching the return model changes every number this premium feature outputs - percentiles, expected return, probability of profit - so it wants its own change with before/after comparison at several volatility levels, not a quiet edit inside a bug fix. The drawdown metric is capped at 100% in the meantime so the displayed figure stays well-formed; that cap is a symptom of this issue and should become redundant once the model is corrected."
     }
   ]
 }

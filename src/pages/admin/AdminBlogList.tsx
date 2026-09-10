@@ -21,10 +21,12 @@ import {
 } from 'lucide-react';
 import { getAdminBlogPosts, getBlogStats, bulkUpdateStatus, deleteBlogPost } from '../../services/blog';
 import type { BlogPost, BlogFilters, BlogStats } from '../../types/blog';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 type TabFilter = 'all' | 'draft' | 'published' | 'archived' | 'ai';
 
 export function AdminBlogList() {
+  usePageTitle('Blog Posts | Admin');
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [stats, setStats] = useState<BlogStats | null>(null);
   const [loading, setLoading] = useState(true);

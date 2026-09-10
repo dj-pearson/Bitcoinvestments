@@ -24,8 +24,10 @@ import {
 } from '../../services/blog';
 import type { BlogCategory } from '../../types/blog';
 import { useToast } from '../../contexts/ToastContext';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 export function AdminBlogCategories() {
+  usePageTitle('Blog Categories | Admin');
   const { success, error } = useToast();
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [loading, setLoading] = useState(true);

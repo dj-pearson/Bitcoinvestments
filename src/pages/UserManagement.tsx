@@ -4,8 +4,10 @@ import { getAllUsers, suspendUser, activateUser, updateUserRole } from '../servi
 import { useAuth } from '../contexts/AuthContext';
 import { Skeleton } from '../components/LoadingSkeletons';
 import type { AdminUser, UserRole } from '../types/admin-database';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export function UserManagement() {
+  usePageTitle('User Management');
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { getSupportTickets, updateTicketStatus, addTicketReply, type SupportTicket, type TicketStatus } from '../../services/supportTickets';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 type TicketStatusFilter = TicketStatus | 'all';
 type Priority = 'low' | 'medium' | 'high' | 'urgent';
@@ -36,6 +37,7 @@ type SupportTicketWithReplies = SupportTicket & {
 };
 
 export function SupportTickets() {
+  usePageTitle('Support Tickets | Admin');
   const { user } = useAuth();
   const [tickets, setTickets] = useState<SupportTicketWithReplies[]>([]);
   const [loading, setLoading] = useState(true);

@@ -14,10 +14,12 @@ import {
   type CampaignAnalytics,
 } from '../services/sponsoredContent';
 import { formatPrice } from '../services/stripe';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 type TabId = 'overview' | 'campaigns' | 'content' | 'analytics' | 'billing';
 
 export function AdvertiserDashboard() {
+  usePageTitle('Advertiser Dashboard');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('overview');

@@ -26,10 +26,12 @@ import {
 import { cn } from '../lib/utils';
 
 import { DemoDataBanner } from '../components/DemoDataBanner';
+import { usePageTitle } from '../hooks/usePageTitle';
 // Mock influencer data (in production, fetch from database)
 const mockInfluencerProfile: InfluencerProfile | null = null; // Set to profile for returning users
 
 export function InfluencerDashboard() {
+  usePageTitle('Influencer Dashboard');
   const { user, profile } = useAuth();
   const [influencer] = useState<InfluencerProfile | null>(mockInfluencerProfile);
   const [copied, setCopied] = useState(false);

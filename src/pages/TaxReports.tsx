@@ -25,6 +25,7 @@ import {
 import { TAX_PACKAGE, isTaxSeasonActive } from '../services/subscriptionLimits';
 import { TaxSeasonPackage } from '../components/TaxSeasonPackage';
 import type { Portfolio } from '../types';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 // State tax options
 const US_STATES = [
@@ -92,6 +93,7 @@ const TAX_BRACKETS = [
 ];
 
 export default function TaxReports() {
+  usePageTitle('Tax Reports');
   // Auth state
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);

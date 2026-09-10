@@ -20,6 +20,7 @@ import { cn } from '../lib/utils';
 import type { AdvisorClient } from '../types';
 
 import { DemoDataBanner } from '../components/DemoDataBanner';
+import { usePageTitle } from '../hooks/usePageTitle';
 // Mock data for clients (in production, this would come from database)
 const mockClients: AdvisorClient[] = [
   {
@@ -65,6 +66,7 @@ const mockPortfolioValues: Record<string, { value: number; change: number }> = {
 };
 
 export function AdvisorDashboard() {
+  usePageTitle('Advisor Dashboard');
   const { profile } = useAuth();
   const [clients, setClients] = useState<AdvisorClient[]>(mockClients);
   const [activeTab, setActiveTab] = useState<'clients' | 'reports' | 'branding'>('clients');

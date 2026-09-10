@@ -4,8 +4,10 @@ import { updatePassword, validatePassword } from '../services/auth';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../contexts/ToastContext';
 import { Check, X, AlertTriangle, Lock } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export function ResetPassword() {
+  usePageTitle('Reset Password');
   const navigate = useNavigate();
   const toast = useToast();
   const [password, setPassword] = useState('');

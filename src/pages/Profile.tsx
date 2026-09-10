@@ -8,8 +8,10 @@ import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { SessionsManager } from '../components/SessionsManager';
 import { createCustomerPortalSession, hasPremiumAccess, getSubscriptionTier, formatPrice, type SubscriptionTierId } from '../services/stripe';
 import type { User } from '../types/database';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export function Profile() {
+  usePageTitle('Profile');
   const navigate = useNavigate();
   const { signOut, signOutAllDevices } = useAuth();
   const toast = useToast();

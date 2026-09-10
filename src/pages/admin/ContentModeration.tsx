@@ -14,11 +14,13 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { getFlaggedContent, moderateContent, type FlaggedContent } from '../../services/contentModeration';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 type ContentTab = 'review' | 'comment' | 'report' | 'all';
 type StatusFilter = 'pending' | 'approved' | 'rejected' | 'all';
 
 export function ContentModeration() {
+  usePageTitle('Content Moderation | Admin');
   const [content, setContent] = useState<FlaggedContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ContentTab>('all');

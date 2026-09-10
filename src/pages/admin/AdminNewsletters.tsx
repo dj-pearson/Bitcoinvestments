@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { DemoDataBanner } from '../../components/DemoDataBanner';
+import { usePageTitle } from '../../hooks/usePageTitle';
 interface Newsletter {
   id: string;
   subject: string;
@@ -44,6 +45,7 @@ const statusColors: Record<string, string> = {
 };
 
 export function AdminNewsletters() {
+  usePageTitle('Newsletters | Admin');
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(true);
   const [showComposer, setShowComposer] = useState(false);

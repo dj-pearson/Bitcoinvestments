@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Clock, ArrowLeft, BookOpen, Calculator, ArrowLeftRight, BarChart3 } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export function ComingSoon() {
+  usePageTitle('Coming Soon');
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="max-w-2xl w-full text-center">

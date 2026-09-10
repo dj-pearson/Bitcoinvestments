@@ -33,6 +33,7 @@ interface TestResult {
 }
 
 export function AdminAISettings() {
+  usePageTitle('AI Settings');
   const { user } = useAuth();
   const [settings, setSettings] = useState<AIModelSettings>(DEFAULT_AI_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -452,6 +453,7 @@ import {
   Mail,
   BookOpen,
 } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const AI_FEATURES = [
   {

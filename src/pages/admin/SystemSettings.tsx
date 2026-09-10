@@ -14,6 +14,7 @@ import {
   Copy,
   ExternalLink,
 } from 'lucide-react';
+import { usePageTitle } from '../../hooks/usePageTitle';
 
 interface SettingsSection {
   id: string;
@@ -34,6 +35,7 @@ interface SettingItem {
 }
 
 export function SystemSettings() {
+  usePageTitle('System Settings | Admin');
   const [activeSection, setActiveSection] = useState('general');
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);

@@ -33,17 +33,62 @@ const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 
 const SITE_URL = 'https://bitcoinvestments.net';
 
-/** Route path prefixes whose children are generated from data, not declared. */
-const DYNAMIC_PREFIXES = [
-  '/learn/',
-  '/course/',
-  '/blog/',
-  '/article/',
-  '/coin/',
-  '/compare/',
-  '/scam/',
-  '/sponsored/',
-];
+/**
+ * Route path prefixes whose children come from a CMS or database, so their
+ * validity cannot be checked from the repo.
+ */
+const DYNAMIC_PREFIXES = ['/learn/', '/course/', '/blog/', '/article/', '/coin/', '/scam/', '/sponsored/'];
+
+/**
+ * Comparison detail URLs are data-driven but the data lives in the repo, so
+ * they can be checked exactly. Compare.tsx matches the SINGULAR type segment
+ * ('/compare/exchange/:id'); anything plural falls through to its
+ * "Platform Not Found" branch.
+ */
+function extractCompareUrls() {
+  const ids = (file) =>
+    [...read(file).matchAll(/^\s*id: '([a-z0-9-]+)'/gm)].map((m) => m[1]);
+
+  return new Set([
+    ...ids('src/data/exchanges.ts').map((id) => `/compare/exchange/${id}`),
+    ...ids('src/data/wallets.ts').map((id) => `/compare/wallet/${id}`),
+  ]);
+}
+
+/** Site-relative URLs hardcoded in the /api/sitemap Pages Function. */
+function extractFunctionSitemap() {
+  const src = read('functions/api/sitemap.ts');
+  const urls = new Set([...src.matchAll(/loc: '([^']+)'/g)].map((m) => m[1]));
+
+  // The function appends data-driven entries via template literals. Each URL
+  // prefix draws from exactly one data file - pairing them the wrong way round
+  // would invent URLs like /compare/exchange/metamask.
+  const idsFor = {
+    '/compare/exchange': 'src/data/exchanges.ts',
+    '/compare/wallet': 'src/data/wallets.ts',
+  };
+
+  const unknownPrefixes = [];
+
+  for (const [, prefix] of src.matchAll(/loc: `(\/[a-z/-]+)\/\$\{id\}`/g)) {
+    const dataFile = idsFor[prefix];
+    if (!dataFile) {
+      // CMS-backed prefixes cannot be checked from the repo, but anything else
+      // is a typo. Skipping quietly is how the plural '/compare/exchanges/:id'
+      // form hid here, generating eighteen URLs that every one of which
+      // rendered Compare.tsx's "Platform Not Found" branch.
+      if (!DYNAMIC_PREFIXES.includes(`${prefix}/`)) {
+        unknownPrefixes.push(prefix);
+      }
+      continue;
+    }
+    for (const [, id] of read(dataFile).matchAll(/^\s*id: '([a-z0-9-]+)'/gm)) {
+      urls.add(`${prefix}/${id}`);
+    }
+  }
+
+  return { urls, unknownPrefixes };
+}
 
 /**
  * Extract every statically addressable route from App.tsx, resolving the paths
@@ -110,6 +155,7 @@ const routes = extractRoutes();
 const isNoindexed = extractNoindexRules();
 const sitemap = extractSitemap();
 const declaredPaths = new Set(routes.map((r) => r.path));
+const validCompareUrls = extractCompareUrls();
 
 const problems = [];
 
@@ -137,14 +183,45 @@ for (const entry of sitemap) {
   }
 
   const isDynamic = DYNAMIC_PREFIXES.some((prefix) => entry.startsWith(prefix));
-  if (!isDynamic && !declaredPaths.has(entry)) {
+  if (!isDynamic && !declaredPaths.has(entry) && !validCompareUrls.has(entry)) {
     problems.push(`Listed but routeless: ${entry} is in public/sitemap.xml but matches no route.`);
+  }
+}
+
+// The comparison detail pages are real content with their own review schema and
+// canonical URLs, so an omission here means those pages are never submitted.
+for (const url of validCompareUrls) {
+  if (!sitemap.has(url)) {
+    problems.push(`Indexable but unlisted: ${url} is a comparison detail page missing from public/sitemap.xml.`);
+  }
+}
+
+// /api/sitemap is a second, hardcoded sitemap source. It is not advertised in
+// robots.txt today, but it drifted out of sync with the routes while nothing
+// checked it, so hold it to the same rules.
+const functionSitemap = extractFunctionSitemap();
+
+for (const prefix of functionSitemap.unknownPrefixes) {
+  problems.push(
+    `functions/api/sitemap.ts builds URLs under "${prefix}/", which matches no route ` +
+      `and no known CMS prefix. Note that Compare.tsx matches the SINGULAR type ` +
+      `segment: /compare/exchange/:id and /compare/wallet/:id.`
+  );
+}
+
+for (const url of functionSitemap.urls) {
+  const isDynamic = DYNAMIC_PREFIXES.some((prefix) => url.startsWith(prefix));
+  if (isNoindexed(url)) {
+    problems.push(`functions/api/sitemap.ts lists ${url}, which emits "noindex".`);
+  } else if (!isDynamic && !declaredPaths.has(url) && !validCompareUrls.has(url)) {
+    problems.push(`functions/api/sitemap.ts lists ${url}, which matches no route.`);
   }
 }
 
 if (problems.length === 0) {
   console.log(
-    `Route indexing OK - ${routes.length} routes, ${sitemap.size} sitemap URLs, no mismatches.`
+    `Route indexing OK - ${routes.length} routes, ${sitemap.size} sitemap URLs, ` +
+      `${validCompareUrls.size} comparison pages, no mismatches.`
   );
   process.exit(0);
 }

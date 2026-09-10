@@ -1766,6 +1766,24 @@
       "priority": 102,
       "passes": false,
       "notes": "SECURITY - HIGH. Found during the iteration-7 audit. The sender-spoofing vector was closed separately by pinning the sender server-side, which was safe to do immediately because no caller ever set a from address. Authentication was NOT bundled with it because it requires changing four browser call sites to attach a session token AND a product decision about flows that legitimately send before a user is signed in - notably sendNewsletterWelcomeEmail. Requiring auth without resolving that would silently break newsletter signup. Related: the in-memory rate limiter in functions/api/_middleware.ts is a stated fallback, but with no KV binding it is the ONLY path, and its own comment understates the impact - Workers isolates are per-colo and short-lived, so counters reset constantly."
+    },
+    {
+      "id": "US-103",
+      "title": "Authenticate /api/claude and attribute AI spend per user",
+      "description": "functions/api/claude.ts performs no authentication. Anyone who finds the URL can use our Anthropic API key as a general-purpose LLM proxy: they control the full message list, the system prompt, and the sampling parameters, and the cost lands on our bill. Per-request cost is now bounded (model restricted to known aliases, maxTokens clamped, prompt sizes capped), but request volume is not: the endpoint falls under the generic 100/min default tier in functions/api/_middleware.ts, which with RATE_LIMIT_KV unbound degrades to a per-isolate in-memory Map. There is also no record of who spent what - the response carries Anthropic's usage object but nothing is persisted, so there is no way to attribute cost, detect abuse, or enforce per-tier AI quotas.",
+      "acceptanceCriteria": [
+        "POST /api/claude without a valid session returns 401 and makes no upstream Anthropic call",
+        "src/services/ai.ts attaches the Supabase session JWT and the endpoint verifies it",
+        "Each request's input_tokens and output_tokens are persisted against the calling user",
+        "AI usage is subject to a per-user quota derived from subscription tier, enforced server-side",
+        "Exceeding the quota returns 429 with a message naming the limit, without calling Anthropic",
+        "/api/claude has its own rate limit tier rather than sharing the 100/min default",
+        "functions/api/test-claude.ts is either removed or placed behind admin-only auth",
+        "An abuse test confirms an unauthenticated caller cannot reach Anthropic"
+      ],
+      "priority": 103,
+      "passes": false,
+      "notes": "SECURITY / COST - HIGH. Found during the iteration-8 audit. Input bounds were fixed immediately because they were safe and behaviour-preserving; authentication was not, because it needs src/services/ai.ts to attach a session token and a decision about which AI features may run for signed-out visitors (the learning assistant and article summaries may be intended as public). Shares the unbound RATE_LIMIT_KV problem described in US-102 - fixing the KV binding once addresses both. Also flagged: functions/api/test-claude.ts is a second unauthenticated Claude endpoint and should be checked as part of this story."
     }
   ]
 }

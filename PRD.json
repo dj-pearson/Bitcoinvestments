@@ -1749,6 +1749,23 @@
       "priority": 101,
       "passes": false,
       "notes": "Found during the iteration-5 audit of functions/api/stripe-webhook.ts, alongside the constructEventAsync signature bug fixed in commit 276f5a9. Deliberately NOT bundled with that fix: this needs a database migration plus handler restructuring, which is more than one iteration of work. Sequence matters - the signature fix means events now actually reach the handlers, so idempotency should land before the endpoint is re-enabled in the Stripe dashboard and the retry backlog is replayed."
+    },
+    {
+      "id": "US-102",
+      "title": "Authenticate and rate limit /api/send-email",
+      "description": "functions/api/send-email.ts performs no authentication. Any client can POST a recipient, subject and up to 100 KB of HTML and have it delivered through our SMTP credentials and domain. The sender-spoofing half of this was fixed by pinning the sender to configuration, but an unauthenticated caller can still send mail that genuinely originates from us, to any address, with any content. CORS does not mitigate this - it constrains browsers, not curl. The only limit today is the generic 100 requests/minute default tier in functions/api/_middleware.ts, and because RATE_LIMIT_KV is not bound in wrangler.toml that limit falls back to an in-memory Map which is per-isolate and therefore close to unenforced across Cloudflare's edge.",
+      "acceptanceCriteria": [
+        "POST /api/send-email without valid credentials returns 401 and sends no mail",
+        "Browser callers (email.ts, invoicing.ts, transactionEmails.ts, supportTickets.ts) attach the Supabase session JWT, and the endpoint verifies it",
+        "The verified caller identity, not the request body, determines the recipient wherever the mail is addressed to the user themselves",
+        "Any flow that must send before a session exists (e.g. newsletter welcome) is identified and given an explicit design - either a server-side trigger or a scoped single-use token - rather than being left open",
+        "send-email is given its own strict rate limit tier in functions/api/_middleware.ts rather than the shared 100/min default",
+        "A KV namespace is created and bound as RATE_LIMIT_KV in wrangler.toml so rate limits are enforced across isolates rather than per-instance",
+        "An abuse test confirms an unauthenticated caller cannot send, and an authenticated caller cannot exceed the new limit"
+      ],
+      "priority": 102,
+      "passes": false,
+      "notes": "SECURITY - HIGH. Found during the iteration-7 audit. The sender-spoofing vector was closed separately by pinning the sender server-side, which was safe to do immediately because no caller ever set a from address. Authentication was NOT bundled with it because it requires changing four browser call sites to attach a session token AND a product decision about flows that legitimately send before a user is signed in - notably sendNewsletterWelcomeEmail. Requiring auth without resolving that would silently break newsletter signup. Related: the in-memory rate limiter in functions/api/_middleware.ts is a stated fallback, but with no KV binding it is the ONLY path, and its own comment understates the impact - Workers isolates are per-colo and short-lived, so counters reset constantly."
     }
   ]
 }

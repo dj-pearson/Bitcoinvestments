@@ -19,6 +19,24 @@ export function calculateStakingRewards(
   let currentBalance = amount;
   const monthlyRewards: StakingMonthlyReward[] = [];
 
+  // Compounding periods completed so far. Tracked cumulatively because a month
+  // is not a whole number of periods: the loop below used
+  // "period < periodsPerYear / 12" as its bound, and a fractional bound runs
+  // only the whole iterations, silently discarding the remainder every month.
+  // Weekly compounding ran 4 periods a month - 48 a year instead of 52 - and
+  // daily ran 30, for 360 instead of 365.
+  //
+  // That made the month-by-month schedule disagree with the effective_apy this
+  // function returns, which is computed from the closed-form formula and so
+  // assumed the full period count. It also inverted the whole point of
+  // compareCompoundingStrategies: at 10% APY over a year, weekly compounding
+  // shortchanged by four periods finishes below monthly compounding, which
+  // cannot happen, so bestStrategy reported the wrong frequency.
+  //
+  // Carrying the cumulative count forward gives each month the periods it is
+  // actually owed and lands on exactly periodsPerYear after twelve months.
+  let periodsElapsed = 0;
+
   // Calculate month by month
   for (let month = 1; month <= duration_months; month++) {
     const startingBalance = currentBalance;
@@ -30,7 +48,9 @@ export function calculateStakingRewards(
       currentBalance = amount + (rewardsThisMonth * month);
     } else {
       // Compound interest
-      const periodsThisMonth = periodsPerYear / 12;
+      const periodsCompletedByNow = Math.floor((periodsPerYear * month) / 12);
+      const periodsThisMonth = periodsCompletedByNow - periodsElapsed;
+      periodsElapsed = periodsCompletedByNow;
 
       for (let period = 0; period < periodsThisMonth; period++) {
         const periodReward = currentBalance * periodicRate;

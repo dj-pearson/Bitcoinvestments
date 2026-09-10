@@ -92,25 +92,44 @@ function generateInvestmentDates(
   frequency: DCACalculatorInput['frequency']
 ): Date[] {
   const dates: Date[] = [];
+
+  if (frequency === 'monthly') {
+    // Monthly steps are anchored to the start date's day-of-month rather than
+    // advanced with setMonth, which overflows instead of clamping. Starting on
+    // 31 Jan 2023, setMonth(+1) asks for 31 Feb and JavaScript rolls that
+    // forward to 3 Mar - so February was skipped entirely and every later
+    // purchase drifted to the 3rd, permanently. Any start date after the 28th
+    // lost a contribution and priced the rest on the wrong days.
+    const anchorDay = startDate.getDate();
+
+    for (let monthOffset = 0; ; monthOffset++) {
+      // Land on the first of the target month before setting the day, so the
+      // month arithmetic itself cannot overflow.
+      const candidate = new Date(startDate);
+      candidate.setDate(1);
+      candidate.setMonth(startDate.getMonth() + monthOffset);
+
+      // Clamp to the last day of a short month: 31 Jan is followed by 28 Feb.
+      const daysInMonth = new Date(
+        candidate.getFullYear(),
+        candidate.getMonth() + 1,
+        0
+      ).getDate();
+      candidate.setDate(Math.min(anchorDay, daysInMonth));
+
+      if (candidate > endDate) break;
+      dates.push(candidate);
+    }
+
+    return dates;
+  }
+
+  const stepDays = frequency === 'daily' ? 1 : frequency === 'weekly' ? 7 : 14;
   const current = new Date(startDate);
 
   while (current <= endDate) {
     dates.push(new Date(current));
-
-    switch (frequency) {
-      case 'daily':
-        current.setDate(current.getDate() + 1);
-        break;
-      case 'weekly':
-        current.setDate(current.getDate() + 7);
-        break;
-      case 'biweekly':
-        current.setDate(current.getDate() + 14);
-        break;
-      case 'monthly':
-        current.setMonth(current.getMonth() + 1);
-        break;
-    }
+    current.setDate(current.getDate() + stepDays);
   }
 
   return dates;
@@ -158,24 +177,28 @@ export function projectFutureDCA(
   projectedValue: number;
   totalContributions: number;
 } {
-  // Calculate number of contributions
+  // Contributions per month, as the exact average rather than a rounded-down
+  // whole number. Using 4 for weekly and 30 for daily counted 48 and 360
+  // contributions a year instead of 52 and 365, understating both the amount
+  // invested and the projected value by roughly 8% for weekly and biweekly.
   let contributionsPerMonth: number;
   switch (frequency) {
     case 'daily':
-      contributionsPerMonth = 30;
+      contributionsPerMonth = 365 / 12;
       break;
     case 'weekly':
-      contributionsPerMonth = 4;
+      contributionsPerMonth = 52 / 12;
       break;
     case 'biweekly':
-      contributionsPerMonth = 2;
+      contributionsPerMonth = 26 / 12;
       break;
     case 'monthly':
       contributionsPerMonth = 1;
       break;
   }
 
-  const totalContributions = contributionsPerMonth * durationMonths;
+  // A contribution count is a whole number even though the monthly average is not.
+  const totalContributions = Math.round(contributionsPerMonth * durationMonths);
   const totalInvested = investmentAmount * totalContributions;
 
   // Calculate projected value with compound growth

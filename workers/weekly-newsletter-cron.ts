@@ -27,7 +27,6 @@ export default {
         headers: {
           Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
-          'X-Cloudflare-Cron': 'true',
         },
       });
 

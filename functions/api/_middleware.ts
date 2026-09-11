@@ -78,22 +78,23 @@ function getRateLimitConfig(path: string): RateLimitConfig {
 }
 
 /**
- * Extract client identifier for rate limiting
- * Uses CF-Connecting-IP header (Cloudflare provides real client IP)
+ * Extract client identifier for rate limiting.
+ *
+ * Only CF-Connecting-IP is trusted. Cloudflare sets it on every request that
+ * reaches a Function and overwrites any value the client supplies, so it cannot
+ * be forged. X-Forwarded-For is the opposite: it is whatever the caller typed.
+ * Using it as a fallback let a caller mint a fresh rate-limit bucket per request
+ * by varying the header, which defeats the limiter entirely.
+ *
+ * When the header is absent the request did not arrive through Cloudflare. Every
+ * such request shares one bucket rather than getting an unmetered pass, so an
+ * unexpected path cannot be used to escape the limit.
  */
 function getClientIdentifier(request: Request): string {
-  // Cloudflare provides the real client IP
   const cfIP = request.headers.get('CF-Connecting-IP');
   if (cfIP) return cfIP;
 
-  // Fallback to X-Forwarded-For
-  const forwardedFor = request.headers.get('X-Forwarded-For');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
-  }
-
-  // Last resort fallback
-  return 'unknown';
+  return 'unidentified';
 }
 
 /**

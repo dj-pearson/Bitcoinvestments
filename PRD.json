@@ -1878,6 +1878,21 @@
       "priority": 109,
       "passes": false,
       "notes": "Opened during iteration 4 while consolidating four divergent copies of the cost-basis maths. Deliberately out of scope for that fix: a schema migration plus backfill plus rewriting the read path is more than one iteration, and the arithmetic errors needed fixing whether or not the history is persisted. Note the synthesised opening transfer_in is load-bearing until this lands - removing it without persisting real transactions would make the ledger replay zero out every saved holding."
+    },
+    {
+      "id": "US-110",
+      "title": "Give the scheduled endpoints their own secret instead of authenticating with the Supabase service role key",
+      "description": "check-price-alerts and send-newsletter authenticate the scheduled worker by comparing the Authorization header against SUPABASE_SERVICE_ROLE_KEY. That key is the database god-key: it bypasses every RLS policy on every table. Using it as an HTTP bearer token means it is transmitted to a Pages Function on every cron run and sits in the request headers of any log line, error report or trace that captures them, and the workers hold it in their own environment purely to present it. A leak is total database compromise rather than the ability to trigger a newsletter early. These endpoints need a dedicated shared secret with no database authority, rotatable without touching Supabase, so that the blast radius of the credential matches what it actually authorises.",
+      "acceptanceCriteria": [
+        "A dedicated secret (e.g. CRON_SHARED_SECRET) authenticates the scheduled endpoints; SUPABASE_SERVICE_ROLE_KEY is no longer used as a bearer token",
+        "The workers in workers/ send the new secret and no longer need the service role key in their environment unless they query the database directly",
+        "Rotation is documented, and the endpoints accept a previous value during a rotation window so a rotation does not drop a cron run",
+        "Deployment docs and wrangler-cron.toml / wrangler-newsletter.toml comments name the new secret",
+        "isAuthorizedScheduledRequest keeps failing closed when the secret is unset"
+      ],
+      "priority": 110,
+      "passes": false,
+      "notes": "Opened during iteration 5 while removing the X-Cloudflare-Cron auth bypass from both endpoints. Deliberately out of scope for that fix: the bypass was a one-line predicate with a demonstrable exploit, whereas swapping the credential needs a new secret provisioned in the Cloudflare dashboard for Pages and both workers, plus a rotation window, and cannot be verified from the repo alone. Note the endpoints still need the service role key for their own Supabase queries - only its use as the bearer token should change."
     }
   ]
 }

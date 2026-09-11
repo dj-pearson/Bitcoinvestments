@@ -9,6 +9,8 @@
  * 5. Mark alerts as triggered in the database
  */
 
+import { isAuthorizedScheduledRequest, unauthorizedResponse } from './_scheduledAuth';
+
 interface Env {
   // Supabase
   SUPABASE_URL: string;
@@ -40,16 +42,9 @@ interface CoinGeckoPriceResponse {
 export async function onRequest(context: { request: Request; env: Env }) {
   const { request, env } = context;
 
-  // Verify this is a cron request or authorized request
-  const authHeader = request.headers.get('Authorization');
-  const cronHeader = request.headers.get('X-Cloudflare-Cron');
-  
-  // Allow cron jobs or requests with valid auth token
-  if (!cronHeader && authHeader !== `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // Only the scheduled worker may run this: it sends mail and spends API quota.
+  if (!isAuthorizedScheduledRequest(request, env.SUPABASE_SERVICE_ROLE_KEY)) {
+    return unauthorizedResponse();
   }
 
   try {

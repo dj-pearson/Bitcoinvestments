@@ -88,3 +88,34 @@ export function parseLocalDate(value: string): Date {
 
     return new Date(year, month - 1, day);
 }
+
+/**
+ * Format a large currency figure with a unit that suits its size.
+ *
+ * Market caps and volumes were divided by a fixed 1e9 and labelled "B"
+ * regardless of magnitude, so the scale only ever suited large caps: a coin
+ * worth $12.4 million displayed as "$0.01B", one worth $850,000 as "$0.00B",
+ * and Bitcoin as "$1580.00B" rather than "$1.58T". Every coin outside the top
+ * tier showed a figure that was either unreadable or zero.
+ */
+export function formatCompactCurrency(value: number | null | undefined): string {
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+        return '—';
+    }
+
+    const sign = value < 0 ? '-' : '';
+    const magnitude = Math.abs(value);
+
+    const [divisor, suffix] =
+        magnitude >= 1e12 ? [1e12, 'T']
+        : magnitude >= 1e9 ? [1e9, 'B']
+        : magnitude >= 1e6 ? [1e6, 'M']
+        : magnitude >= 1e3 ? [1e3, 'K']
+        : [1, ''];
+
+    const scaled = magnitude / divisor;
+    // Keep three significant figures at this scale: 1.58T, 68.0B, 295B.
+    const decimals = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
+
+    return `${sign}$${scaled.toFixed(decimals)}${suffix}`;
+}

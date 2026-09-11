@@ -9,7 +9,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { cn, formatCryptoPrice } from '../lib/utils';
+import { cn, formatCompactCurrency, formatCryptoPrice } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
 import { PortfolioTracker } from '../components/PortfolioTracker';
@@ -80,11 +80,18 @@ export function Dashboard() {
   );
 
   const btcDominance = useMemo(() => {
-    if (filteredCryptos[0]?.market_cap && globalData?.total_market_cap.usd) {
-      return ((filteredCryptos[0].market_cap / globalData.total_market_cap.usd) * 100).toFixed(1);
+    // Bitcoin specifically, from the unfiltered list. This read
+    // filteredCryptos[0], so typing anything into the search box relabelled
+    // whichever coin happened to sort first as "BTC Dominance" - searching
+    // "eth" showed Ethereum's share under Bitcoin's heading. Even unfiltered it
+    // only worked because Bitcoin happens to come first in a market-cap
+    // ordering.
+    const bitcoin = cryptos.find((crypto) => crypto.id === 'bitcoin');
+    if (bitcoin?.market_cap && globalData?.total_market_cap.usd) {
+      return ((bitcoin.market_cap / globalData.total_market_cap.usd) * 100).toFixed(1);
     }
     return '--';
-  }, [filteredCryptos, globalData]);
+  }, [cryptos, globalData]);
 
   const handleCoinClick = useCallback(
     (coinId: string) => navigate(`/coin/${coinId}`),
@@ -155,7 +162,7 @@ export function Dashboard() {
           <div className="glass-card p-4">
             <p className="text-xs text-gray-400 mb-1">Total Market Cap</p>
             <p className="text-xl font-bold text-white">
-              ${(globalData.total_market_cap.usd / 1e12).toFixed(2)}T
+              {formatCompactCurrency(globalData.total_market_cap.usd)}
             </p>
             <div className={cn(
               'flex items-center gap-1 text-sm',
@@ -280,7 +287,7 @@ export function Dashboard() {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-gray-500">Market Cap</p>
-                          <p className="text-sm text-gray-300">${(crypto.market_cap / 1e9).toFixed(2)}B</p>
+                          <p className="text-sm text-gray-300">{formatCompactCurrency(crypto.market_cap)}</p>
                         </div>
                       </div>
                     </div>
@@ -337,7 +344,7 @@ export function Dashboard() {
                             </div>
                           </td>
                           <td className="py-4 px-2 text-right text-gray-300">
-                            ${(crypto.market_cap / 1e9).toFixed(2)}B
+                            {formatCompactCurrency(crypto.market_cap)}
                           </td>
                         </tr>
                       ))}

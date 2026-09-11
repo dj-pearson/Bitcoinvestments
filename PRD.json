@@ -2001,6 +2001,21 @@
       "priority": 117,
       "passes": false,
       "notes": "Opened during iteration 14 after fixing the local-date bugs that had a clear correct answer: the purchase-date form default, transaction dates, the reputation streak, the DCA schedule, the tax due date, date input defaults, export filenames, and the rendering of stored DATE values. Deliberately scoped out: the remaining cases turn on a convention that has not been decided, and picking one per call site without deciding it first would reintroduce exactly the inconsistency this iteration removed. Note the tax-year question is the sharp end - a transaction entered late on 31 December currently lands correctly now, but only because the client decides the date."
+    },
+    {
+      "id": "US-118",
+      "title": "Route the remaining large-number formatters through the shared helper",
+      "description": "formatCompactCurrency in src/lib/utils.ts now scales market caps, volumes and valuations to a unit that suits their size, and the Dashboard and CoinDetail pages use it. Other places still scale by hand. OnChainAnalytics has its own private formatLargeNumber with the same T/B/M ladder, which is correct but is a second copy that will drift; several services abbreviate figures inline for charts and reports; and retirementCalculator's formatCurrency (noted in US-116) abbreviates to $1.23M and $45K with no shared definition of when abbreviation is appropriate. The decision worth making once is which figures may be abbreviated at all - an axis label or a summary card, yes; a total a user might reconcile against a statement or a tax form, no - and then to have one implementation per intent.",
+      "acceptanceCriteria": [
+        "OnChainAnalytics uses the shared helper rather than its own copy",
+        "Inline scaling in services is replaced or justified",
+        "There is a stated rule for when a figure may be abbreviated and when it must be shown in full",
+        "Figures in exports and tax outputs are never abbreviated",
+        "The helper handles null, undefined and NaN consistently wherever it is used"
+      ],
+      "priority": 118,
+      "passes": false,
+      "notes": "Opened during iteration 15, the last of this loop, alongside the fix for market caps rendering as $0.00B. Deliberately scoped out: the remaining copies are not wrong in the way the fixed-1e9 divisions were, so this is consolidation rather than a defect, and it overlaps US-116 on the currency formatters - the two should probably be done together."
     }
   ]
 }

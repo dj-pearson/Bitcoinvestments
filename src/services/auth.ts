@@ -570,9 +570,12 @@ export async function updateUserProfile(
   userId: string,
   updates: {
     preferences?: Json;
-    subscription_status?: 'free' | 'premium';
   }
 ): Promise<{ error: string | null }> {
+  // subscription_status was accepted here. Row-level security now refuses any
+  // self-update that changes it, so offering it would only produce a runtime
+  // failure; entitlements are set by the Stripe webhook, which runs with the
+  // service role.
   if (!isSupabaseConfigured()) {
     return { error: 'Database is not configured' };
   }

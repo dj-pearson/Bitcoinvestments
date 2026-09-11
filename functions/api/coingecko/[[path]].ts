@@ -47,6 +47,7 @@ const CACHE_DURATIONS: Record<string, number> = {
   'global': 300,                   // 5 minutes
   'search/trending': 600,          // 10 minutes
   'market_chart': 300,             // 5 minutes (historical data)
+  'ohlc': 300,                     // 5 minutes (historical candles)
   'default': 120,                  // 2 minutes
 };
 

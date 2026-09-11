@@ -1831,6 +1831,21 @@
       "priority": 106,
       "passes": false,
       "notes": "Opened during iteration 1 of this loop while fixing the nearest-anchor snapping bug. Deliberately scoped out of that fix: swapping the data source touches API budget, caching strategy and offline behaviour, and the snapping bug needed fixing regardless of where the prices come from. Pick this up in a later iteration. Note that PortfolioAnalysis and Charts may want the same cached history layer, so build it as a shared service rather than inside the backtesting module."
+    },
+    {
+      "id": "US-107",
+      "title": "Consolidate the two parallel technical-indicator implementations",
+      "description": "The platform carries two independent technical-analysis engines. src/services/tradingIndicators.ts (474 lines) backs the /trading-indicators page. src/services/technicalIndicators.ts (687 lines) implements the same indicators again - SMA, EMA, RSI, MACD, Bollinger Bands, Stochastic, ATR - plus a richer generateTechnicalSignals, and feeds src/components/TechnicalIndicators.tsx, which is imported by nothing: a grep for the component name across src returns only its own definition. So roughly 1,100 lines of duplicated financial math ship to users, half of it unreachable, and the two copies do not agree. The RSI defects fixed in tradingIndicators.ts this iteration (smoothing that re-consumed the last seeded change, and an avgLoss === 0 sentinel reading 99.01 instead of 100/50) never existed in the technicalIndicators.ts copy, which seeds Wilder correctly - the same class of bug was fixed once and left standing in the other file. Duplicated indicator math means every future correction has to be made twice and will eventually be made only once.",
+      "acceptanceCriteria": [
+        "One indicator implementation remains; the other is deleted rather than left unreferenced",
+        "The surviving implementation is the one with correct Wilder RSI seeding, or the survivor is corrected to match before the other is removed",
+        "Both consumers (the /trading-indicators page and anything that adopts the currently-unmounted TechnicalIndicators component) compile against the single module",
+        "A decision is recorded on whether TechnicalIndicators.tsx should be mounted (CoinDetail is the natural home) or deleted - it is currently neither",
+        "Indicator outputs are checked against a published reference series so the consolidation cannot silently change signal behaviour"
+      ],
+      "priority": 107,
+      "passes": false,
+      "notes": "Found during iteration 2 while replacing the random-walk data source on /trading-indicators. Deliberately out of scope for that fix: deleting or merging ~1,100 lines of financial math needs reference-value checks on every indicator in both copies, which is more than one iteration. Note the unmounted component is the better implementation of the two, so the merge direction is not simply 'keep the one in use'."
     }
   ]
 }

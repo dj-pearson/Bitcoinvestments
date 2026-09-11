@@ -451,16 +451,20 @@ export async function getOHLCData(
   days: 1 | 7 | 14 | 30 | 90 | 180 | 365 | 'max' = 30,
   currency: string = 'usd'
 ): Promise<[number, number, number, number, number][]> {
+  const cacheKey = `ohlc-${id}-${days}-${currency}`;
+
   try {
     const url = `${COINGECKO_API_BASE}/coins/${id}/ohlc?vs_currency=${currency}&days=${days}`;
 
-    const response = await rateLimitedFetch(url);
+    const response = await rateLimitedFetch(url, cacheKey);
 
     if (!response.ok) {
       throw new Error(`CoinGecko API error: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    cacheResponse(cacheKey, data);
+    return data;
   } catch (error) {
     console.error(`Error fetching OHLC data for ${id}:`, error);
     throw error;

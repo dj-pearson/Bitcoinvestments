@@ -1909,6 +1909,22 @@
       "priority": 111,
       "passes": false,
       "notes": "Found during iteration 6. NOT exploitable in production today: src/components/ExchangeConnections.tsx is imported by nothing - grep for the component name across src returns only its own definition - so no user can currently enter real exchange credentials through the UI. That is the only reason this is filed rather than fixed immediately, and it is also the reason it MUST be fixed before the component is ever mounted. Treat mounting ExchangeConnections as blocked on this story. Same unmounted-component situation as US-107."
+    },
+    {
+      "id": "US-112",
+      "title": "Make sign-out-all-devices revoke the Supabase session, not just the application's own marker",
+      "description": "Session tracking in src/services/sessionManager.ts is advisory. invalidateAllSessions deletes rows from user_sessions, and isSessionValid consults that table, but the Supabase refresh token on the other device is untouched and stays valid. After the PGRST116 fix in this iteration a revoked device does get signed out - but only because the application chooses to sign itself out on the next validity check. Anything holding the refresh token that does not run that check, such as a direct call to the Supabase REST API or a modified client, keeps full access with the user's RLS permissions. The session timeout has the same shape: it is enforced from a localStorage timestamp the user controls, so editing bi_last_activity extends a session indefinitely. Genuine revocation needs the auth server to invalidate the refresh token, via supabase.auth.admin.signOut from a privileged endpoint.",
+      "acceptanceCriteria": [
+        "Signing out all devices revokes refresh tokens through the Supabase auth admin API, so other devices cannot refresh",
+        "Terminating a single session from the device list revokes that session's token rather than only deleting the tracking row",
+        "The privileged call happens server-side; the service role key is never exposed to the browser",
+        "Session expiry is enforced against a server-side timestamp rather than a client-writable localStorage value",
+        "isSessionValid keeps failing closed on a definitively absent session row and open only on a genuinely missing table",
+        "The UI does not claim other devices are signed out until the revocation has actually succeeded"
+      ],
+      "priority": 112,
+      "passes": false,
+      "notes": "Opened during iteration 7 while fixing the PGRST116 misclassification that made remote revocation a no-op. Deliberately out of scope for that fix: revoking refresh tokens needs a new privileged endpoint holding the service role key plus a change to how expiry is measured, whereas the misclassification was a one-line error-code confusion with a definite correct answer. Note the two fixes compound - without this story, revocation is honoured only by a cooperating client."
     }
   ]
 }

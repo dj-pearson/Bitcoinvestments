@@ -228,6 +228,17 @@ export async function updateActivity(userId: string): Promise<void> {
 /**
  * Check if the current session is still valid
  */
+/**
+ * Distinguish "the user_sessions table does not exist" from "that row is gone".
+ *
+ * 42P01 is Postgres undefined_table; PostgREST surfaces an unknown relation as
+ * PGRST205. Notably absent is PGRST116, which single() returns when a query
+ * matches no rows - that is a revoked session, not a missing table.
+ */
+function isMissingTableError(error: { code?: string; message?: string }): boolean {
+  return error.code === '42P01' || error.code === 'PGRST205';
+}
+
 export async function isSessionValid(userId: string): Promise<boolean> {
   const sessionId = getCurrentSessionId();
 
@@ -251,25 +262,38 @@ export async function isSessionValid(userId: string): Promise<boolean> {
   }
 
   try {
+    // maybeSingle, not single: a revoked session is the expected case here, and
+    // single() reports "no rows" as the error PGRST116 rather than as empty data.
+    // That code was being treated as "the table is missing, trust the local
+    // session", so the one response that means "this session was revoked" was the
+    // one that kept the device signed in - invalidateAllSessions and
+    // terminateSession delete the row, which is exactly what produces it. Signing
+    // out every device did nothing to any device but the one that asked.
     const { data, error } = await supabase
       .from('user_sessions')
       .select('expires_at')
       .eq('id', sessionId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      // If table doesn't exist, trust local session
-      if (error.code === 'PGRST116' || error.code === '42P01' || error.code === '404') {
+      // A genuinely absent table means session tracking was never provisioned,
+      // and refusing every session would lock the whole application out. That is
+      // the only error worth trusting the local session over.
+      if (isMissingTableError(error)) {
         console.warn('user_sessions table not found, trusting local session');
         return true;
       }
-      // Session not found in database
-      return false;
+
+      // Anything else is a real failure to answer the question. Stay permissive
+      // so a transient database problem does not sign everyone out, but say so.
+      console.warn('Could not verify session, trusting local session:', error.message);
+      return true;
     }
 
     if (!data) {
-      // Session not found in database
+      // No row: the session was revoked from another device, or expired and was
+      // cleaned up. Either way it is no longer valid.
       return false;
     }
 

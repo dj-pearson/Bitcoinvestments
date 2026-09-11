@@ -1862,6 +1862,22 @@
       "priority": 108,
       "passes": false,
       "notes": "Opened during iteration 3 alongside the RLS fix for admins_select_all_users. Deliberately out of scope for that fix: the RLS hole was a one-line predicate error with a demonstrable exploit and a safe correction, whereas this is a design change spanning an edge function, a schema migration with a backfill for existing enrolled users, and a re-enrollment story for secrets that cannot be migrated - more than one iteration. Note the currently-unused verifyTwoFactorCode and redeemRecoveryCode in src/services/twoFactor.ts should be folded into whatever server-side path replaces this, not left as a second client-side copy."
+    },
+    {
+      "id": "US-109",
+      "title": "Persist the transaction ledger for saved portfolios instead of storing only a position",
+      "description": "The holdings table stores a position - amount and average_buy_price - and no transaction history, so getPortfolio loads every saved holding with an empty transactions array. Cost basis is now derived by replaying the ledger (recalculateHoldingFromTransactions), and this iteration bridges the gap by synthesising a single opening transfer_in from the stored amount and average price. That keeps the arithmetic correct going forward but loses the real history: a user who logs in cannot see the trades behind a position, the holding-period split that the tax report depends on cannot be reconstructed, and any future change of accounting method (FIFO or specific identification rather than average cost) has nothing to recompute from. Transactions need their own table with RLS, a writer on every mutation path, and a backfill that turns each existing holding's opening balance into a real row.",
+      "acceptanceCriteria": [
+        "A transactions table exists with RLS scoped to the owning portfolio, and holdings link to it",
+        "addHolding, removeFromHolding, addStakingReward and addTransaction persist their transaction rather than only mutating the in-memory holding",
+        "getPortfolio loads real transactions; the synthesised opening transfer_in is removed once a holding has genuine history",
+        "A migration backfills one opening row per existing holding so no saved position loses its basis",
+        "The tax report and holding-period logic read from the persisted ledger instead of the position snapshot",
+        "Accounting method is stated in one place, so FIFO or specific identification can be added without a second basis implementation"
+      ],
+      "priority": 109,
+      "passes": false,
+      "notes": "Opened during iteration 4 while consolidating four divergent copies of the cost-basis maths. Deliberately out of scope for that fix: a schema migration plus backfill plus rewriting the read path is more than one iteration, and the arithmetic errors needed fixing whether or not the history is persisted. Note the synthesised opening transfer_in is load-bearing until this lands - removing it without persisting real transactions would make the ledger replay zero out every saved holding."
     }
   ]
 }

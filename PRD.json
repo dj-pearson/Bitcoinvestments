@@ -1971,6 +1971,21 @@
       "priority": 115,
       "passes": false,
       "notes": "Opened during iteration 12 alongside the tax_report_purchases and scam_reporter_reputation fixes. Deliberately scoped out: the two fixed here exposed payment records and a trust signal, while the remaining seven are append-only logs and signup endpoints where the right answer is a product decision about abuse tolerance rather than a security fix. IMPORTANT LESSON RECORDED HERE: a 'system can manage' policy is always wrong. The service role bypasses RLS, so such a policy can only widen access for the callers it was meant to exclude. Also note that revoking a table GRANT from `authenticated` blocks admins too, since they authenticate as the same role - restrict admin-only writes with the policy and keep the grant."
+    },
+    {
+      "id": "US-116",
+      "title": "Consolidate the eight divergent formatCurrency implementations",
+      "description": "Eight files define their own formatCurrency: retirementCalculator, backtesting, subscriptionAnalytics, taxReportService, premiumExport, monthlyPerformanceReport, premiumCalculatorFeatures and the TaxReports page. They do not agree. Negative amounts render as -$5.00 in three of them, as ($5.00) in TaxReports, and retirementCalculator does not use Intl at all - it abbreviates to $1.23M and $45K and drops the decimals entirely, so the same figure reads differently depending on which screen shows it. The abbreviating one is arguably right for a chart axis and wrong for a total. The price formatting fixed in this iteration is now shared in src/lib/utils.ts; the currency formatters should follow, as a small set of named functions with stated purposes - a precise amount, an abbreviated axis label, an accounting figure with parentheses for negatives - rather than eight near-copies that drift.",
+      "acceptanceCriteria": [
+        "One module exports the currency formatters, with each variant named for its purpose rather than duplicated per feature",
+        "The eight local definitions are removed and their call sites use the shared functions",
+        "Negative amounts render consistently within a context, and the accounting style is used only where it is intended",
+        "The abbreviated form is used only where space demands it and never for a figure a user might reconcile against a statement",
+        "Exports (CSV, XLSX, PDF) are checked separately, since a formatted string in an export column is harder to parse than a raw number"
+      ],
+      "priority": 116,
+      "passes": false,
+      "notes": "Found during iteration 13 while fixing sub-cent crypto prices rendering as $0. Deliberately scoped out of that fix: the price bug made real prices invisible on live pages and had one obvious correct answer, whereas consolidating the currency formatters requires deciding per call site which of three legitimate styles is wanted, and touching export code paths where a change of format could break downstream parsing. Note formatCryptoPrice in src/lib/utils.ts is the pattern to follow."
     }
   ]
 }

@@ -5,6 +5,7 @@ import { TIER_LIMITS } from '../services/subscriptionLimits';
 import { hasPremiumAccess } from '../services/stripe';
 import { UpgradePrompt, LimitCounter } from './UpgradePrompt';
 import type { PriceAlert } from '../types/database';
+import { formatCryptoPrice } from '../lib/utils';
 
 interface PriceAlertsProps {
   className?: string;
@@ -270,7 +271,7 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
                     <span className="text-gray-400 font-normal">
                       {alert.condition === 'above' ? 'above' : 'below'}
                     </span>{' '}
-                    ${alert.target_price.toLocaleString()}
+                    {formatCryptoPrice(alert.target_price)}
                   </p>
                   <p className="text-xs text-gray-500">
                     {alert.triggered_at

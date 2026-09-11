@@ -10,7 +10,7 @@ import {
   Clock,
   ArrowRight,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, formatCryptoPrice } from '../lib/utils';
 import { PriceChart } from '../components/charts';
 import { SEO } from '../components/SEO';
 import { getCryptocurrencyById } from '../services/coingecko';
@@ -107,10 +107,7 @@ export function CoinDetail() {
 
           <div className="md:ml-auto text-left md:text-right">
             <p className="text-3xl md:text-4xl font-bold text-white">
-              ${coin.current_price.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: coin.current_price < 1 ? 6 : 2,
-              })}
+              {formatCryptoPrice(coin.current_price)}
             </p>
             <div className={cn(
               'inline-flex items-center gap-1 text-lg font-medium mt-1',

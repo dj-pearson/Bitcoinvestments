@@ -9,7 +9,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { cn } from '../lib/utils';
+import { cn, formatCryptoPrice } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { FearGreedGauge, FearGreedCompact } from '../components/FearGreedIndex';
 import { PortfolioTracker } from '../components/PortfolioTracker';
@@ -275,10 +275,7 @@ export function Dashboard() {
                         <div>
                           <p className="text-xs text-gray-500">Price</p>
                           <p className="font-semibold text-white">
-                            ${crypto.current_price.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: crypto.current_price < 1 ? 6 : 2,
-                            })}
+                            {formatCryptoPrice(crypto.current_price)}
                           </p>
                         </div>
                         <div className="text-right">
@@ -324,10 +321,7 @@ export function Dashboard() {
                             </div>
                           </td>
                           <td className="py-4 px-2 text-right font-medium text-white">
-                            ${crypto.current_price.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: crypto.current_price < 1 ? 6 : 2,
-                            })}
+                            {formatCryptoPrice(crypto.current_price)}
                           </td>
                           <td className={cn(
                             'py-4 px-2 text-right font-medium',

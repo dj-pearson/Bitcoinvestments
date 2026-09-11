@@ -1,5 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { getCurrentUser, onAuthStateChange, signOut as authSignOut, type AuthUser } from '../services/auth';
+import {
+  getCurrentUser,
+  onAuthStateChange,
+  signOut as authSignOut,
+  isTwoFactorPending,
+  clearTwoFactorPending,
+  type AuthUser,
+} from '../services/auth';
 import {
   createSession,
   invalidateAllSessions,
@@ -100,6 +107,17 @@ function LiveAuthProvider({ children }: AuthProviderProps) {
     // Check for existing session
     async function checkAuth() {
       try {
+        // A session left over from an unfinished 2FA prompt is not a sign-in.
+        // Discard it rather than resuming it, so abandoning the prompt (closing
+        // the tab, navigating away) cannot come back as an authenticated app.
+        if (isTwoFactorPending()) {
+          await authSignOut();
+          clearTwoFactorPending();
+          setUser(null);
+          setProfile(null);
+          return;
+        }
+
         const currentUser = await getCurrentUser();
 
         if (currentUser) {
@@ -130,6 +148,16 @@ function LiveAuthProvider({ children }: AuthProviderProps) {
 
     // Subscribe to auth state changes
     const { unsubscribe } = onAuthStateChange(async (authUser) => {
+      // Ignore the session created by the password step while the second factor
+      // is still outstanding; signInWithTwoFactor clears the marker and the
+      // Login page calls refreshUser once the code is accepted.
+      if (authUser && isTwoFactorPending()) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
       if (authUser) {
         // Validate or create session for new auth
         const sessionValid = await validateExistingSession(authUser);

@@ -31,6 +31,43 @@ const LOGIN_RATE_LIMIT = {
 const loginAttempts: Map<string, { count: number; firstAttempt: number; lockedUntil?: number }> = new Map();
 
 /**
+ * Marks a Supabase session that exists only to let the second factor be checked.
+ *
+ * Password sign-in creates a real session before 2FA is verified, which is what
+ * makes the secret readable under the owner's own RLS policy. Until the code is
+ * accepted that session must not count as being signed in, so the pending state
+ * is recorded next to it - in localStorage, the same place and lifetime as the
+ * Supabase session itself, so that closing the tab at the prompt and returning
+ * later still lands on "pending" rather than on a logged-in application.
+ */
+const TWO_FACTOR_PENDING_KEY = 'auth.2fa_pending_user';
+
+function safeLocalStorage(): Storage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    // Storage can be unavailable (private mode, blocked cookies).
+    return null;
+  }
+}
+
+export function markTwoFactorPending(userId: string): void {
+  safeLocalStorage()?.setItem(TWO_FACTOR_PENDING_KEY, userId);
+}
+
+export function clearTwoFactorPending(): void {
+  safeLocalStorage()?.removeItem(TWO_FACTOR_PENDING_KEY);
+}
+
+export function getTwoFactorPendingUserId(): string | null {
+  return safeLocalStorage()?.getItem(TWO_FACTOR_PENDING_KEY) ?? null;
+}
+
+export function isTwoFactorPending(): boolean {
+  return getTwoFactorPendingUserId() !== null;
+}
+
+/**
  * Check if login is rate limited for an email
  */
 function checkRateLimit(email: string): { allowed: boolean; retryAfter?: number } {
@@ -226,15 +263,20 @@ export async function signIn(
 
     // Check if 2FA is enabled
     if (profile?.two_factor_enabled) {
-      // Don't complete the sign-in yet - require 2FA verification
-      // Sign out temporarily until 2FA is verified
-      await signOut();
+      // The session is deliberately left in place until the second factor is
+      // checked. Verification has to read the caller's own row from public.users
+      // to get the TOTP secret, and that row is only reachable under RLS while
+      // they are authenticated - signing out here made the lookup run as `anon`,
+      // which every correct policy denies. Callers MUST finish with
+      // signInWithTwoFactor or cancelTwoFactorSignIn; the AuthContext gate keeps
+      // the half-authenticated session out of the application until they do.
+      markTwoFactorPending(data.user.id);
       return {
         user: null,
         error: null,
         requires2FA: true,
         userId: data.user.id,
-        email: email, // Store email for 2FA re-authentication
+        email: email,
       };
     }
 
@@ -264,15 +306,17 @@ export async function signIn(
 }
 
 /**
- * Complete sign in with 2FA verification
- * Now requires email and password to properly re-authenticate with Supabase
+ * Complete sign in with 2FA verification.
+ *
+ * Runs against the session that signIn established and left pending, so the
+ * secret lookup is an ordinary owner-scoped read rather than an anonymous query
+ * for somebody else's row. A failed check tears the pending session down.
  */
 export async function signInWithTwoFactor(
   userId: string,
   code: string,
   isRecoveryCode: boolean = false,
-  email?: string,
-  password?: string
+  email?: string
 ): Promise<{ user: AuthUser | null; error: string | null }> {
   if (!isSupabaseConfigured()) {
     return { user: null, error: 'Authentication is not configured' };
@@ -290,7 +334,14 @@ export async function signInWithTwoFactor(
     }
   }
 
-  // Get user profile to verify 2FA
+  // The pending session must belong to the account being verified. Without this
+  // the userId is just a caller-supplied string.
+  const { data: { user: sessionUser } } = await supabase.auth.getUser();
+  if (!sessionUser || sessionUser.id !== userId) {
+    await cancelTwoFactorSignIn();
+    return { user: null, error: 'Your sign-in attempt expired. Please start again.' };
+  }
+
   const { data: profile, error: profileError } = await supabase
     .from('users')
     .select('*')
@@ -299,10 +350,12 @@ export async function signInWithTwoFactor(
 
   if (profileError || !profile) {
     if (email) recordFailedAttempt(email);
+    await cancelTwoFactorSignIn();
     return { user: null, error: 'User not found' };
   }
 
   if (!profile.two_factor_enabled || !profile.two_factor_secret) {
+    await cancelTwoFactorSignIn();
     return { user: null, error: '2FA is not enabled for this account' };
   }
 
@@ -326,18 +379,6 @@ export async function signInWithTwoFactor(
     return { user: null, error: 'Invalid verification code' };
   }
 
-  // Re-authenticate with Supabase to establish a proper session
-  if (email && password) {
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError) {
-      return { user: null, error: 'Failed to establish session. Please try again.' };
-    }
-  }
-
   // Update last login
   await supabase
     .from('users')
@@ -346,6 +387,7 @@ export async function signInWithTwoFactor(
 
   // Clear rate limiting on successful 2FA
   if (email) clearRateLimit(email);
+  clearTwoFactorPending();
 
   return {
     user: {
@@ -360,9 +402,20 @@ export async function signInWithTwoFactor(
 }
 
 /**
+ * Abandon a sign-in that stopped at the 2FA prompt, discarding the pending
+ * session rather than leaving it usable.
+ */
+export async function cancelTwoFactorSignIn(): Promise<void> {
+  clearTwoFactorPending();
+  await signOut();
+}
+
+/**
  * Sign out the current user
  */
 export async function signOut(): Promise<{ error: string | null }> {
+  clearTwoFactorPending();
+
   if (!isSupabaseConfigured()) {
     return { error: null };
   }

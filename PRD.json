@@ -1846,6 +1846,22 @@
       "priority": 107,
       "passes": false,
       "notes": "Found during iteration 2 while replacing the random-walk data source on /trading-indicators. Deliberately out of scope for that fix: deleting or merging ~1,100 lines of financial math needs reference-value checks on every indicator in both copies, which is more than one iteration. Note the unmounted component is the better implementation of the two, so the merge direction is not simply 'keep the one in use'."
+    },
+    {
+      "id": "US-108",
+      "title": "Move 2FA verification server-side and stop storing TOTP secrets in readable plaintext",
+      "description": "Two-factor verification runs entirely in the browser. signInWithTwoFactor reads two_factor_secret out of public.users into client JavaScript and compares the code there, and the secret and all recovery codes are stored in plaintext columns. The RLS fix in this iteration stops other users reading those columns, but the owner's own browser still receives them on every login, so a second factor is only as strong as the client executing the check: anything with the session token can read the secret and generate codes indefinitely, and the check itself can simply be skipped. There is also no per-account attempt limiting on the code itself - the login rate limiter is keyed on email in module memory (src/services/auth.ts), so it resets on reload and is per-tab, leaving a six-digit code with a +/-1 step window brute-forceable. Verification belongs behind an endpoint that holds the secret encrypted at rest, counts attempts server-side, and rejects a code already spent in its time step.",
+      "acceptanceCriteria": [
+        "TOTP verification happens server-side; the secret never reaches the browser after enrollment",
+        "two_factor_secret is encrypted at rest, and recovery codes are stored hashed rather than in plaintext so a database read cannot replay them",
+        "Failed 2FA attempts are counted server-side per account and lock out after a threshold, surviving a page reload",
+        "A TOTP code cannot be replayed within its own time step (last-used counter recorded per account)",
+        "The pending-2FA session gate is either kept or replaced by a server-issued pre-auth token that cannot act as a full session",
+        "Supabase's own MFA support is evaluated first, since adopting it would remove most of this code rather than reimplement it"
+      ],
+      "priority": 108,
+      "passes": false,
+      "notes": "Opened during iteration 3 alongside the RLS fix for admins_select_all_users. Deliberately out of scope for that fix: the RLS hole was a one-line predicate error with a demonstrable exploit and a safe correction, whereas this is a design change spanning an edge function, a schema migration with a backfill for existing enrolled users, and a re-enrollment story for secrets that cannot be migrated - more than one iteration. Note the currently-unused verifyTwoFactorCode and redeemRecoveryCode in src/services/twoFactor.ts should be folded into whatever server-side path replaces this, not left as a second client-side copy."
     }
   ]
 }

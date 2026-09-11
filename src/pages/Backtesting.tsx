@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Info,
   ArrowRight,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { hasAdvancedBacktesting } from '../services/subscriptionLimits';
@@ -16,6 +17,8 @@ import { RelatedPages } from '../components/InternalLinks';
 import {
   runBacktest,
   getSupportedAssets,
+  getAssetCoverage,
+  resolveWindow,
   formatCurrency,
   formatPercentage,
   getPresetPeriods,
@@ -42,12 +45,23 @@ export function Backtesting() {
 
   const [enableDCA, setEnableDCA] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const assets = getSupportedAssets();
-  const periods = getPresetPeriods();
+  const periods = getPresetPeriods(input.asset);
+  const coverage = getAssetCoverage(input.asset);
+  const endDate = input.endDate ?? new Date().toISOString().split('T')[0];
+  const window = resolveWindow(input.asset, input.startDate, endDate);
 
   const handleRunBacktest = () => {
+    if (!window.usable) {
+      setResult(null);
+      setError(window.reason ?? 'That date range cannot be backtested.');
+      return;
+    }
+
+    setError(null);
     setLoading(true);
     // Simulate API call delay
     setTimeout(() => {
@@ -63,9 +77,24 @@ export function Backtesting() {
   };
 
   const handlePeriodSelect = (months: number) => {
+    setError(null);
     setInput({
       ...input,
-      startDate: getStartDateFromPeriod(months),
+      startDate: getStartDateFromPeriod(months, input.asset),
+    });
+  };
+
+  const handleAssetSelect = (asset: string) => {
+    const assetCoverage = getAssetCoverage(asset);
+    setError(null);
+    setResult(null);
+    setInput({
+      ...input,
+      asset,
+      // Keep the start date inside the new asset's history.
+      startDate: assetCoverage && input.startDate < assetCoverage.dataStart
+        ? assetCoverage.dataStart
+        : input.startDate,
     });
   };
 
@@ -83,7 +112,7 @@ export function Backtesting() {
           },
           {
             question: 'How accurate is backtesting?',
-            answer: 'Backtesting uses real historical price data and provides accurate past performance. However, past performance does not guarantee future results.',
+            answer: 'This tool uses a bundled set of periodic historical price snapshots and interpolates between them, so results are a close approximation rather than tick-accurate. The covered date range is shown alongside every result, and past performance does not guarantee future results.',
           },
         ]}
       />
@@ -110,7 +139,7 @@ export function Backtesting() {
               <label className="block text-sm text-gray-400 mb-2">Asset</label>
               <select
                 value={input.asset}
-                onChange={(e) => setInput({ ...input, asset: e.target.value })}
+                onChange={(e) => handleAssetSelect(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
               >
                 {assets.map((asset) => (
@@ -144,9 +173,17 @@ export function Backtesting() {
                   <button
                     key={period.label}
                     onClick={() => handlePeriodSelect(period.months)}
+                    disabled={!period.available}
+                    title={
+                      period.available
+                        ? undefined
+                        : `Historical data ends ${coverage?.dataEnd ?? 'earlier'}, so this period has no data yet.`
+                    }
                     className={cn(
                       "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
-                      input.startDate === getStartDateFromPeriod(period.months)
+                      !period.available
+                        ? "bg-white/5 text-gray-600 cursor-not-allowed"
+                        : input.startDate === getStartDateFromPeriod(period.months, input.asset)
                         ? "bg-brand-primary text-white"
                         : "bg-white/5 text-gray-400 hover:bg-white/10"
                     )}
@@ -162,10 +199,16 @@ export function Backtesting() {
                     value={input.startDate}
                     onChange={(e) => setInput({ ...input, startDate: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-primary"
-                    max={new Date().toISOString().split('T')[0]}
+                    min={coverage?.dataStart}
+                    max={coverage?.dataEnd}
                   />
                 </div>
               </div>
+              {coverage && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Historical data available {coverage.dataStart} to {coverage.dataEnd}.
+                </p>
+              )}
             </div>
 
             {/* DCA Toggle */}
@@ -247,6 +290,13 @@ export function Backtesting() {
               )}
             </button>
 
+            {error && (
+              <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
+            )}
+
             {/* Premium Upsell */}
             {!isPremium && (
               <div className="mt-6 p-4 rounded-lg bg-brand-primary/10 border border-brand-primary/30">
@@ -271,11 +321,27 @@ export function Backtesting() {
               <BarChart3 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">Run a Backtest</h3>
               <p className="text-gray-400">
-                Configure your parameters and click "Run Backtest" to see what your investment would be worth today.
+                Configure your parameters and click "Run Backtest" to see what your investment
+                would have been worth at the end of the period.
               </p>
             </div>
           ) : (
             <div className="space-y-6">
+              {result.coverage.clamped && (
+                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-200">
+                    Historical data for this asset runs {result.coverage.dataStart} to{' '}
+                    {result.coverage.dataEnd}. You asked for {result.coverage.requestedStart} to{' '}
+                    {result.coverage.requestedEnd}, so these results cover{' '}
+                    <span className="font-medium text-white">
+                      {result.coverage.effectiveStart} to {result.coverage.effectiveEnd}
+                    </span>{' '}
+                    only - price movement outside that range is not included.
+                  </p>
+                </div>
+              )}
+
               {/* Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="glass-card p-4">
@@ -335,8 +401,9 @@ export function Backtesting() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-400">
-                      Your {formatCurrency(result.totalInvested)} investment would be worth{' '}
-                      <span className="text-white font-medium">{formatCurrency(result.finalValue)}</span> today.
+                      Your {formatCurrency(result.totalInvested)} investment would have been worth{' '}
+                      <span className="text-white font-medium">{formatCurrency(result.finalValue)}</span> on{' '}
+                      {result.endDate}.
                     </p>
                   </div>
 
@@ -465,8 +532,11 @@ export function Backtesting() {
               {/* Disclaimer */}
               <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                 <p className="text-sm text-yellow-300">
-                  <strong>Disclaimer:</strong> This backtesting tool uses historical data and is for educational purposes only.
-                  Past performance does not guarantee future results. This is not financial advice.
+                  <strong>Disclaimer:</strong> This tool runs on a bundled set of periodic historical
+                  price snapshots ({result.coverage.dataStart} to {result.coverage.dataEnd}), with prices
+                  between snapshots interpolated - figures are approximate, not tick-accurate. For
+                  educational purposes only. Past performance does not guarantee future results. This is
+                  not financial advice.
                 </p>
               </div>
             </div>

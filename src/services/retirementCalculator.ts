@@ -137,8 +137,7 @@ export function calculateRetirementProjection(
   const fundingRatio = projectedSavings / totalNeeded;
 
   // Run Monte Carlo simulation
-  const monteCarloResults = runMonteCarloSimulation(inputs, 1000); // Reduced for performance
-  const successProbability = calculateSuccessProbability(monteCarloResults);
+  const { results: monteCarloResults, successProbability } = runMonteCarloSimulation(inputs, 1000);
 
   // Tax analysis
   const taxAnalysis = analyzeTaxStrategy(inputs, yearlyProjections);
@@ -167,6 +166,46 @@ export function calculateRetirementProjection(
 }
 
 /**
+ * Annual contribution streams for a given year of the accumulation phase.
+ *
+ * Defined once because the projection and the Monte Carlo used to disagree about
+ * what the two inputs mean. The projection treated monthly_contribution as the
+ * traditional stream and monthly_crypto_contribution as a separate crypto
+ * stream; the Monte Carlo ignored monthly_crypto_contribution entirely and split
+ * monthly_contribution by crypto_allocation_percent instead. With the default
+ * inputs that is $1,200 a month against $1,000, and a user who puts everything
+ * in the crypto field had their entire contribution modelled as zero by the
+ * simulation that produces the success probability.
+ *
+ * The UI presents two separate dollar fields and reports their sum as the
+ * annual contribution, so they are two independent streams. crypto_allocation_percent
+ * describes the existing portfolio, not the contribution split.
+ */
+function contributionsForYear(
+  inputs: RetirementInputs,
+  yearIndex: number
+): { traditional: number; crypto: number; total: number } {
+  const growth = Math.pow(1 + inputs.contribution_increase_rate / 100, yearIndex);
+  const traditional = inputs.monthly_contribution * 12 * growth;
+  const crypto = inputs.monthly_crypto_contribution * 12 * growth;
+  return { traditional, crypto, total: traditional + crypto };
+}
+
+/**
+ * Inflation multiplier applied to a spending figure quoted in today's dollars.
+ *
+ * `yearsFromToday` is counted from today, not from the retirement date. The
+ * retirement phase used to restart the clock at retirement, so a 30-year
+ * accumulation period applied no inflation at all to the first year of spending
+ * while total_needed_at_retirement inflated the same figure by those 30 years -
+ * the two headline numbers on the page were computed from contradictory
+ * assumptions about the same input.
+ */
+function inflationMultiplier(inputs: RetirementInputs, yearsFromToday: number): number {
+  return Math.pow(1 + inputs.inflation_rate, yearsFromToday);
+}
+
+/**
  * Calculate year-by-year projections
  */
 function calculateYearlyProjections(
@@ -179,8 +218,6 @@ function calculateYearlyProjections(
   let portfolioValue = inputs.current_savings_usd;
   let cryptoValue = inputs.current_crypto_value_usd;
   let traditionalValue = portfolioValue - cryptoValue;
-  let monthlyContribution = inputs.monthly_contribution;
-  let monthlyCryptoContribution = inputs.monthly_crypto_contribution;
 
   const totalYears = yearsToRetirement + yearsInRetirement;
 
@@ -194,23 +231,30 @@ function calculateYearlyProjections(
 
     if (!isRetired) {
       // Accumulation phase
-      contributions = (monthlyContribution + monthlyCryptoContribution) * 12;
+      const yearContributions = contributionsForYear(inputs, year);
+      contributions = yearContributions.total;
 
-      // Traditional growth
+      // Traditional growth. The crypto stream used to be SUBTRACTED here while
+      // also being added to the crypto side, so the money was counted out of one
+      // account and into the other instead of being new savings - the portfolio
+      // grew by the traditional amount alone while the page reported the sum of
+      // both as contributed.
       traditionalValue = traditionalValue * (1 + inputs.stock_return * 0.6 + inputs.bond_return * 0.4);
-      traditionalValue += (monthlyContribution - monthlyCryptoContribution) * 12;
+      traditionalValue += yearContributions.traditional;
 
-      // Crypto growth with volatility
-      const cryptoReturn = inputs.crypto_return + (Math.random() - 0.5) * inputs.crypto_volatility * 0.5;
-      cryptoValue = cryptoValue * (1 + cryptoReturn);
-      cryptoValue += monthlyCryptoContribution * 12;
-
-      // Increase contributions annually
-      monthlyContribution *= (1 + inputs.contribution_increase_rate / 100);
-      monthlyCryptoContribution *= (1 + inputs.contribution_increase_rate / 100);
+      // Crypto growth at the expected return. This projection is the
+      // deterministic plan the user reads off the table; it used to perturb the
+      // return with Math.random(), so identical inputs produced a different
+      // retirement number on every run and the table never reconciled with the
+      // Monte Carlo beside it. Uncertainty belongs in the simulation, which
+      // models it properly.
+      cryptoValue = cryptoValue * (1 + inputs.crypto_return);
+      cryptoValue += yearContributions.crypto;
     } else {
-      // Retirement phase - withdrawals
-      const inflationFactor = Math.pow(1 + inputs.inflation_rate, year - yearsToRetirement);
+      // Retirement phase - withdrawals. Inflation runs from today, not from the
+      // retirement date, so spending quoted in today's dollars is escalated
+      // across the accumulation years too.
+      const inflationFactor = inflationMultiplier(inputs, year);
       const neededIncome = inputs.desired_annual_income * inflationFactor;
       const guaranteedIncome = (inputs.social_security_income + inputs.pension_income + inputs.other_income) * inflationFactor;
 
@@ -344,8 +388,9 @@ function calculateCapitalGainsTax(gains: number, status: 'single' | 'married_fil
 function runMonteCarloSimulation(
   inputs: RetirementInputs,
   simulations: number
-): MonteCarloResult[] {
+): { results: MonteCarloResult[]; successProbability: number } {
   const results: number[] = [];
+  let depletedCount = 0;
   const yearsToRetirement = inputs.retirement_age - inputs.current_age;
   const yearsInRetirement = inputs.life_expectancy - inputs.retirement_age;
 
@@ -353,7 +398,7 @@ function runMonteCarloSimulation(
     let portfolioValue = inputs.current_savings_usd;
     let cryptoValue = inputs.current_crypto_value_usd;
     let traditionalValue = portfolioValue - cryptoValue;
-    let monthlyContribution = inputs.monthly_contribution;
+    let depleted = false;
 
     // Accumulation phase with random returns
     for (let year = 0; year < yearsToRetirement; year++) {
@@ -362,25 +407,39 @@ function runMonteCarloSimulation(
       const bondReturn = normalRandom(inputs.bond_return, 0.05);
       const cryptoReturn = normalRandom(inputs.crypto_return, inputs.crypto_volatility);
 
+      // Same two contribution streams the projection uses. This previously split
+      // monthly_contribution by crypto_allocation_percent and ignored
+      // monthly_crypto_contribution altogether, so the simulation behind the
+      // success probability was funding a different plan from the table.
+      const yearContributions = contributionsForYear(inputs, year);
+
       traditionalValue *= (1 + stockReturn * 0.6 + bondReturn * 0.4);
-      traditionalValue += monthlyContribution * 12 * (1 - inputs.crypto_allocation_percent / 100);
+      traditionalValue += yearContributions.traditional;
 
       cryptoValue *= (1 + cryptoReturn);
-      cryptoValue += monthlyContribution * 12 * (inputs.crypto_allocation_percent / 100);
-
-      monthlyContribution *= (1 + inputs.contribution_increase_rate / 100);
+      cryptoValue += yearContributions.crypto;
     }
 
     // Retirement phase
     for (let year = 0; year < yearsInRetirement; year++) {
-      const inflationFactor = Math.pow(1 + inputs.inflation_rate, year);
+      // Counted from today, matching the projection and total_needed_at_retirement.
+      const inflationFactor = inflationMultiplier(inputs, yearsToRetirement + year);
       const neededIncome = inputs.desired_annual_income * inflationFactor;
-      const guaranteedIncome = (inputs.social_security_income + inputs.pension_income) * inflationFactor;
+      // other_income was omitted here but counted everywhere else.
+      const guaranteedIncome =
+        (inputs.social_security_income + inputs.pension_income + inputs.other_income) * inflationFactor;
       const withdrawal = Math.max(0, neededIncome - guaranteedIncome);
 
       portfolioValue = traditionalValue + cryptoValue;
 
       if (portfolioValue < withdrawal) {
+        // The portfolio could not fund this year's income. That is a failed
+        // retirement, and it has to be recorded as one: the loop leaves behind
+        // whatever was left over, which is positive but smaller than a single
+        // year's withdrawal, and success used to be judged purely on that
+        // remainder being above zero - so running out of money at 70 counted as
+        // a success.
+        depleted = true;
         break;
       }
 
@@ -397,14 +456,15 @@ function runMonteCarloSimulation(
     }
 
     results.push(traditionalValue + cryptoValue);
+    if (depleted) depletedCount++;
   }
 
   // Calculate percentile results
   results.sort((a, b) => a - b);
 
   const percentiles = [5, 10, 25, 50, 75, 90, 95];
-  return percentiles.map(p => {
-    const index = Math.floor((p / 100) * results.length);
+  const percentileResults = percentiles.map(p => {
+    const index = Math.min(results.length - 1, Math.floor((p / 100) * results.length));
     const ending = results[index] || 0;
     const success = ending > 0;
 
@@ -416,6 +476,15 @@ function runMonteCarloSimulation(
       annual_withdrawals: [],
     };
   });
+
+  // Share of the simulations that funded retirement in full, as a percentage to
+  // match what the page renders. This is the point of running the simulations,
+  // and it used to be discarded: the old success figure counted how many of the
+  // SEVEN percentile buckets ended above zero, so with 1,000 runs behind it the
+  // answer could still only ever be one of eight values, 14.3% apart.
+  const successProbability = ((simulations - depletedCount) / simulations) * 100;
+
+  return { results: percentileResults, successProbability };
 }
 
 /**
@@ -426,19 +495,6 @@ function normalRandom(mean: number, stdDev: number): number {
   const u2 = Math.random();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   return mean + z * stdDev;
-}
-
-/**
- * Calculate success probability from Monte Carlo results
- */
-function calculateSuccessProbability(results: MonteCarloResult[]): number {
-  // Success = 50th percentile ends with positive balance
-  const median = results.find(r => r.percentile === 50);
-  if (!median) return 0.5;
-
-  // Interpolate based on ending balances
-  const positiveResults = results.filter(r => r.ending_balance > 0).length;
-  return (positiveResults / results.length) * 100;
 }
 
 /**

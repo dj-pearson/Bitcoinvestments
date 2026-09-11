@@ -1893,6 +1893,22 @@
       "priority": 110,
       "passes": false,
       "notes": "Opened during iteration 5 while removing the X-Cloudflare-Cron auth bypass from both endpoints. Deliberately out of scope for that fix: the bypass was a one-line predicate with a demonstrable exploit, whereas swapping the credential needs a new secret provisioned in the Cloudflare dashboard for Pages and both workers, plus a rotation window, and cannot be verified from the repo alone. Note the endpoints still need the service role key for their own Supabase queries - only its use as the bearer token should change."
+    },
+    {
+      "id": "US-111",
+      "title": "Exchange API credentials are encrypted with a key derived only from the public user id",
+      "description": "encryptCredentials in src/services/exchangeConnections.ts runs AES-256-GCM with a key derived by PBKDF2 from `userId + ':credentials-encryption-salt-v1'` and a hardcoded salt. Every input is either public or in the source, and userId is stored in the same row as the ciphertext, so anyone who can read exchange_connections can derive the key and decrypt every stored exchange API key and secret. There is no secret in the key derivation at all - this is obfuscation with the shape of encryption, and the 100,000 PBKDF2 iterations buy nothing when the password is known. A database dump, a backup, a leaked service role key, or an RLS mistake of the kind found in US-108 turns directly into exchange credentials. The fix is to encrypt server-side with a key the browser never sees, held as a Cloudflare secret or in a KMS, behind an endpoint that decrypts only for the authenticated owner.",
+      "acceptanceCriteria": [
+        "Encryption and decryption happen server-side with a key that is never sent to the browser",
+        "The key comes from a managed secret (Cloudflare secret binding or KMS), not from any value stored beside the ciphertext",
+        "Stored ciphertext is versioned so existing rows can be re-encrypted, with a documented migration for anything already saved",
+        "Decrypted credentials are returned only to the authenticated owner and never logged",
+        "The UI states plainly what protection is and is not in place, and continues to steer users to read-only exchange keys",
+        "The misleading 'AES-256-GCM' framing in the code comments is corrected so the next reader is not reassured by it"
+      ],
+      "priority": 111,
+      "passes": false,
+      "notes": "Found during iteration 6. NOT exploitable in production today: src/components/ExchangeConnections.tsx is imported by nothing - grep for the component name across src returns only its own definition - so no user can currently enter real exchange credentials through the UI. That is the only reason this is filed rather than fixed immediately, and it is also the reason it MUST be fixed before the component is ever mounted. Treat mounting ExchangeConnections as blocked on this story. Same unmounted-component situation as US-107."
     }
   ]
 }

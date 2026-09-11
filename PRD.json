@@ -1955,6 +1955,22 @@
       "priority": 114,
       "passes": false,
       "notes": "Opened during iteration 10 while adding the missing expiry checks to nine add-on gates. Deliberately out of scope for that fix: moving enforcement server-side touches every premium endpoint and needs an RLS review of the users table's subscription columns, whereas the missing expiry check was a one-argument omission with an obvious correct answer. Note that US-108's RLS fix already blocks a user from changing their own role, but the subscription columns were not part of that policy - check whether users_update_own currently permits a user to set their own subscription_status to premium, which would make every gate on the platform trivially bypassable. UPDATE (iteration 11): the lead in this note was confirmed and fixed - users_update_own guarded only `role`, so subscription_status, subscription_expires_at, is_suspended, stripe_customer_id, referral_code and referred_by were all self-writable. Migration 20260911010000_protect_user_privilege_columns.sql replaces the guard with an allowlist. The remaining scope of this story is unchanged: client-side gates are still not enforcement, and server endpoints doing paid work still do not check entitlement."
+    },
+    {
+      "id": "US-115",
+      "title": "Audit the remaining unconditional write policies and the grants behind them",
+      "description": "A sweep of all 128 tables found RLS enabled everywhere and one table with no policy at all (sponsored_disclosures, which therefore denies everything and fails closed). It also found nine write-capable policies with an unconditional predicate. Two were dangerous and are fixed in this iteration: tax_report_purchases and scam_reporter_reputation both carried FOR ALL USING (true). The remaining seven are INSERT-only policies on tables that genuinely accept anonymous writes - certificate_views, share_views, research_subscribers, wallet_auth_nonces, newsletter_subscribers (twice) and affiliate_clicks. Those are intentional public endpoints, but none of them is rate limited or deduplicated at the database level, so anyone can inflate view counts, stuff the newsletter list, fabricate affiliate click attribution, or fill wallet_auth_nonces without bound. Each needs a decision: constrain the insert (a CHECK on shape, a uniqueness constraint, a per-IP or per-window limit), or accept the write and document why. sponsored_disclosures needs a policy or removal, since a table that denies every caller is either dead or broken.",
+      "acceptanceCriteria": [
+        "Each of the seven remaining unconditional INSERT policies is either constrained or documented as deliberately open",
+        "affiliate_clicks cannot be used to fabricate referral attribution that leads to a payout",
+        "newsletter_subscribers rejects duplicate and malformed addresses at the database level, not only in the client",
+        "wallet_auth_nonces has a retention policy so it cannot be grown without bound",
+        "sponsored_disclosures gets a policy or is dropped; a table with RLS on and no policy is decided rather than left",
+        "A repeatable check lists write-capable policies with unconditional predicates, so a new one is noticed when it is added"
+      ],
+      "priority": 115,
+      "passes": false,
+      "notes": "Opened during iteration 12 alongside the tax_report_purchases and scam_reporter_reputation fixes. Deliberately scoped out: the two fixed here exposed payment records and a trust signal, while the remaining seven are append-only logs and signup endpoints where the right answer is a product decision about abuse tolerance rather than a security fix. IMPORTANT LESSON RECORDED HERE: a 'system can manage' policy is always wrong. The service role bypasses RLS, so such a policy can only widen access for the callers it was meant to exclude. Also note that revoking a table GRANT from `authenticated` blocks admins too, since they authenticate as the same role - restrict admin-only writes with the policy and keep the grant."
     }
   ]
 }

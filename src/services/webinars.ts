@@ -2,6 +2,7 @@
 // Live educational sessions with cryptocurrency experts
 
 import { supabase, db } from '../lib/supabase';
+import { pgrestQuote } from '../lib/postgrestFilter';
 // Note: supabase is used for auth, db is used for untyped tables
 
 export type WebinarStatus = 'upcoming' | 'live' | 'ended' | 'cancelled';
@@ -333,7 +334,7 @@ export async function getWebinar(idOrSlug: string): Promise<{
     const { data, error } = await db
       .from('webinars')
       .select('*, host:webinar_hosts(*)')
-      .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
+      .or(`id.eq.${pgrestQuote(idOrSlug)},slug.eq.${pgrestQuote(idOrSlug)}`)
       .single();
 
     if (error) throw error;

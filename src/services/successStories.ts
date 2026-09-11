@@ -2,6 +2,7 @@
 // User-submitted crypto investment journeys
 
 import { supabase, db } from '../lib/supabase';
+import { pgrestContains, pgrestQuote } from '../lib/postgrestFilter';
 
 export type StoryCategory = 'first_investment' | 'portfolio_growth' | 'learning_journey' | 'trading_success' | 'defi_experience' | 'mistake_learned' | 'hodl_story' | 'retirement_planning';
 export type StoryStatus = 'pending' | 'approved' | 'featured' | 'rejected';
@@ -312,7 +313,9 @@ export async function getStories(filters: StoryFilters = {}): Promise<{
       query = query.eq('is_featured', true);
     }
     if (filters.search) {
-      query = query.or(`title.ilike.%${filters.search}%,summary.ilike.%${filters.search}%`);
+      query = query.or(
+        `title.ilike.${pgrestContains(filters.search)},summary.ilike.${pgrestContains(filters.search)}`
+      );
     }
 
     switch (filters.sortBy) {
@@ -358,7 +361,7 @@ export async function getStory(idOrSlug: string): Promise<{
     const { data, error } = await db
       .from('success_stories')
       .select('*')
-      .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
+      .or(`id.eq.${pgrestQuote(idOrSlug)},slug.eq.${pgrestQuote(idOrSlug)}`)
       .single();
 
     if (error) throw error;

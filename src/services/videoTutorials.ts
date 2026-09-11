@@ -12,6 +12,7 @@
  */
 
 import { isSupabaseConfigured, db } from '../lib/supabase';
+import { pgrestContains } from '../lib/postgrestFilter';
 
 export interface Video {
   id: string;
@@ -125,7 +126,9 @@ export async function getVideos(
         query = query.eq('instructor_id', filters.instructorId);
       }
       if (filters.query) {
-        query = query.or(`title.ilike.%${filters.query}%,description.ilike.%${filters.query}%`);
+        query = query.or(
+          `title.ilike.${pgrestContains(filters.query)},description.ilike.${pgrestContains(filters.query)}`
+        );
       }
       if (filters.tags && filters.tags.length > 0) {
         query = query.contains('tags', filters.tags);

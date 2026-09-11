@@ -15,6 +15,7 @@ import type {
   ScamReportWithCommunity,
   ScamSearchSuggestion,
 } from '../types/admin-database';
+import { pgrestContains } from '../lib/postgrestFilter';
 
 // Available blockchains for filtering
 export const SUPPORTED_BLOCKCHAINS = [
@@ -55,8 +56,9 @@ export async function searchScamReports(
     // Try textSearch first, fall back to ilike for partial matches
     const searchQuery = filters.query.trim();
     if (searchQuery.length >= 3) {
+      const pattern = pgrestContains(searchQuery);
       query = query.or(
-        `title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,website_url.ilike.%${searchQuery}%,token_name.ilike.%${searchQuery}%`
+        `title.ilike.${pattern},description.ilike.${pattern},website_url.ilike.${pattern},token_name.ilike.${pattern}`
       );
     }
   }

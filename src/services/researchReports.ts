@@ -2,6 +2,7 @@
 // Premium weekly crypto analysis and research reports
 
 import { supabase, db } from '../lib/supabase';
+import { pgrestContains, pgrestQuote } from '../lib/postgrestFilter';
 
 export type ReportType = 'weekly_market' | 'token_analysis' | 'defi_deep_dive' | 'macro_outlook' | 'sector_report' | 'special_report';
 export type ReportStatus = 'draft' | 'scheduled' | 'published' | 'archived';
@@ -341,7 +342,9 @@ export async function getReports(filters: ReportFilters = {}): Promise<{
       query = query.eq('is_premium', filters.isPremium);
     }
     if (filters.search) {
-      query = query.or(`title.ilike.%${filters.search}%,summary.ilike.%${filters.search}%`);
+      query = query.or(
+        `title.ilike.${pgrestContains(filters.search)},summary.ilike.${pgrestContains(filters.search)}`
+      );
     }
     if (filters.authorId) {
       query = query.eq('author_id', filters.authorId);
@@ -395,7 +398,7 @@ export async function getReport(idOrSlug: string): Promise<{
     const { data, error } = await db
       .from('research_reports')
       .select('*, author:authors(*)')
-      .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
+      .or(`id.eq.${pgrestQuote(idOrSlug)},slug.eq.${pgrestQuote(idOrSlug)}`)
       .single();
 
     if (error) throw error;

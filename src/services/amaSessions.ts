@@ -2,6 +2,7 @@
 // Live Q&A sessions with cryptocurrency experts
 
 import { supabase, db } from '../lib/supabase';
+import { pgrestQuote } from '../lib/postgrestFilter';
 
 export type AMAStatus = 'scheduled' | 'live' | 'ended' | 'cancelled';
 export type QuestionStatus = 'pending' | 'approved' | 'answered' | 'rejected';
@@ -305,7 +306,7 @@ export async function getAMASession(idOrSlug: string): Promise<{
     const { data: amaSession, error: sessionError } = await db
       .from('ama_sessions')
       .select('*, expert:ama_experts(*)')
-      .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
+      .or(`id.eq.${pgrestQuote(idOrSlug)},slug.eq.${pgrestQuote(idOrSlug)}`)
       .single();
 
     if (sessionError) throw sessionError;

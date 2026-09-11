@@ -109,44 +109,106 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 ];
 
 /**
- * Calculate relevance score based on match position and type
+ * Split a query into search terms.
  */
-function calculateScore(
-  query: string,
-  text: string,
-  isTitle: boolean = false
-): number {
-  const lowerQuery = query.toLowerCase();
-  const lowerText = text.toLowerCase();
+function tokenizeQuery(query: string): string[] {
+  return query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+}
 
-  if (!lowerText.includes(lowerQuery)) {
+/**
+ * Score a single term against a single field.
+ */
+function scoreTerm(term: string, lowerText: string, isTitle: boolean): number {
+  if (!lowerText.includes(term)) {
     return 0;
   }
 
   let score = 1;
 
-  // Exact match bonus
-  if (lowerText === lowerQuery) {
+  // The field is exactly this term.
+  if (lowerText === term) {
     score += 10;
   }
 
-  // Starts with query bonus
-  if (lowerText.startsWith(lowerQuery)) {
+  // The field opens with the term.
+  if (lowerText.startsWith(term)) {
     score += 5;
   }
 
-  // Word boundary match bonus
-  if (lowerText.includes(` ${lowerQuery}`) || lowerText.startsWith(lowerQuery)) {
+  // The term starts a word rather than landing mid-word, so that "cat" ranks
+  // "cat wallet" above "concatenate".
+  if (new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(lowerText)) {
     score += 3;
   }
 
-  // Title match bonus
-  if (isTitle) {
-    score *= 2;
+  return isTitle ? score * 2 : score;
+}
+
+interface ScoredField {
+  text: string | undefined;
+  weight?: number;
+  isTitle?: boolean;
+}
+
+/**
+ * Relevance of a document to a query.
+ *
+ * Scoring is per term. The previous implementation tested
+ * `lowerText.includes(lowerQuery)` against the whole query string and returned
+ * zero otherwise, so a document only matched if it contained the entire query as
+ * one literal substring. Any query of more than one word therefore found nothing
+ * unless that exact phrase appeared verbatim: on this site's own content,
+ * "bitcoin wallet", "how to buy bitcoin" and "dollar cost averaging" all returned
+ * no results at all, the last one despite a DCA calculator and guides existing.
+ *
+ * Terms are combined with AND - every term must appear somewhere in the document -
+ * which is what a user typing several words expects. A document containing the
+ * full query as a phrase still scores highest, so precise queries are not
+ * demoted by the change.
+ */
+function scoreDocument(query: string, fields: ScoredField[]): number {
+  const terms = tokenizeQuery(query);
+  if (terms.length === 0) return 0;
+
+  const phrase = query.toLowerCase().trim();
+  const matchedTerms = new Set<string>();
+  let score = 0;
+
+  for (const field of fields) {
+    const lowerText = field.text?.toLowerCase();
+    if (!lowerText) continue;
+
+    const weight = field.weight ?? 1;
+    const isTitle = field.isTitle ?? false;
+    let fieldMatched = false;
+
+    for (const term of terms) {
+      const termScore = scoreTerm(term, lowerText, isTitle);
+      if (termScore > 0) {
+        matchedTerms.add(term);
+        fieldMatched = true;
+        score += termScore * weight;
+      }
+    }
+
+    if (fieldMatched) {
+      // A match in a short field is more specific than the same match buried in
+      // a long one. Applied once per field rather than once per term, so a
+      // wordier query cannot inflate it.
+      score += Math.max(0, 10 - lowerText.length / 50) * weight;
+    }
+
+    // The whole query appearing intact is a stronger signal than its words
+    // appearing scattered, so phrase matches stay on top.
+    if (terms.length > 1 && lowerText.includes(phrase)) {
+      score += 8 * weight * (isTitle ? 2 : 1);
+    }
   }
 
-  // Shorter text is more relevant (more specific match)
-  score += Math.max(0, 10 - text.length / 50);
+  // Every term has to land somewhere, or the document is not a match.
+  if (matchedTerms.size < terms.length) {
+    return 0;
+  }
 
   return score;
 }
@@ -159,12 +221,12 @@ function searchGuides(query: string): SearchResult[] {
   const allGuides = getAllGuides();
 
   for (const guide of allGuides) {
-    const titleScore = calculateScore(query, guide.title, true);
-    const descScore = calculateScore(query, guide.description);
-    const contentScore = calculateScore(query, guide.content) * 0.5; // Lower weight for content
-    const categoryScore = calculateScore(query, guide.category);
-
-    const totalScore = titleScore + descScore + contentScore + categoryScore;
+    const totalScore = scoreDocument(query, [
+      { text: guide.title, isTitle: true },
+      { text: guide.description },
+      { text: guide.content, weight: 0.5 }, // Lower weight for content
+      { text: guide.category },
+    ]);
 
     if (totalScore > 0) {
       results.push({
@@ -195,11 +257,11 @@ function searchCourses(query: string): SearchResult[] {
 
   for (const course of allCourses) {
     // Search course
-    const titleScore = calculateScore(query, course.title, true);
-    const descScore = calculateScore(query, course.description);
-    const longDescScore = calculateScore(query, course.longDescription) * 0.5;
-
-    const courseScore = titleScore + descScore + longDescScore;
+    const courseScore = scoreDocument(query, [
+      { text: course.title, isTitle: true },
+      { text: course.description },
+      { text: course.longDescription, weight: 0.5 },
+    ]);
 
     if (courseScore > 0) {
       results.push({
@@ -220,11 +282,11 @@ function searchCourses(query: string): SearchResult[] {
 
     // Search modules
     for (const module of course.modules) {
-      const modTitleScore = calculateScore(query, module.title, true);
-      const modDescScore = calculateScore(query, module.description);
-      const modContentScore = calculateScore(query, module.content) * 0.3;
-
-      const moduleScore = modTitleScore + modDescScore + modContentScore;
+      const moduleScore = scoreDocument(query, [
+        { text: module.title, isTitle: true },
+        { text: module.description },
+        { text: module.content, weight: 0.3 },
+      ]);
 
       if (moduleScore > 0) {
         results.push({
@@ -255,11 +317,11 @@ function searchGlossary(query: string): SearchResult[] {
   const results: SearchResult[] = [];
 
   for (const term of GLOSSARY_TERMS) {
-    const termScore = calculateScore(query, term.term, true);
-    const defScore = calculateScore(query, term.definition);
-    const categoryScore = calculateScore(query, term.category) * 0.5;
-
-    const totalScore = termScore + defScore + categoryScore;
+    const totalScore = scoreDocument(query, [
+      { text: term.term, isTitle: true },
+      { text: term.definition },
+      { text: term.category, weight: 0.5 },
+    ]);
 
     if (totalScore > 0) {
       results.push({
@@ -287,15 +349,12 @@ function searchExchanges(query: string): SearchResult[] {
   const results: SearchResult[] = [];
 
   for (const exchange of exchanges) {
-    const nameScore = calculateScore(query, exchange.name, true);
-    const descScore = calculateScore(query, exchange.description);
-    const countryScore = calculateScore(query, exchange.country);
-    const prosScore = exchange.pros.reduce(
-      (acc, pro) => acc + calculateScore(query, pro) * 0.3,
-      0
-    );
-
-    const totalScore = nameScore + descScore + countryScore + prosScore;
+    const totalScore = scoreDocument(query, [
+      { text: exchange.name, isTitle: true },
+      { text: exchange.description },
+      { text: exchange.country },
+      ...exchange.pros.map((pro) => ({ text: pro, weight: 0.3 })),
+    ]);
 
     if (totalScore > 0) {
       results.push({
@@ -325,15 +384,12 @@ function searchWallets(query: string): SearchResult[] {
   const results: SearchResult[] = [];
 
   for (const wallet of wallets) {
-    const nameScore = calculateScore(query, wallet.name, true);
-    const descScore = calculateScore(query, wallet.description);
-    const typeScore = calculateScore(query, wallet.type);
-    const chainsScore = wallet.supported_chains.reduce(
-      (acc, chain) => acc + calculateScore(query, chain) * 0.5,
-      0
-    );
-
-    const totalScore = nameScore + descScore + typeScore + chainsScore;
+    const totalScore = scoreDocument(query, [
+      { text: wallet.name, isTitle: true },
+      { text: wallet.description },
+      { text: wallet.type },
+      ...wallet.supported_chains.map((chain) => ({ text: chain, weight: 0.5 })),
+    ]);
 
     if (totalScore > 0) {
       results.push({

@@ -1925,6 +1925,21 @@
       "priority": 112,
       "passes": false,
       "notes": "Opened during iteration 7 while fixing the PGRST116 misclassification that made remote revocation a no-op. Deliberately out of scope for that fix: revoking refresh tokens needs a new privileged endpoint holding the service role key plus a change to how expiry is measured, whereas the misclassification was a one-line error-code confusion with a definite correct answer. Note the two fixes compound - without this story, revocation is honoured only by a cooperating client."
+    },
+    {
+      "id": "US-113",
+      "title": "Decide the fate of the 24 unreferenced components and the services behind them",
+      "description": "Twenty-four of the roughly forty-five components in src/components are imported by nothing: AILearningAssistant, AMASessions, AdUnit, ApiAccess, Certifications, CustomDashboard, EarlyAccess, EmptyState, EnrollmentPrompt, ErrorStates, ExchangeConnections, FormElements, GEOContent, InteractiveCourses, OptimizedImage, PortfolioShareModal, QAForum, ResearchReports, RiskAssessmentQuiz, SuccessStories, SupportTicketForm, TechnicalIndicators, TransactionImport and VideoLibrary. Most have a backing service in src/services and, in several cases, tables and RLS policies in supabase/migrations, so the repository carries a substantial amount of machinery for features no user can reach. Because nothing imports them they are tree-shaken out of the build, so this is not shipped weight - it is maintenance burden and, more seriously, a source of false assurance: work has already been spent auditing and fixing code in this set (US-107 on duplicated indicator maths, US-111 on exchange credential encryption) that could equally have been spent on live code, and a reader cannot tell reachable code from unreachable without grepping. Each one needs a decision: mount it, or delete it with its service and migrations.",
+      "acceptanceCriteria": [
+        "Every component in the list is either mounted on a route or deleted",
+        "Deleting a component also removes its service, types and any tables or policies that exist only for it",
+        "Anything mounted rather than deleted is reviewed first - several carry known defects (US-107, US-111) that must not reach users",
+        "A check that fails on a component with no importer runs in CI, so the set cannot silently grow again",
+        "The decision for each is recorded, so a component deliberately kept for imminent use is distinguishable from one that was forgotten"
+      ],
+      "priority": 113,
+      "passes": false,
+      "notes": "Found during iteration 8 after two iterations were partly spent on code that turned out to be unreachable. Deliberately not done as a single change: deleting twenty-four components with their services and migrations is a large, irreversible sweep needing per-feature judgement about intent, and mounting any of them is a product decision rather than a fix. Until this is resolved, CHECK THAT A COMPONENT IS MOUNTED BEFORE INVESTING IN IT. The reverse also applies - US-111 must be resolved before ExchangeConnections is ever mounted."
     }
   ]
 }

@@ -6,7 +6,7 @@
  * Premium: all indicators, custom formulas, signals
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -28,7 +28,10 @@ import {
   calculateMACD,
   calculateBollingerBands,
   generateTradingSignals,
-  generateMockChartData,
+  fetchChartData,
+  CHART_TIMEFRAMES,
+  INDICATOR_MIN_CANDLES,
+  type ChartTimeframe,
   getAvailableIndicators,
 } from '../services/tradingIndicators';
 import type {
@@ -39,14 +42,36 @@ import type {
 } from '../types/premiumFeatures';
 
 import { PageSEO } from '../components/PageSEO';
-const INDICATOR_PRESETS_DATA = [
-  { id: 'rsi-14', name: 'RSI (14)', description: 'Relative Strength Index', is_premium: true },
-  { id: 'macd-12-26-9', name: 'MACD', description: 'Moving Average Convergence Divergence', is_premium: true },
-  { id: 'bb-20-2', name: 'Bollinger Bands', description: '20-period with 2 std dev', is_premium: true },
-  { id: 'sma-50', name: 'SMA (50)', description: 'Simple Moving Average', is_premium: false },
-  { id: 'ema-20', name: 'EMA (20)', description: 'Exponential Moving Average', is_premium: true },
-  { id: 'stoch-14', name: 'Stochastic', description: 'Stochastic Oscillator', is_premium: true },
+// `type` is stated rather than parsed out of `id`: splitting the id on "-" yielded
+// "bb" and "stoch", which are not IndicatorType values, so those two buttons were
+// rejected by toggleIndicator and could never be switched on.
+const INDICATOR_PRESETS_DATA: {
+  id: string;
+  type: IndicatorType;
+  name: string;
+  description: string;
+  is_premium: boolean;
+}[] = [
+  { id: 'rsi-14', type: 'rsi', name: 'RSI (14)', description: 'Relative Strength Index', is_premium: true },
+  { id: 'macd-12-26-9', type: 'macd', name: 'MACD', description: 'Moving Average Convergence Divergence', is_premium: true },
+  { id: 'bb-20-2', type: 'bollinger_bands', name: 'Bollinger Bands', description: '20-period with 2 std dev', is_premium: true },
+  { id: 'sma-50', type: 'sma', name: 'SMA (50)', description: 'Simple Moving Average', is_premium: false },
+  { id: 'ema-20', type: 'ema', name: 'EMA (20)', description: 'Exponential Moving Average', is_premium: true },
+  { id: 'stoch-14', type: 'stochastic', name: 'Stochastic', description: 'Stochastic Oscillator', is_premium: true },
 ];
+
+const INDICATOR_LABELS: Record<string, string> = {
+  rsi: 'RSI (14)',
+  macd: 'MACD',
+  bollinger_bands: 'Bollinger Bands',
+  sma: 'SMA (50)',
+  ema: 'EMA (20)',
+  stochastic: 'Stochastic',
+  atr: 'ATR',
+  obv: 'OBV',
+};
+
+const COIN_ID = 'bitcoin';
 
 export default function TradingIndicatorsPage() {
   const { profile } = useAuth();
@@ -57,18 +82,21 @@ export default function TradingIndicatorsPage() {
   const [_bbValues, setBbValues] = useState<IndicatorValue[]>([]);
   const [signals, setSignals] = useState<TradingSignal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>('1M');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const hasAccess = hasTradingIndicatorsPremium(undefined, profile?.subscription_status);
+  const hasAccess = hasTradingIndicatorsPremium(
+    undefined,
+    profile?.subscription_status,
+    profile?.subscription_expires_at
+  );
   const availableIndicators = getAvailableIndicators(hasAccess);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
-      const data = generateMockChartData(100);
+      const data = await fetchChartData(COIN_ID, timeframe);
       setChartData(data);
 
       // Calculate indicators
@@ -80,13 +108,32 @@ export default function TradingIndicatorsPage() {
       if (hasAccess) {
         const tradingSignals = generateTradingSignals(data, ['rsi', 'macd', 'bollinger_bands']);
         setSignals(tradingSignals);
+      } else {
+        setSignals([]);
       }
     } catch (err) {
+      // Never fall back to synthetic prices here: everything on this page is
+      // presented as analysis of the real market, so showing nothing is correct
+      // and showing invented candles is not.
       console.error('Failed to load chart data:', err);
+      setChartData([]);
+      setRsiValues([]);
+      setMacdValues([]);
+      setBbValues([]);
+      setSignals([]);
+      setLoadError(
+        err instanceof Error && err.message
+          ? `Could not load live price data: ${err.message}`
+          : 'Could not load live price data.'
+      );
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [timeframe, hasAccess]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   function toggleIndicator(indicator: IndicatorType) {
     if (!availableIndicators.includes(indicator)) return;
@@ -97,9 +144,37 @@ export default function TradingIndicatorsPage() {
     );
   }
 
-  const latestPrice = chartData[chartData.length - 1]?.close || 0;
-  const prevPrice = chartData[chartData.length - 2]?.close || 0;
-  const priceChange = ((latestPrice - prevPrice) / prevPrice) * 100;
+  const latestPrice = chartData[chartData.length - 1]?.close ?? 0;
+  const firstPrice = chartData[0]?.open ?? 0;
+  // Change across the whole loaded window, which is what the selected timeframe
+  // means to a reader. Comparing to the previous candle would label a 30-minute
+  // move as the "1D" change.
+  const priceChange = firstPrice > 0 ? ((latestPrice - firstPrice) / firstPrice) * 100 : 0;
+  const candleLabel = CHART_TIMEFRAMES[timeframe].candleLabel;
+
+  // Indicators are counted in candles, and the candle interval is set by the API
+  // per timeframe, so a short window can be too thin for the longer indicators.
+  const insufficientFor = useMemo(
+    () =>
+      selectedIndicators.filter(
+        (indicator) => chartData.length < (INDICATOR_MIN_CANDLES[indicator] ?? 0)
+      ),
+    [selectedIndicators, chartData.length]
+  );
+
+  // Scale the candles to the actual price range instead of assuming a fixed
+  // dollar-per-pixel factor, which only ever fitted the old synthetic $40k series.
+  const CHART_HEIGHT = 288;
+  const visibleCandles = chartData.slice(-50);
+  const priceFloor = visibleCandles.length
+    ? Math.min(...visibleCandles.map((c) => c.low))
+    : 0;
+  const priceCeiling = visibleCandles.length
+    ? Math.max(...visibleCandles.map((c) => c.high))
+    : 0;
+  const priceSpan = priceCeiling - priceFloor;
+  const toPixels = (delta: number) =>
+    priceSpan > 0 ? (delta / priceSpan) * CHART_HEIGHT : 0;
 
   if (isLoading) {
     return (
@@ -131,6 +206,25 @@ export default function TradingIndicatorsPage() {
           </p>
         </div>
 
+        {loadError && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-red-800 dark:text-red-300">{loadError}</p>
+              <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                Indicators and signals are hidden rather than estimated, because they would not
+                reflect the real market.
+              </p>
+              <button
+                onClick={loadData}
+                className="mt-3 px-3 py-1.5 text-sm font-medium rounded bg-red-600 text-white hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Price Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between">
@@ -147,12 +241,21 @@ export default function TradingIndicatorsPage() {
                   {priceChange.toFixed(2)}%
                 </span>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {timeframe} change &middot; {chartData.length} {candleLabel} &middot; live data from CoinGecko
+              </p>
             </div>
             <div className="flex gap-2">
-              {['1D', '1W', '1M', '3M', '1Y'].map(tf => (
+              {(Object.keys(CHART_TIMEFRAMES) as ChartTimeframe[]).map(tf => (
                 <button
                   key={tf}
-                  className="px-3 py-1 text-sm rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  onClick={() => setTimeframe(tf)}
+                  aria-pressed={tf === timeframe}
+                  className={`px-3 py-1 text-sm rounded ${
+                    tf === timeframe
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
                 >
                   {tf}
                 </button>
@@ -169,12 +272,12 @@ export default function TradingIndicatorsPage() {
               <div className="space-y-2">
                 {INDICATOR_PRESETS_DATA.map(indicator => {
                   const isAvailable = !indicator.is_premium || hasAccess;
-                  const isSelected = selectedIndicators.includes(indicator.id.split('-')[0] as IndicatorType);
+                  const isSelected = selectedIndicators.includes(indicator.type);
 
                   return (
                     <button
                       key={indicator.id}
-                      onClick={() => isAvailable && toggleIndicator(indicator.id.split('-')[0] as IndicatorType)}
+                      onClick={() => isAvailable && toggleIndicator(indicator.type)}
                       disabled={!isAvailable}
                       className={`w-full p-3 rounded-lg text-left transition-all ${
                         isSelected
@@ -218,10 +321,27 @@ export default function TradingIndicatorsPage() {
 
           {/* Chart Area */}
           <div className="lg:col-span-3 space-y-6">
+            {insufficientFor.length > 0 && !loadError && (
+              <div className="p-4 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-sm text-yellow-800 dark:text-yellow-300">
+                This timeframe returned {chartData.length} {candleLabel}, which is not enough to
+                compute {insufficientFor.map((i) => INDICATOR_LABELS[i] ?? i).join(', ')}. Pick a
+                longer timeframe to see{' '}
+                {insufficientFor.length > 1 ? 'those indicators' : 'that indicator'}.
+              </div>
+            )}
             {/* Main Chart */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Price Chart</h3>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Price Chart</h3>
+                  {visibleCandles.length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      ${priceFloor.toLocaleString(undefined, { maximumFractionDigits: 0 })} - $
+                      {priceCeiling.toLocaleString(undefined, { maximumFractionDigits: 0 })} over the
+                      last {visibleCandles.length} {candleLabel}
+                    </p>
+                  )}
+                </div>
                 <button className="p-2 text-gray-500 hover:text-gray-700">
                   <Settings className="h-5 w-5" />
                 </button>
@@ -229,29 +349,35 @@ export default function TradingIndicatorsPage() {
 
               {/* Candlestick Chart Visualization */}
               <div className="h-80 flex items-end gap-0.5 bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                {chartData.slice(-50).map((candle, i) => {
-                  const isGreen = candle.close >= candle.open;
-                  const bodyHeight = Math.abs(candle.close - candle.open) / 1000;
-                  const wickTop = (candle.high - Math.max(candle.open, candle.close)) / 1000;
-                  const wickBottom = (Math.min(candle.open, candle.close) - candle.low) / 1000;
+                {visibleCandles.length === 0 ? (
+                  <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
+                    No price data to display.
+                  </div>
+                ) : (
+                  visibleCandles.map((candle, i) => {
+                    const isGreen = candle.close >= candle.open;
+                    const bodyHeight = toPixels(Math.abs(candle.close - candle.open));
+                    const wickTop = toPixels(candle.high - Math.max(candle.open, candle.close));
+                    const wickBottom = toPixels(Math.min(candle.open, candle.close) - candle.low);
 
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center">
-                      <div
-                        className={`w-px ${isGreen ? 'bg-green-500' : 'bg-red-500'}`}
-                        style={{ height: `${wickTop * 5}px` }}
-                      />
-                      <div
-                        className={`w-full max-w-[8px] ${isGreen ? 'bg-green-500' : 'bg-red-500'} rounded-sm`}
-                        style={{ height: `${Math.max(2, bodyHeight * 5)}px` }}
-                      />
-                      <div
-                        className={`w-px ${isGreen ? 'bg-green-500' : 'bg-red-500'}`}
-                        style={{ height: `${wickBottom * 5}px` }}
-                      />
-                    </div>
-                  );
-                })}
+                    return (
+                      <div key={candle.timestamp ?? i} className="flex-1 flex flex-col items-center justify-end">
+                        <div
+                          className={`w-px ${isGreen ? 'bg-green-500' : 'bg-red-500'}`}
+                          style={{ height: `${wickTop}px` }}
+                        />
+                        <div
+                          className={`w-full max-w-[8px] ${isGreen ? 'bg-green-500' : 'bg-red-500'} rounded-sm`}
+                          style={{ height: `${Math.max(2, bodyHeight)}px` }}
+                        />
+                        <div
+                          className={`w-px ${isGreen ? 'bg-green-500' : 'bg-red-500'}`}
+                          style={{ height: `${wickBottom}px` }}
+                        />
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 

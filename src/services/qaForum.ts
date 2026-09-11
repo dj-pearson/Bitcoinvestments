@@ -13,6 +13,7 @@
 
 import { isSupabaseConfigured, db } from '../lib/supabase';
 import { awardPoints } from './userReputation';
+import { pgrestContains } from '../lib/postgrestFilter';
 
 export interface Question {
   id: string;
@@ -131,7 +132,9 @@ export async function getQuestions(
       }
 
       if (filters.query) {
-        query = query.or(`title.ilike.%${filters.query}%,body.ilike.%${filters.query}%`);
+        query = query.or(
+          `title.ilike.${pgrestContains(filters.query)},body.ilike.${pgrestContains(filters.query)}`
+        );
       }
 
       // Apply sorting

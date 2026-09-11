@@ -1185,14 +1185,41 @@ export const RETIREMENT_CALCULATOR_PRICING = {
 } as const;
 
 /**
+ * Whether a main subscription currently entitles the user to bundled add-ons.
+ *
+ * The add-on gates below each re-implemented the tier test inline and none of
+ * them consulted subscription_expires_at, unlike the twenty-two core gates in
+ * this file, which all take it and all refuse once it has passed. An add-on
+ * therefore stayed unlocked on a lapsed subscription for as long as
+ * subscription_status still read 'premium'.
+ *
+ * The Stripe webhook does write subscription_status back to 'free' when a
+ * subscription ends or a payment fails, so this is the second line of defence
+ * rather than the first. It is the line that holds when a webhook is missed or
+ * fails - which this codebase has seen (see US-101, and the earlier fix for
+ * signature verification failing on every delivery) - and it is exactly why the
+ * expiry column is checked everywhere else.
+ */
+function hasActiveMainSubscription(
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
+): boolean {
+  if (!mainSubscriptionStatus) return false;
+  if (mainSubscriptionStatus === 'lifetime') return true;
+  if (!['premium', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) return false;
+  return isSubscriptionActive(mainSubscriptionExpiresAt);
+}
+
+/**
  * Check if user has retirement calculator premium access
  */
 export function hasRetirementCalculatorPremium(
   retirementCalcStatus?: 'free' | 'premium' | 'bundled',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
   // Bundled with main premium subscription
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     return true;
   }
   return retirementCalcStatus === 'premium' || retirementCalcStatus === 'bundled';
@@ -1243,10 +1270,11 @@ export const MULTI_EXCHANGE_PRICING = {
  */
 export function hasMultiExchangeAccess(
   multiExchangeStatus?: 'free' | 'premium',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
   // Bundled with main premium subscription
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     return true;
   }
   return multiExchangeStatus === 'premium';
@@ -1297,9 +1325,10 @@ export const STAKING_CALCULATOR_PRICING = {
  */
 export function hasStakingCalculatorPremium(
   stakingStatus?: 'free' | 'premium',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     return true;
   }
   return stakingStatus === 'premium';
@@ -1352,9 +1381,10 @@ export const TRADING_INDICATORS_PRICING = {
  */
 export function hasTradingIndicatorsPremium(
   indicatorsStatus?: 'free' | 'premium',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     return true;
   }
   return indicatorsStatus === 'premium';
@@ -1407,9 +1437,10 @@ export const WHALE_TRACKING_PRICING = {
  */
 export function hasWhaleTrackingPremium(
   whaleStatus?: 'free' | 'premium',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     return true;
   }
   return whaleStatus === 'premium';
@@ -1462,9 +1493,10 @@ export const REBALANCING_ALERTS_PRICING = {
  */
 export function hasRebalancingAlertsPremium(
   rebalancingStatus?: 'free' | 'premium',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     return true;
   }
   return rebalancingStatus === 'premium';
@@ -1533,10 +1565,11 @@ export const DCA_AUTOMATION_PRICING = {
  */
 export function getDCAAutomationTier(
   dcaStatus?: 'free' | 'basic' | 'premium',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): 'free' | 'basic' | 'premium' {
   // Premium main subscription gets basic DCA access included
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     // Upgrade to premium DCA if they have it, otherwise give basic
     return dcaStatus === 'premium' ? 'premium' : 'basic';
   }
@@ -1548,9 +1581,10 @@ export function getDCAAutomationTier(
  */
 export function hasDCAAutomationAccess(
   dcaStatus?: 'free' | 'basic' | 'premium',
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
-  const tier = getDCAAutomationTier(dcaStatus, mainSubscriptionStatus);
+  const tier = getDCAAutomationTier(dcaStatus, mainSubscriptionStatus, mainSubscriptionExpiresAt);
   return tier === 'basic' || tier === 'premium';
 }
 
@@ -1623,10 +1657,11 @@ export const SMART_ALERT_BUNDLES_PRICING = {
 export function hasAlertBundleAccess(
   bundleId: string,
   activeBundles?: string[],
-  mainSubscriptionStatus?: SubscriptionStatus
+  mainSubscriptionStatus?: SubscriptionStatus,
+  mainSubscriptionExpiresAt?: string | null
 ): boolean {
   // Premium subscribers get basic access to all bundles
-  if (mainSubscriptionStatus && ['premium', 'lifetime', 'advisor', 'enterprise'].includes(mainSubscriptionStatus)) {
+  if (hasActiveMainSubscription(mainSubscriptionStatus, mainSubscriptionExpiresAt)) {
     return true;
   }
   return activeBundles?.includes(bundleId) || false;

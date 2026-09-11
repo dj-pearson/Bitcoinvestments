@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Shield, AlertTriangle } from 'lucide-react';
-import { signIn, signInWithTwoFactor } from '../services/auth';
+import { signIn, signInWithTwoFactor, cancelTwoFactorSignIn } from '../services/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { loginFormSchema, validateWithZod, getFieldError } from '../lib/validation';
@@ -17,7 +17,7 @@ interface LocationState {
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading: authLoading, initializeSession } = useAuth();
+  const { user, loading: authLoading, initializeSession, refreshUser } = useAuth();
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,9 +31,6 @@ export function Login() {
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
-
-  // Store password securely for 2FA re-authentication (cleared after use)
-  const pendingPasswordRef = useRef<string | null>(null);
 
   // Get the redirect location from state (if coming from a protected route)
   const locationState = location.state as LocationState | null;
@@ -74,10 +71,16 @@ export function Login() {
     }
   }, [user, authLoading, navigate, fromPath, wasAdminRedirect]);
 
-  // Clear pending password on unmount for security
+  // Leaving the page mid-prompt must not leave a half-authenticated session
+  // behind. requires2FA is read through a ref so the cleanup runs only on
+  // unmount rather than on every change to it.
+  const requires2FARef = useRef(false);
+  requires2FARef.current = requires2FA;
   useEffect(() => {
     return () => {
-      pendingPasswordRef.current = null;
+      if (requires2FARef.current) {
+        void cancelTwoFactorSignIn();
+      }
     };
   }, []);
 
@@ -114,9 +117,8 @@ export function Login() {
       setRequires2FA(true);
       setPendingUserId(userId);
       setPendingEmail(userEmail || email);
-      // Store password securely for 2FA re-authentication
-      pendingPasswordRef.current = password;
-      // Clear password from input for security
+      // The password is not retained: verification now runs against the session
+      // the password step already established, so there is nothing to replay.
       setPassword('');
       setLoading(false);
       return;
@@ -151,25 +153,12 @@ export function Login() {
       return;
     }
 
-    // Get stored password for re-authentication
-    const storedPassword = pendingPasswordRef.current;
-    if (!storedPassword) {
-      setError('Session expired. Please try logging in again.');
-      handleBack();
-      setLoading(false);
-      return;
-    }
-
     const { user, error: verifyError } = await signInWithTwoFactor(
       pendingUserId,
       twoFactorCode,
       useRecoveryCode,
-      pendingEmail,
-      storedPassword
+      pendingEmail
     );
-
-    // Clear stored password immediately after use
-    pendingPasswordRef.current = null;
 
     if (verifyError) {
       setError(verifyError);
@@ -180,6 +169,9 @@ export function Login() {
     if (user) {
       // Initialize the session for the user
       await initializeSession(user.id);
+      // The pending marker is cleared by signInWithTwoFactor; refreshUser lets
+      // AuthContext pick up the session it was told to ignore until now.
+      await refreshUser();
       toast.success('Welcome back!', 'Two-factor authentication verified.');
       const redirectPath = getRedirectPath(user.role);
       navigate(redirectPath, { replace: true });
@@ -188,14 +180,15 @@ export function Login() {
   };
 
   const handleBack = () => {
+    // Abandoning the prompt must discard the half-authenticated session, not
+    // just reset the form.
+    void cancelTwoFactorSignIn();
     setRequires2FA(false);
     setTwoFactorCode('');
     setPendingUserId(null);
     setPendingEmail(null);
     setUseRecoveryCode(false);
     setError(null);
-    // Clear stored password for security
-    pendingPasswordRef.current = null;
   };
 
   // 2FA Verification Screen

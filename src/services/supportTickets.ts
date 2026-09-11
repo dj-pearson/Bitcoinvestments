@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, db } from '../lib/supabase';
+import { pgrestContains } from '../lib/postgrestFilter';
 
 /**
  * Support Ticket Service
@@ -249,7 +250,9 @@ export async function getAllTickets(
       query = query.eq('is_premium', filters.is_premium);
     }
     if (filters.search) {
-      query = query.or(`subject.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      query = query.or(
+        `subject.ilike.${pgrestContains(filters.search)},description.ilike.${pgrestContains(filters.search)}`
+      );
     }
 
     const { data, count, error } = await query;

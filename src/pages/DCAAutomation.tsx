@@ -37,6 +37,7 @@ import type {
 } from '../types/premiumFeatures';
 
 import { PageSEO } from '../components/PageSEO';
+import { formatCryptoPrice } from '../lib/utils';
 export default function DCAAutomationPage() {
   const { user, profile } = useAuth();
   const [schedules, setSchedules] = useState<DCASchedule[]>([]);
@@ -47,7 +48,11 @@ export default function DCAAutomationPage() {
   const [calcDuration, setCalcDuration] = useState(12);
   const [isLoading, setIsLoading] = useState(true);
 
-  const tier = getDCAAutomationTier(undefined, profile?.subscription_status);
+  const tier = getDCAAutomationTier(
+    undefined,
+    profile?.subscription_status,
+    profile?.subscription_expires_at
+  );
   const plans = getDCAPlans();
 
   useEffect(() => {
@@ -331,7 +336,7 @@ export default function DCAAutomationPage() {
                           <div>
                             <p className="text-xs text-gray-500">Avg Price</p>
                             <p className="font-semibold text-gray-900 dark:text-white">
-                              ${schedule.average_price.toLocaleString()}
+                              {formatCryptoPrice(schedule.average_price)}
                             </p>
                           </div>
                           <div>

@@ -10,6 +10,7 @@ import { Hero } from '../components/Hero';
 import { SEO } from '../components/SEO';
 import { Testimonials } from '../components/Testimonials';
 import { useLazyAnimation } from '../hooks/useGSAPLazy';
+import { formatCryptoPrice } from '../lib/utils';
 
 export function Home() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -156,7 +157,7 @@ export function Home() {
                         <div key={`${coin.id}-${i}`} className="flex items-center gap-3 px-4">
                             <img src={coin.image} alt={coin.name} className="w-6 h-6 rounded-full" />
                             <span className="text-white font-medium">{coin.symbol.toUpperCase()}</span>
-                            <span className="text-gray-400">${coin.current_price.toLocaleString()}</span>
+                            <span className="text-gray-400">{formatCryptoPrice(coin.current_price)}</span>
                             <span className={coin.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'}>
                                 {coin.price_change_percentage_24h >= 0 ? '+' : ''}
                                 {coin.price_change_percentage_24h?.toFixed(2)}%

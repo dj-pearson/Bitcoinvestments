@@ -5,6 +5,7 @@ import { getTopCryptocurrencies } from '../services/coingecko';
 import type { Cryptocurrency } from '../types';
 import { useLazyAnimation } from '../hooks/useGSAPLazy';
 import { useAccessibility } from './accessibility/AccessibilityContext';
+import { formatCryptoPrice } from '../lib/utils';
 
 // Lazy load the heavy 3D component (Three.js ~490KB)
 const Hero3D = lazy(() => import('./Hero3D').then(m => ({ default: m.Hero3D })));
@@ -168,7 +169,7 @@ export function Hero() {
                                         </div>
                                         <div className="text-right">
                                             <p className="font-medium text-white">
-                                                ${coin.current_price.toLocaleString()}
+                                                {formatCryptoPrice(coin.current_price)}
                                             </p>
                                             <p className={`text-xs ${coin.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                                 {coin.price_change_percentage_24h >= 0 ? '+' : ''}

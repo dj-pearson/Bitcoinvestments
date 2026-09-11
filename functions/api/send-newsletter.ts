@@ -12,6 +12,7 @@
  * - Handles errors and retries
  */
 
+import { isAuthorizedScheduledRequest, unauthorizedResponse } from './_scheduledAuth';
 import { createClient } from '@supabase/supabase-js';
 
 interface Env {
@@ -336,16 +337,9 @@ async function sendEmail(
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
-  // Verify authorization
-  const authHeader = request.headers.get('Authorization');
-  const cronHeader = request.headers.get('X-Cloudflare-Cron');
-
-  // Allow cron trigger or bearer token auth
-  if (!cronHeader && authHeader !== `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  // Only the scheduled worker may run this: it mails every subscriber.
+  if (!isAuthorizedScheduledRequest(request, env.SUPABASE_SERVICE_ROLE_KEY)) {
+    return unauthorizedResponse();
   }
 
   try {

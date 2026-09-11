@@ -12,6 +12,7 @@ import {
   upsertHolding,
 } from './database';
 import { canAddAsset } from './subscriptionLimits';
+import { todayLocalISODate } from '../lib/utils';
 
 export class AssetLimitError extends Error {
   currentCount: number;
@@ -88,7 +89,23 @@ export async function getPortfolio(): Promise<Portfolio | null> {
           cost_basis: h.amount * h.average_buy_price,
           profit_loss: 0,
           profit_loss_percentage: 0,
-          transactions: [], // Transactions loaded separately if needed
+          // The holdings table stores a position, not a ledger, so the saved
+          // quantity and average price are represented as a single opening
+          // acquisition. recalculateHoldingFromTransactions treats the ledger as
+          // authoritative; without this the first edit to a saved holding would
+          // replay an empty history and wipe the position.
+          transactions: [
+            {
+              id: `${h.id}-opening`,
+              holding_id: h.id,
+              type: 'transfer_in' as const,
+              amount: h.amount,
+              price_per_unit: h.average_buy_price,
+              total_value: h.amount * h.average_buy_price,
+              date: h.created_at,
+              notes: 'Opening balance from saved holding',
+            },
+          ],
         })),
         total_value_usd: 0,
         total_cost_basis: 0,
@@ -276,17 +293,7 @@ export async function addHolding(
     // Update existing holding
     const holding = portfolio.holdings[existingHoldingIndex];
     holding.transactions.push({ ...transaction, holding_id: holding.id });
-    holding.amount += amount;
-
-    // Recalculate average buy price
-    const totalCost = holding.transactions
-      .filter(t => t.type === 'buy')
-      .reduce((sum, t) => sum + t.total_value, 0);
-    const totalBought = holding.transactions
-      .filter(t => t.type === 'buy')
-      .reduce((sum, t) => sum + t.amount, 0);
-    holding.average_buy_price = totalBought > 0 ? totalCost / totalBought : 0;
-    holding.cost_basis = holding.amount * holding.average_buy_price;
+    recalculateHoldingFromTransactions(holding);
 
     // Update in Supabase if user is logged in
     if (user && portfolio.user_id !== 'local') {
@@ -307,11 +314,11 @@ export async function addHolding(
       cryptocurrency_id: cryptoId,
       symbol: symbol.toUpperCase(),
       name,
-      amount,
-      average_buy_price: purchasePrice,
+      amount: 0,
+      average_buy_price: 0,
       current_price: purchasePrice,
-      current_value: amount * purchasePrice,
-      cost_basis: amount * purchasePrice,
+      current_value: 0,
+      cost_basis: 0,
       profit_loss: 0,
       profit_loss_percentage: 0,
       transactions: [],
@@ -319,6 +326,9 @@ export async function addHolding(
 
     transaction.holding_id = holding.id;
     holding.transactions.push(transaction);
+    // Derived from the ledger like every other mutation, so a fee on the opening
+    // buy is picked up rather than silently dropped.
+    recalculateHoldingFromTransactions(holding);
     portfolio.holdings.push(holding);
 
     // Save to Supabase if user is logged in
@@ -353,6 +363,84 @@ export async function addHolding(
 /**
  * Remove amount from a holding (sell or transfer out)
  */
+/**
+ * Rebuild a holding's quantity and cost basis by replaying its transactions.
+ *
+ * This is the single source of truth for basis. It previously lived in three
+ * places that each maintained it incrementally and disagreed with one another:
+ *
+ *   - addHolding averaged over every buy the holding had ever seen, including
+ *     units already sold, so basis was understated after any disposal.
+ *   - removeFromHolding recomputed cost_basis as amount * average_buy_price,
+ *     which inflates basis when average_buy_price is stale.
+ *   - addStakingReward raised amount while leaving both basis fields alone, so
+ *     the two stopped agreeing the moment a reward arrived.
+ *
+ * Method is average cost (ACB): a disposal removes basis in proportion to the
+ * units it removes and never changes the average unit cost of what remains.
+ *
+ * Acquisitions carry basis at the price recorded on the transaction, staking
+ * rewards included - a reward is taxable income at its value on receipt and that
+ * value becomes its basis, so the position does not show an instant paper profit
+ * equal to income that was already recognised. Fees paid on an acquisition are
+ * added to basis; fees paid on a disposal reduce proceeds and are not handled
+ * here, since this function does not compute proceeds.
+ */
+export function recalculateHoldingFromTransactions(holding: PortfolioHolding): void {
+  const ordered = [...holding.transactions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  let units = 0;
+  let basis = 0;
+
+  for (const transaction of ordered) {
+    const amount = Number(transaction.amount) || 0;
+    if (amount <= 0) continue;
+
+    switch (transaction.type) {
+      case 'buy':
+      case 'transfer_in':
+      case 'staking_reward': {
+        const unitPrice = Number(transaction.price_per_unit) || 0;
+        const fee = Number(transaction.fee) || 0;
+        units += amount;
+        basis += amount * unitPrice + fee;
+        break;
+      }
+
+      case 'sell':
+      case 'transfer_out': {
+        // Proportional basis removal. Guard the ratio so a ledger that disposes
+        // of more than it holds cannot drive basis negative.
+        const disposed = Math.min(amount, units);
+        const share = units > 0 ? disposed / units : 0;
+        basis -= basis * share;
+        units -= disposed;
+        break;
+      }
+    }
+  }
+
+  // Floating point residue from repeated proportional subtraction.
+  if (units <= 1e-12) {
+    units = 0;
+    basis = 0;
+  }
+
+  holding.amount = units;
+  holding.cost_basis = basis;
+  holding.average_buy_price = units > 0 ? basis / units : 0;
+
+  // Derived display figures are refreshed here too. They are a function of the
+  // quantity that just changed, and leaving them to the next price refresh meant
+  // a sale updated the basis but left current_value describing the old position,
+  // which recalculatePortfolioTotals then summed into the portfolio total.
+  holding.current_value = units * (Number(holding.current_price) || 0);
+  holding.profit_loss = holding.current_value - basis;
+  holding.profit_loss_percentage = basis > 0 ? (holding.profit_loss / basis) * 100 : 0;
+}
+
 export function removeFromHolding(
   portfolio: Portfolio,
   holdingId: string,
@@ -388,13 +476,11 @@ export function removeFromHolding(
   };
 
   holding.transactions.push(transaction);
-  holding.amount -= amount;
+  recalculateHoldingFromTransactions(holding);
 
-  // Remove holding if amount is 0
+  // Remove holding if nothing is left
   if (holding.amount <= 0) {
     portfolio.holdings.splice(holdingIndex, 1);
-  } else {
-    holding.cost_basis = holding.amount * holding.average_buy_price;
   }
 
   portfolio.updated_at = new Date().toISOString();
@@ -432,10 +518,7 @@ export function addStakingReward(
   };
 
   holding.transactions.push(transaction);
-  holding.amount += amount;
-
-  // Staking rewards have 0 cost basis (income), so don't add to average buy price
-  // This affects the profit/loss calculation
+  recalculateHoldingFromTransactions(holding);
 
   portfolio.updated_at = new Date().toISOString();
   recalculatePortfolioTotals(portfolio);
@@ -589,7 +672,7 @@ export function getPortfolioPerformance(
     const lastEntry = performance[performance.length - 1];
     if (portfolio.total_value_usd !== lastEntry.value) {
       performance.push({
-        date: new Date().toISOString().split('T')[0],
+        date: todayLocalISODate(),
         value: portfolio.total_value_usd,
         change: lastEntry.value > 0
           ? ((portfolio.total_value_usd - lastEntry.value) / lastEntry.value) * 100
@@ -699,7 +782,7 @@ export async function importPortfolioFromCSV(
       name,
       parseFloat(amount),
       parseFloat(avgBuyPrice),
-      new Date().toISOString().split('T')[0]
+      todayLocalISODate()
     );
   }
 
@@ -791,32 +874,7 @@ export async function addTransaction(
   };
 
   holding.transactions.push(newTransaction);
-
-  // Update holding amounts based on transaction type
-  switch (transaction.type) {
-    case 'buy':
-    case 'transfer_in':
-    case 'staking_reward':
-      // Recalculate average buy price for buys
-      if (transaction.type === 'buy' && transaction.price_per_unit > 0) {
-        const totalCost = holding.cost_basis + (transaction.amount * transaction.price_per_unit);
-        const totalAmount = holding.amount + transaction.amount;
-        holding.average_buy_price = totalAmount > 0 ? totalCost / totalAmount : 0;
-        holding.cost_basis = totalCost;
-      }
-      holding.amount += transaction.amount;
-      break;
-    case 'sell':
-    case 'transfer_out':
-      holding.amount = Math.max(0, holding.amount - transaction.amount);
-      holding.cost_basis = holding.amount * holding.average_buy_price;
-      break;
-  }
-
-  // Update current value
-  if (holding.current_price > 0) {
-    holding.current_value = holding.amount * holding.current_price;
-  }
+  recalculateHoldingFromTransactions(holding);
 
   portfolio.updated_at = new Date().toISOString();
   recalculatePortfolioTotals(portfolio);

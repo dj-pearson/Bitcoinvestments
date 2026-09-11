@@ -543,7 +543,7 @@
         "Toast notifications use assertive live region for immediate announcement",
         "Form submission success/error messages announced to screen readers",
         "Portfolio add/remove actions announced",
-        "Loading state changes announced ('Loading portfolio...' → 'Portfolio loaded')",
+        "Loading state changes announced ('Loading portfolio...' \u2192 'Portfolio loaded')",
         "Live regions don't cause excessive announcements (debounced where appropriate)",
         "Typecheck passes"
       ],
@@ -736,7 +736,7 @@
       "acceptanceCriteria": [
         "README.md includes: project description, key features list, architecture overview (frontend/backend/database/infra), tech stack badges, prerequisites (Node 20+, npm), quick start (clone, install, configure env, run), available npm scripts, project structure overview, deployment instructions",
         "CONTRIBUTING.md includes: branch naming conventions, commit message format, PR template, code style guide, testing requirements",
-        "Architecture diagram shows: React SPA → Cloudflare Pages → API Functions → Supabase + External APIs",
+        "Architecture diagram shows: React SPA \u2192 Cloudflare Pages \u2192 API Functions \u2192 Supabase + External APIs",
         "Environment setup clearly lists all required and optional env vars",
         "Common issues and troubleshooting section included",
         "Typecheck passes"
@@ -910,7 +910,7 @@
       "acceptanceCriteria": [
         "Admin analytics shows: MRR (Monthly Recurring Revenue) from Stripe, active subscriber count by tier, churn rate (monthly), new user signups over time (daily/weekly/monthly chart)",
         "Feature adoption metrics: % users using portfolio tracker, % using price alerts, % using Web3 features, % using forum",
-        "Conversion funnel: visitor → signup → free user → premium subscriber with drop-off rates",
+        "Conversion funnel: visitor \u2192 signup \u2192 free user \u2192 premium subscriber with drop-off rates",
         "Revenue per user segment (free, premium, advisor, enterprise)",
         "Data exportable as CSV",
         "Dashboard loads within 3 seconds",
@@ -1607,7 +1607,7 @@
       "title": "Add page transition animations for smoother navigation",
       "description": "Route changes are instant with no visual transition, creating a jarring experience. Add subtle fade-in animation when new pages load using framer-motion (already installed). Also implement a top progress bar for slower data loads using the existing PageLoader showProgress prop.",
       "acceptanceCriteria": [
-        "Layout.tsx wraps Outlet in motion.div with fade-in animation (opacity 0→1, 200ms duration)",
+        "Layout.tsx wraps Outlet in motion.div with fade-in animation (opacity 0\u21921, 200ms duration)",
         "Animation respects prefers-reduced-motion (instant transition if reduced motion preferred)",
         "Dashboard and Charts pages enable showProgress={true} on their PageLoader fallbacks",
         "No CLS caused by page transitions (content area dimensions stay stable)",
@@ -1815,6 +1815,207 @@
       "priority": 105,
       "passes": false,
       "notes": "Found during the iteration-15 audit. Deliberately NOT changed in code: unlike the arithmetic defects fixed in this branch, this is a question of tax law rather than a bug with a demonstrably correct answer, and it is exactly the kind of call that should be made by a qualified professional and recorded, not inferred by an agent from a code comment. Flagging it as a question, not a defect. Also note that the assumed harvesting tax rates in findTaxLossHarvestingOpportunities are hardcoded to 22% short-term and 15% long-term regardless of the filer's actual bracket, which is worth revisiting in the same pass."
+    },
+    {
+      "id": "US-106",
+      "title": "Back the backtesting tool with live historical prices instead of a bundled snapshot table",
+      "description": "src/services/backtesting.ts ships a hardcoded HISTORICAL_PRICES table of roughly 20 quarterly snapshots per asset, ending 2024-12-09 for all three supported assets. Because the table is static, its coverage decays: every day that passes moves more of the tool's advertised periods outside the data. As of this iteration the '1 Year' preset has no data at all, and the '2 Years' preset covers only its first three months. The immediate correctness and honesty problems are fixed in this iteration (windows are clamped to actual coverage, the clamp is disclosed in the UI, unavailable presets are disabled, prices between snapshots are interpolated instead of snapped to the nearest anchor), but the underlying fix is to fetch real daily history. The platform already integrates CoinGecko (src/services/coingecko.ts), whose market_chart/range endpoint returns daily OHLC history, so the data source exists - the work is caching, rate limiting, error and offline fallback, and widening the supported asset list, which is more than one iteration.",
+      "acceptanceCriteria": [
+        "Backtests use daily historical prices fetched from CoinGecko rather than the bundled snapshot table",
+        "Responses are cached (the free CoinGecko tier is rate limited and a backtest run should not cost a fresh API call per keystroke)",
+        "A fetch failure degrades to a clear error or the bundled table with the fallback disclosed, never to silently wrong numbers",
+        "getAssetCoverage and resolveWindow keep working against the live range so the clamp disclosure stays accurate",
+        "The supported asset list is driven by what the API can serve rather than the three hardcoded entries",
+        "The interpolation path is retained for gaps in returned data and the 'approximate' disclaimer is updated to match the new accuracy"
+      ],
+      "priority": 106,
+      "passes": false,
+      "notes": "Opened during iteration 1 of this loop while fixing the nearest-anchor snapping bug. Deliberately scoped out of that fix: swapping the data source touches API budget, caching strategy and offline behaviour, and the snapping bug needed fixing regardless of where the prices come from. Pick this up in a later iteration. Note that PortfolioAnalysis and Charts may want the same cached history layer, so build it as a shared service rather than inside the backtesting module."
+    },
+    {
+      "id": "US-107",
+      "title": "Consolidate the two parallel technical-indicator implementations",
+      "description": "The platform carries two independent technical-analysis engines. src/services/tradingIndicators.ts (474 lines) backs the /trading-indicators page. src/services/technicalIndicators.ts (687 lines) implements the same indicators again - SMA, EMA, RSI, MACD, Bollinger Bands, Stochastic, ATR - plus a richer generateTechnicalSignals, and feeds src/components/TechnicalIndicators.tsx, which is imported by nothing: a grep for the component name across src returns only its own definition. So roughly 1,100 lines of duplicated financial math ship to users, half of it unreachable, and the two copies do not agree. The RSI defects fixed in tradingIndicators.ts this iteration (smoothing that re-consumed the last seeded change, and an avgLoss === 0 sentinel reading 99.01 instead of 100/50) never existed in the technicalIndicators.ts copy, which seeds Wilder correctly - the same class of bug was fixed once and left standing in the other file. Duplicated indicator math means every future correction has to be made twice and will eventually be made only once.",
+      "acceptanceCriteria": [
+        "One indicator implementation remains; the other is deleted rather than left unreferenced",
+        "The surviving implementation is the one with correct Wilder RSI seeding, or the survivor is corrected to match before the other is removed",
+        "Both consumers (the /trading-indicators page and anything that adopts the currently-unmounted TechnicalIndicators component) compile against the single module",
+        "A decision is recorded on whether TechnicalIndicators.tsx should be mounted (CoinDetail is the natural home) or deleted - it is currently neither",
+        "Indicator outputs are checked against a published reference series so the consolidation cannot silently change signal behaviour"
+      ],
+      "priority": 107,
+      "passes": false,
+      "notes": "Found during iteration 2 while replacing the random-walk data source on /trading-indicators. Deliberately out of scope for that fix: deleting or merging ~1,100 lines of financial math needs reference-value checks on every indicator in both copies, which is more than one iteration. Note the unmounted component is the better implementation of the two, so the merge direction is not simply 'keep the one in use'."
+    },
+    {
+      "id": "US-108",
+      "title": "Move 2FA verification server-side and stop storing TOTP secrets in readable plaintext",
+      "description": "Two-factor verification runs entirely in the browser. signInWithTwoFactor reads two_factor_secret out of public.users into client JavaScript and compares the code there, and the secret and all recovery codes are stored in plaintext columns. The RLS fix in this iteration stops other users reading those columns, but the owner's own browser still receives them on every login, so a second factor is only as strong as the client executing the check: anything with the session token can read the secret and generate codes indefinitely, and the check itself can simply be skipped. There is also no per-account attempt limiting on the code itself - the login rate limiter is keyed on email in module memory (src/services/auth.ts), so it resets on reload and is per-tab, leaving a six-digit code with a +/-1 step window brute-forceable. Verification belongs behind an endpoint that holds the secret encrypted at rest, counts attempts server-side, and rejects a code already spent in its time step.",
+      "acceptanceCriteria": [
+        "TOTP verification happens server-side; the secret never reaches the browser after enrollment",
+        "two_factor_secret is encrypted at rest, and recovery codes are stored hashed rather than in plaintext so a database read cannot replay them",
+        "Failed 2FA attempts are counted server-side per account and lock out after a threshold, surviving a page reload",
+        "A TOTP code cannot be replayed within its own time step (last-used counter recorded per account)",
+        "The pending-2FA session gate is either kept or replaced by a server-issued pre-auth token that cannot act as a full session",
+        "Supabase's own MFA support is evaluated first, since adopting it would remove most of this code rather than reimplement it"
+      ],
+      "priority": 108,
+      "passes": false,
+      "notes": "Opened during iteration 3 alongside the RLS fix for admins_select_all_users. Deliberately out of scope for that fix: the RLS hole was a one-line predicate error with a demonstrable exploit and a safe correction, whereas this is a design change spanning an edge function, a schema migration with a backfill for existing enrolled users, and a re-enrollment story for secrets that cannot be migrated - more than one iteration. Note the currently-unused verifyTwoFactorCode and redeemRecoveryCode in src/services/twoFactor.ts should be folded into whatever server-side path replaces this, not left as a second client-side copy."
+    },
+    {
+      "id": "US-109",
+      "title": "Persist the transaction ledger for saved portfolios instead of storing only a position",
+      "description": "The holdings table stores a position - amount and average_buy_price - and no transaction history, so getPortfolio loads every saved holding with an empty transactions array. Cost basis is now derived by replaying the ledger (recalculateHoldingFromTransactions), and this iteration bridges the gap by synthesising a single opening transfer_in from the stored amount and average price. That keeps the arithmetic correct going forward but loses the real history: a user who logs in cannot see the trades behind a position, the holding-period split that the tax report depends on cannot be reconstructed, and any future change of accounting method (FIFO or specific identification rather than average cost) has nothing to recompute from. Transactions need their own table with RLS, a writer on every mutation path, and a backfill that turns each existing holding's opening balance into a real row.",
+      "acceptanceCriteria": [
+        "A transactions table exists with RLS scoped to the owning portfolio, and holdings link to it",
+        "addHolding, removeFromHolding, addStakingReward and addTransaction persist their transaction rather than only mutating the in-memory holding",
+        "getPortfolio loads real transactions; the synthesised opening transfer_in is removed once a holding has genuine history",
+        "A migration backfills one opening row per existing holding so no saved position loses its basis",
+        "The tax report and holding-period logic read from the persisted ledger instead of the position snapshot",
+        "Accounting method is stated in one place, so FIFO or specific identification can be added without a second basis implementation"
+      ],
+      "priority": 109,
+      "passes": false,
+      "notes": "Opened during iteration 4 while consolidating four divergent copies of the cost-basis maths. Deliberately out of scope for that fix: a schema migration plus backfill plus rewriting the read path is more than one iteration, and the arithmetic errors needed fixing whether or not the history is persisted. Note the synthesised opening transfer_in is load-bearing until this lands - removing it without persisting real transactions would make the ledger replay zero out every saved holding."
+    },
+    {
+      "id": "US-110",
+      "title": "Give the scheduled endpoints their own secret instead of authenticating with the Supabase service role key",
+      "description": "check-price-alerts and send-newsletter authenticate the scheduled worker by comparing the Authorization header against SUPABASE_SERVICE_ROLE_KEY. That key is the database god-key: it bypasses every RLS policy on every table. Using it as an HTTP bearer token means it is transmitted to a Pages Function on every cron run and sits in the request headers of any log line, error report or trace that captures them, and the workers hold it in their own environment purely to present it. A leak is total database compromise rather than the ability to trigger a newsletter early. These endpoints need a dedicated shared secret with no database authority, rotatable without touching Supabase, so that the blast radius of the credential matches what it actually authorises.",
+      "acceptanceCriteria": [
+        "A dedicated secret (e.g. CRON_SHARED_SECRET) authenticates the scheduled endpoints; SUPABASE_SERVICE_ROLE_KEY is no longer used as a bearer token",
+        "The workers in workers/ send the new secret and no longer need the service role key in their environment unless they query the database directly",
+        "Rotation is documented, and the endpoints accept a previous value during a rotation window so a rotation does not drop a cron run",
+        "Deployment docs and wrangler-cron.toml / wrangler-newsletter.toml comments name the new secret",
+        "isAuthorizedScheduledRequest keeps failing closed when the secret is unset"
+      ],
+      "priority": 110,
+      "passes": false,
+      "notes": "Opened during iteration 5 while removing the X-Cloudflare-Cron auth bypass from both endpoints. Deliberately out of scope for that fix: the bypass was a one-line predicate with a demonstrable exploit, whereas swapping the credential needs a new secret provisioned in the Cloudflare dashboard for Pages and both workers, plus a rotation window, and cannot be verified from the repo alone. Note the endpoints still need the service role key for their own Supabase queries - only its use as the bearer token should change."
+    },
+    {
+      "id": "US-111",
+      "title": "Exchange API credentials are encrypted with a key derived only from the public user id",
+      "description": "encryptCredentials in src/services/exchangeConnections.ts runs AES-256-GCM with a key derived by PBKDF2 from `userId + ':credentials-encryption-salt-v1'` and a hardcoded salt. Every input is either public or in the source, and userId is stored in the same row as the ciphertext, so anyone who can read exchange_connections can derive the key and decrypt every stored exchange API key and secret. There is no secret in the key derivation at all - this is obfuscation with the shape of encryption, and the 100,000 PBKDF2 iterations buy nothing when the password is known. A database dump, a backup, a leaked service role key, or an RLS mistake of the kind found in US-108 turns directly into exchange credentials. The fix is to encrypt server-side with a key the browser never sees, held as a Cloudflare secret or in a KMS, behind an endpoint that decrypts only for the authenticated owner.",
+      "acceptanceCriteria": [
+        "Encryption and decryption happen server-side with a key that is never sent to the browser",
+        "The key comes from a managed secret (Cloudflare secret binding or KMS), not from any value stored beside the ciphertext",
+        "Stored ciphertext is versioned so existing rows can be re-encrypted, with a documented migration for anything already saved",
+        "Decrypted credentials are returned only to the authenticated owner and never logged",
+        "The UI states plainly what protection is and is not in place, and continues to steer users to read-only exchange keys",
+        "The misleading 'AES-256-GCM' framing in the code comments is corrected so the next reader is not reassured by it"
+      ],
+      "priority": 111,
+      "passes": false,
+      "notes": "Found during iteration 6. NOT exploitable in production today: src/components/ExchangeConnections.tsx is imported by nothing - grep for the component name across src returns only its own definition - so no user can currently enter real exchange credentials through the UI. That is the only reason this is filed rather than fixed immediately, and it is also the reason it MUST be fixed before the component is ever mounted. Treat mounting ExchangeConnections as blocked on this story. Same unmounted-component situation as US-107."
+    },
+    {
+      "id": "US-112",
+      "title": "Make sign-out-all-devices revoke the Supabase session, not just the application's own marker",
+      "description": "Session tracking in src/services/sessionManager.ts is advisory. invalidateAllSessions deletes rows from user_sessions, and isSessionValid consults that table, but the Supabase refresh token on the other device is untouched and stays valid. After the PGRST116 fix in this iteration a revoked device does get signed out - but only because the application chooses to sign itself out on the next validity check. Anything holding the refresh token that does not run that check, such as a direct call to the Supabase REST API or a modified client, keeps full access with the user's RLS permissions. The session timeout has the same shape: it is enforced from a localStorage timestamp the user controls, so editing bi_last_activity extends a session indefinitely. Genuine revocation needs the auth server to invalidate the refresh token, via supabase.auth.admin.signOut from a privileged endpoint.",
+      "acceptanceCriteria": [
+        "Signing out all devices revokes refresh tokens through the Supabase auth admin API, so other devices cannot refresh",
+        "Terminating a single session from the device list revokes that session's token rather than only deleting the tracking row",
+        "The privileged call happens server-side; the service role key is never exposed to the browser",
+        "Session expiry is enforced against a server-side timestamp rather than a client-writable localStorage value",
+        "isSessionValid keeps failing closed on a definitively absent session row and open only on a genuinely missing table",
+        "The UI does not claim other devices are signed out until the revocation has actually succeeded"
+      ],
+      "priority": 112,
+      "passes": false,
+      "notes": "Opened during iteration 7 while fixing the PGRST116 misclassification that made remote revocation a no-op. Deliberately out of scope for that fix: revoking refresh tokens needs a new privileged endpoint holding the service role key plus a change to how expiry is measured, whereas the misclassification was a one-line error-code confusion with a definite correct answer. Note the two fixes compound - without this story, revocation is honoured only by a cooperating client."
+    },
+    {
+      "id": "US-113",
+      "title": "Decide the fate of the 24 unreferenced components and the services behind them",
+      "description": "Twenty-four of the roughly forty-five components in src/components are imported by nothing: AILearningAssistant, AMASessions, AdUnit, ApiAccess, Certifications, CustomDashboard, EarlyAccess, EmptyState, EnrollmentPrompt, ErrorStates, ExchangeConnections, FormElements, GEOContent, InteractiveCourses, OptimizedImage, PortfolioShareModal, QAForum, ResearchReports, RiskAssessmentQuiz, SuccessStories, SupportTicketForm, TechnicalIndicators, TransactionImport and VideoLibrary. Most have a backing service in src/services and, in several cases, tables and RLS policies in supabase/migrations, so the repository carries a substantial amount of machinery for features no user can reach. Because nothing imports them they are tree-shaken out of the build, so this is not shipped weight - it is maintenance burden and, more seriously, a source of false assurance: work has already been spent auditing and fixing code in this set (US-107 on duplicated indicator maths, US-111 on exchange credential encryption) that could equally have been spent on live code, and a reader cannot tell reachable code from unreachable without grepping. Each one needs a decision: mount it, or delete it with its service and migrations.",
+      "acceptanceCriteria": [
+        "Every component in the list is either mounted on a route or deleted",
+        "Deleting a component also removes its service, types and any tables or policies that exist only for it",
+        "Anything mounted rather than deleted is reviewed first - several carry known defects (US-107, US-111) that must not reach users",
+        "A check that fails on a component with no importer runs in CI, so the set cannot silently grow again",
+        "The decision for each is recorded, so a component deliberately kept for imminent use is distinguishable from one that was forgotten"
+      ],
+      "priority": 113,
+      "passes": false,
+      "notes": "Found during iteration 8 after two iterations were partly spent on code that turned out to be unreachable. Deliberately not done as a single change: deleting twenty-four components with their services and migrations is a large, irreversible sweep needing per-feature judgement about intent, and mounting any of them is a product decision rather than a fix. Until this is resolved, CHECK THAT A COMPONENT IS MOUNTED BEFORE INVESTING IN IT. The reverse also applies - US-111 must be resolved before ExchangeConnections is ever mounted."
+    },
+    {
+      "id": "US-114",
+      "title": "Enforce premium entitlements server-side rather than in the browser",
+      "description": "Every paywall on the platform is a client-side branch. The gates in src/services/subscriptionLimits.ts read subscription_status and subscription_expires_at from the user's own profile row and decide in the browser whether to render a premium feature, and the premium features themselves are computed client-side from public data. Anyone can edit the returned profile object, or simply call the underlying service function from the console, and obtain the paid feature. The expiry checks corrected in this iteration make the gates internally consistent, but consistency is not enforcement: nothing on the server declines to serve a premium result to a free account. Features whose value comes from server work - AI portfolio analysis via /api/claude, premium exports, research reports, tax packages - need the entitlement checked where the work happens, and the row users can read should not be the sole source of truth for what they have paid for.",
+      "acceptanceCriteria": [
+        "Server-side endpoints that perform paid work verify the caller's entitlement before doing it, from the database rather than from anything the client sends",
+        "The entitlement check reads subscription_status together with subscription_expires_at, matching the client-side rule, so the two cannot diverge",
+        "RLS prevents a user from writing their own subscription_status or subscription_expires_at; only the Stripe webhook path may set them",
+        "Client-side gates remain, as UX rather than as security, and are documented as such so nobody mistakes them for enforcement",
+        "A test demonstrates that a free account calling a premium endpoint directly is refused"
+      ],
+      "priority": 114,
+      "passes": false,
+      "notes": "Opened during iteration 10 while adding the missing expiry checks to nine add-on gates. Deliberately out of scope for that fix: moving enforcement server-side touches every premium endpoint and needs an RLS review of the users table's subscription columns, whereas the missing expiry check was a one-argument omission with an obvious correct answer. Note that US-108's RLS fix already blocks a user from changing their own role, but the subscription columns were not part of that policy - check whether users_update_own currently permits a user to set their own subscription_status to premium, which would make every gate on the platform trivially bypassable. UPDATE (iteration 11): the lead in this note was confirmed and fixed - users_update_own guarded only `role`, so subscription_status, subscription_expires_at, is_suspended, stripe_customer_id, referral_code and referred_by were all self-writable. Migration 20260911010000_protect_user_privilege_columns.sql replaces the guard with an allowlist. The remaining scope of this story is unchanged: client-side gates are still not enforcement, and server endpoints doing paid work still do not check entitlement."
+    },
+    {
+      "id": "US-115",
+      "title": "Audit the remaining unconditional write policies and the grants behind them",
+      "description": "A sweep of all 128 tables found RLS enabled everywhere and one table with no policy at all (sponsored_disclosures, which therefore denies everything and fails closed). It also found nine write-capable policies with an unconditional predicate. Two were dangerous and are fixed in this iteration: tax_report_purchases and scam_reporter_reputation both carried FOR ALL USING (true). The remaining seven are INSERT-only policies on tables that genuinely accept anonymous writes - certificate_views, share_views, research_subscribers, wallet_auth_nonces, newsletter_subscribers (twice) and affiliate_clicks. Those are intentional public endpoints, but none of them is rate limited or deduplicated at the database level, so anyone can inflate view counts, stuff the newsletter list, fabricate affiliate click attribution, or fill wallet_auth_nonces without bound. Each needs a decision: constrain the insert (a CHECK on shape, a uniqueness constraint, a per-IP or per-window limit), or accept the write and document why. sponsored_disclosures needs a policy or removal, since a table that denies every caller is either dead or broken.",
+      "acceptanceCriteria": [
+        "Each of the seven remaining unconditional INSERT policies is either constrained or documented as deliberately open",
+        "affiliate_clicks cannot be used to fabricate referral attribution that leads to a payout",
+        "newsletter_subscribers rejects duplicate and malformed addresses at the database level, not only in the client",
+        "wallet_auth_nonces has a retention policy so it cannot be grown without bound",
+        "sponsored_disclosures gets a policy or is dropped; a table with RLS on and no policy is decided rather than left",
+        "A repeatable check lists write-capable policies with unconditional predicates, so a new one is noticed when it is added"
+      ],
+      "priority": 115,
+      "passes": false,
+      "notes": "Opened during iteration 12 alongside the tax_report_purchases and scam_reporter_reputation fixes. Deliberately scoped out: the two fixed here exposed payment records and a trust signal, while the remaining seven are append-only logs and signup endpoints where the right answer is a product decision about abuse tolerance rather than a security fix. IMPORTANT LESSON RECORDED HERE: a 'system can manage' policy is always wrong. The service role bypasses RLS, so such a policy can only widen access for the callers it was meant to exclude. Also note that revoking a table GRANT from `authenticated` blocks admins too, since they authenticate as the same role - restrict admin-only writes with the policy and keep the grant."
+    },
+    {
+      "id": "US-116",
+      "title": "Consolidate the eight divergent formatCurrency implementations",
+      "description": "Eight files define their own formatCurrency: retirementCalculator, backtesting, subscriptionAnalytics, taxReportService, premiumExport, monthlyPerformanceReport, premiumCalculatorFeatures and the TaxReports page. They do not agree. Negative amounts render as -$5.00 in three of them, as ($5.00) in TaxReports, and retirementCalculator does not use Intl at all - it abbreviates to $1.23M and $45K and drops the decimals entirely, so the same figure reads differently depending on which screen shows it. The abbreviating one is arguably right for a chart axis and wrong for a total. The price formatting fixed in this iteration is now shared in src/lib/utils.ts; the currency formatters should follow, as a small set of named functions with stated purposes - a precise amount, an abbreviated axis label, an accounting figure with parentheses for negatives - rather than eight near-copies that drift.",
+      "acceptanceCriteria": [
+        "One module exports the currency formatters, with each variant named for its purpose rather than duplicated per feature",
+        "The eight local definitions are removed and their call sites use the shared functions",
+        "Negative amounts render consistently within a context, and the accounting style is used only where it is intended",
+        "The abbreviated form is used only where space demands it and never for a figure a user might reconcile against a statement",
+        "Exports (CSV, XLSX, PDF) are checked separately, since a formatted string in an export column is harder to parse than a raw number"
+      ],
+      "priority": 116,
+      "passes": false,
+      "notes": "Found during iteration 13 while fixing sub-cent crypto prices rendering as $0. Deliberately scoped out of that fix: the price bug made real prices invisible on live pages and had one obvious correct answer, whereas consolidating the currency formatters requires deciding per call site which of three legitimate styles is wanted, and touching export code paths where a change of format could break downstream parsing. Note formatCryptoPrice in src/lib/utils.ts is the pattern to follow."
+    },
+    {
+      "id": "US-117",
+      "title": "Decide the timezone convention for stored dates and snapshot range queries",
+      "description": "Calendar dates that a user sees or enters now use their local timezone (toLocalISODate / todayLocalISODate in src/lib/utils.ts), and stored date-only values are parsed as local rather than UTC midnight. Fourteen uses of toISOString().split('T')[0] remain and were left deliberately, but they are not all obviously right. Four are range bounds on snapshot_date columns (socialTrading, influencerVerification, lendingComparison twice) where a UTC bound against a server-written DATE column is at least self-consistent, though a user asking for 'the last 30 days' may see a boundary day appear or disappear depending on their offset. cryptoScamDbSync writes first_reported_date from UTC, which is right for a server job and wrong if the value is later rendered as a local date. The rest are in unmounted code (premiumExport, hardwareWallet, certifications) or demo data generators. The underlying question is not per-call-site: the platform needs a stated convention for which columns are instants and which are calendar dates, and where the boundary between them is drawn - particularly for tax-relevant records, where the answer determines which year a transaction lands in.",
+      "acceptanceCriteria": [
+        "A documented convention distinguishes timestamp columns (instants, stored UTC) from date columns (calendar dates, stored as written)",
+        "Snapshot range queries agree with the convention, and a date range a user selects returns the days they expect",
+        "Server-written dates that are later rendered to a user are stored and read under the same convention",
+        "Tax-relevant dates state the timezone the tax year is computed in, since the user's and the server's can differ",
+        "The remaining toISOString().split('T')[0] uses in live code are converted or annotated with why UTC is correct there"
+      ],
+      "priority": 117,
+      "passes": false,
+      "notes": "Opened during iteration 14 after fixing the local-date bugs that had a clear correct answer: the purchase-date form default, transaction dates, the reputation streak, the DCA schedule, the tax due date, date input defaults, export filenames, and the rendering of stored DATE values. Deliberately scoped out: the remaining cases turn on a convention that has not been decided, and picking one per call site without deciding it first would reintroduce exactly the inconsistency this iteration removed. Note the tax-year question is the sharp end - a transaction entered late on 31 December currently lands correctly now, but only because the client decides the date."
+    },
+    {
+      "id": "US-118",
+      "title": "Route the remaining large-number formatters through the shared helper",
+      "description": "formatCompactCurrency in src/lib/utils.ts now scales market caps, volumes and valuations to a unit that suits their size, and the Dashboard and CoinDetail pages use it. Other places still scale by hand. OnChainAnalytics has its own private formatLargeNumber with the same T/B/M ladder, which is correct but is a second copy that will drift; several services abbreviate figures inline for charts and reports; and retirementCalculator's formatCurrency (noted in US-116) abbreviates to $1.23M and $45K with no shared definition of when abbreviation is appropriate. The decision worth making once is which figures may be abbreviated at all - an axis label or a summary card, yes; a total a user might reconcile against a statement or a tax form, no - and then to have one implementation per intent.",
+      "acceptanceCriteria": [
+        "OnChainAnalytics uses the shared helper rather than its own copy",
+        "Inline scaling in services is replaced or justified",
+        "There is a stated rule for when a figure may be abbreviated and when it must be shown in full",
+        "Figures in exports and tax outputs are never abbreviated",
+        "The helper handles null, undefined and NaN consistently wherever it is used"
+      ],
+      "priority": 118,
+      "passes": false,
+      "notes": "Opened during iteration 15, the last of this loop, alongside the fix for market caps rendering as $0.00B. Deliberately scoped out: the remaining copies are not wrong in the way the fixed-1e9 divisions were, so this is consolidation rather than a defect, and it overlaps US-116 on the currency formatters - the two should probably be done together."
     }
   ]
 }

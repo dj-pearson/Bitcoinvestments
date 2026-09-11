@@ -5,6 +5,7 @@ import { AD_ZONES } from '../services/ads';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import type { Advertisement } from '../types/database';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { parseLocalDate, toLocalISODate, todayLocalISODate } from '../lib/utils';
 
 type AdFormData = {
   campaign_name: string;
@@ -21,8 +22,8 @@ type AdFormData = {
 
 // Helper to get initial form data with current dates
 function getInitialFormData(): AdFormData {
-  const today = new Date().toISOString().split('T')[0];
-  const thirtyDaysLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const today = todayLocalISODate();
+  const thirtyDaysLater = toLocalISODate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
   return {
     campaign_name: '',
     advertiser_id: '',
@@ -485,10 +486,10 @@ export function AdManager() {
                       <div className="text-xs text-gray-400">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {new Date(ad.start_date).toLocaleDateString()}
+                          {parseLocalDate(ad.start_date).toLocaleDateString()}
                         </div>
                         <div className="flex items-center gap-1 mt-1">
-                          →{' '}{new Date(ad.end_date).toLocaleDateString()}
+                          →{' '}{parseLocalDate(ad.end_date).toLocaleDateString()}
                         </div>
                       </div>
                     </td>

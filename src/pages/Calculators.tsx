@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calculator, DollarSign, Percent, Receipt, Coins, ArrowDownUp } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, formatCryptoPrice } from '../lib/utils';
 import { SEO, generateBreadcrumbSchema } from '../components/SEO';
 import { getCachedTopCryptocurrencies } from '../services/coingecko';
 import type { Cryptocurrency } from '../types';
@@ -261,7 +261,7 @@ function DCACalculatorForm() {
         See how a DCA strategy works by investing a fixed amount at regular intervals.
         {currentPrice && (
           <span className="block mt-1 text-sm">
-            Current {cryptoNames[formData.cryptocurrency]} price: <span className="text-white font-medium">${currentPrice.toLocaleString()}</span>
+            Current {cryptoNames[formData.cryptocurrency]} price: <span className="text-white font-medium">{formatCryptoPrice(currentPrice)}</span>
           </span>
         )}
       </p>
@@ -496,7 +496,7 @@ function CryptoConverterForm() {
           {selectedCrypto && (
             <div className="text-center space-y-1 pt-2">
               <p className="text-sm text-gray-400">
-                1 {selectedCrypto.symbol.toUpperCase()} = <span className="text-white font-medium">${selectedCrypto.current_price.toLocaleString()}</span>
+                1 {selectedCrypto.symbol.toUpperCase()} = <span className="text-white font-medium">{formatCryptoPrice(selectedCrypto.current_price)}</span>
               </p>
               <p className={cn('text-xs', selectedCrypto.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400')}>
                 {selectedCrypto.price_change_percentage_24h >= 0 ? '+' : ''}{selectedCrypto.price_change_percentage_24h.toFixed(2)}% (24h)

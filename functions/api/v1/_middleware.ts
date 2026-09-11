@@ -175,13 +175,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       );
     }
 
-    // Check IP whitelist (if configured)
+    // Check IP whitelist (if configured).
+    // Only CF-Connecting-IP counts. X-Forwarded-For is supplied by the caller,
+    // so accepting it here let anyone holding the key name their own address and
+    // satisfy the allowlist. If the header is missing the origin cannot be
+    // established, and an allowlist that cannot be evaluated must deny.
     if (apiKeyData.ip_whitelist.length > 0) {
-      const clientIp = request.headers.get('CF-Connecting-IP') ||
-                      request.headers.get('X-Forwarded-For')?.split(',')[0].trim() ||
-                      '';
+      const clientIp = request.headers.get('CF-Connecting-IP') || '';
 
-      if (!apiKeyData.ip_whitelist.includes(clientIp)) {
+      if (!clientIp || !apiKeyData.ip_whitelist.includes(clientIp)) {
         return new Response(
           JSON.stringify({
             error: 'IP not allowed',

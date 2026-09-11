@@ -17,8 +17,24 @@ export interface BacktestInput {
   dcaFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
 }
 
+export interface DataCoverage {
+  /** Earliest date the dataset has a price anchor for this asset. */
+  dataStart: string;
+  /** Latest date the dataset has a price anchor for this asset. */
+  dataEnd: string;
+  /** What the user asked for. */
+  requestedStart: string;
+  requestedEnd: string;
+  /** What was actually simulated, after clamping to the dataset. */
+  effectiveStart: string;
+  effectiveEnd: string;
+  /** True when either endpoint had to be moved to stay inside the dataset. */
+  clamped: boolean;
+}
+
 export interface BacktestResult {
   asset: string;
+  /** Effective (clamped) window the numbers below describe. */
   startDate: string;
   endDate: string;
   initialInvestment: number;
@@ -34,6 +50,7 @@ export interface BacktestResult {
   priceHistory: PricePoint[];
   investmentHistory: InvestmentPoint[];
   dcaSummary?: DCASummary;
+  coverage: DataCoverage;
 }
 
 export interface PricePoint {
@@ -127,32 +144,84 @@ const HISTORICAL_PRICES: Record<string, Record<string, number>> = {
 };
 
 /**
- * Get price for a specific date (interpolates if exact date not available)
+ * Sorted list of the dates we hold price anchors for, cached per asset.
  */
-function getPriceForDate(asset: string, date: string): number {
-  const prices = HISTORICAL_PRICES[asset.toLowerCase()];
-  if (!prices) return 0;
+const anchorCache = new Map<string, string[]>();
 
-  // Find closest date
-  const dates = Object.keys(prices).sort();
-  const targetDate = new Date(date).getTime();
+function getAnchorDates(asset: string): string[] {
+  const key = asset.toLowerCase();
+  const cached = anchorCache.get(key);
+  if (cached) return cached;
 
-  let closestDate = dates[0];
-  let closestDiff = Math.abs(new Date(dates[0]).getTime() - targetDate);
-
-  for (const d of dates) {
-    const diff = Math.abs(new Date(d).getTime() - targetDate);
-    if (diff < closestDiff) {
-      closestDiff = diff;
-      closestDate = d;
-    }
-  }
-
-  return prices[closestDate] || 0;
+  const prices = HISTORICAL_PRICES[key];
+  const dates = prices ? Object.keys(prices).sort() : [];
+  anchorCache.set(key, dates);
+  return dates;
 }
 
 /**
- * Generate price history between two dates
+ * The window this asset actually has data for. Returns null for unknown assets.
+ */
+export function getAssetCoverage(asset: string): { dataStart: string; dataEnd: string } | null {
+  const dates = getAnchorDates(asset);
+  if (dates.length === 0) return null;
+  return { dataStart: dates[0], dataEnd: dates[dates.length - 1] };
+}
+
+function toDay(date: string): string {
+  return date.slice(0, 10);
+}
+
+function clampDate(date: string, min: string, max: string): string {
+  const day = toDay(date);
+  if (day < min) return min;
+  if (day > max) return max;
+  return day;
+}
+
+/**
+ * Price for a date, linearly interpolated between the two surrounding anchors.
+ *
+ * The dataset is a sparse set of monthly-ish snapshots, so an exact match is the
+ * exception. Interpolating (rather than snapping to the nearest anchor) keeps two
+ * nearby dates from collapsing onto the same price, which would otherwise report a
+ * multi-month window as a flat 0% return. Dates outside the dataset are held at the
+ * first/last anchor - callers are expected to clamp first and disclose the clamp.
+ */
+function getPriceForDate(asset: string, date: string): number {
+  const prices = HISTORICAL_PRICES[asset.toLowerCase()];
+  const dates = getAnchorDates(asset);
+  if (!prices || dates.length === 0) return 0;
+
+  const target = toDay(date);
+  if (prices[target] !== undefined) return prices[target];
+  if (target <= dates[0]) return prices[dates[0]];
+  if (target >= dates[dates.length - 1]) return prices[dates[dates.length - 1]];
+
+  let before = dates[0];
+  let after = dates[dates.length - 1];
+  for (const d of dates) {
+    if (d <= target) before = d;
+    if (d >= target) {
+      after = d;
+      break;
+    }
+  }
+
+  const beforeTime = new Date(before).getTime();
+  const afterTime = new Date(after).getTime();
+  const span = afterTime - beforeTime;
+  if (span <= 0) return prices[before];
+
+  const ratio = (new Date(target).getTime() - beforeTime) / span;
+  return prices[before] + (prices[after] - prices[before]) * ratio;
+}
+
+/**
+ * Generate price history between two dates.
+ *
+ * Includes interpolated points at both endpoints so the series always spans the
+ * requested window, even when no anchor happens to fall inside it.
  */
 function generatePriceHistory(
   asset: string,
@@ -162,21 +231,19 @@ function generatePriceHistory(
   const prices = HISTORICAL_PRICES[asset.toLowerCase()];
   if (!prices) return [];
 
-  const history: PricePoint[] = [];
-  const start = new Date(startDate).getTime();
-  const end = new Date(endDate).getTime();
+  const start = toDay(startDate);
+  const end = toDay(endDate);
+  if (end < start) return [];
 
-  // Get all dates in range
-  const dates = Object.keys(prices).sort().filter(d => {
-    const time = new Date(d).getTime();
-    return time >= start && time <= end;
-  });
+  const interior = getAnchorDates(asset).filter((d) => d > start && d < end);
+  const history: PricePoint[] = [{ date: start, price: getPriceForDate(asset, start) }];
 
-  for (const date of dates) {
-    history.push({
-      date,
-      price: prices[date],
-    });
+  for (const date of interior) {
+    history.push({ date, price: prices[date] });
+  }
+
+  if (end !== start) {
+    history.push({ date: end, price: getPriceForDate(asset, end) });
   }
 
   return history;
@@ -222,16 +289,25 @@ function calculateDCA(
   averageCost: number;
   investments: InvestmentPoint[];
 } {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = new Date(`${toDay(startDate)}T00:00:00Z`);
+  const end = new Date(`${toDay(endDate)}T00:00:00Z`);
 
-  // Calculate interval in days
+  // Monthly contributions land on the same day of each calendar month; the other
+  // cadences are fixed-length so a day count is exact.
   const intervalDays = {
     daily: 1,
     weekly: 7,
     biweekly: 14,
-    monthly: 30,
+    monthly: 0,
   }[frequency || 'monthly'];
+
+  const advance = (date: Date, step: number): void => {
+    if (intervalDays === 0) {
+      date.setUTCMonth(date.getUTCMonth() + step);
+    } else {
+      date.setUTCDate(date.getUTCDate() + intervalDays * step);
+    }
+  };
 
   let totalInvested = initialInvestment;
   let totalHoldings = 0;
@@ -253,7 +329,7 @@ function calculateDCA(
 
   // DCA investments
   const currentDate = new Date(start);
-  currentDate.setDate(currentDate.getDate() + intervalDays);
+  advance(currentDate, 1);
 
   while (currentDate <= end) {
     const dateStr = currentDate.toISOString().split('T')[0];
@@ -278,12 +354,12 @@ function calculateDCA(
       });
     }
 
-    currentDate.setDate(currentDate.getDate() + intervalDays);
+    advance(currentDate, 1);
   }
 
   const endPrice = getPriceForDate(asset, endDate);
   const finalValue = totalHoldings * endPrice;
-  const averageCost = totalInvested / totalHoldings;
+  const averageCost = totalHoldings > 0 ? totalInvested / totalHoldings : 0;
 
   return {
     totalInvested,
@@ -343,11 +419,121 @@ function calculateAnnualizedReturn(
 }
 
 /**
+ * Resolve the requested window against the data we actually have.
+ *
+ * The dataset is a fixed set of historical snapshots with a hard end date, so a
+ * window that runs past it (every "last 12 months" request once the dataset ages)
+ * cannot be simulated honestly. Rather than silently pinning both endpoints to the
+ * final anchor and reporting a flat 0%, we clamp to the covered range and hand the
+ * caller enough metadata to say so - or report the window as unusable when it has
+ * no overlap with the data at all.
+ */
+export function resolveWindow(
+  asset: string,
+  requestedStart: string,
+  requestedEnd: string
+): { usable: boolean; coverage: DataCoverage; reason?: string } {
+  const assetCoverage = getAssetCoverage(asset);
+  const start = toDay(requestedStart);
+  const end = toDay(requestedEnd);
+
+  if (!assetCoverage) {
+    return {
+      usable: false,
+      reason: `No historical price data is available for "${asset}".`,
+      coverage: {
+        dataStart: '',
+        dataEnd: '',
+        requestedStart: start,
+        requestedEnd: end,
+        effectiveStart: start,
+        effectiveEnd: end,
+        clamped: false,
+      },
+    };
+  }
+
+  const { dataStart, dataEnd } = assetCoverage;
+  const effectiveStart = clampDate(start, dataStart, dataEnd);
+  const effectiveEnd = clampDate(end, dataStart, dataEnd);
+  const coverage: DataCoverage = {
+    dataStart,
+    dataEnd,
+    requestedStart: start,
+    requestedEnd: end,
+    effectiveStart,
+    effectiveEnd,
+    clamped: effectiveStart !== start || effectiveEnd !== end,
+  };
+
+  if (end < start) {
+    return { usable: false, reason: 'The end date must fall after the start date.', coverage };
+  }
+
+  if (start > dataEnd) {
+    return {
+      usable: false,
+      reason: `Historical data for this asset ends on ${dataEnd}. Choose a start date on or before then.`,
+      coverage,
+    };
+  }
+
+  if (end < dataStart) {
+    return {
+      usable: false,
+      reason: `Historical data for this asset begins on ${dataStart}. Choose an end date on or after then.`,
+      coverage,
+    };
+  }
+
+  if (effectiveEnd === effectiveStart) {
+    return {
+      usable: false,
+      reason: `The covered portion of that range is a single day (${effectiveStart}), so there is nothing to simulate.`,
+      coverage,
+    };
+  }
+
+  return { usable: true, coverage };
+}
+
+function emptyResult(input: BacktestInput, coverage: DataCoverage): BacktestResult {
+  return {
+    asset: input.asset,
+    startDate: coverage.effectiveStart,
+    endDate: coverage.effectiveEnd,
+    initialInvestment: input.initialInvestment,
+    totalInvested: input.initialInvestment,
+    finalValue: 0,
+    totalReturn: 0,
+    totalReturnPercentage: 0,
+    annualizedReturn: 0,
+    maxDrawdown: 0,
+    maxDrawdownDate: '',
+    allTimeHigh: 0,
+    allTimeHighDate: '',
+    priceHistory: [],
+    investmentHistory: [],
+    coverage,
+  };
+}
+
+/**
  * Run backtest simulation
  */
 export function runBacktest(input: BacktestInput): BacktestResult {
-  const endDate = input.endDate || new Date().toISOString().split('T')[0];
-  const priceHistory = generatePriceHistory(input.asset, input.startDate, endDate);
+  const requestedStart = toDay(input.startDate);
+  const requestedEnd = toDay(input.endDate || new Date().toISOString());
+  const window = resolveWindow(input.asset, requestedStart, requestedEnd);
+
+  if (!window.usable) {
+    return emptyResult(input, window.coverage);
+  }
+
+  const { effectiveStart, effectiveEnd } = window.coverage;
+  const endDate = effectiveEnd;
+  const startDate = effectiveStart;
+  const priceHistory = generatePriceHistory(input.asset, startDate, endDate);
 
   // Calculate based on whether DCA is enabled
   let investmentResult;
@@ -360,7 +546,7 @@ export function runBacktest(input: BacktestInput): BacktestResult {
       input.initialInvestment,
       input.dcaAmount,
       input.dcaFrequency,
-      input.startDate,
+      startDate,
       endDate
     );
 
@@ -368,7 +554,7 @@ export function runBacktest(input: BacktestInput): BacktestResult {
     const lumpSum = calculateLumpSum(
       input.asset,
       investmentResult.totalInvested,
-      input.startDate,
+      startDate,
       endDate
     );
 
@@ -388,7 +574,7 @@ export function runBacktest(input: BacktestInput): BacktestResult {
     const lumpSum = calculateLumpSum(
       input.asset,
       input.initialInvestment,
-      input.startDate,
+      startDate,
       endDate
     );
 
@@ -398,7 +584,7 @@ export function runBacktest(input: BacktestInput): BacktestResult {
       holdings: lumpSum.holdings,
       averageCost: input.initialInvestment / lumpSum.holdings,
       investments: [{
-        date: input.startDate,
+        date: startDate,
         invested: input.initialInvestment,
         value: input.initialInvestment,
         holdings: lumpSum.holdings,
@@ -417,12 +603,12 @@ export function runBacktest(input: BacktestInput): BacktestResult {
 
   const totalReturn = investmentResult.finalValue - investmentResult.totalInvested;
   const totalReturnPercentage = (totalReturn / investmentResult.totalInvested) * 100;
-  const annualizedReturn = calculateAnnualizedReturn(totalReturnPercentage, input.startDate, endDate);
+  const annualizedReturn = calculateAnnualizedReturn(totalReturnPercentage, startDate, endDate);
   const drawdownData = calculateMaxDrawdown(investmentResult.investments);
 
   return {
     asset: input.asset,
-    startDate: input.startDate,
+    startDate,
     endDate,
     initialInvestment: input.initialInvestment,
     totalInvested: investmentResult.totalInvested,
@@ -437,18 +623,31 @@ export function runBacktest(input: BacktestInput): BacktestResult {
     priceHistory,
     investmentHistory: investmentResult.investments,
     dcaSummary,
+    coverage: window.coverage,
   };
 }
 
 /**
  * Get supported assets for backtesting
  */
-export function getSupportedAssets(): { id: string; name: string; symbol: string; earliestDate: string }[] {
-  return [
-    { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', earliestDate: '2019-12-09' },
-    { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', earliestDate: '2019-12-09' },
-    { id: 'solana', name: 'Solana', symbol: 'SOL', earliestDate: '2021-01-01' },
-  ];
+export function getSupportedAssets(): { id: string; name: string; symbol: string; earliestDate: string; latestDate: string }[] {
+  const names: Record<string, { name: string; symbol: string }> = {
+    bitcoin: { name: 'Bitcoin', symbol: 'BTC' },
+    ethereum: { name: 'Ethereum', symbol: 'ETH' },
+    solana: { name: 'Solana', symbol: 'SOL' },
+  };
+
+  // Derived from the dataset so the advertised range can never drift from it.
+  return Object.keys(names).map((id) => {
+    const coverage = getAssetCoverage(id);
+    return {
+      id,
+      name: names[id].name,
+      symbol: names[id].symbol,
+      earliestDate: coverage?.dataStart ?? '',
+      latestDate: coverage?.dataEnd ?? '',
+    };
+  });
 }
 
 /**
@@ -472,28 +671,40 @@ export function formatPercentage(value: number): string {
 }
 
 /**
- * Get preset time periods
+ * Get preset time periods.
+ *
+ * `available` is false when the window would start after the dataset ends, which
+ * is what happens to the short presets as the bundled history ages.
  */
-export function getPresetPeriods(): { label: string; months: number }[] {
+export function getPresetPeriods(
+  asset = 'bitcoin'
+): { label: string; months: number; available: boolean }[] {
+  const dataEnd = getAssetCoverage(asset)?.dataEnd ?? '';
+
   return [
     { label: '1 Year', months: 12 },
     { label: '2 Years', months: 24 },
     { label: '3 Years', months: 36 },
     { label: '5 Years', months: 60 },
     { label: 'All Time', months: 0 },
-  ];
+  ].map((period) => ({
+    ...period,
+    available: dataEnd !== '' && getStartDateFromPeriod(period.months, asset) < dataEnd,
+  }));
 }
 
 /**
- * Calculate start date from months ago
+ * Calculate start date from months ago, bounded by what the asset has data for.
  */
-export function getStartDateFromPeriod(months: number): string {
+export function getStartDateFromPeriod(months: number, asset = 'bitcoin'): string {
+  const coverage = getAssetCoverage(asset);
+  if (!coverage) return toDay(new Date().toISOString());
+
   if (months === 0) {
-    // All time - return earliest available
-    return '2019-12-09';
+    return coverage.dataStart;
   }
 
   const date = new Date();
   date.setMonth(date.getMonth() - months);
-  return date.toISOString().split('T')[0];
+  return clampDate(toDay(date.toISOString()), coverage.dataStart, coverage.dataEnd);
 }

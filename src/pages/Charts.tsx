@@ -5,6 +5,7 @@ import { Search, Plus, TrendingUp } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import { RelatedPages } from '../components/InternalLinks';
 import { PAGE_METADATA, generateToolSchema, generateFAQSchema } from '../lib/seo';
+import { formatCryptoPrice } from '../lib/utils';
 
 export function Charts() {
   const [selectedCrypto, setSelectedCrypto] = useState({
@@ -264,7 +265,7 @@ export function Charts() {
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-white text-sm">
-                      ${crypto.current_price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {formatCryptoPrice(crypto.current_price)}
                     </p>
                     <p className={`text-xs ${
                       crypto.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'

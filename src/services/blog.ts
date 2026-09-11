@@ -14,6 +14,7 @@ import type {
   PaginatedBlogPosts,
   BlogStats,
 } from '../types/blog';
+import { pgrestContains } from '../lib/postgrestFilter';
 
 /**
  * Generate a URL-friendly slug from a title
@@ -323,7 +324,9 @@ export async function getAdminBlogPosts(
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
+      query = query.or(
+        `title.ilike.${pgrestContains(search)},content.ilike.${pgrestContains(search)}`
+      );
     }
 
     if (tag) {
@@ -397,7 +400,9 @@ export async function getPublicBlogPosts(
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%`);
+      query = query.or(
+        `title.ilike.${pgrestContains(search)},excerpt.ilike.${pgrestContains(search)}`
+      );
     }
 
     query = query.order('published_at', { ascending: false });

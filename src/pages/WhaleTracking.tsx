@@ -48,7 +48,11 @@ export default function WhaleTrackingPage() {
   const [selectedChain, setSelectedChain] = useState('ethereum');
   const [isLoading, setIsLoading] = useState(true);
 
-  const hasAccess = hasWhaleTrackingPremium(undefined, profile?.subscription_status);
+  const hasAccess = hasWhaleTrackingPremium(
+    undefined,
+    profile?.subscription_status,
+    profile?.subscription_expires_at
+  );
 
   useEffect(() => {
     loadData();

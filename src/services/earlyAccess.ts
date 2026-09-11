@@ -2,6 +2,7 @@
 // Beta access to new tools and features for premium users
 
 import { supabase, db } from '../lib/supabase';
+import { pgrestQuote } from '../lib/postgrestFilter';
 
 export type FeatureStatus = 'alpha' | 'beta' | 'stable' | 'deprecated';
 export type FeatureCategory = 'trading' | 'portfolio' | 'analytics' | 'social' | 'tools' | 'integrations';
@@ -257,7 +258,7 @@ export async function getFeature(idOrSlug: string): Promise<{
     const { data, error } = await db
       .from('early_access_features')
       .select('*')
-      .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
+      .or(`id.eq.${pgrestQuote(idOrSlug)},slug.eq.${pgrestQuote(idOrSlug)}`)
       .single();
 
     if (error) throw error;

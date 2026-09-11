@@ -2,6 +2,7 @@
 // Structured learning paths with lessons, quizzes, and progress tracking
 
 import { supabase, db } from '../lib/supabase';
+import { pgrestContains, pgrestQuote } from '../lib/postgrestFilter';
 
 export type CourseLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 export type CourseCategory = 'bitcoin' | 'ethereum' | 'defi' | 'trading' | 'security' | 'investing' | 'technical_analysis' | 'fundamentals';
@@ -512,7 +513,9 @@ export async function getCourses(filters: CourseFilters = {}): Promise<{
       query = query.eq('is_premium', filters.isPremium);
     }
     if (filters.search) {
-      query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      query = query.or(
+        `title.ilike.${pgrestContains(filters.search)},description.ilike.${pgrestContains(filters.search)}`
+      );
     }
 
     // Sorting
@@ -578,7 +581,7 @@ export async function getCourse(courseIdOrSlug: string): Promise<{
     const { data: courseData, error: courseError } = await db
       .from('courses')
       .select('*, instructor:instructors(*)')
-      .or(`id.eq.${courseIdOrSlug},slug.eq.${courseIdOrSlug}`)
+      .or(`id.eq.${pgrestQuote(courseIdOrSlug)},slug.eq.${pgrestQuote(courseIdOrSlug)}`)
       .single();
 
     if (courseError) throw courseError;

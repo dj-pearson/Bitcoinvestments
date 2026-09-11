@@ -10,7 +10,7 @@ import {
   Clock,
   ArrowRight,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, formatCompactCurrency, formatCryptoPrice } from '../lib/utils';
 import { PriceChart } from '../components/charts';
 import { SEO } from '../components/SEO';
 import { getCryptocurrencyById } from '../services/coingecko';
@@ -107,10 +107,7 @@ export function CoinDetail() {
 
           <div className="md:ml-auto text-left md:text-right">
             <p className="text-3xl md:text-4xl font-bold text-white">
-              ${coin.current_price.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: coin.current_price < 1 ? 6 : 2,
-              })}
+              {formatCryptoPrice(coin.current_price)}
             </p>
             <div className={cn(
               'inline-flex items-center gap-1 text-lg font-medium mt-1',
@@ -142,7 +139,7 @@ export function CoinDetail() {
               <p className="text-xs text-gray-400">Market Cap</p>
             </div>
             <p className="text-lg font-bold text-white">
-              ${(coin.market_cap / 1e9).toFixed(2)}B
+              {formatCompactCurrency(coin.market_cap)}
             </p>
             <p className={cn('text-xs', coin.market_cap_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400')}>
               {coin.market_cap_change_percentage_24h >= 0 ? '+' : ''}{coin.market_cap_change_percentage_24h.toFixed(2)}%
@@ -155,7 +152,7 @@ export function CoinDetail() {
               <p className="text-xs text-gray-400">24h Volume</p>
             </div>
             <p className="text-lg font-bold text-white">
-              ${(coin.total_volume / 1e9).toFixed(2)}B
+              {formatCompactCurrency(coin.total_volume)}
             </p>
             <p className="text-xs text-gray-500">
               Vol/MCap: {((coin.total_volume / coin.market_cap) * 100).toFixed(2)}%
@@ -234,7 +231,7 @@ export function CoinDetail() {
                 <div className="flex justify-between py-2">
                   <span className="text-gray-400 text-sm">Fully Diluted Valuation</span>
                   <span className="text-white font-medium text-sm">
-                    ${(coin.fully_diluted_valuation / 1e9).toFixed(2)}B
+                    {formatCompactCurrency(coin.fully_diluted_valuation)}
                   </span>
                 </div>
               )}

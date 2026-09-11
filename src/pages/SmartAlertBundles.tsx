@@ -35,6 +35,7 @@ import type {
 } from '../types/premiumFeatures';
 
 import { PageSEO } from '../components/PageSEO';
+import { formatCryptoPrice } from '../lib/utils';
 const BUNDLE_ICONS: Record<string, any> = {
   'TrendingUp': TrendingUp,
   'Shield': Shield,
@@ -365,7 +366,7 @@ export default function SmartAlertBundlesPage() {
                             </div>
                             <div className="text-right">
                               <p className="text-sm">
-                                ${alert.price_at_alert.toLocaleString()} → ${alert.price_after_24h.toLocaleString()}
+                                {formatCryptoPrice(alert.price_at_alert)} → {formatCryptoPrice(alert.price_after_24h)}
                               </p>
                               <p className={`text-xs font-medium ${
                                 alert.was_accurate ? 'text-green-600' : 'text-red-600'

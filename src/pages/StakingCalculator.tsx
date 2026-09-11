@@ -51,7 +51,11 @@ export default function StakingCalculatorPage() {
   const [optimalStrategy, setOptimalStrategy] = useState<OptimalStakingStrategy | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const hasAccess = hasStakingCalculatorPremium(undefined, profile?.subscription_status);
+  const hasAccess = hasStakingCalculatorPremium(
+    undefined,
+    profile?.subscription_status,
+    profile?.subscription_expires_at
+  );
 
   useEffect(() => {
     loadData();

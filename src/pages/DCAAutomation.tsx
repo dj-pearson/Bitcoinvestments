@@ -47,7 +47,11 @@ export default function DCAAutomationPage() {
   const [calcDuration, setCalcDuration] = useState(12);
   const [isLoading, setIsLoading] = useState(true);
 
-  const tier = getDCAAutomationTier(undefined, profile?.subscription_status);
+  const tier = getDCAAutomationTier(
+    undefined,
+    profile?.subscription_status,
+    profile?.subscription_expires_at
+  );
   const plans = getDCAPlans();
 
   useEffect(() => {

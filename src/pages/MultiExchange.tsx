@@ -61,7 +61,8 @@ export default function MultiExchange() {
 
   const hasAccess = hasMultiExchangeAccess(
     undefined,
-    profile?.subscription_status
+    profile?.subscription_status,
+    profile?.subscription_expires_at
   );
 
   useEffect(() => {

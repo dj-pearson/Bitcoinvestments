@@ -1940,6 +1940,21 @@
       "priority": 113,
       "passes": false,
       "notes": "Found during iteration 8 after two iterations were partly spent on code that turned out to be unreachable. Deliberately not done as a single change: deleting twenty-four components with their services and migrations is a large, irreversible sweep needing per-feature judgement about intent, and mounting any of them is a product decision rather than a fix. Until this is resolved, CHECK THAT A COMPONENT IS MOUNTED BEFORE INVESTING IN IT. The reverse also applies - US-111 must be resolved before ExchangeConnections is ever mounted."
+    },
+    {
+      "id": "US-114",
+      "title": "Enforce premium entitlements server-side rather than in the browser",
+      "description": "Every paywall on the platform is a client-side branch. The gates in src/services/subscriptionLimits.ts read subscription_status and subscription_expires_at from the user's own profile row and decide in the browser whether to render a premium feature, and the premium features themselves are computed client-side from public data. Anyone can edit the returned profile object, or simply call the underlying service function from the console, and obtain the paid feature. The expiry checks corrected in this iteration make the gates internally consistent, but consistency is not enforcement: nothing on the server declines to serve a premium result to a free account. Features whose value comes from server work - AI portfolio analysis via /api/claude, premium exports, research reports, tax packages - need the entitlement checked where the work happens, and the row users can read should not be the sole source of truth for what they have paid for.",
+      "acceptanceCriteria": [
+        "Server-side endpoints that perform paid work verify the caller's entitlement before doing it, from the database rather than from anything the client sends",
+        "The entitlement check reads subscription_status together with subscription_expires_at, matching the client-side rule, so the two cannot diverge",
+        "RLS prevents a user from writing their own subscription_status or subscription_expires_at; only the Stripe webhook path may set them",
+        "Client-side gates remain, as UX rather than as security, and are documented as such so nobody mistakes them for enforcement",
+        "A test demonstrates that a free account calling a premium endpoint directly is refused"
+      ],
+      "priority": 114,
+      "passes": false,
+      "notes": "Opened during iteration 10 while adding the missing expiry checks to nine add-on gates. Deliberately out of scope for that fix: moving enforcement server-side touches every premium endpoint and needs an RLS review of the users table's subscription columns, whereas the missing expiry check was a one-argument omission with an obvious correct answer. Note that US-108's RLS fix already blocks a user from changing their own role, but the subscription columns were not part of that policy - check whether users_update_own currently permits a user to set their own subscription_status to premium, which would make every gate on the platform trivially bypassable."
     }
   ]
 }

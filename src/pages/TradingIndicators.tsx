@@ -85,7 +85,11 @@ export default function TradingIndicatorsPage() {
   const [timeframe, setTimeframe] = useState<ChartTimeframe>('1M');
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const hasAccess = hasTradingIndicatorsPremium(undefined, profile?.subscription_status);
+  const hasAccess = hasTradingIndicatorsPremium(
+    undefined,
+    profile?.subscription_status,
+    profile?.subscription_expires_at
+  );
   const availableIndicators = getAvailableIndicators(hasAccess);
 
   const loadData = useCallback(async () => {

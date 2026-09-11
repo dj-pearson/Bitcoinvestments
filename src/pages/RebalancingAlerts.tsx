@@ -43,7 +43,11 @@ export default function RebalancingAlertsPage() {
   const [_showSetupModal, setShowSetupModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const hasAccess = hasRebalancingAlertsPremium(undefined, profile?.subscription_status);
+  const hasAccess = hasRebalancingAlertsPremium(
+    undefined,
+    profile?.subscription_status,
+    profile?.subscription_expires_at
+  );
   const templates = getTargetAllocationTemplates();
 
   useEffect(() => {

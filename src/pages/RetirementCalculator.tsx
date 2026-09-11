@@ -35,6 +35,7 @@ import {
 import type { RetirementInputs, RetirementProjection, RetirementScenario } from '../types/premiumFeatures';
 
 import { PageSEO } from '../components/PageSEO';
+import { todayLocalISODate } from '../lib/utils';
 export default function RetirementCalculatorPage() {
   const { user } = useAuth();
   const [isPremium] = useState(false);
@@ -70,7 +71,7 @@ export default function RetirementCalculatorPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `retirement_projection_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `retirement_projection_${todayLocalISODate()}.json`;
     a.click();
   }
 

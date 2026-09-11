@@ -42,3 +42,49 @@ export function formatCryptoPrice(price: number | null | undefined): string {
         ...precision,
     }).format(price);
 }
+
+/**
+ * A calendar date (YYYY-MM-DD) in the viewer's own timezone.
+ *
+ * `date.toISOString().split('T')[0]` gives the UTC calendar date, which is not
+ * the date the user is living in. Everywhere west of UTC it runs ahead for part
+ * of every day: for someone in New York adding a holding at 20:30 on 31 December,
+ * it yields 2026-01-01 - the wrong day, and the wrong tax year for the
+ * transaction that results.
+ *
+ * Use this wherever the value means "the date on the user's calendar" - a
+ * transaction date, a form default, a streak, a filename. Keep toISOString where
+ * the value means an instant in time, which is genuinely timezone-independent.
+ */
+export function toLocalISODate(date: Date = new Date()): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
+ * Today's calendar date in the viewer's timezone, as YYYY-MM-DD.
+ */
+export function todayLocalISODate(): string {
+    return toLocalISODate(new Date());
+}
+
+/**
+ * Parse a date-only string (YYYY-MM-DD) as local midnight rather than UTC.
+ *
+ * `new Date('2025-06-15')` is specified to parse as UTC midnight, so rendering it
+ * with toLocaleDateString shows 14 June to every viewer behind UTC. Splitting the
+ * parts and using the Date(y, m, d) constructor keeps the date the one that was
+ * stored.
+ */
+export function parseLocalDate(value: string): Date {
+    const [datePart] = value.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+
+    if (!year || !month || !day) {
+        return new Date(value);
+    }
+
+    return new Date(year, month - 1, day);
+}

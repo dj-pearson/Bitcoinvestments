@@ -26,7 +26,7 @@ import {
   type BacktestInput,
   type BacktestResult,
 } from '../services/backtesting';
-import { cn } from '../lib/utils';
+import { cn, todayLocalISODate } from '../lib/utils';
 
 export function Backtesting() {
   const { profile } = useAuth();
@@ -51,7 +51,7 @@ export function Backtesting() {
   const assets = getSupportedAssets();
   const periods = getPresetPeriods(input.asset);
   const coverage = getAssetCoverage(input.asset);
-  const endDate = input.endDate ?? new Date().toISOString().split('T')[0];
+  const endDate = input.endDate ?? todayLocalISODate();
   const window = resolveWindow(input.asset, input.startDate, endDate);
 
   const handleRunBacktest = () => {

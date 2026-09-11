@@ -4,6 +4,7 @@ import type {
   DCAInvestment,
 } from '../../types';
 import { getHistoricalDataRange } from '../coingecko';
+import { toLocalISODate } from '../../lib/utils';
 
 /**
  * Calculate DCA (Dollar-Cost Averaging) investment performance
@@ -54,7 +55,7 @@ export async function calculateDCA(
     totalInvested += investment_amount;
 
     investments.push({
-      date: date.toISOString().split('T')[0],
+      date: toLocalISODate(date),
       price,
       coins_bought: coinsBought,
       total_coins: totalCoins,

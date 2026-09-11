@@ -9,7 +9,7 @@ import {
   X,
   PieChart,
 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, todayLocalISODate } from '../lib/utils';
 import { useToast } from '../contexts/ToastContext';
 import {
   getPortfolio,
@@ -79,7 +79,7 @@ export function PortfolioTracker({ variant = 'full' }: PortfolioTrackerProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `portfolio-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `portfolio-${todayLocalISODate()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Exported!', 'Portfolio exported to CSV file.');
@@ -382,7 +382,7 @@ function AddHoldingModal({
   const [selectedCrypto, setSelectedCrypto] = useState(POPULAR_CRYPTOS[0]);
   const [amount, setAmount] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [purchaseDate, setPurchaseDate] = useState(todayLocalISODate());
   const [customCrypto, setCustomCrypto] = useState({ id: '', symbol: '', name: '' });
   const [useCustom, setUseCustom] = useState(false);
   const toast = useToast();

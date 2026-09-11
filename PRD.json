@@ -1986,6 +1986,21 @@
       "priority": 116,
       "passes": false,
       "notes": "Found during iteration 13 while fixing sub-cent crypto prices rendering as $0. Deliberately scoped out of that fix: the price bug made real prices invisible on live pages and had one obvious correct answer, whereas consolidating the currency formatters requires deciding per call site which of three legitimate styles is wanted, and touching export code paths where a change of format could break downstream parsing. Note formatCryptoPrice in src/lib/utils.ts is the pattern to follow."
+    },
+    {
+      "id": "US-117",
+      "title": "Decide the timezone convention for stored dates and snapshot range queries",
+      "description": "Calendar dates that a user sees or enters now use their local timezone (toLocalISODate / todayLocalISODate in src/lib/utils.ts), and stored date-only values are parsed as local rather than UTC midnight. Fourteen uses of toISOString().split('T')[0] remain and were left deliberately, but they are not all obviously right. Four are range bounds on snapshot_date columns (socialTrading, influencerVerification, lendingComparison twice) where a UTC bound against a server-written DATE column is at least self-consistent, though a user asking for 'the last 30 days' may see a boundary day appear or disappear depending on their offset. cryptoScamDbSync writes first_reported_date from UTC, which is right for a server job and wrong if the value is later rendered as a local date. The rest are in unmounted code (premiumExport, hardwareWallet, certifications) or demo data generators. The underlying question is not per-call-site: the platform needs a stated convention for which columns are instants and which are calendar dates, and where the boundary between them is drawn - particularly for tax-relevant records, where the answer determines which year a transaction lands in.",
+      "acceptanceCriteria": [
+        "A documented convention distinguishes timestamp columns (instants, stored UTC) from date columns (calendar dates, stored as written)",
+        "Snapshot range queries agree with the convention, and a date range a user selects returns the days they expect",
+        "Server-written dates that are later rendered to a user are stored and read under the same convention",
+        "Tax-relevant dates state the timezone the tax year is computed in, since the user's and the server's can differ",
+        "The remaining toISOString().split('T')[0] uses in live code are converted or annotated with why UTC is correct there"
+      ],
+      "priority": 117,
+      "passes": false,
+      "notes": "Opened during iteration 14 after fixing the local-date bugs that had a clear correct answer: the purchase-date form default, transaction dates, the reputation streak, the DCA schedule, the tax due date, date input defaults, export filenames, and the rendering of stored DATE values. Deliberately scoped out: the remaining cases turn on a convention that has not been decided, and picking one per call site without deciding it first would reintroduce exactly the inconsistency this iteration removed. Note the tax-year question is the sharp end - a transaction entered late on 31 December currently lands correctly now, but only because the client decides the date."
     }
   ]
 }

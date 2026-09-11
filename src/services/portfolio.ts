@@ -12,6 +12,7 @@ import {
   upsertHolding,
 } from './database';
 import { canAddAsset } from './subscriptionLimits';
+import { todayLocalISODate } from '../lib/utils';
 
 export class AssetLimitError extends Error {
   currentCount: number;
@@ -671,7 +672,7 @@ export function getPortfolioPerformance(
     const lastEntry = performance[performance.length - 1];
     if (portfolio.total_value_usd !== lastEntry.value) {
       performance.push({
-        date: new Date().toISOString().split('T')[0],
+        date: todayLocalISODate(),
         value: portfolio.total_value_usd,
         change: lastEntry.value > 0
           ? ((portfolio.total_value_usd - lastEntry.value) / lastEntry.value) * 100
@@ -781,7 +782,7 @@ export async function importPortfolioFromCSV(
       name,
       parseFloat(amount),
       parseFloat(avgBuyPrice),
-      new Date().toISOString().split('T')[0]
+      todayLocalISODate()
     );
   }
 

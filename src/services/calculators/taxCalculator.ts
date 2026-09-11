@@ -1,5 +1,6 @@
 import type { TaxCalculatorInput, TaxCalculatorResult } from '../../types';
 import { classifyHoldingPeriod } from './holdingPeriod';
+import { toLocalISODate } from '../../lib/utils';
 
 // US Federal capital gains tax brackets for 2024
 // Short-term gains are taxed as ordinary income (user's tax bracket is used)
@@ -387,7 +388,7 @@ export function estimateQuarterlyPayment(
   return {
     quarterlyPayment,
     annualTax,
-    dueDate: nextDueDate.toISOString().split('T')[0],
+    dueDate: toLocalISODate(nextDueDate),
   };
 }
 

@@ -12,6 +12,7 @@
  */
 
 import { isSupabaseConfigured, db } from '../lib/supabase';
+import { toLocalISODate, todayLocalISODate } from '../lib/utils';
 
 export interface UserReputation {
   userId: string;
@@ -615,8 +616,8 @@ function checkForNewBadges(
 function updateStreak(
   currentStreak?: UserReputation['streak']
 ): UserReputation['streak'] {
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today = todayLocalISODate();
+  const yesterday = toLocalISODate(new Date(Date.now() - 86400000));
 
   if (!currentStreak || !currentStreak.lastActivityDate) {
     return { current: 1, longest: 1, lastActivityDate: today };

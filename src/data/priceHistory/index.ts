@@ -65,8 +65,21 @@ export function isPriceAsset(value: string | null | undefined): value is PriceHi
 export const PRICE_HISTORY_SOURCES =
   'Coin Metrics community data (daily close) through May 2026, then daily CoinGecko snapshots';
 
-/** The committed weekly baseline for an asset. Pure and SSR-safe. */
+const staticCache = new Map<PriceHistoryAssetId, PriceSeries>();
+
+/**
+ * The committed weekly baseline for an asset. Pure and SSR-safe; the same object
+ * is returned on every call so it can be used as a memo dependency.
+ */
 export function getStaticSeries(asset: PriceHistoryAssetId): PriceSeries {
+  const cached = staticCache.get(asset);
+  if (cached) return cached;
+  const series = buildStaticSeries(asset);
+  staticCache.set(asset, series);
+  return series;
+}
+
+function buildStaticSeries(asset: PriceHistoryAssetId): PriceSeries {
   const points = WEEKLY_PRICES[asset].points.map(([date, price]) => ({ date, price }));
   return {
     asset,

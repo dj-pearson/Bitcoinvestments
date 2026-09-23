@@ -550,40 +550,10 @@ export const CRYPTO_RETURN_ASSUMPTIONS = {
   },
 } as const;
 
-// Tax brackets 2024
-export const FEDERAL_TAX_BRACKETS_2024 = {
-  single: [
-    { min: 0, max: 11600, rate: 0.10 },
-    { min: 11600, max: 47150, rate: 0.12 },
-    { min: 47150, max: 100525, rate: 0.22 },
-    { min: 100525, max: 191950, rate: 0.24 },
-    { min: 191950, max: 243725, rate: 0.32 },
-    { min: 243725, max: 609350, rate: 0.35 },
-    { min: 609350, max: Infinity, rate: 0.37 },
-  ],
-  married_filing_jointly: [
-    { min: 0, max: 23200, rate: 0.10 },
-    { min: 23200, max: 94300, rate: 0.12 },
-    { min: 94300, max: 201050, rate: 0.22 },
-    { min: 201050, max: 383900, rate: 0.24 },
-    { min: 383900, max: 487450, rate: 0.32 },
-    { min: 487450, max: 731200, rate: 0.35 },
-    { min: 731200, max: Infinity, rate: 0.37 },
-  ],
-} as const;
-
-export const CAPITAL_GAINS_BRACKETS_2024 = {
-  single: [
-    { min: 0, max: 47025, rate: 0 },
-    { min: 47025, max: 518900, rate: 0.15 },
-    { min: 518900, max: Infinity, rate: 0.20 },
-  ],
-  married_filing_jointly: [
-    { min: 0, max: 94050, rate: 0 },
-    { min: 94050, max: 583750, rate: 0.15 },
-    { min: 583750, max: Infinity, rate: 0.20 },
-  ],
-} as const;
+// Tax brackets: US federal brackets, long-term capital gains thresholds, the
+// standard deduction and NIIT thresholds live in src/data/taxBrackets.ts, keyed by
+// tax year and filing status, with sources and a lastVerified date. The undated
+// 2024 copies that used to be here were removed so no calculator can drift from it.
 
 // ============================================
 // PRICING CONSTANTS

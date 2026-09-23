@@ -23,8 +23,31 @@ const CRYPTOCOMPARE_NEWS_URL = 'https://min-api.cryptocompare.com/data/v2/news/'
 let newsCache: { data: NewsItem[]; timestamp: number } | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+interface CryptoCompareNewsResponse {
+  Response?: string;
+  Message?: string;
+  Data?: unknown;
+}
+
 /**
- * Fetch latest crypto news
+ * Optional CryptoCompare (now CoinDesk Data) key. The legacy min-api news
+ * endpoint has been served without a key, but CoinDesk documents keys as
+ * required, so a keyless request may start failing at any time.
+ * NEEDS-OWNER: confirm whether a key is needed and set VITE_CRYPTOCOMPARE_API_KEY.
+ */
+const CRYPTOCOMPARE_API_KEY = import.meta.env.VITE_CRYPTOCOMPARE_API_KEY as string | undefined;
+
+function newsUrl(extraParams = ''): string {
+  const key = CRYPTOCOMPARE_API_KEY ? `&api_key=${encodeURIComponent(CRYPTOCOMPARE_API_KEY)}` : '';
+  return `${CRYPTOCOMPARE_NEWS_URL}?lang=EN${extraParams}${key}`;
+}
+
+/**
+ * Fetch latest crypto news.
+ *
+ * Throws when the news provider cannot be reached or reports an error (for
+ * example a rate limit or a missing API key), so callers can tell "no
+ * headlines" apart from "the feed is down" and show an honest message.
  */
 export async function getLatestNews(limit: number = 10): Promise<NewsItem[]> {
   // Check cache
@@ -32,49 +55,47 @@ export async function getLatestNews(limit: number = 10): Promise<NewsItem[]> {
     return newsCache.data.slice(0, limit);
   }
 
-  try {
-    const response = await fetch(`${CRYPTOCOMPARE_NEWS_URL}?lang=EN`);
+  const response = await fetch(newsUrl());
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch news');
-    }
-
-    const data = await response.json();
-
-    if (data.Data) {
-      const news: NewsItem[] = data.Data.map((item: {
-        id: string;
-        title: string;
-        body: string;
-        source: string;
-        source_info?: { name: string };
-        imageurl: string;
-        url: string;
-        published_on: number;
-        categories: string;
-      }) => ({
-        id: item.id,
-        title: item.title,
-        body: item.body,
-        source: item.source_info?.name || item.source,
-        sourceUrl: item.source,
-        imageUrl: item.imageurl,
-        url: item.url,
-        publishedAt: item.published_on * 1000,
-        categories: item.categories.split('|').filter(Boolean),
-      }));
-
-      // Update cache
-      newsCache = { data: news, timestamp: Date.now() };
-
-      return news.slice(0, limit);
-    }
-
-    return [];
-  } catch (error) {
-    console.error('Error fetching news:', error);
-    return [];
+  if (!response.ok) {
+    throw new Error(`News API error: ${response.status}`);
   }
+
+  const data = (await response.json()) as CryptoCompareNewsResponse;
+
+  if (data.Response === 'Error' || !Array.isArray(data.Data)) {
+    throw new Error(data.Message || 'News API returned no data');
+  }
+
+  const news = mapNewsItems(data.Data);
+  newsCache = { data: news, timestamp: Date.now() };
+  return news.slice(0, limit);
+}
+
+type RawNewsItem = {
+  id: string;
+  title: string;
+  body: string;
+  source: string;
+  source_info?: { name: string };
+  imageurl: string;
+  url: string;
+  published_on: number;
+  categories: string;
+};
+
+function mapNewsItems(items: unknown[]): NewsItem[] {
+  return (items as RawNewsItem[]).map((item) => ({
+    id: String(item.id),
+    title: item.title,
+    body: item.body,
+    source: item.source_info?.name || item.source,
+    sourceUrl: item.source,
+    imageUrl: item.imageurl,
+    url: item.url,
+    publishedAt: item.published_on * 1000,
+    categories: (item.categories || '').split('|').filter(Boolean),
+  }));
 }
 
 /**
@@ -85,43 +106,19 @@ export async function getNewsByCategory(
   limit: number = 10
 ): Promise<NewsItem[]> {
   try {
-    const response = await fetch(
-      `${CRYPTOCOMPARE_NEWS_URL}?lang=EN&categories=${encodeURIComponent(category)}`
-    );
+    const response = await fetch(newsUrl(`&categories=${encodeURIComponent(category)}`));
 
     if (!response.ok) {
       throw new Error('Failed to fetch news');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as CryptoCompareNewsResponse;
 
-    if (data.Data) {
-      const news: NewsItem[] = data.Data.map((item: {
-        id: string;
-        title: string;
-        body: string;
-        source: string;
-        source_info?: { name: string };
-        imageurl: string;
-        url: string;
-        published_on: number;
-        categories: string;
-      }) => ({
-        id: item.id,
-        title: item.title,
-        body: item.body,
-        source: item.source_info?.name || item.source,
-        sourceUrl: item.source,
-        imageUrl: item.imageurl,
-        url: item.url,
-        publishedAt: item.published_on * 1000,
-        categories: item.categories.split('|').filter(Boolean),
-      })).slice(0, limit);
-
-      return news;
+    if (data.Response === 'Error' || !Array.isArray(data.Data)) {
+      return [];
     }
 
-    return [];
+    return mapNewsItems(data.Data).slice(0, limit);
   } catch (error) {
     console.error('Error fetching news by category:', error);
     return [];

@@ -5,7 +5,94 @@ import { PageSEO } from '../components/PageSEO';
 // Fixed date the policy was last substantively reviewed/updated. Update this
 // value whenever the policy changes — do not render a live clock, which would
 // misrepresent the policy as always "just updated".
-const LAST_UPDATED = 'July 23, 2026';
+const LAST_UPDATED = 'September 23, 2026';
+const LAST_UPDATED_ISO = '2026-09-23';
+
+/** Visible placeholder for facts only the owner can supply. */
+function OwnerPlaceholder({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-1 rounded bg-amber-500/15 text-amber-200 border border-amber-500/30">
+      [{children}]
+    </span>
+  );
+}
+
+interface Recipient {
+  name: string;
+  what: string;
+  when: string;
+}
+
+// Services that receive personal data (at minimum your IP address) today.
+// Keep in step with public/_headers (CSP) and index.html.
+const RECIPIENTS: Recipient[] = [
+  {
+    name: 'Cloudflare',
+    what: 'Hosts the site and runs our server functions. Processes every request, including your IP address, browser details and the page requested, to deliver and protect the site.',
+    when: 'Every visit',
+  },
+  {
+    name: 'Google (Google Analytics 4, Google tag)',
+    what: 'The Google tag script loads on every page in Consent Mode. Until you accept analytics cookies it sets no cookies, but Google may still receive cookieless pings (page, time, browser details and IP address, which Google says it does not store). After you accept, GA4 sets cookies to measure visits.',
+    when: 'Every visit; cookies only with consent',
+  },
+  {
+    name: 'Google Fonts',
+    what: "Our pages open a connection to Google's font servers (fonts.googleapis.com, fonts.gstatic.com), which exposes your IP address to Google.",
+    when: 'Every visit',
+  },
+  {
+    name: 'Plausible Analytics',
+    what: 'Privacy-focused, cookieless page-view statistics. The script loads only after you accept analytics.',
+    when: 'Only with analytics consent',
+  },
+  {
+    name: 'CoinGecko',
+    what: 'Price and market data. Most requests go through our own server, so CoinGecko sees our server rather than you, but coin logos load directly from CoinGecko image servers, which see your IP address.',
+    when: 'Pages that show prices',
+  },
+  {
+    name: 'alternative.me',
+    what: 'Your browser fetches the Crypto Fear & Greed Index directly from alternative.me, which sees your IP address.',
+    when: 'Home page and dashboard',
+  },
+  {
+    name: 'CryptoCompare (CoinDesk Data)',
+    what: 'Your browser fetches news headlines directly from CryptoCompare, which sees your IP address. Headline images load from the publishers\' servers.',
+    when: 'Pages that show headlines',
+  },
+  {
+    name: 'Supabase',
+    what: 'Database hosting. Stores newsletter sign-ups (email address, sign-up date, the page you signed up on) and, once accounts open, account and portfolio data.',
+    when: 'When you subscribe (and, later, use an account)',
+  },
+  // NEEDS-OWNER: confirm Resend is the production email provider (functions/lib/mailer.ts
+  // falls back to MailChannels when RESEND_API_KEY is unset).
+  {
+    name: 'Resend',
+    what: 'Sends our emails (welcome and newsletter emails, and account emails once accounts open). Receives your email address and the message content.',
+    when: 'When we email you',
+  },
+  {
+    name: 'Stripe',
+    what: 'Payment processing. Stripe collects your card and billing details directly; we never see full card numbers.',
+    when: 'Only when you buy a paid plan (none are on sale yet)',
+  },
+  {
+    name: 'Anthropic',
+    what: 'Powers AI features such as portfolio analysis. The text and portfolio details you submit are sent to Anthropic to generate a response.',
+    when: 'Only when you use an AI feature (not available yet)',
+  },
+];
+
+const BROWSER_STORAGE: Array<{ key: string; purpose: string }> = [
+  { key: 'bitcoin_investments_cookie_consent', purpose: 'Remembers your cookie choices.' },
+  { key: 'accessibility-settings', purpose: 'Remembers text size, contrast and reduced-motion settings.' },
+  { key: 'bitcoin_investments_portfolio', purpose: 'The portfolio you enter in the tracker. It stays in your browser and is not sent to us.' },
+  { key: 'bitcoin_investments_affiliate_clicks, bitcoin_investments_session_id', purpose: 'A local record of affiliate links you clicked, with a random session ID. Kept in your browser.' },
+  { key: 'bitcoin_investments_influencer_ref', purpose: 'Remembers a referral code if you arrived through a partner link.' },
+  { key: 'Other tool keys', purpose: 'Some calculators and tools save your inputs or progress locally so they are there next time.' },
+];
 
 export function Privacy() {
   return (
@@ -14,7 +101,38 @@ export function Privacy() {
       <h1 className="text-4xl font-bold text-white mb-8">Privacy Policy</h1>
 
       <div className="prose prose-invert max-w-none space-y-8">
-        <p className="text-gray-300 text-lg">Last updated: {LAST_UPDATED}</p>
+        <p className="text-gray-300 text-lg">
+          Last updated: <time dateTime={LAST_UPDATED_ISO}>{LAST_UPDATED}</time>
+        </p>
+
+        <section>
+          <h2>Summary</h2>
+          <p>
+            You can read Bitcoinvestments without an account. Today we collect your email address
+            only if you join our newsletter. The services that run the site (Cloudflare for hosting,
+            Google for fonts and analytics, and the price and news providers your browser contacts)
+            see your IP address. Analytics cookies are set only if you accept them. We do not sell
+            your personal information.
+          </p>
+        </section>
+
+        <section id="today">
+          <h2>What we collect today</h2>
+          <p>
+            Accounts, payments, portfolio sync and scam-report submissions are switched off at the
+            moment. While that is the case, the personal data we handle is:
+          </p>
+          <ul>
+            <li><strong>Newsletter sign-ups:</strong> your email address, when you signed up and which page you used. Stored in Supabase until you unsubscribe.</li>
+            <li><strong>Server and security logs:</strong> IP address, browser details and requested pages, processed by Cloudflare.</li>
+            <li><strong>Analytics:</strong> page views and interactions, through Google Analytics and Plausible, as described below.</li>
+            <li><strong>Emails you send us:</strong> whatever you include, kept to answer you.</li>
+          </ul>
+          <p>
+            Data you type into calculators and the portfolio tracker stays in your browser (see
+            Browser storage below) and is not sent to us.
+          </p>
+        </section>
 
         <section>
           <h2>Introduction</h2>
@@ -31,18 +149,21 @@ export function Privacy() {
         <section>
           <h2>Data Controller</h2>
           <p>
-            Bitcoinvestments is the data controller responsible for your personal data. If you
-            have any questions about this policy or wish to exercise your rights, you can contact
-            our privacy team at{' '}
-            <a href="mailto:privacy@bitcoinvestments.net">privacy@bitcoinvestments.net</a>. A
-            postal address for our registered business is available on request.
+            The data controller is{' '}
+            {/* NEEDS-OWNER: legal entity name, registered address, and an EU/UK representative if required (GDPR Art. 27). */}
+            <OwnerPlaceholder>legal entity name and postal address to be added</OwnerPlaceholder>,
+            trading as Bitcoinvestments. For questions about this policy or to exercise your rights,
+            email <a href="mailto:privacy@bitcoinvestments.net">privacy@bitcoinvestments.net</a>.
           </p>
         </section>
 
         <section>
           <h2>Information We Collect</h2>
           <h3>Personal Information You Provide</h3>
-          <p>We may collect personal information that you voluntarily provide, including:</p>
+          <p>
+            Once accounts and paid plans open, we will also collect the following when you choose to
+            provide it:
+          </p>
           <ul>
             <li>Email address (when you sign up, subscribe to our newsletter, or contact us)</li>
             <li>Account credentials and profile preferences</li>
@@ -129,7 +250,7 @@ export function Privacy() {
               <tbody className="text-gray-300">
                 <tr className="border-b border-gray-800">
                   <td className="py-2 pr-4">Strictly necessary</td>
-                  <td className="py-2 pr-4">Authentication/session (Supabase), consent storage</td>
+                  <td className="py-2 pr-4">Consent storage; sign-in session (Supabase) once accounts open</td>
                   <td className="py-2">Required for the site to function; always on</td>
                 </tr>
                 <tr className="border-b border-gray-800">
@@ -139,37 +260,81 @@ export function Privacy() {
                 </tr>
                 <tr>
                   <td className="py-2 pr-4">Marketing</td>
-                  <td className="py-2 pr-4">Advertising / sponsored-content measurement</td>
-                  <td className="py-2">Measure ad performance; set only with consent</td>
+                  <td className="py-2 pr-4">Google advertising signals (Consent Mode)</td>
+                  <td className="py-2">Not used for ads on this site today; only ever set with consent</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <p>
-            Google Analytics is operated under Google Consent Mode, which means no analytics cookies
-            or identifiers are stored until you grant consent. You can also control cookies through
+            Google Analytics runs under Google Consent Mode: no analytics cookies or identifiers are
+            stored until you grant consent, although the Google tag itself loads on every page and
+            may send cookieless pings (see the table below). You can also control cookies through
             your browser settings.
           </p>
         </section>
 
-        <section>
-          <h2>Third-Party Services and Processors</h2>
-          <p>We use trusted third-party service providers who process data on our behalf, including:</p>
-          <ul>
-            <li>Analytics providers (Google Analytics, Plausible)</li>
-            <li>Payment processors (for premium features)</li>
-            <li>Email service providers (for newsletters and transactional email)</li>
-            <li>Authentication and database hosting (Supabase)</li>
-            <li>Content delivery and hosting infrastructure (Cloudflare)</li>
-          </ul>
-          <p>We do not sell your personal information.</p>
+        <section id="recipients">
+          <h2>Services that receive your data</h2>
+          <p>These are the outside services involved in running the site, and what each one sees:</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th scope="col" className="py-2 pr-4 text-white">Service</th>
+                  <th scope="col" className="py-2 pr-4 text-white">What it receives and why</th>
+                  <th scope="col" className="py-2 text-white">When</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-300">
+                {RECIPIENTS.map((r) => (
+                  <tr key={r.name} className="border-b border-gray-800 align-top">
+                    <th scope="row" className="py-2 pr-4 text-left font-medium text-white">{r.name}</th>
+                    <td className="py-2 pr-4">{r.what}</td>
+                    <td className="py-2">{r.when}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>
+            Links to exchanges, wallets and news sites take you to their websites, where their own
+            privacy policies apply. We do not sell your personal information.
+          </p>
+        </section>
+
+        <section id="browser-storage">
+          <h2>Browser storage (localStorage)</h2>
+          <p>
+            Besides cookies, the site saves some information in your browser&apos;s local storage.
+            It stays on your device, we can&apos;t read it from our servers, and you can clear it at
+            any time in your browser settings.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th scope="col" className="py-2 pr-4 text-white">Key</th>
+                  <th scope="col" className="py-2 text-white">Purpose</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-300">
+                {BROWSER_STORAGE.map((item) => (
+                  <tr key={item.key} className="border-b border-gray-800 align-top">
+                    <td className="py-2 pr-4 font-mono text-xs break-all">{item.key}</td>
+                    <td className="py-2">{item.purpose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section>
           <h2>International Data Transfers</h2>
           <p>
-            Some of our service providers (for example Google, Supabase, Cloudflare, and our payment
-            processor) are based in, or store data in, the United States and other countries outside
+            Some of our service providers (for example Cloudflare, Google, Supabase, Resend, Stripe,
+            CoinGecko and alternative.me) are based in, or store data in, the United States and other countries outside
             the European Economic Area and the United Kingdom. Where personal data is transferred
             outside the EEA/UK, we rely on appropriate safeguards such as the European Commission's
             Standard Contractual Clauses (and the UK International Data Transfer Addendum) to ensure
@@ -184,7 +349,7 @@ export function Privacy() {
             policy:
           </p>
           <ul>
-            <li>Account data — for the life of your account and up to 12 months after deletion or account closure</li>
+            <li>Account data (once accounts open) — for the life of your account and up to 12 months after closure</li>
             <li>Newsletter subscriptions — until you unsubscribe, plus a short suppression-list period</li>
             <li>Analytics data — retained in aggregated/pseudonymized form (typically up to 14 months)</li>
             <li>Transaction and billing records — as required by applicable tax and accounting law (typically up to 7 years)</li>
@@ -273,7 +438,7 @@ export function Privacy() {
           </p>
         </section>
 
-        <div className="mt-12 pt-8 border-t border-gray-700 flex flex-wrap gap-4">
+        <div className="mt-12 pt-8 border-t border-gray-700 flex flex-wrap gap-4 not-prose">
           <Link to="/" className="text-orange-500 hover:text-orange-400">
             &larr; Back to Home
           </Link>

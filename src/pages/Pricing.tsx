@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Check, BookOpen, Calculator, BarChart3, ShieldCheck, TrendingUp, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   SUBSCRIPTION_TIERS,
@@ -9,870 +10,381 @@ import {
   calculateAnnualSavings,
   calculateLifetimeSavings,
   isStripeConfigured,
+  isPlanPurchasable,
+  type SubscriptionTierId,
 } from '../services/stripe';
 import { TAX_PACKAGE, isTaxSeasonActive } from '../services/subscriptionLimits';
-
+import { STATIC_MODE } from '../config/staticMode';
+import { Newsletter } from '../components/Newsletter';
 import { PageSEO } from '../components/PageSEO';
-type ViewMode = 'individual' | 'business';
 
-export function Pricing() {
+/** Date the copy on this page was last checked against what the site offers. */
+const LAST_REVIEWED_ISO = '2026-09-23';
+const LAST_REVIEWED_LABEL = 'September 23, 2026';
+
+const FREE_TODAY = [
+  { icon: BookOpen, label: 'Guides, the beginner course and the glossary', to: '/learn' },
+  { icon: Calculator, label: 'DCA, fee, tax, staking, retirement and backtesting calculators', to: '/calculators' },
+  { icon: BarChart3, label: 'Exchange and wallet comparisons', to: '/compare' },
+  { icon: ShieldCheck, label: 'Scam database search', to: '/scam-database' },
+  { icon: TrendingUp, label: 'Market dashboard with current prices', to: '/dashboard' },
+  { icon: Wallet, label: 'Portfolio tracker on the dashboard (saved in your browser)', to: '/dashboard' },
+] as const;
+
+const STATIC_FAQS = [
+  {
+    question: 'Is Bitcoinvestments free?',
+    answer:
+      'Yes. Every guide, calculator, comparison and the scam database is free and needs no account. Nothing on the site is behind a paywall today.',
+  },
+  {
+    question: 'Can I buy Premium now?',
+    answer:
+      'No. Accounts and paid plans are not open yet, so there is nothing to buy. Join the email list on this page and we will tell you when that changes.',
+  },
+  {
+    question: 'When will Premium launch?',
+    answer:
+      'We have not set a date. We would rather announce it when it is ready than promise a date we might miss.',
+  },
+  {
+    question: 'How does the site make money while everything is free?',
+    answer:
+      'Some links to exchanges and wallets are affiliate links: the provider may pay us a commission if you sign up, at no extra cost to you. These links and any sponsored content are labelled.',
+  },
+];
+
+const LIVE_FAQS = [
+  {
+    question: 'Can I cancel?',
+    answer:
+      'Yes. You can cancel a subscription from the billing portal linked in your profile. You keep Premium until the end of the period you have paid for; it does not renew after that.',
+  },
+  {
+    question: 'What payment methods do you accept?',
+    answer: 'Payments are processed by Stripe. The methods offered (cards and, in some countries, wallets) are shown at checkout.',
+  },
+  {
+    question: 'Do you offer refunds?',
+    answer: 'Refunds are handled under our Terms of Service. Contact support@bitcoinvestments.net if something went wrong with a payment.',
+  },
+  {
+    question: 'Is the free plan still free?',
+    answer: 'Yes. Guides, calculators, comparisons and the scam database do not need a paid plan.',
+  },
+];
+
+function FeatureList({ items, color = 'text-green-500' }: { items: readonly string[]; color?: string }) {
+  return (
+    <ul className="space-y-2">
+      {items.map((feature) => (
+        <li key={feature} className="flex items-start">
+          <Check className={`w-5 h-5 ${color} mr-2 flex-shrink-0 mt-0.5`} aria-hidden="true" />
+          <span className="text-sm">{feature}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FaqList({ faqs }: { faqs: ReadonlyArray<{ question: string; answer: string }> }) {
+  return (
+    <div className="space-y-4">
+      {faqs.map((faq) => (
+        <div key={faq.question} className="glass-card p-6">
+          <h3 className="text-lg font-semibold mb-2">{faq.question}</h3>
+          <p className="text-gray-400">{faq.answer}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Static mode: nothing is for sale, so say so and offer the waitlist. */
+function PricingStatic() {
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <PageSEO pageKey="pricing" urlPath="/pricing" faqs={STATIC_FAQS} />
+      <header className="text-center max-w-3xl mx-auto mb-12">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">Pricing: everything is free today</h1>
+        <p className="text-xl text-gray-300">
+          Every guide, calculator and comparison on Bitcoinvestments, and the scam database, is
+          free and needs no account. Premium, with a saved portfolio and more alerts, is not open
+          yet. Join the waitlist and we&apos;ll email you when it is.
+        </p>
+        <p className="text-sm text-gray-400 mt-4">
+          Last reviewed: <time dateTime={LAST_REVIEWED_ISO}>{LAST_REVIEWED_LABEL}</time>
+        </p>
+      </header>
+
+      <section aria-labelledby="free-today-heading" className="max-w-4xl mx-auto mb-12">
+        <h2 id="free-today-heading" className="text-2xl font-bold mb-6">Free today, no account needed</h2>
+        <ul className="grid sm:grid-cols-2 gap-4">
+          {FREE_TODAY.map(({ icon: Icon, label, to }) => (
+            <li key={label}>
+              <Link
+                to={to}
+                className="flex items-center gap-3 p-4 glass-card hover:bg-white/10 transition-colors"
+              >
+                <Icon className="w-5 h-5 text-green-400 flex-shrink-0" aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="premium-heading" className="max-w-4xl mx-auto mb-12 grid md:grid-cols-2 gap-8 items-start">
+        <div className="glass-card p-8">
+          <p className="inline-block px-3 py-1 bg-gray-500/20 text-gray-300 text-xs font-medium rounded-full mb-3">
+            Not open yet
+          </p>
+          <h2 id="premium-heading" className="text-2xl font-bold mb-2">Premium (planned)</h2>
+          <p className="text-gray-400 mb-4">
+            Premium needs an account, and accounts are switched off while we finish building them.
+            This is what we are building it to include:
+          </p>
+          <FeatureList items={SUBSCRIPTION_TIERS.monthly.features} color="text-gray-400" />
+          {/* NEEDS-OWNER: confirm launch prices before showing them as final. */}
+          <p className="text-sm text-gray-400 mt-6">
+            Planned price: {formatPrice(SUBSCRIPTION_TIERS.monthly.price)}/month or{' '}
+            {formatPrice(SUBSCRIPTION_TIERS.annual.price)}/year. This may change before launch, and
+            nobody is charged until you choose a plan at checkout.
+          </p>
+        </div>
+        <Newsletter
+          source="pricing-waitlist"
+          variant="card"
+          heading="Join the Premium waitlist"
+          description="We'll email you when accounts and Premium open. You'll also get our weekly plain-English crypto email; unsubscribe at any time."
+        />
+      </section>
+
+      <section aria-labelledby="pricing-faq-heading" className="max-w-4xl mx-auto">
+        <h2 id="pricing-faq-heading" className="text-3xl font-bold mb-8 text-center">Frequently asked questions</h2>
+        <FaqList faqs={STATIC_FAQS} />
+        <p className="text-sm text-gray-400 mt-8 text-center">
+          More about{' '}
+          <Link to="/about" className="text-orange-400 underline">
+            who we are and how we make money
+          </Link>
+          .
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/** Accounts on: sell only plans whose Stripe price is configured. */
+function PricingLive() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('individual');
-  const savings = calculateAnnualSavings();
-  const lifetimeSavings = calculateLifetimeSavings();
+  // Derived from the clock in an effect so server and client first renders match.
+  const [taxYear, setTaxYear] = useState<number | null>(null);
+  const [taxSeasonActive, setTaxSeasonActive] = useState(false);
   const stripeConfigured = isStripeConfigured();
-  const taxSeasonActive = isTaxSeasonActive();
+  const savings = calculateAnnualSavings();
+  const lifetime = calculateLifetimeSavings();
 
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    setViewMode(mode);
+  useEffect(() => {
+    let cancelled = false;
+    // Deferred so the first client render matches a prerendered one.
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setTaxYear(new Date().getFullYear() - 1);
+      setTaxSeasonActive(isTaxSeasonActive());
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleLifetimePurchase = async () => {
+  const taxPackageOnSale =
+    taxSeasonActive &&
+    taxYear !== null &&
+    !TAX_PACKAGE.stripePriceId.basic.endsWith('_placeholder');
+
+  const plans = (['monthly', 'annual', 'lifetime', 'advisor', 'enterprise'] as const).filter((id) =>
+    isPlanPurchasable(id)
+  );
+
+  const requireUser = () => {
     if (!user) {
       navigate('/login?redirect=/pricing');
-      return;
+      return false;
     }
-
     if (!stripeConfigured) {
-      setError('Payment system is not configured. Please contact support.');
-      return;
+      setError('Payments are not set up yet. Please try again later.');
+      return false;
     }
-
-    setLoading('lifetime');
-    setError(null);
-
-    const { error: checkoutError } = await redirectToLifetimeCheckout(
-      user.id,
-      user.email || ''
-    );
-
-    if (checkoutError) {
-      setError(checkoutError);
-      setLoading(null);
-    }
+    return true;
   };
 
-  const handleSubscribe = async (priceId: string | null, tierId: string) => {
-    if (!priceId) {
-      setError('This plan is not available for purchase yet.');
-      return;
-    }
-
-    if (!user) {
-      navigate('/login?redirect=/pricing');
-      return;
-    }
-
-    if (!stripeConfigured) {
-      setError('Payment system is not configured. Please contact support.');
-      return;
-    }
-
+  const handleSubscribe = async (tierId: SubscriptionTierId) => {
+    if (!requireUser() || !user) return;
     setLoading(tierId);
     setError(null);
-
-    const { error: checkoutError } = await redirectToCheckout(
-      priceId,
-      user.id,
-      user.email || ''
-    );
-
+    const { error: checkoutError } =
+      tierId === 'lifetime'
+        ? await redirectToLifetimeCheckout(user.id, user.email || '')
+        : await redirectToCheckout(
+            SUBSCRIPTION_TIERS[tierId].stripePriceId as string,
+            user.id,
+            user.email || ''
+          );
     if (checkoutError) {
       setError(checkoutError);
       setLoading(null);
     }
   };
 
-  const handleTaxPackagePurchase = async (tier: 'basic' | 'premium') => {
-    if (!user) {
-      navigate('/login?redirect=/pricing');
-      return;
-    }
-
-    if (!stripeConfigured) {
-      setError('Payment system is not configured. Please contact support.');
-      return;
-    }
-
-    setLoading(`tax-${tier}`);
+  const handleTaxPackagePurchase = async () => {
+    if (!requireUser() || !user || taxYear === null) return;
+    setLoading('tax');
     setError(null);
-
     try {
       const response = await fetch('/api/create-tax-package-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          priceId: TAX_PACKAGE.stripePriceId[tier],
+          priceId: TAX_PACKAGE.stripePriceId.basic,
           userId: user.id,
-          userEmail: user.email,
-          packageType: tier,
-          taxYear: TAX_PACKAGE.taxYear,
+          userEmail: user.email || '',
+          packageType: 'basic',
+          taxYear,
         }),
       });
-
-      if (!response.ok) throw new Error('Failed to create checkout session');
-
+      if (!response.ok) throw new Error('Could not start checkout');
       const { url } = await response.json();
       if (url) window.location.href = url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start checkout');
+      setError(err instanceof Error ? err.message : 'Could not start checkout');
     } finally {
       setLoading(null);
     }
   };
 
-  // Feature comparison data
-  const featureComparison = [
-    { feature: 'Live Crypto Prices', free: true, premium: true, advisor: true, enterprise: true },
-    { feature: 'Educational Content', free: true, premium: true, advisor: true, enterprise: true },
-    { feature: 'Basic Calculators', free: true, premium: true, advisor: true, enterprise: true },
-    { feature: 'Portfolio Tracker', free: '10 assets', premium: 'Unlimited', advisor: 'Unlimited', enterprise: 'Unlimited' },
-    { feature: 'Watchlist Items', free: '5 items', premium: 'Unlimited', advisor: 'Unlimited', enterprise: 'Unlimited' },
-    { feature: 'Price Alerts', free: '3 alerts', premium: 'Unlimited', advisor: 'Unlimited', enterprise: 'Unlimited' },
-    { feature: 'Price Data', free: '15-min delay', premium: 'Real-time', advisor: 'Real-time', enterprise: 'Real-time' },
-    { feature: 'Export Formats', free: 'CSV only', premium: 'CSV, PDF, Excel', advisor: 'All formats', enterprise: 'All formats' },
-    { feature: 'Ad-Free Experience', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Cloud Portfolio Sync', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Email Alerts', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'SMS Alerts', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Advanced Analytics', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'AI Portfolio Analysis', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Advanced Backtesting', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Tax Report Export', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Tax Software Integration', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Monthly Performance Reports', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Premium Research Reports', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Advanced Calculator Features', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Monte Carlo Projections', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Tax Optimization Tools', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Risk Analysis', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Priority Support', free: false, premium: true, advisor: true, enterprise: true },
-    { feature: 'Client Portfolios', free: false, premium: false, advisor: '10 clients', enterprise: 'Unlimited' },
-    { feature: 'White-Label Reports', free: false, premium: false, advisor: true, enterprise: true },
-    { feature: 'Client Dashboard', free: false, premium: false, advisor: true, enterprise: true },
-    { feature: 'Compliance Exports', free: false, premium: false, advisor: true, enterprise: true },
-    { feature: 'Custom Branding', free: false, premium: false, advisor: 'Basic', enterprise: 'Full' },
-    { feature: 'Team Access', free: false, premium: false, advisor: false, enterprise: true },
-    { feature: 'API Access', free: false, premium: false, advisor: false, enterprise: true },
-    { feature: 'SSO/Enhanced Security', free: false, premium: false, advisor: false, enterprise: true },
-    { feature: 'Dedicated Account Manager', free: false, premium: false, advisor: false, enterprise: true },
-  ];
-
-  const renderFeatureValue = (value: boolean | string) => {
-    if (value === true) {
-      return (
-        <svg className="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      );
-    }
-    if (value === false) {
-      return (
-        <svg className="w-5 h-5 text-gray-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      );
-    }
-    return <span className="text-sm text-gray-300">{value}</span>;
+  const priceLabel = (id: (typeof plans)[number]) => {
+    const tier = SUBSCRIPTION_TIERS[id];
+    if (id === 'lifetime') return { price: formatPrice(tier.price), note: 'One-time payment' };
+    if (id === 'annual')
+      return {
+        price: `${formatPrice(tier.price)}/year`,
+        note: `Saves ${formatPrice(savings.savings)} a year compared with monthly billing`,
+      };
+    return { price: `${formatPrice(tier.price)}/month`, note: 'Billed monthly, cancel any time' };
   };
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <PageSEO pageKey="pricing" urlPath="/pricing" />
-      {/* Header */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Choose Your Plan
-        </h1>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-          From individual investors to enterprise wealth managers, we have a plan for everyone.
+      <PageSEO pageKey="pricing" urlPath="/pricing" faqs={LIVE_FAQS} />
+      <header className="text-center max-w-3xl mx-auto mb-12">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">Pricing &amp; Plans</h1>
+        <p className="text-xl text-gray-300">
+          Guides, calculators, comparisons and the scam database are free. Premium adds a portfolio
+          saved to your account, unlimited alerts and tax exports.
         </p>
+        <p className="text-sm text-gray-400 mt-4">
+          Last reviewed: <time dateTime={LAST_REVIEWED_ISO}>{LAST_REVIEWED_LABEL}</time>
+        </p>
+      </header>
 
-        {/* View Mode Toggle */}
-        <div className="inline-flex bg-gray-800 rounded-lg p-1">
-          <button
-            onClick={() => handleViewModeChange('individual')}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'individual'
-                ? 'bg-purple-600 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Individual
-          </button>
-          <button
-            onClick={() => handleViewModeChange('business')}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-              viewMode === 'business'
-                ? 'bg-purple-600 text-white'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Business
-          </button>
-        </div>
-
-        {!stripeConfigured && (
-          <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg max-w-2xl mx-auto">
-            <p className="text-yellow-400">
-              Payment system is being configured. Check back soon!
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Individual Plans */}
-      {viewMode === 'individual' && (
-        <div className="max-w-7xl mx-auto mb-16">
-          <h2 className="sr-only">Individual plans</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Free Tier */}
-          <div className="glass-card p-8 flex flex-col">
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.free.name}</h3>
-              <div className="text-4xl font-bold mb-2">
-                {formatPrice(SUBSCRIPTION_TIERS.free.price)}
-              </div>
-              <p className="text-gray-400">Forever free</p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <h4 className="font-semibold mb-3">Features:</h4>
-              <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.free.features.map((feature) => (
-                  <li key={`free-feature-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <h4 className="font-semibold mb-3 mt-6">Limitations:</h4>
-              <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.free.limitations.map((limitation) => (
-                  <li key={`free-limitation-${limitation}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-gray-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                    <span className="text-sm text-gray-400">{limitation}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Link
-              to="/signup"
-              className="btn-secondary w-full text-center"
-            >
-              Get Started Free
-            </Link>
-          </div>
-
-          {/* Monthly Tier */}
-          <div className="glass-card p-8 flex flex-col border-2 border-purple-500/50">
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.monthly.name}</h3>
-              <div className="text-4xl font-bold mb-2">
-                {formatPrice(SUBSCRIPTION_TIERS.monthly.price)}
-                <span className="text-lg text-gray-400">/month</span>
-              </div>
-              <p className="text-gray-400">Billed monthly</p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <h4 className="font-semibold mb-3">Everything in Free, plus:</h4>
-              <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.monthly.features.map((feature) => (
-                  <li key={`monthly-feature-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={() =>
-                handleSubscribe(
-                  SUBSCRIPTION_TIERS.monthly.stripePriceId,
-                  SUBSCRIPTION_TIERS.monthly.id
-                )
-              }
-              disabled={loading === SUBSCRIPTION_TIERS.monthly.id || !stripeConfigured}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === SUBSCRIPTION_TIERS.monthly.id
-                ? 'Loading...'
-                : 'Subscribe Monthly'}
-            </button>
-          </div>
-
-          {/* Annual Tier */}
-          <div className="glass-card p-8 flex flex-col border-2 border-gold-500/50 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-gold-500 to-yellow-500 text-black px-4 py-1 rounded-full text-sm font-bold">
-              Most Popular
-            </div>
-
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.annual.name}</h3>
-              <div className="text-4xl font-bold mb-2">
-                {formatPrice(SUBSCRIPTION_TIERS.annual.price)}
-                <span className="text-lg text-gray-400">/year</span>
-              </div>
-              <p className="text-gray-400">
-                {formatPrice(SUBSCRIPTION_TIERS.annual.monthlyEquivalent!)}/month • Save{' '}
-                {formatPrice(savings.savings)} ({savings.savingsPercentage.toFixed(0)}% off)
-              </p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <h4 className="font-semibold mb-3">Everything in Monthly, plus:</h4>
-              <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.annual.features.map((feature) => (
-                  <li key={`annual-feature-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-gold-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={() =>
-                handleSubscribe(
-                  SUBSCRIPTION_TIERS.annual.stripePriceId,
-                  SUBSCRIPTION_TIERS.annual.id
-                )
-              }
-              disabled={loading === SUBSCRIPTION_TIERS.annual.id || !stripeConfigured}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-gold-500 to-yellow-500 hover:from-gold-600 hover:to-yellow-600"
-            >
-              {loading === SUBSCRIPTION_TIERS.annual.id
-                ? 'Loading...'
-                : 'Subscribe Annual'}
-            </button>
-          </div>
-
-          {/* Lifetime Deal */}
-          <div className="glass-card p-8 flex flex-col border-2 border-orange-500/50 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-              Best Value
-            </div>
-            <div className="absolute top-4 right-4">
-              <span className="inline-block px-2 py-1 bg-orange-500/20 text-orange-400 text-xs font-medium rounded">
-                Limited Offer
-              </span>
-            </div>
-
-            <div className="mb-6 mt-4">
-              <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.lifetime.name}</h3>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">
-                  {formatPrice(SUBSCRIPTION_TIERS.lifetime.price)}
-                </span>
-                <span className="text-lg text-gray-500 line-through">
-                  {formatPrice(SUBSCRIPTION_TIERS.lifetime.originalPrice)}
-                </span>
-              </div>
-              <p className="text-gray-400">
-                One-time payment • {lifetimeSavings.savingsPercentage.toFixed(0)}% off
-              </p>
-              <p className="text-sm text-orange-400 mt-1">
-                Pay once, own forever
-              </p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <h4 className="font-semibold mb-3">All Premium features forever:</h4>
-              <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.lifetime.features.slice(0, 8).map((feature) => (
-                  <li key={`lifetime-feature-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-orange-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-xs text-gray-500 mt-3">
-                + {SUBSCRIPTION_TIERS.lifetime.features.length - 8} more features
-              </p>
-            </div>
-
-            <div className="bg-gray-800/50 rounded-lg p-3 mb-4 text-center">
-              <p className="text-sm text-gray-400">
-                Break even in just <span className="text-orange-400 font-semibold">{lifetimeSavings.yearsToBreakEven} years</span>
-              </p>
-              <p className="text-xs text-gray-500">
-                vs annual subscription
-              </p>
-            </div>
-
-            <button
-              onClick={handleLifetimePurchase}
-              disabled={loading === 'lifetime' || !stripeConfigured}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-            >
-              {loading === 'lifetime'
-                ? 'Loading...'
-                : 'Get Lifetime Access'}
-            </button>
-          </div>
-          </div>
-        </div>
-      )}
-
-      {/* Business Plans */}
-      {viewMode === 'business' && (
-        <div className="max-w-4xl mx-auto mb-16">
-          <h2 className="sr-only">Business plans</h2>
-          <div className="grid md:grid-cols-2 gap-8">
-          {/* Advisor Tier */}
-          <div className="glass-card p-8 flex flex-col border-2 border-blue-500/50">
-            <div className="mb-6">
-              <div className="text-blue-400 text-sm font-medium mb-2">
-                {SUBSCRIPTION_TIERS.advisor.targetAudience}
-              </div>
-              <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.advisor.name}</h3>
-              <div className="text-4xl font-bold mb-2">
-                {formatPrice(SUBSCRIPTION_TIERS.advisor.price)}
-                <span className="text-lg text-gray-400">/month</span>
-              </div>
-              <p className="text-gray-400">Billed monthly</p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.advisor.features.map((feature) => (
-                  <li key={`advisor-feature-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={() =>
-                handleSubscribe(
-                  SUBSCRIPTION_TIERS.advisor.stripePriceId,
-                  SUBSCRIPTION_TIERS.advisor.id
-                )
-              }
-              disabled={loading === SUBSCRIPTION_TIERS.advisor.id || !stripeConfigured}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700"
-            >
-              {loading === SUBSCRIPTION_TIERS.advisor.id
-                ? 'Loading...'
-                : 'Start Advisor Plan'}
-            </button>
-          </div>
-
-          {/* Enterprise Tier */}
-          <div className="glass-card p-8 flex flex-col border-2 border-emerald-500/50 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-green-500 text-black px-4 py-1 rounded-full text-sm font-bold">
-              Best Value
-            </div>
-
-            <div className="mb-6">
-              <div className="text-emerald-400 text-sm font-medium mb-2">
-                {SUBSCRIPTION_TIERS.enterprise.targetAudience}
-              </div>
-              <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.enterprise.name}</h3>
-              <div className="text-4xl font-bold mb-2">
-                {formatPrice(SUBSCRIPTION_TIERS.enterprise.price)}
-                <span className="text-lg text-gray-400">/month</span>
-              </div>
-              <p className="text-gray-400">Billed monthly</p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <ul className="space-y-2">
-                {SUBSCRIPTION_TIERS.enterprise.features.map((feature) => (
-                  <li key={`enterprise-feature-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={() =>
-                handleSubscribe(
-                  SUBSCRIPTION_TIERS.enterprise.stripePriceId,
-                  SUBSCRIPTION_TIERS.enterprise.id
-                )
-              }
-              disabled={loading === SUBSCRIPTION_TIERS.enterprise.id || !stripeConfigured}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-            >
-              {loading === SUBSCRIPTION_TIERS.enterprise.id
-                ? 'Loading...'
-                : 'Start Enterprise Plan'}
-            </button>
-          </div>
-          </div>
-        </div>
-      )}
-
-      {/* One-Time Purchases Section */}
-      <div className="max-w-6xl mx-auto mb-16">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-4">One-Time Purchases</h2>
-          <p className="text-gray-400">
-            Get specific features without a subscription
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Tax Package Basic */}
-          <div className={`glass-card p-8 flex flex-col ${!taxSeasonActive ? 'opacity-60' : ''}`}>
-            <div className="mb-4">
-              {taxSeasonActive ? (
-                <span className="inline-block px-3 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded-full mb-3">
-                  Available Now
-                </span>
-              ) : (
-                <span className="inline-block px-3 py-1 bg-gray-500/20 text-gray-400 text-xs font-medium rounded-full mb-3">
-                  Available Jan - Apr
-                </span>
-              )}
-              <h3 className="text-xl font-bold mb-2">Tax Report Package</h3>
-              <div className="text-3xl font-bold mb-2">
-                {formatPrice(TAX_PACKAGE.price)}
-                <span className="text-sm text-gray-400 ml-2">one-time</span>
-              </div>
-              <p className="text-gray-400 text-sm">{TAX_PACKAGE.description}</p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <ul className="space-y-2">
-                {TAX_PACKAGE.features.basic.map((feature) => (
-                  <li key={`tax-basic-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={() => handleTaxPackagePurchase('basic')}
-              disabled={loading === 'tax-basic' || !stripeConfigured || !taxSeasonActive}
-              className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === 'tax-basic'
-                ? 'Loading...'
-                : taxSeasonActive
-                ? 'Buy Tax Package'
-                : 'Coming Soon'}
-            </button>
-          </div>
-
-          {/* Tax Package Premium */}
-          <div className={`glass-card p-8 flex flex-col border-2 border-purple-500/50 relative ${!taxSeasonActive ? 'opacity-60' : ''}`}>
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-500 text-white px-4 py-1 rounded-full text-sm font-bold">
-              Recommended
-            </div>
-
-            <div className="mb-4">
-              {taxSeasonActive ? (
-                <span className="inline-block px-3 py-1 bg-green-500/20 text-green-400 text-xs font-medium rounded-full mb-3">
-                  Available Now
-                </span>
-              ) : (
-                <span className="inline-block px-3 py-1 bg-gray-500/20 text-gray-400 text-xs font-medium rounded-full mb-3">
-                  Available Jan - Apr
-                </span>
-              )}
-              <h3 className="text-xl font-bold mb-2">Tax Report Package Pro</h3>
-              <div className="text-3xl font-bold mb-2">
-                {formatPrice(TAX_PACKAGE.premiumPrice)}
-                <span className="text-sm text-gray-400 ml-2">one-time</span>
-              </div>
-              <p className="text-gray-400 text-sm">Enhanced tax reporting with integrations</p>
-            </div>
-
-            <div className="flex-1 mb-6">
-              <ul className="space-y-2">
-                {TAX_PACKAGE.features.premium.map((feature) => (
-                  <li key={`tax-premium-${feature}`} className="flex items-start">
-                    <svg
-                      className="w-5 h-5 text-purple-500 mr-2 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                    <span className="text-sm">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={() => handleTaxPackagePurchase('premium')}
-              disabled={loading === 'tax-premium' || !stripeConfigured || !taxSeasonActive}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading === 'tax-premium'
-                ? 'Loading...'
-                : taxSeasonActive
-                ? 'Buy Pro Package'
-                : 'Coming Soon'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Feature Comparison Table */}
-      <div className="max-w-6xl mx-auto mb-16">
-        <h2 className="text-3xl font-bold mb-8 text-center">Compare All Features</h2>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left py-4 px-4 font-medium text-gray-400">Feature</th>
-                <th className="text-center py-4 px-4 font-medium text-gray-400">Free</th>
-                <th className="text-center py-4 px-4 font-medium text-purple-400">Premium</th>
-                <th className="text-center py-4 px-4 font-medium text-blue-400">Advisor</th>
-                <th className="text-center py-4 px-4 font-medium text-emerald-400">Enterprise</th>
-              </tr>
-            </thead>
-            <tbody>
-              {featureComparison.map((row, index) => (
-                <tr
-                  key={`comparison-${row.feature}`}
-                  className={`border-b border-gray-800 ${
-                    index % 2 === 0 ? 'bg-gray-900/30' : ''
-                  }`}
-                >
-                  <td className="py-3 px-4 text-sm">{row.feature}</td>
-                  <td className="py-3 px-4 text-center">{renderFeatureValue(row.free)}</td>
-                  <td className="py-3 px-4 text-center">{renderFeatureValue(row.premium)}</td>
-                  <td className="py-3 px-4 text-center">{renderFeatureValue(row.advisor)}</td>
-                  <td className="py-3 px-4 text-center">{renderFeatureValue(row.enterprise)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Error Message */}
       {error && (
-        <div className="max-w-2xl mx-auto mb-8 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+        <div role="alert" className="max-w-2xl mx-auto mb-8 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
           <p className="text-red-400">{error}</p>
         </div>
       )}
 
-      {/* FAQ Section */}
-      <div className="max-w-4xl mx-auto mt-16">
-        <h2 className="text-3xl font-bold mb-8 text-center">Frequently Asked Questions</h2>
-
-        <div className="space-y-6">
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">Can I switch plans later?</h3>
-            <p className="text-gray-400">
-              Yes! You can upgrade, downgrade, or cancel your subscription at any time from your
-              profile page. Changes take effect at the start of your next billing cycle.
-            </p>
+      <section aria-labelledby="plans-heading" className="max-w-6xl mx-auto mb-16">
+        <h2 id="plans-heading" className="sr-only">Plans</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="glass-card p-8 flex flex-col">
+            <h3 className="text-2xl font-bold mb-2">{SUBSCRIPTION_TIERS.free.name}</h3>
+            <div className="text-4xl font-bold mb-6">{formatPrice(0)}</div>
+            <div className="flex-1 mb-6">
+              <FeatureList items={SUBSCRIPTION_TIERS.free.features} />
+            </div>
+            <Link to="/signup" className="btn-secondary w-full text-center">
+              Create a free account
+            </Link>
           </div>
 
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">What payment methods do you accept?</h3>
-            <p className="text-gray-400">
-              We accept all major credit cards (Visa, Mastercard, American Express, Discover)
-              through our secure payment processor, Stripe.
-            </p>
-          </div>
-
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">Is there a refund policy?</h3>
-            <p className="text-gray-400">
-              Yes, we offer a 30-day money-back guarantee. If you're not satisfied with your
-              premium membership, contact us within 30 days for a full refund.
-            </p>
-          </div>
-
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">What happens if I cancel?</h3>
-            <p className="text-gray-400">
-              You'll retain premium access until the end of your current billing period, then
-              automatically revert to the free tier. Your data and settings are preserved.
-            </p>
-          </div>
-
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">Can I buy features without subscribing?</h3>
-            <p className="text-gray-400">
-              Yes! We offer one-time purchases like the Tax Report Package that don't require a
-              subscription. These are perfect if you only need specific features occasionally.
-            </p>
-          </div>
-
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">What is the Lifetime Premium deal?</h3>
-            <p className="text-gray-400">
-              The Lifetime Premium is a one-time payment of $299 that gives you permanent access to
-              all premium features - forever. No recurring payments, no renewals. You break even
-              compared to annual billing in just 3 years, and enjoy all future premium features at no
-              additional cost. It's a limited offer with only 500 spots available.
-            </p>
-          </div>
-
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">Do you offer discounts for students or nonprofits?</h3>
-            <p className="text-gray-400">
-              Yes! We offer 50% off annual plans for students and nonprofit organizations.
-              Contact us with proof of eligibility to receive your discount code.
-            </p>
-          </div>
-
-          <div className="glass-card p-6">
-            <h3 className="text-xl font-semibold mb-2">What's the difference between Advisor and Enterprise?</h3>
-            <p className="text-gray-400">
-              Advisor is designed for independent financial advisors with up to 10 clients.
-              Enterprise is for larger firms needing unlimited clients, team access, API integration,
-              and dedicated support with custom solutions.
-            </p>
-          </div>
+          {plans.map((id) => {
+            const tier = SUBSCRIPTION_TIERS[id];
+            const { price, note } = priceLabel(id);
+            return (
+              <div key={id} className="glass-card p-8 flex flex-col border-2 border-purple-500/40">
+                {'targetAudience' in tier && (
+                  <p className="text-blue-400 text-sm font-medium mb-2">{tier.targetAudience}</p>
+                )}
+                <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
+                <div className="text-3xl font-bold mb-1">{price}</div>
+                <p className="text-gray-400 text-sm mb-6">
+                  {note}
+                  {id === 'lifetime' && ` · costs the same as ${lifetime.yearsToBreakEven} years of the annual plan`}
+                </p>
+                <div className="flex-1 mb-6">
+                  <FeatureList items={tier.features} color="text-purple-400" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSubscribe(id)}
+                  disabled={loading === id || !stripeConfigured}
+                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading === id ? 'Loading…' : `Choose ${tier.name}`}
+                </button>
+              </div>
+            );
+          })}
         </div>
-      </div>
+        {plans.length === 0 && (
+          <p className="text-center text-gray-400 mt-8">Paid plans are not on sale yet.</p>
+        )}
+      </section>
 
-      {/* CTA Section */}
-      <div className="max-w-4xl mx-auto mt-16 text-center glass-card p-12">
-        <h2 className="text-3xl font-bold mb-4">Ready to Level Up Your Crypto Journey?</h2>
-        <p className="text-xl text-gray-400 mb-8">
-          Join thousands of investors who trust Bitcoin Investments for crypto education and tools.
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Link to="/signup" className="btn-secondary">
-            Start Free
-          </Link>
+      {taxPackageOnSale && (
+        <section aria-labelledby="tax-package-heading" className="max-w-2xl mx-auto mb-16 glass-card p-8">
+          <h2 id="tax-package-heading" className="text-2xl font-bold mb-2">Tax report package</h2>
+          <p className="text-3xl font-bold mb-2">
+            {formatPrice(TAX_PACKAGE.price)} <span className="text-sm text-gray-400">one-time</span>
+          </p>
+          <p className="text-gray-400 mb-6">
+            Exports of your capital gains and losses for the {taxYear} tax year, calculated from the
+            transactions in your portfolio. See{' '}
+            <Link to="/tax-reports" className="text-orange-400 underline">
+              tax reports
+            </Link>{' '}
+            for what is included. It is not tax advice.
+          </p>
           <button
-            onClick={() =>
-              handleSubscribe(
-                SUBSCRIPTION_TIERS.annual.stripePriceId,
-                SUBSCRIPTION_TIERS.annual.id
-              )
-            }
-            disabled={loading === SUBSCRIPTION_TIERS.annual.id || !stripeConfigured}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            onClick={handleTaxPackagePurchase}
+            disabled={loading === 'tax' || !stripeConfigured}
+            className="btn-secondary w-full disabled:opacity-50"
           >
-            {loading === SUBSCRIPTION_TIERS.annual.id ? 'Loading...' : 'Go Premium'}
+            {loading === 'tax' ? 'Loading…' : `Buy the ${taxYear} tax package`}
           </button>
-          <a
-            href="mailto:sales@bitcoinvestments.net?subject=Bitcoinvestments%20Premium%20enquiry"
-            className="btn-secondary"
-          >
-            Contact Sales
-          </a>
-        </div>
-      </div>
+        </section>
+      )}
+
+      <section aria-labelledby="pricing-faq-heading" className="max-w-4xl mx-auto">
+        <h2 id="pricing-faq-heading" className="text-3xl font-bold mb-8 text-center">Frequently asked questions</h2>
+        <FaqList faqs={LIVE_FAQS} />
+        <p className="text-sm text-gray-400 mt-8 text-center">
+          Billing, cancellation and refunds are covered in our{' '}
+          <Link to="/terms#subscriptions" className="text-orange-400 underline">
+            Terms of Service
+          </Link>
+          .
+        </p>
+      </section>
     </div>
   );
+}
+
+export function Pricing() {
+  return STATIC_MODE ? <PricingStatic /> : <PricingLive />;
 }

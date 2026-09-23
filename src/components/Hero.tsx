@@ -1,11 +1,11 @@
-import { useRef, useState, useEffect, lazy, Suspense } from 'react';
+import { useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, TrendingUp } from 'lucide-react';
-import { getTopCryptocurrencies } from '../services/coingecko';
+import { ArrowRight, TrendingUp, ShieldCheck } from 'lucide-react';
 import type { Cryptocurrency } from '../types';
 import { useLazyAnimation } from '../hooks/useGSAPLazy';
 import { useAccessibility } from './accessibility/AccessibilityContext';
 import { formatCryptoPrice } from '../lib/utils';
+import { formatChange } from './priceChange';
 
 // Lazy load the heavy 3D component (Three.js ~490KB)
 const Hero3D = lazy(() => import('./Hero3D').then(m => ({ default: m.Hero3D })));
@@ -19,28 +19,24 @@ function Hero3DFallback() {
     );
 }
 
-export function Hero() {
+export type PriceStatus = 'loading' | 'ready' | 'error';
+
+interface HeroProps {
+    /** Top coins by market cap, fetched once by the page and shared with the ticker. */
+    prices: Cryptocurrency[];
+    priceStatus: PriceStatus;
+    /** Number of guides in src/data/guides (computed by the page, not hard-coded). */
+    guideCount: number;
+    /** Number of courses in src/data/courses. */
+    courseCount: number;
+}
+
+export function Hero({ prices, priceStatus, guideCount, courseCount }: HeroProps) {
     const heroRef = useRef<HTMLDivElement>(null);
-    const [prices, setPrices] = useState<Cryptocurrency[]>([]);
-    const [loadingPrices, setLoadingPrices] = useState(true);
     // Covers both the OS-level `prefers-reduced-motion` media query and the
     // in-app accessibility toggle; the context seeds itself from the former.
     const { settings } = useAccessibility();
     const prefersReducedMotion = settings.reducedMotion;
-
-    useEffect(() => {
-        async function loadPrices() {
-            try {
-                const data = await getTopCryptocurrencies(3);
-                setPrices(data);
-                setLoadingPrices(false);
-            } catch (error) {
-                console.error("Failed to load prices", error);
-                setLoadingPrices(false);
-            }
-        }
-        loadPrices();
-    }, []);
 
     // Lazy load GSAP for animations
     useLazyAnimation((gsap) => {
@@ -61,8 +57,10 @@ export function Hero() {
             }, '-=0.5');
     }, [], heroRef);
 
+    const topThree = prices.slice(0, 3);
+
     return (
-        <section ref={heroRef} className="relative min-h-[90vh] flex items-center justify-center pt-20 overflow-hidden">
+        <section ref={heroRef} aria-labelledby="home-heading" className="relative min-h-[75vh] flex items-center justify-center py-12 overflow-hidden">
             {/*
               3D Background — lazy loaded, and skipped entirely when the visitor
               has asked for reduced motion. The starfield is decorative, so an
@@ -78,66 +76,69 @@ export function Hero() {
                 </Suspense>
             )}
 
-            {/* Overlay Gradient for readability (provisional) - ensure text pops over the stars */}
+            {/* Overlay Gradient for readability - ensures text pops over the stars */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-brand-dark/50 pointer-events-none" />
 
             <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
                 <div className="space-y-8 text-center lg:text-left">
-                    <h1 className="text-5xl lg:text-7xl font-bold leading-tight hero-text text-shadow-lg">
-                        The Future of <br />
-                        <span className="text-gradient">Crypto Investing</span>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-brand-primary hero-text">
+                        Free, plain-English crypto education
+                    </p>
+                    <h1 id="home-heading" className="text-4xl lg:text-6xl font-bold leading-tight hero-text text-shadow-lg">
+                        Learn to Invest in Bitcoin, <span className="text-gradient">Safely</span>
                     </h1>
                     <p className="text-xl text-gray-300 max-w-2xl mx-auto lg:mx-0 hero-text drop-shadow-md">
-                        Start your journey into the world of digital assets with confidence.
-                        Secure, simple, and built for the next generation of investors.
+                        Bitcoinvestments is a free education site for beginners. We explain how Bitcoin
+                        works, how to buy and store it, and how to spot scams, in plain English, with
+                        calculators you can use without an account. Nothing here is financial advice.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 hero-text">
                         <Link
-                            to="/learn"
+                            to="/learn/what-is-bitcoin"
                             className="px-8 py-4 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-lg transition-all hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.6)] flex items-center gap-2"
                         >
-                            Start Learning <ArrowRight className="w-5 h-5" />
+                            Start with Bitcoin basics <ArrowRight className="w-5 h-5" aria-hidden="true" />
                         </Link>
                         <Link
-                            to="/dashboard"
-                            className="px-8 py-4 rounded-full glass hover:bg-white/10 text-white font-medium text-lg transition-all"
+                            to="/scam-database"
+                            className="px-8 py-4 rounded-full glass hover:bg-white/10 text-white font-medium text-lg transition-all flex items-center gap-2"
                         >
-                            View Dashboard
+                            <ShieldCheck className="w-5 h-5" aria-hidden="true" /> Check for scams
                         </Link>
                     </div>
 
-                    <div className="pt-8 flex items-center justify-center lg:justify-start gap-8 hero-text">
+                    <dl className="pt-4 flex items-center justify-center lg:justify-start gap-8 hero-text">
                         <div>
-                            <p className="text-3xl font-bold text-white">10K+</p>
-                            <p className="text-gray-400 text-sm">Readers</p>
+                            <dt className="sr-only">Guides</dt>
+                            <dd className="text-3xl font-bold text-white">{guideCount}</dd>
+                            <dd className="text-gray-400 text-sm">in-depth guides</dd>
                         </div>
-                        <div className="w-px h-12 bg-white/10" />
-                        <div>
-                            <p className="text-3xl font-bold text-white">50+</p>
-                            <p className="text-gray-400 text-sm">Guides</p>
+                        <div className="pl-8 border-l border-white/10">
+                            <dt className="sr-only">Courses</dt>
+                            <dd className="text-3xl font-bold text-white">{courseCount}</dd>
+                            <dd className="text-gray-400 text-sm">{courseCount === 1 ? 'beginner course' : 'courses'}</dd>
                         </div>
-                        <div className="w-px h-12 bg-white/10" />
-                        <div>
-                            <p className="text-3xl font-bold text-white">Free</p>
-                            <p className="text-gray-400 text-sm">Forever</p>
+                        <div className="pl-8 border-l border-white/10">
+                            <dt className="sr-only">Account</dt>
+                            <dd className="text-3xl font-bold text-white">$0</dd>
+                            <dd className="text-gray-400 text-sm">no account needed</dd>
                         </div>
-                    </div>
+                    </dl>
                 </div>
 
                 <div className="relative hero-image hidden lg:block">
-                    {/* Floating Phone/Card mock can stay as part of the "foreground" interest */}
                     <div className="relative z-10 glass-card p-8 rotate-[-5deg] hover:rotate-0 transition-transform duration-500">
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <p className="text-gray-400 text-sm">Live Market</p>
+                                <p className="text-gray-400 text-sm">Largest by market cap</p>
                                 <p className="text-2xl font-bold text-white">Top Cryptocurrencies</p>
                             </div>
                             <div className="p-3 bg-brand-primary/20 rounded-full">
-                                <TrendingUp className="w-6 h-6 text-brand-primary" />
+                                <TrendingUp className="w-6 h-6 text-brand-primary" aria-hidden="true" />
                             </div>
                         </div>
-                        <div className="space-y-3">
-                            {loadingPrices ? (
+                        <div className="space-y-3" aria-busy={priceStatus === 'loading'}>
+                            {priceStatus === 'loading' ? (
                                 [...Array(3)].map((_, i) => (
                                     <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/5 animate-pulse">
                                         <div className="flex items-center gap-3">
@@ -153,44 +154,55 @@ export function Hero() {
                                         </div>
                                     </div>
                                 ))
+                            ) : topThree.length === 0 ? (
+                                <p className="p-4 rounded-xl bg-white/5 text-gray-300 text-sm">
+                                    Live prices are unavailable right now. Our price provider may be busy; try the
+                                    dashboard in a minute.
+                                </p>
                             ) : (
-                                prices.slice(0, 3).map((coin) => (
-                                    <div key={coin.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
-                                        <div className="flex items-center gap-3">
-                                            <img
-                                                src={coin.image}
-                                                alt={coin.name}
-                                                className="w-10 h-10 rounded-full"
-                                            />
-                                            <div>
-                                                <p className="font-bold text-white">{coin.name}</p>
-                                                <p className="text-xs text-gray-400 uppercase">{coin.symbol}</p>
+                                topThree.map((coin) => {
+                                    const change = formatChange(coin.price_change_percentage_24h);
+                                    return (
+                                        <Link
+                                            key={coin.id}
+                                            to={`/coin/${coin.id}`}
+                                            className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <img
+                                                    src={coin.image}
+                                                    alt=""
+                                                    width={40}
+                                                    height={40}
+                                                    className="w-10 h-10 rounded-full"
+                                                />
+                                                <div>
+                                                    <p className="font-bold text-white">{coin.name}</p>
+                                                    <p className="text-xs text-gray-400 uppercase">{coin.symbol}</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-medium text-white">
-                                                {formatCryptoPrice(coin.current_price)}
-                                            </p>
-                                            <p className={`text-xs ${coin.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                {coin.price_change_percentage_24h >= 0 ? '+' : ''}
-                                                {coin.price_change_percentage_24h?.toFixed(2)}%
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
+                                            <div className="text-right">
+                                                <p className="font-medium text-white">
+                                                    {formatCryptoPrice(coin.current_price)}
+                                                </p>
+                                                <p className={`text-xs ${change.className}`}>{change.text}</p>
+                                            </div>
+                                        </Link>
+                                    );
+                                })
                             )}
                         </div>
+                        <p className="mt-4 text-xs text-gray-400 text-center">Prices: CoinGecko, USD, may be delayed.</p>
                         <Link
                             to="/dashboard"
-                            className="block text-center mt-4 text-sm text-brand-primary hover:text-brand-primary/80"
+                            className="block text-center mt-2 text-sm text-brand-primary hover:text-brand-primary/80"
                         >
-                            View All Prices &rarr;
+                            View all prices &rarr;
                         </Link>
                     </div>
 
                     {/* Additional decorative glow behind the card to separate it from 3D bg */}
-                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-brand-secondary/20 rounded-full blur-xl animate-pulse -z-10" />
-
+                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-brand-secondary/20 rounded-full blur-xl animate-pulse -z-10" aria-hidden="true" />
                 </div>
             </div>
         </section>

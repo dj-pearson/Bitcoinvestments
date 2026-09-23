@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react';
-import { TrendingDown, TrendingUp, Minus, AlertCircle } from 'lucide-react';
+import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import type { FearGreedIndex, FearGreedHistorical } from '../types';
 import { getCachedFearGreedIndex, getFearGreedHistorical } from '../services/coingecko';
 import { cn } from '../lib/utils';
@@ -62,10 +62,17 @@ export const FearGreedGauge = memo(function FearGreedGauge({
   if (error || !data) {
     return (
       <div className={cn('glass-card p-6', className)}>
-        <div className="flex items-center gap-2 text-red-400">
-          <AlertCircle className="w-5 h-5" />
-          <span>{error || 'No data available'}</span>
-        </div>
+        <h3 className="text-lg font-bold text-white mb-3">Fear &amp; Greed Index</h3>
+        <p className="text-sm text-gray-300 mb-3">
+          Today&apos;s reading can&apos;t be loaded right now, so here is what the index is.
+        </p>
+        <p className="text-sm text-gray-400 mb-3">
+          The Crypto Fear &amp; Greed Index, published by alternative.me, scores market sentiment
+          from 0 (extreme fear) to 100 (extreme greed). It combines price volatility, trading
+          momentum and volume, social media activity, Bitcoin&apos;s share of the total crypto market
+          and search trends. It describes the mood of the market; it does not predict prices.
+        </p>
+        <FearGreedSource />
       </div>
     );
   }
@@ -73,7 +80,7 @@ export const FearGreedGauge = memo(function FearGreedGauge({
   return (
     <div className={cn('glass-card p-6', className)}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-white">Fear & Greed Index</h3>
+        <h3 className="text-lg font-bold text-white">Fear &amp; Greed Index</h3>
         <div className="text-xs text-gray-400">
           Updated: {new Date(data.timestamp).toLocaleDateString()}
         </div>
@@ -112,27 +119,25 @@ export const FearGreedGauge = memo(function FearGreedGauge({
       {showHistory && history && (
         <div>
           <h4 className="text-sm font-medium text-gray-300 mb-3">Last {historyDays} Days</h4>
-          <div className="flex gap-1">
+          <ol className="flex gap-1" aria-label={`Fear and Greed readings for the last ${historyDays} days, oldest first`}>
             {history.data.slice(0, historyDays).reverse().map((item, index) => (
-              <div
-                key={index}
-                className="flex-1 group relative"
+              <li
+                key={item.timestamp}
+                className="flex-1 text-center"
+                title={`${new Date(item.timestamp).toLocaleDateString()}: ${item.value} (${item.value_classification})`}
               >
                 <div
-                  className={cn(
-                    'h-8 rounded transition-all hover:scale-105',
-                    getBackgroundColor(item.value)
-                  )}
+                  className={cn('h-8 rounded', getBackgroundColor(item.value))}
                   style={{ opacity: 0.6 + (index / historyDays) * 0.4 }}
+                  aria-hidden="true"
                 />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 rounded text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                  {item.value} - {item.value_classification}
-                  <br />
-                  {new Date(item.timestamp).toLocaleDateString()}
-                </div>
-              </div>
+                <span className="block text-[10px] text-gray-400 mt-1">{item.value}</span>
+                <span className="sr-only">
+                  {new Date(item.timestamp).toLocaleDateString()}: {item.value_classification}
+                </span>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       )}
 
@@ -143,9 +148,30 @@ export const FearGreedGauge = memo(function FearGreedGauge({
           {getInterpretation(data.value_classification)}
         </p>
       </div>
+      <div className="mt-4">
+        <FearGreedSource />
+      </div>
     </div>
   );
 });
+
+function FearGreedSource() {
+  return (
+    <p className="text-xs text-gray-400">
+      Source:{' '}
+      <a
+        href="https://alternative.me/crypto/fear-and-greed-index/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-white"
+      >
+        alternative.me Crypto Fear &amp; Greed Index
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+      . Sentiment is not a buy or sell signal.
+    </p>
+  );
+}
 
 function GaugeDisplay({
   value,
@@ -157,11 +183,9 @@ function GaugeDisplay({
   const angle = (value / 100) * 180 - 90; // Convert to -90 to 90 degrees
 
   return (
-    <div className="relative w-48 h-24 overflow-hidden">
-      {/* Gauge Background */}
-      <div className="absolute inset-0">
-        <svg viewBox="0 0 200 100" className="w-full h-full">
-          {/* Gradient arc background */}
+    <div className="flex flex-col items-center">
+      <div className="relative w-48 h-[106px]" aria-hidden="true">
+        <svg viewBox="0 0 200 110" className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#ef4444" />
@@ -178,31 +202,22 @@ function GaugeDisplay({
             strokeWidth="15"
             strokeLinecap="round"
           />
+          {/* Needle pivots on the arc's centre (100,100). */}
+          <g transform={`rotate(${angle} 100 100)`}>
+            <line x1="100" y1="100" x2="100" y2="24" stroke="white" strokeWidth="4" strokeLinecap="round" />
+          </g>
+          <circle cx="100" cy="100" r="7" fill="white" />
         </svg>
       </div>
 
-      {/* Needle */}
-      <div
-        className="absolute bottom-0 left-1/2 origin-bottom transition-transform duration-1000"
-        style={{ transform: `translateX(-50%) rotate(${angle}deg)` }}
-      >
-        <div className="w-1 h-20 bg-white rounded-full shadow-lg" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rounded-full" />
-      </div>
-
-      {/* Value Display */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-8 text-center">
-        <div className={cn('text-4xl font-bold', getTextColor(value))}>
-          {value}
+      {/* The value sits below the gauge in normal flow so it is never clipped. */}
+      <div className="mt-2 text-center">
+        <div className="flex items-center justify-center gap-2">
+          {getIcon(classification)}
+          <span className={cn('text-4xl font-bold', getTextColor(value))}>{value}</span>
+          <span className="text-sm text-gray-400">/ 100</span>
         </div>
-        <div className={cn('text-sm font-medium', getTextColor(value))}>
-          {classification}
-        </div>
-      </div>
-
-      {/* Icon */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2">
-        {getIcon(classification)}
+        <div className={cn('text-sm font-medium', getTextColor(value))}>{classification}</div>
       </div>
     </div>
   );
@@ -240,15 +255,17 @@ function getIcon(classification: FearGreedIndex['value_classification']) {
 function getInterpretation(classification: FearGreedIndex['value_classification']): string {
   switch (classification) {
     case 'Extreme Fear':
-      return 'The market is experiencing extreme fear. This could indicate a potential buying opportunity as prices may be oversold. However, further declines are also possible.';
+      return 'Most of the signals the index tracks point to strong pessimism: prices have been falling or swinging sharply, and social and search activity is subdued. Readings like this have occurred both near market lows and partway through longer declines.';
     case 'Fear':
-      return 'The market is fearful. Investors are cautious and prices may continue to be suppressed. Consider accumulating if you believe in long-term fundamentals.';
+      return 'Sentiment leans pessimistic. Traders are cautious and volatility or selling has been above normal. The index describes mood; it does not tell you where prices go next.';
     case 'Neutral':
-      return 'The market sentiment is neutral. Neither fear nor greed dominates. This could be a period of consolidation before the next major move.';
+      return 'Neither fear nor greed dominates. Volatility, momentum and social activity are close to their recent averages.';
     case 'Greed':
-      return 'The market is greedy. Prices may be inflated due to optimism. Consider taking some profits and being cautious about new large positions.';
+      return 'Sentiment leans optimistic. Prices have been rising and trading and social activity are above normal. The index describes mood; it does not tell you where prices go next.';
     case 'Extreme Greed':
-      return 'The market is experiencing extreme greed. This could indicate a potential correction is coming. Be very cautious about buying at these levels.';
+      return 'Most of the signals point to strong optimism: prices have been rising fast and social and search interest is high. Readings like this have occurred both near market peaks and partway through longer rallies.';
+    default:
+      return 'The index scores market sentiment from 0 (extreme fear) to 100 (extreme greed).';
   }
 }
 

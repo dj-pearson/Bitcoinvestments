@@ -30,5 +30,7 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Built for Node by `vite build --ssr`; type-checked by tsconfig.ssr.json.
+  "exclude": ["src/entry-server.tsx"]
 }

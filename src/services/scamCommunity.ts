@@ -3,7 +3,7 @@
  * Handles community voting, disputes, reputation, and watchlist features
  */
 
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type {
   ScamReportVote,
   ScamReportDispute,
@@ -15,8 +15,12 @@ import type {
   DisputeStatus,
 } from '../types/admin-database';
 
-// Type-safe client for accessing untyped tables
+// Untyped client for tables not in the generated schema
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
+
+/** Returned by every function when Supabase is not configured. */
+const UNAVAILABLE = 'unavailable';
 
 // ==================== VOTING ====================
 
@@ -24,6 +28,8 @@ const db = supabase as any;
  * Get user's vote on a scam report
  */
 export async function getUserVote(scamReportId: string, userId: string) {
+  if (!isSupabaseConfigured()) return { vote: null, error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_report_votes')
     .select('*')
@@ -46,6 +52,8 @@ export async function voteOnScamReport(
   userId: string,
   voteType: VoteType
 ) {
+  if (!isSupabaseConfigured()) return { success: false, action: null, error: UNAVAILABLE };
+
   // Check if user already voted
   const { vote: existingVote } = await getUserVote(scamReportId, userId);
 
@@ -97,20 +105,23 @@ export async function voteOnScamReport(
  * Note: upvotes, downvotes, trust_score columns are added by migration
  */
 export async function getVoteCounts(scamReportId: string) {
+  if (!isSupabaseConfigured()) {
+    return { upvotes: 0, downvotes: 0, error: UNAVAILABLE };
+  }
+
   const { data, error } = await db
     .from('scam_reports')
-    .select('upvotes, downvotes, trust_score')
+    .select('upvotes, downvotes')
     .eq('id', scamReportId)
     .single();
 
   if (error) {
-    return { upvotes: 0, downvotes: 0, trustScore: 50, error: error.message };
+    return { upvotes: 0, downvotes: 0, error: error.message };
   }
 
   return {
     upvotes: data?.upvotes || 0,
     downvotes: data?.downvotes || 0,
-    trustScore: data?.trust_score || 50,
     error: null,
   };
 }
@@ -121,6 +132,8 @@ export async function getVoteCounts(scamReportId: string) {
  * Create a dispute for a scam report
  */
 export async function createDispute(dispute: InsertScamReportDispute) {
+  if (!isSupabaseConfigured()) return { dispute: null, error: UNAVAILABLE };
+
   // Check if user already has a pending dispute for this report
   const { data: existing } = await db
     .from('scam_report_disputes')
@@ -128,7 +141,7 @@ export async function createDispute(dispute: InsertScamReportDispute) {
     .eq('scam_report_id', dispute.scam_report_id)
     .eq('user_id', dispute.user_id)
     .eq('status', 'pending')
-    .single();
+    .maybeSingle();
 
   if (existing) {
     return { dispute: null, error: 'You already have a pending dispute for this report' };
@@ -151,6 +164,8 @@ export async function createDispute(dispute: InsertScamReportDispute) {
  * Get disputes for a scam report
  */
 export async function getDisputesForReport(scamReportId: string) {
+  if (!isSupabaseConfigured()) return { disputes: [], error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_report_disputes')
     .select('*')
@@ -168,6 +183,8 @@ export async function getDisputesForReport(scamReportId: string) {
  * Get user's disputes
  */
 export async function getUserDisputes(userId: string) {
+  if (!isSupabaseConfigured()) return { disputes: [], error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_report_disputes')
     .select('*, scam_report:scam_reports(id, title, status)')
@@ -190,6 +207,8 @@ export async function updateDisputeStatus(
   adminId: string,
   adminNotes?: string
 ) {
+  if (!isSupabaseConfigured()) return { dispute: null, error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_report_disputes')
     .update({
@@ -225,6 +244,8 @@ export async function updateDisputeStatus(
  * Get user's reputation
  */
 export async function getUserReputation(userId: string) {
+  if (!isSupabaseConfigured()) return { reputation: null, error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_reporter_reputation')
     .select('*')
@@ -254,81 +275,14 @@ export async function getUserReputation(userId: string) {
   return { reputation: data as ScamReporterReputation, error: null };
 }
 
-/**
- * Update user reputation after report verification
- */
-export async function updateReputationOnVerification(
-  userId: string,
-  wasVerified: boolean
-) {
-  const { reputation } = await getUserReputation(userId);
-
-  if (!reputation) return;
-
-  const newTotalReports = reputation.total_reports + 1;
-  const newVerifiedReports = reputation.verified_reports + (wasVerified ? 1 : 0);
-  const newRejectedReports = reputation.rejected_reports + (wasVerified ? 0 : 1);
-
-  // Calculate new score
-  let newScore = reputation.reputation_score;
-  if (wasVerified) {
-    newScore = Math.min(100, newScore + 5);
-  } else {
-    newScore = Math.max(0, newScore - 10);
-  }
-
-  // Determine badge
-  let badge = 'newcomer';
-  if (newVerifiedReports >= 50 && newScore >= 90) {
-    badge = 'guardian';
-  } else if (newVerifiedReports >= 25 && newScore >= 80) {
-    badge = 'expert';
-  } else if (newVerifiedReports >= 10 && newScore >= 70) {
-    badge = 'trusted';
-  } else if (newVerifiedReports >= 5 && newScore >= 60) {
-    badge = 'contributor';
-  }
-
-  const { error } = await db
-    .from('scam_reporter_reputation')
-    .upsert({
-      user_id: userId,
-      total_reports: newTotalReports,
-      verified_reports: newVerifiedReports,
-      rejected_reports: newRejectedReports,
-      helpful_votes: reputation.helpful_votes,
-      reputation_score: newScore,
-      badge,
-      updated_at: new Date().toISOString(),
-    });
-
-  return { error };
-}
-
-/**
- * Get top reporters (leaderboard)
- */
-export async function getTopReporters(limit: number = 10) {
-  const { data, error } = await db
-    .from('scam_reporter_reputation')
-    .select('*')
-    .order('reputation_score', { ascending: false })
-    .order('verified_reports', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    return { reporters: [], error: error.message };
-  }
-
-  return { reporters: data as ScamReporterReputation[], error: null };
-}
-
 // ==================== WATCHLIST ====================
 
 /**
  * Add to watchlist
  */
 export async function addToWatchlist(item: InsertScamWatchlistItem) {
+  if (!isSupabaseConfigured()) return { item: null, error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_watchlist')
     .insert(item)
@@ -349,6 +303,8 @@ export async function addToWatchlist(item: InsertScamWatchlistItem) {
  * Remove from watchlist
  */
 export async function removeFromWatchlist(userId: string, scamReportId: string) {
+  if (!isSupabaseConfigured()) return { success: false, error: UNAVAILABLE };
+
   const { error } = await db
     .from('scam_watchlist')
     .delete()
@@ -366,6 +322,8 @@ export async function removeFromWatchlist(userId: string, scamReportId: string) 
  * Get user's watchlist
  */
 export async function getUserWatchlist(userId: string) {
+  if (!isSupabaseConfigured()) return { watchlist: [], error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_watchlist')
     .select('*, scam_report:scam_reports(*)')
@@ -383,6 +341,8 @@ export async function getUserWatchlist(userId: string) {
  * Check if item is in watchlist
  */
 export async function isInWatchlist(userId: string, scamReportId: string) {
+  if (!isSupabaseConfigured()) return { inWatchlist: false, error: UNAVAILABLE };
+
   const { data, error } = await db
     .from('scam_watchlist')
     .select('id')
@@ -400,32 +360,28 @@ export async function isInWatchlist(userId: string, scamReportId: string) {
 // ==================== COMMUNITY STATS ====================
 
 /**
- * Get community statistics
+ * Counts for the community section. Uses head-only count queries, so nothing
+ * is downloaded row by row. Returns an error rather than zeros when the
+ * database cannot be reached.
  */
-export async function getCommunityStats() {
-  const [
-    { count: totalReports },
-    { count: verifiedReports },
-    { count: totalDisputes },
-    { data: totalVotes },
-  ] = await Promise.all([
-    db.from('scam_reports').select('*', { count: 'exact', head: true }),
-    db.from('scam_reports').select('*', { count: 'exact', head: true }).eq('status', 'verified'),
-    db.from('scam_report_disputes').select('*', { count: 'exact', head: true }),
-    db.from('scam_report_votes').select('id'),
+export async function getCommunityStats(): Promise<{
+  verifiedReports: number;
+  totalVotes: number;
+  error: string | null;
+}> {
+  if (!isSupabaseConfigured()) {
+    return { verifiedReports: 0, totalVotes: 0, error: UNAVAILABLE };
+  }
+
+  const [verified, votes] = await Promise.all([
+    db.from('scam_reports').select('id', { count: 'exact', head: true }).eq('status', 'verified'),
+    db.from('scam_report_votes').select('id', { count: 'exact', head: true }),
   ]);
 
-  // Get unique contributors
-  const { data: contributors } = await db
-    .from('scam_reporter_reputation')
-    .select('id')
-    .gt('total_reports', 0);
-
+  const error = verified.error?.message || votes.error?.message || null;
   return {
-    totalReports: totalReports || 0,
-    verifiedReports: verifiedReports || 0,
-    totalDisputes: totalDisputes || 0,
-    totalVotes: totalVotes?.length || 0,
-    totalContributors: contributors?.length || 0,
+    verifiedReports: verified.count || 0,
+    totalVotes: votes.count || 0,
+    error,
   };
 }

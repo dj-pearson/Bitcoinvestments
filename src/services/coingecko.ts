@@ -354,12 +354,11 @@ async function cgRequest<T>(
       const { json, serverStale, serverFetchedAt } = await networkFetch(buildUrl(path, params), !!options.force);
       const data = transform(json);
       const fetchedAt = serverFetchedAt ?? Date.now();
-      if (!serverStale) {
-        setEntry(cacheKey, { data, fetchedAt });
-      } else if (!entry || entry.fetchedAt < fetchedAt) {
-        // The proxy served its own last-good copy; keep it but mark it stale.
-        setEntry(cacheKey, { data, fetchedAt });
+      if (serverStale && entry && entry.fetchedAt >= fetchedAt) {
+        // The proxy fell back to a copy older than ours; keep ours, marked stale.
+        return { data: entry.data as T, fetchedAt: entry.fetchedAt, stale: true };
       }
+      setEntry(cacheKey, { data, fetchedAt });
       return { data, fetchedAt, stale: serverStale };
     } catch (err) {
       const error =

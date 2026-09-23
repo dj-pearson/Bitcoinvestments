@@ -1,5 +1,6 @@
 import { isSupabaseConfigured, db } from '../lib/supabase';
 import { pgrestContains } from '../lib/postgrestFilter';
+import { emailAuthHeaders } from './email';
 
 /**
  * Support Ticket Service
@@ -565,7 +566,7 @@ async function sendTicketNotification(
 
     await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await emailAuthHeaders(),
       body: JSON.stringify({
         to: ticket.user_email,
         subject: subjects[type],

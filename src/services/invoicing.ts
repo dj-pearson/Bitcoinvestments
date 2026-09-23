@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, db } from '../lib/supabase';
+import { emailAuthHeaders } from './email';
 
 /**
  * Invoicing Service
@@ -483,7 +484,7 @@ export async function sendInvoiceEmail(
 
     const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await emailAuthHeaders(),
       body: JSON.stringify({
         to: invoice.advertiser_email,
         subject: `Invoice ${invoice.invoice_number} from Bitcoin Investments`,

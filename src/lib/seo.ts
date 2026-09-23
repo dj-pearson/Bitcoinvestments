@@ -262,9 +262,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   defiYield: {
-    title: 'DeFi Yield Farming - Compare APY Rates',
+    title: 'DeFi Yields & Impermanent Loss Calculator',
     description:
-      'Compare DeFi yield farming opportunities across protocols. Find the best APY rates for lending, liquidity providing, and staking.',
+      'Current DeFi yields on Aave, Lido, Curve, Uniswap and more from DefiLlama, what drives APY, and a free impermanent loss calculator for liquidity pools.',
     keywords: [
       'DeFi yield',
       'yield farming',
@@ -276,9 +276,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   gasOptimizer: {
-    title: 'Ethereum Gas Optimizer - Save on Transaction Fees',
+    title: 'Gas Fee Tracker: Ethereum, L2s & Bitcoin',
     description:
-      'Optimize your Ethereum transactions and save on gas fees. Real-time gas prices, fee estimates, and optimal timing recommendations.',
+      'Live gas prices for Ethereum, Arbitrum, Base and other chains with the dollar cost of common actions, Bitcoin fee rates, and how EIP-1559 fees work.',
     keywords: [
       'gas optimizer',
       'Ethereum gas',
@@ -317,48 +317,48 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   dcaAutomation: {
-    title: 'DCA Automation - Automate Dollar Cost Averaging',
+    title: 'DCA Planner & Recurring Buy Guide',
     description:
-      'Set up automated Dollar Cost Averaging for your cryptocurrency investments. Schedule recurring purchases and build your portfolio automatically.',
+      'Plan a crypto DCA schedule: total invested, number of buys, fee drag and purchase dates, plus calendar reminders and how to set up recurring buys.',
     keywords: [
-      'DCA automation',
-      'auto invest crypto',
-      'recurring purchases',
-      'automated investing',
-      'Bitcoin DCA',
-      'investment automation',
+      'DCA planner',
+      'recurring crypto buy',
+      'bitcoin DCA schedule',
+      'dollar cost averaging crypto',
+      'auto invest bitcoin',
+      'DCA fees',
     ],
   },
   rebalancingAlerts: {
-    title: 'Portfolio Rebalancing Alerts - Maintain Target Allocation',
+    title: 'Crypto Rebalancing Calculator',
     description:
-      'Get alerts when your crypto portfolio drifts from target allocation. Automatic rebalancing recommendations to maintain your investment strategy.',
+      'Free crypto rebalancing calculator: enter holdings and target weights to see drift and exact buy/sell amounts, with threshold bands and buy-only mode.',
     keywords: [
+      'crypto rebalancing calculator',
       'portfolio rebalancing',
-      'allocation alerts',
-      'portfolio management',
-      'rebalancing strategy',
+      'rebalancing bands',
       'asset allocation',
-      'portfolio optimization',
+      'portfolio drift',
+      'threshold rebalancing',
     ],
   },
   alertBundles: {
-    title: 'Smart Alert Bundles - Custom Crypto Notifications',
+    title: 'Free Crypto Price Alerts',
     description:
-      'Create custom alert bundles for cryptocurrency price movements, whale activity, and market events. Stay informed with personalized notifications.',
+      'Set free crypto price alerts in your browser: get notified when a coin goes above or below a price or moves by a set percentage while the tab is open.',
     keywords: [
-      'crypto alerts',
-      'price alerts',
-      'custom notifications',
-      'market alerts',
-      'whale alerts',
-      'trading alerts',
+      'crypto price alerts',
+      'bitcoin price alert',
+      'price notification',
+      'crypto alert app',
+      'golden cross alert',
+      'RSI alert',
     ],
   },
   lending: {
-    title: 'Crypto Lending Comparison - Compare Interest Rates',
+    title: 'Crypto Lending Rates: CeFi vs DeFi',
     description:
-      'Compare cryptocurrency lending platforms and interest rates. Find the best rates for lending your Bitcoin, Ethereum, and stablecoins.',
+      'Current DeFi lending rates on Aave, Compound, Morpho and Spark, plus what the Celsius, BlockFi and Voyager collapses teach about CeFi lending risk.',
     keywords: [
       'crypto lending',
       'lending rates',
@@ -382,16 +382,16 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   influencerVerification: {
-    title: 'Influencer Verification - Verified Crypto Experts',
+    title: 'How to Vet a Crypto Influencer',
     description:
-      'Verify cryptocurrency influencers and track their performance. Follow verified experts with proven track records.',
+      'A checklist for judging crypto influencers: paid-promotion disclosure rules, SEC anti-touting cases, how to check a track record, and pump-and-dump red flags.',
     keywords: [
       'crypto influencer',
-      'verified experts',
-      'influencer tracking',
-      'crypto experts',
-      'trading performance',
-      'influencer verification',
+      'crypto influencer scams',
+      'SEC touting',
+      'FTC disclosure #ad',
+      'pump and dump crypto',
+      'influencer track record',
     ],
   },
   privacy: {
@@ -990,7 +990,7 @@ export function generateGlossarySchema({
     '@context': 'https://schema.org',
     '@type': 'DefinedTermSet',
     name: 'Cryptocurrency Glossary',
-    description: 'Comprehensive glossary of 300+ cryptocurrency and blockchain terms explained in plain English.',
+    description: 'Cryptocurrency and blockchain terms explained in plain English.',
     url: `${SEO_CONFIG.siteUrl}/glossary`,
     hasDefinedTerm: terms.map((t) => ({
       '@type': 'DefinedTerm',
@@ -1219,13 +1219,6 @@ export function generateLocalBusinessSchema() {
           },
         },
       ],
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: '1250',
-      bestRating: '5',
-      worstRating: '1',
     },
   };
 }
@@ -1456,7 +1449,7 @@ export function getRelatedPages(currentPath: string): RelatedLink[] {
       { title: 'Scam Database', url: '/scam-database', description: 'Verify before you trade' },
     ],
     '/learn': [
-      { title: 'Glossary', url: '/glossary', description: '300+ crypto terms explained' },
+      { title: 'Glossary', url: '/glossary', description: 'Crypto terms explained in plain English' },
       { title: 'Compare Platforms', url: '/compare', description: 'Find the right tools' },
       { title: 'Calculators', url: '/calculators', description: 'Plan your investments' },
     ],

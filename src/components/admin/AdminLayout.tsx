@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { RouteHead } from '../RouteHead';
 import {
   LayoutDashboard,
   Users,
@@ -111,6 +112,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-[#0B0D14] flex">
+      <RouteHead />
       <SkipLinks />
       <RouteAnnouncer />
       <KeyboardShortcutsHelp />

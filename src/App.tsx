@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, StaticRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout/Layout';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -135,10 +135,27 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+interface AppProps {
+  /**
+   * Prerendering only (src/entry-server.tsx): render this URL with a
+   * StaticRouter and a per-page QueryClient instead of the browser router.
+   */
+  location?: string;
+  client?: QueryClient;
+}
+
+function AppRouter({ location, children }: { location?: string; children: ReactNode }) {
+  return location ? (
+    <StaticRouter location={location}>{children}</StaticRouter>
+  ) : (
+    <BrowserRouter>{children}</BrowserRouter>
+  );
+}
+
+function App({ location, client }: AppProps = {}) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+    <QueryClientProvider client={client ?? queryClient}>
+      <AppRouter location={location}>
         <AppErrorBoundary>
         <AccessibilityProvider>
         <AnalyticsProvider domain="bitcoinvestments.net">
@@ -216,7 +233,7 @@ function App() {
                   <Route path="pricing" element={withErrorBoundary(<Pricing />, 'Pricing')} />
                   <Route path="developers/pricing" element={withErrorBoundary(<ApiPricing />, 'ApiPricing')} />
                   <Route path="developers/portal" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<DeveloperPortal />, 'DeveloperPortal')}</ProtectedRoute>)} />
-                  <Route path="developers/docs" element={withErrorBoundary(<ApiPricing />, 'ApiDocs')} />
+                  <Route path="developers/docs" element={<Navigate to="/developers/pricing" replace />} />
                   <Route path="advertiser" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<AdvertiserDashboard />, 'AdvertiserDashboard')}</ProtectedRoute>)} />
 
                   {/* Advanced Monetization Features */}
@@ -241,8 +258,8 @@ function App() {
                   <Route path="alert-bundles" element={withErrorBoundary(<SmartAlertBundlesPage />, 'SmartAlertBundles')} />
 
                   <Route path="accessibility" element={withErrorBoundary(<Accessibility />, 'Accessibility')} />
-                  <Route path="start" element={withErrorBoundary(<Learn />, 'Start')} />
-                  <Route path="prices" element={withErrorBoundary(<Dashboard />, 'Prices')} />
+                  <Route path="start" element={<Navigate to="/learn" replace />} />
+                  <Route path="prices" element={<Navigate to="/dashboard" replace />} />
                   <Route path="403" element={withErrorBoundary(<Forbidden />, 'Forbidden')} />
                   <Route path="404" element={<NotFound />} />
                   <Route path="500" element={withErrorBoundary(<ServerError />, 'ServerError')} />
@@ -256,7 +273,7 @@ function App() {
         </AnalyticsProvider>
         </AccessibilityProvider>
         </AppErrorBoundary>
-      </BrowserRouter>
+      </AppRouter>
     </QueryClientProvider>
   );
 }

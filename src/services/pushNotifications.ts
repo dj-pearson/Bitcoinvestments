@@ -49,6 +49,7 @@ const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
  * Check if push notifications are supported
  */
 export function isPushSupported(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   return (
     'serviceWorker' in navigator &&
     'PushManager' in window &&
@@ -60,7 +61,7 @@ export function isPushSupported(): boolean {
  * Get current notification permission status
  */
 export function getNotificationPermission(): NotificationPermission {
-  if (!('Notification' in window)) {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
     return 'denied';
   }
   return Notification.permission;
@@ -70,7 +71,7 @@ export function getNotificationPermission(): NotificationPermission {
  * Request notification permission
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
-  if (!('Notification' in window)) {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
     console.warn('Notifications not supported');
     return 'denied';
   }
@@ -343,14 +344,20 @@ export async function showLocalNotification(
     return;
   }
 
-  try {
-    const registration = await navigator.serviceWorker.ready;
+  const withIcon = { icon: '/icon-192.png', ...options } as NotificationOptions;
 
-    await registration.showNotification(title, {
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/badge-72x72.png',
-      ...options,
-    } as NotificationOptions);
+  try {
+    // Prefer an active service worker registration (required on some mobile
+    // browsers). `serviceWorker.ready` never resolves when no worker is
+    // registered, so look the registration up instead of awaiting `ready`.
+    const registration =
+      'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+
+    if (registration) {
+      await registration.showNotification(title, withIcon);
+    } else {
+      new Notification(title, withIcon);
+    }
   } catch (error) {
     console.error('Error showing notification:', error);
   }

@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Clock, ExternalLink, Calendar } from 'lucide-react';
+import { ArrowLeft, Clock, ExternalLink, Calendar, RefreshCw } from 'lucide-react';
 import {
   getSponsoredArticleBySlug,
   trackSponsoredContentEvent,
@@ -22,6 +22,8 @@ import {
 } from '../services/sponsoredContent';
 import { sanitizeArticleHtml } from '../lib/validation';
 import { SEO, generateBreadcrumbSchema } from '../components/SEO';
+import { formatDate } from '../components/blog/blogUtils';
+import { NotFound } from './NotFound';
 
 /** Give up on the fetch after this long and show the unavailable state. */
 const LOAD_TIMEOUT_MS = 8000;
@@ -31,6 +33,7 @@ export function SponsoredArticle() {
   const [article, setArticle] = useState<SponsoredArticleType | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   // One view event per article, even if the effect re-runs.
   const trackedId = useRef<string | null>(null);
@@ -47,25 +50,31 @@ export function SponsoredArticle() {
 
       setLoading(true);
       setNotFound(false);
+      setFailed(false);
 
       // The whole page depends on this one request, so it must always settle.
       // A request that hangs — an unreachable database, an offline client, a
       // dropped connection — would otherwise leave the reader on the loading
       // skeleton indefinitely with no way to tell something went wrong.
       let data: SponsoredArticleType | null = null;
+      let error = false;
       try {
         data = await Promise.race([
           getSponsoredArticleBySlug(slug),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), LOAD_TIMEOUT_MS)),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timed out')), LOAD_TIMEOUT_MS)
+          ),
         ]);
       } catch (err) {
         console.error('Failed to load sponsored article:', err);
-        data = null;
+        error = true;
       }
 
       if (cancelled) return;
 
-      if (!data) {
+      if (error) {
+        setFailed(true);
+      } else if (!data) {
         setNotFound(true);
       } else {
         setArticle(data);
@@ -114,40 +123,42 @@ export function SponsoredArticle() {
     );
   }
 
-  if (notFound || !article) {
+  if (notFound) {
+    return <NotFound />;
+  }
+
+  if (failed || !article) {
     return (
       <div className="min-h-screen py-12 flex items-center justify-center">
-        {/* This branch returns before the main SEO block, so it needs its own. */}
-        <SEO
-          title="Sponsored Article Not Available"
-          description="This sponsored article has ended or is no longer published."
-          noindex
-          nofollow
-        />
+        <SEO title="Sponsored Article Unavailable" noindex nofollow />
         <div className="text-center px-4">
-          <h1 className="text-2xl font-bold text-white mb-4">Article Not Available</h1>
-          <p className="text-slate-400 mb-6">
-            This sponsored article has ended or is no longer published.
-          </p>
-          <Link
-            to="/blog"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Blog
-          </Link>
+          <h1 className="text-2xl font-bold text-white mb-4">This article could not be loaded</h1>
+          <p className="text-slate-400 mb-6">Please try again in a moment.</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
+              Try again
+            </button>
+            <Link
+              to="/blog"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              Back to Blog
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  const publishedDate = article.publishedAt
-    ? new Date(article.publishedAt).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : '';
+  const publishedDate = formatDate(article.publishedAt);
+  const sponsorName = article.sponsorName || article.sponsor?.name;
+  const sponsorUrl = article.sponsorWebsiteUrl || article.sponsor?.websiteUrl;
 
   return (
     <article className="min-h-screen py-12">
@@ -180,17 +191,33 @@ export function SponsoredArticle() {
           Back to Blog
         </Link>
 
-        {/* FTC disclosure — always rendered, above the headline. */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* FTC disclosure — always rendered, above the headline, naming the payer. */}
+        <p className="flex flex-wrap items-center gap-3 mb-4" role="note">
           <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-semibold uppercase tracking-wide border border-amber-500/30">
             {getDisclosureText('article')}
           </span>
-          {article.sponsor?.name && (
-            <span className="text-sm text-slate-400">
-              Paid for by <span className="text-slate-200 font-medium">{article.sponsor.name}</span>
-            </span>
-          )}
-        </div>
+          <span className="text-sm text-slate-300">
+            {sponsorName ? (
+              <>
+                Sponsored — paid for by{' '}
+                {sponsorUrl && /^https?:\/\//i.test(sponsorUrl) ? (
+                  <a
+                    href={sponsorUrl}
+                    target="_blank"
+                    rel="sponsored noopener noreferrer"
+                    className="text-slate-100 font-medium underline decoration-dotted"
+                  >
+                    {sponsorName}
+                  </a>
+                ) : (
+                  <span className="text-slate-100 font-medium">{sponsorName}</span>
+                )}
+              </>
+            ) : (
+              'Sponsored — this is a paid placement by an advertiser'
+            )}
+          </span>
+        </p>
 
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">{article.title}</h1>
 
@@ -217,7 +244,10 @@ export function SponsoredArticle() {
             src={article.featuredImage}
             alt={article.title}
             className="w-full rounded-xl mb-8"
-            loading="lazy"
+            width={1200}
+            height={630}
+            loading="eager"
+            decoding="async"
           />
         )}
 

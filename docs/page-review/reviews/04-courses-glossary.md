@@ -1,0 +1,204 @@
+# Review 04: Courses and Glossary
+
+Scope: `/course/:courseId`, `/course/:courseId/:moduleId`, `src/data/courses/index.ts`, `/glossary`, plus the glossary data duplicated in `src/services/search.ts`, and `src/services/interactiveCourses.ts`.
+
+## Findings that affect more than one route
+
+- **There is only one course.** `src/data/courses/index.ts:1494-1496` defines only `beginner-complete-course`, which has 6 modules (25+30+35+30+35+25 = 180 min, which matches `totalDuration`).
+- **The course pages never use the database.**
+  - `src/services/interactiveCourses.ts` (enrollments, lesson progress, quizzes, ratings) is used only by `src/components/InteractiveCourses.tsx`, and that component is not imported by any page or route. All of it is dead code.
+  - It also contains fake `DEMO_COURSES` with invented numbers: `enrollmentCount: 15420`, `averageRating: 4.8`, invented instructors "Alex Chen" and "Sarah Williams" (`:156`, `:165`), and paid prices $49.99, $79.99 and $39.99 (`:174-320`). This is a trust/YMYL risk if the component is ever mounted.
+  - The DB schema uses UUID course IDs (`supabase/migrations/202412220003500_create_interactive_courses.sql:31-88`), while the live course uses a slug. Nothing maps one to the other.
+- **Course progress is not saved anywhere, in the DB or in localStorage.** The "Course Progress" panel and the top progress bar work from position only. `CourseModule.tsx:311-321` marks every module before the current one as done with a green check, and `:79` works the same way. So a visitor who opens Module 5 directly sees Modules 1-4 as "completed". It is misleading, and it resets on every visit.
+- **`public/llms.txt:49-51` lists 3 course URLs that do not exist:** `/course/bitcoin-fundamentals`, `/course/crypto-investing-101` and `/course/defi-basics`. The first two slugs come from `DEMO_COURSES`. All three silently redirect to `/learn` (`CourseLanding.tsx:16-18`). The one real course is not listed in llms.txt.
+- **The sitemap is missing all 6 module URLs.** `public/sitemap.xml:309-314` lists only `/course/beginner-complete-course`. `functions/api/sitemap.ts` has `/glossary` (line 26) but no course URLs at all.
+- **Prerendering:** every page in this scope is 100% static data, which makes them ideal to prerender. Today a non-JS crawler gets the empty SPA shell for the course landing page, all 6 modules (about 1,400 lines of Markdown) and the glossary.
+
+---
+
+### /course/:courseId — src/pages/CourseLanding.tsx
+- **Purpose / target query:** "free crypto course for beginners", "learn cryptocurrency free course".
+- **Verdict:** Needs work. The shell is clean and works fully without a DB, but the schema is too thin for Course rich results, there is no freshness or authorship signal, and unknown IDs cause soft-404 redirects.
+- **Up-to-date issues:**
+  - The `Course` interface (`src/data/courses/index.ts:11-23`) has no `lastUpdated`/`datePublished` field, so the page cannot show a date.
+  - The sitemap `lastmod` is 2026-09-01, but the content itself is stale (see the module section below).
+- **SEO issues:**
+  - The title is `"Beginner's Complete Course - Free Crypto Course | Bitcoinvestments"`, which is 66 chars (>60) and says "Course" twice (`:31`).
+  - The meta description is `course.description` at 65 chars (`index.ts:28`). That is short and generic. Aim for 140-155 chars.
+  - `generateCourseSchema` (`src/components/SEO.tsx:438-461`) emits only name, description, provider and url. Google's Course info rich result also needs `offers` and `hasCourseInstance` (courseMode, courseWorkload). It is also missing `educationalLevel`, `timeRequired` (PT3H), `inLanguage`, `isAccessibleForFree`, `teaches` (outcomes), `hasPart` (modules as LearningResource/Syllabus), `datePublished`/`dateModified` and `author`.
+  - There are two BreadcrumbLists that disagree:
+    - JSON-LD (`:48-52`) uses the course title.
+    - The microdata in `Breadcrumbs.tsx:25` (rendered by `Layout.tsx:21`) uses a label made from the slug, "Beginner Complete Course" (`useBreadcrumbs.ts:70-73`).
+  - The H1 and the H2 structure are fine. The emoji icon (`:69`) has no `aria-hidden` or role.
+- **GEO issues:**
+  - `blufSummary` just repeats the 65-char tagline (`:40`).
+  - There is no visible "last updated" date, no author/reviewer (E-E-A-T), no FAQ (for example "Is this course free?", "How long does it take?", "Do I need to buy crypto?") and no syllabus summary an LLM could quote.
+- **Static + DB:**
+  - The page renders completely from static data with no DB, which is correct.
+  - The only DB touch is `<Newsletter>`, which has loading and error states.
+  - There is no enrollment or saved progress. That is acceptable, but the page should not suggest progress tracking it does not have (see CourseModule).
+- **Uniqueness / content gaps:**
+  - The content is generic "crypto 101". Nothing is unique to this site: no links to the site's own DCA calculator, exchange/wallet comparisons or scam database.
+  - "Start Module 1" is the only call to action. There is no "what you'll need", no time commitment per week and no certificate or completion badge.
+- **Bugs:**
+  - Unknown `courseId` does `<Navigate to="/learn" replace>` (`:10-18`). That is a client-side soft 404: HTTP 200, no noindex, and the user gets no feedback. It should render `<NotFound/>` (`src/pages/NotFound.tsx`), or at least noindex.
+  - `course.modules[0]?.id` (`:172`) produces `/course/x/undefined` for a course with no modules. Only theoretical today.
+- **Recommended fixes:**
+  - **P0:**
+    - Fix `public/llms.txt:49-51`. List `/course/beginner-complete-course` and its 6 module URLs instead of the 3 URLs that do not exist.
+    - Add the 6 module URLs to `public/sitemap.xml`, and course URLs to `functions/api/sitemap.ts`.
+  - **P1:**
+    - Replace the redirect with `<NotFound/>` (and noindex) for unknown `courseId`.
+    - Extend `generateCourseSchema` with:
+      - `offers: {'@type':'Offer', price:0, priceCurrency:'USD', category:'Free'}`
+      - `hasCourseInstance: {'@type':'CourseInstance', courseMode:'Online', courseWorkload:'PT3H'}`
+      - `educationalLevel`, `inLanguage:'en'`, `isAccessibleForFree:true`
+      - `teaches: course.outcomes`
+      - `hasPart` = each module as `LearningResource` with url, name and `timeRequired`
+      - `datePublished`/`dateModified`
+    - Add `lastUpdated` and `reviewedBy` fields to `Course` (`src/data/courses/index.ts`) and render "Last updated: <date> · Reviewed by <name>" under the H1.
+      - NEEDS-OWNER: the real author/reviewer.
+    - Shorten the title to something like "Free Crypto Course for Beginners (6 Modules)" (about 44 chars before the suffix) and write a 140-155 char description.
+  - **P2:**
+    - Add a 4-6 question FAQ block plus FAQPage schema.
+    - Link to `/calculators`, `/compare` and `/scam-database` from the outcomes section.
+    - Make the Layout breadcrumb label come from the course title, not the slug (`useBreadcrumbs.ts:70-78`).
+
+---
+
+### /course/:courseId/:moduleId — src/pages/CourseModule.tsx (content in src/data/courses/index.ts)
+- **Purpose / target query:** lesson-level queries such as "how to buy your first bitcoin", "how to secure crypto seed phrase", "crypto market cycles halving", "crypto DCA strategy" and "common crypto scams".
+- **Verdict:** Needs work. The content is substantive, but it has two H1s, weak schema, stale product and market facts, some inaccurate advice (a YMYL concern), fake "completed" progress, and no internal links.
+- **Up-to-date issues** (all in `src/data/courses/index.ts`):
+  - `:764`: the halving table's 4th cycle still reads "Next Bull Peak: TBD". As of Sept 2026 the post-2024 peak has happened (BTC ATH of about $126k in Oct 2025; verify the exact figure and date before publishing). The table otherwise stops at 2024.
+  - `:472`: **Trezor Model T** has been discontinued. The current line is Trezor Safe 3 / Safe 5. `:471`: the Ledger Nano X is still sold, but the Ledger Flex/Stax and Nano S Plus are missing. `:465`: the "$60-$200" price range should be re-checked.
+  - `:223-224`: SushiSwap and **dYdX** listed as beginner DEX examples. dYdX v4 is a perpetual-futures chain that is not available to US users, which is wrong for this audience.
+  - `:271`: Authy is recommended. Authy's desktop apps were discontinued (2024). Suggest Google Authenticator, Microsoft Authenticator, 2FAS, or hardware security keys/passkeys.
+  - Module 2 (`:177-389`) never mentions **spot Bitcoin/Ether ETFs** (US approval Jan and Jul 2024). In 2026 that is a mainstream first-purchase route for the 25-55 audience and belongs in any "how to buy" comparison.
+  - The tax coverage is a single line (`:1395`). It should mention US Form **1099-DA** broker reporting (it starts with 2025 transactions), cost basis and capital gains.
+  - `:120-124`: the stablecoin list does not mention the 2025 US stablecoin law (GENIUS Act), and DAI has been rebranded to USDS by Sky. Verify both.
+  - `:288`: "ACH 3-5 days" is dated. Many exchanges are now 1-3 days, with instant buying power.
+  - `:171` "Bitcoin was created in 2008" contradicts the glossary's "2009" (`Glossary.tsx:18`). The whitepaper is from 2008 and the network launched in 2009, so say both.
+  - `:1486`: "Join our community" has no link and there is no community route in `App.tsx`. `:1487`: "Explore our advanced guides" has no link.
+- **Accuracy / YMYL issues:**
+  - `:349`: "Trade during low-volume periods" to minimise fees is wrong. Fees are a percentage, and low volume means wider spreads and more slippage. Remove it.
+  - `:676`: "10-20% daily moves are normal" is exaggerated for BTC/ETH. Typical daily volatility is a few percent. Reword to "10-20% weekly moves are common; 50-80% drawdowns have happened in bear markets".
+  - `:797-803`: the Fear & Greed table labels 25-45 as "Market undervalued" and 55-75 as "overvalued". That presents sentiment as valuation. Relabel as sentiment only.
+  - `:576`: "Verify SSL certificates" is outdated anti-phishing advice, since phishing sites use HTTPS. Replace with "use bookmarks, check the exact domain".
+  - `:1031`: "Lump sum statistically beats DCA" has no source. Cite it (for example the Vanguard 2012 study on equities) or soften it.
+  - `:903-919` and `:940-956`: specific allocation percentages ("crypto 15-30% of portfolio", "80% Bitcoin...") appear with no "not financial advice" disclaimer anywhere on course pages (grep found none in `CourseModule.tsx`, `CourseLanding.tsx` or `data/courses`).
+  - `:975-981`: the DCA table's running averages are computed from rounded BTC amounts. For example, Feb shows $37,313; the exact figure is $37,333. The narrative line "average cost below the highest price" is also a trivially true point, not a benefit.
+  - No claim anywhere in the 6 modules cites a source.
+- **SEO issues:**
+  - **Two H1s on every module page.** The page renders an H1 (`CourseModule.tsx:114`), and each module's Markdown starts with `# Module N: ...` (`index.ts:59` and so on), which is mapped to `<h1>` at `CourseModule.tsx:157-159`.
+  - Titles are 75-81 chars (for example "Building Your Investment Strategy - Beginner's Complete Course | Bitcoinvestments" is 81) (`:54`).
+  - Meta descriptions are the 53-66 char module `description` (`:55`). They are too short.
+  - The schema is a generic `Article` (`:62-66`) with `datePublished`/`dateModified` undefined (`SEO.tsx:426-427`) and an Organization author. It should be `LearningResource` (learningResourceType "Lesson"), with `isPartOf` pointing to the Course, `position`, `timeRequired` (PT25M), `educationalLevel` and `teaches` (objectives). HowTo would suit Module 2 and Module 3's Ledger setup.
+  - The breadcrumb is rendered three times: inline (`:87-97`), Layout microdata (label "Course" plus a slug-derived module name, `useBreadcrumbs.ts:74-78`), and JSON-LD. The labels disagree.
+  - There are **zero internal links** in the Markdown content (`grep '](' src/data/courses/index.ts` returns no matches). There is also no link to `/calculators` (DCA), `/compare`, `/scam-database` or `/glossary`.
+  - The Markdown `a` renderer (`:174-183`) would make any internal link a full-page-reload `<a>` instead of a `<Link>`.
+- **GEO issues:**
+  - The BLUF is just the one-line description.
+  - Each module has "Key Takeaways", but they sit at the very bottom. Move a 2-3 sentence answer-first summary to the top.
+  - The "Module N Quiz" sections (for example `index.ts:150-158`) list questions but no answers. Adding answers would give ready Q&A pairs (FAQPage or Quiz schema).
+  - There is no visible last-updated date, author or sources.
+- **Static + DB:**
+  - The pages render fully from static data, with no DB dependency. Good.
+  - Progress is fake: modules before the current one are marked complete (`:311-321`), and the progress bar is positional (`:79`). There is no localStorage and no DB write, even though `interactiveCourses.ts` has `completeLesson` and `getCourseProgress`. Those functions are unreachable, and their no-session branch returns hard-coded `newProgress: 50` (`interactiveCourses.ts:708-711`).
+  - The "Course Complete!" state (`:285`) and "Congratulations on Completing the Course!" (`:342`) show whenever the last module is opened, whether or not the others were read.
+- **Uniqueness / content gaps:**
+  - Solid breadth, but it reads like any crypto-101. To be the best answer, it needs:
+    - Interactive quizzes with answers and scoring.
+    - A "compare exchanges" table pulled from the site's own `/compare` data instead of hard-coded names (`:214-216`).
+    - An embedded DCA calculator widget in Module 5.
+    - A printable seed-phrase and security checklist in Module 3.
+    - A current halving/cycle chart sourced from site price data in Module 4.
+    - A US tax section.
+    - An ETF-vs-exchange-vs-app comparison in Module 2.
+- **Bugs:**
+  - Two H1s (above).
+  - Unknown `moduleId` redirects to `/course/:courseId`. An unknown course plus module double-redirects to `/learn` (`:19-21`). Both are soft 404s.
+  - The share fallback uses blocking `alert()` (`:42`), and failures only `console.error`, with no user feedback (`:44`).
+  - Misleading "completed" checkmarks (above).
+  - Markdown task lists (`- [ ]`, for example `:606-616`) render as disabled checkboxes. This is harmless, but they look interactive, and ticks do not persist.
+- **Recommended fixes:**
+  - **P0:**
+    - Remove the positional "completed" state. Either make it neutral (current module highlighted only), or implement real progress: a `localStorage` key `course-progress:<courseId>` holding the set of moduleIds read, marked on scroll-to-end or on clicking "Mark complete", with every access wrapped in try/catch. When a Supabase session exists, sync that to a small `course_progress(user_id, course_slug, module_id, completed_at)` table instead of the unused UUID-based `interactiveCourses` schema. Only show "Course Complete!" when all modules are done.
+    - Change the h1 renderer in `CourseModule.tsx:157` to output `<h2>`, or strip the leading `# Module N:` line from each module in `index.ts`.
+    - Fix the inaccurate advice at `index.ts:349`, `:576`, `:676` and `:797-803`.
+    - Add a visible "Educational content, not financial advice" note to CourseModule.
+  - **P1:**
+    - Update stale facts:
+      - Halving row 4 (`:764`), with the post-2024 peak (NEEDS-OWNER to confirm figures and source).
+      - Trezor Model T to Safe 3/Safe 5 (`:472`).
+      - Remove dYdX and SushiSwap (`:223-224`).
+      - Authy (`:271`).
+      - The 2008/2009 wording (`:171`).
+      - Add a spot ETF option to Module 2.
+      - Add a 1099-DA/tax subsection to Module 5 or 6.
+      - Link "community" and "advanced guides" to real routes, or remove them (`:1486-1487`).
+    - Swap the Article schema for LearningResource (`isPartOf` Course, `position`, `timeRequired`, `teaches`). Add `lastUpdated` to `CourseModule` and pass it as `dateModified`/`modifiedTime`.
+    - Build titles as `${module.title} (Module N)`, max 60 chars total, and add `metaDescription` fields of 140-155 chars to each module.
+    - Add internal Markdown links (`/calculators`, `/compare`, `/scam-database`, `/glossary#<term>`) and render internal hrefs with `<Link>` in the `a` renderer (`:174`).
+    - Render `<NotFound/>` for unknown IDs.
+  - **P2:**
+    - Add answers to the quizzes (collapsible) and emit Quiz or FAQPage schema.
+    - Move "Key Takeaways" to the top as the BLUF.
+    - Remove the inline breadcrumb (`:87-97`), since Layout already renders one, and fix the Layout labels.
+    - Replace `alert()` with a toast.
+    - Delete, or clearly quarantine, `src/components/InteractiveCourses.tsx` and the `DEMO_COURSES` fake stats in `src/services/interactiveCourses.ts`.
+
+---
+
+### /glossary — src/pages/Glossary.tsx (terms inline at :14-262; a divergent copy in src/services/search.ts:67-108)
+- **Purpose / target query:** "crypto glossary", "what is <term>" (a high-value GEO citation target).
+- **Verdict:** Poor. It has 39 terms while every SEO string promises "300+". Definitions are not in the DOM until clicked. There are no per-term anchors. The DefinedTermSet helper exists but is unused.
+- **Up-to-date issues:**
+  - `:86`, Gas: "paid to miners/validators". Ethereum has no miners since the Merge (2022), and the base fee is burned (EIP-1559).
+  - `:48` Exchange lists Binance as an example for a US-leaning audience. `:150` DEX lists SushiSwap.
+  - `:256-261`, "Metaverse" is a dated 2021-era term. The "NFTs" category holds Web3, dApp and Metaverse.
+  - `:156`, Yield Farming says "staking or lending", which blurs it with Staking.
+  - There is no visible last-updated date. The sitemap lastmod is 2026-02-08 (`public/sitemap.xml:60`).
+- **SEO issues:**
+  - **False count claim:** "300+" appears in `src/lib/seo.ts:141`, `:143`, `:997` and `:1463`, and in `src/components/InternalLinks.tsx:229`. The page shows `GLOSSARY_TERMS.length` = **39** (`:360`).
+  - The title is 72 chars with the suffix (`seo.ts:141`).
+  - **Definitions are not rendered until a term is expanded.** `{expandedTerm === item.term && ...}` (`:414`) means crawlers and LLMs rendering the page see only 39 term names, and only one definition can be open at a time.
+  - The FAQPage schema (`:301-306`) covers the first 10 terms in source order, with answers that are not visible on the page. That is a structured-data mismatch. FAQ rich results are also restricted to gov/health sites since 2023.
+  - `generateGlossarySchema` (DefinedTermSet, `src/lib/seo.ts:988-1005`) is **never used**. `grep DefinedTerm src` finds it only in seo.ts.
+  - No `blufSummary` and no BreadcrumbList JSON-LD are passed (`:311-316`).
+- **GEO issues:**
+  - **No per-term anchors or URLs.** Terms render as `<button>`s with no `id` (`:376-381`). `GlobalSearch`/`search.ts:332` links to `/glossary?term=<term>`, but Glossary never reads `useSearchParams`, so the deep link lands on the unfiltered list.
+  - Nothing citeable per term: no `#bitcoin` anchor, no `DefinedTerm` with `url`/`@id`, and no examples, numbers or sources in the definitions.
+- **Static + DB:** fully static, with no DB. That is appropriate for a glossary. There are no loading or error concerns.
+- **Uniqueness / content gaps:**
+  - **Count: 39 terms.** The search index has 36, and they diverge. `search.ts` has Liquidity, Consensus, Impermanent Loss, Layer 2, DAO, Oracle, Whitepaper, Fork and Airdrop, which the page does not have. So global search returns glossary hits that do not exist on `/glossary`.
+  - **Dead related-term chips:** 21 of the related-term chips return **zero results** when clicked: AMM, APR, ATL, Block Reward, Breakout, CEX, Capitulation, Decentralization, Diamond Hands, Gwei, Hash Rate, Impermanent Loss, Metadata, Order Book, Phishing, Total Supply, Transaction Fee, Virtual Reality, Wallet Address, Whale and Whitepaper. Another 9 (Satoshi, Ethereum, Validator, Hardware Wallet, Scam, Circulating Supply and others) match only inside other terms' definitions.
+  - **Important beginner terms missing:**
+    - Satoshi/sats; Halving; Stablecoin; Ethereum (ETH); Token vs coin; Wallet address; Self-custody/"not your keys"; Custodial vs non-custodial; Hardware wallet; KYC/AML.
+    - Spot Bitcoin ETF; Block; Confirmation; Mempool; Transaction fee; Gwei; Lightning Network; Layer 2; Validator; Hash rate; Block reward.
+    - Max/circulating supply; Fully diluted valuation; Tokenomics; Whitepaper; Liquidity; Spread; Slippage; Order book; Market vs limit order; Stop-loss; Leverage; Liquidation; Futures/perpetuals.
+    - Whale; ATL; Bitcoin dominance; Fear & Greed Index; Cost basis; Capital gains; Form 1099-DA.
+    - Phishing; SIM swap; Address poisoning; Pig-butchering scam; Multisig; Passphrase (25th word).
+    - CEX; AMM; Impermanent loss; APR; Bridge; Wrapped token; Oracle; DAO; Airdrop; Fork; Memecoin; RWA/tokenization; CBDC.
+  - The course's own Key Terms table (`index.ts:141-148`) uses terms such as Satoshi that the glossary lacks.
+- **Bugs:**
+  - The 21 dead related-term chips above.
+  - `?term=` from search is ignored.
+  - a11y: the accordion buttons have no `aria-expanded`/`aria-controls` (`:381-387`). The category filter buttons have no `aria-pressed` (`:344`). The SVG chevron has no `aria-hidden` (`:397`). The search input has no `<label>`/`aria-label` (`:332`).
+- **Recommended fixes:**
+  - **P0:**
+    - Remove "300+" from `src/lib/seo.ts:141,143,997,1463` and `InternalLinks.tsx:229`. Use the real count, or a template like `${GLOSSARY_TERMS.length}+`.
+    - Render every definition in the DOM: always show the definition text, or use `<details>/<summary>` so the content stays in the HTML.
+  - **P1:**
+    - Move terms to a single source, `src/data/glossary.ts` (with fields `slug, term, definition, category, relatedSlugs, example?, source?`). Import it in both `Glossary.tsx` and `search.ts`, and merge in the 9 search-only terms.
+    - Give each term `<dt id={slug}>` with a copy-link anchor, and emit DefinedTermSet via `generateGlossarySchema`. Extend it so each `DefinedTerm` gets `@id`/`url: /glossary#slug` and `inDefinedTermSet`. Drop the FAQPage schema, or limit it to visible Q&As.
+    - Make `search.ts:332` link to `/glossary#<slug>`, with scroll-into-view plus auto-expand on hash in Glossary.
+    - Make related chips link to `#slug`, and only for terms that exist. A build-time check can assert that every `relatedSlugs` entry resolves.
+    - Add about 60 missing beginner terms from the list above, so there are about 100 solid terms, then state the real count.
+    - Fix Gas (burn plus validators), the Exchange/DEX examples and Yield Farming.
+    - Add a BLUF and a visible "Last updated" date.
+  - **P2:**
+    - Add an A-Z jump bar (letter anchors).
+    - Add a "See it in the course" link from terms to the relevant module.
+    - Consider per-term pages (`/glossary/:slug`) for the top 20 "what is X" queries, each with a 150-300 word explanation, example and FAQ, prerendered.
+    - Fix the a11y attributes listed above.

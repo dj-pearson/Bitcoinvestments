@@ -5,6 +5,7 @@ import { AD_ZONES } from '../services/ads';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import type { Advertisement } from '../types/database';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { useToast } from '../contexts/ToastContext';
 import { parseLocalDate, toLocalISODate, todayLocalISODate } from '../lib/utils';
 
 type AdFormData = {
@@ -40,6 +41,13 @@ function getInitialFormData(): AdFormData {
 
 export function AdManager() {
   usePageTitle('Ad Manager');
+  const toast = useToast();
+  // Every write used to ignore its error, so a refused save looked like it
+  // worked. Report failures instead.
+  const reportError = (action: string, error: { message: string }) => {
+    console.error(`Ad manager: ${action} failed:`, error);
+    toast.error(`Could not ${action}`, error.message);
+  };
   const [ads, setAds] = useState<Advertisement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -59,7 +67,9 @@ export function AdManager() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      reportError('load ads', error);
+    } else if (data) {
       setAds(data);
     }
     setLoading(false);
@@ -79,7 +89,9 @@ export function AdManager() {
         .update(formData)
         .eq('id', editingAd.id);
 
-      if (!error) {
+      if (error) {
+        reportError('save the ad', error);
+      } else {
         await loadAds();
         resetForm();
       }
@@ -93,7 +105,9 @@ export function AdManager() {
           clicks: 0,
         });
 
-      if (!error) {
+      if (error) {
+        reportError('create the ad', error);
+      } else {
         await loadAds();
         resetForm();
       }
@@ -140,7 +154,9 @@ export function AdManager() {
       .delete()
       .eq('id', deleteConfirmation.adId);
 
-    if (!error) {
+    if (error) {
+      reportError('delete the ad', error);
+    } else {
       await loadAds();
     }
     setIsDeleting(false);
@@ -154,7 +170,9 @@ export function AdManager() {
       .update({ status: newStatus })
       .eq('id', ad.id);
 
-    if (!error) {
+    if (error) {
+      reportError('change the ad status', error);
+    } else {
       await loadAds();
     }
   }

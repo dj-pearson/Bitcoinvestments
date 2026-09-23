@@ -1,5 +1,10 @@
--- Bitcoin Investments Database Schema
--- Run this in your Supabase SQL Editor to set up the database
+-- LEGACY SNAPSHOT - DO NOT RUN.
+--
+-- Bitcoin Investments Database Schema (original hand-written version).
+-- The database is now built by supabase/migrations/ in file-name order; see
+-- rebuild/REBUILD_GUIDE.md. Running this file first makes
+-- 20251223161809_remote_schema.sql fail (its enum types already exist), and it
+-- lacks the columns, tables and policies added since. Kept for reference only.
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

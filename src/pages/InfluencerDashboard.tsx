@@ -35,7 +35,9 @@ const inputClass =
 export function InfluencerDashboard() {
   usePageTitle('Creator Affiliate Program');
   const { user, profile } = useAuth();
-  const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
+  const [loadState, setLoadState] = useState<LoadState>(() =>
+    user && isSupabaseConfigured() ? { status: 'loading' } : { status: 'none' }
+  );
   const [showApplication, setShowApplication] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [application, setApplication] = useState<InfluencerApplication>({
@@ -52,10 +54,7 @@ export function InfluencerDashboard() {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user || !isSupabaseConfigured()) {
-      setLoadState({ status: 'none' });
-      return;
-    }
+    if (!user || !isSupabaseConfigured()) return;
     let cancelled = false;
     db.from('affiliate_applications')
       .select('status, created_at, reviewer_notes')

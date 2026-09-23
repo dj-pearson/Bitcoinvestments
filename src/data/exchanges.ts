@@ -587,3 +587,66 @@ export function getBestExchangeFor(
       return null;
   }
 }
+
+/** One row of a head-to-head table. */
+export interface ExchangeComparisonRow {
+  label: string;
+  values: [string, string];
+  differs: boolean;
+}
+
+const fmtPct = (f: number) => `${Number((f * 100).toFixed(2))}%`;
+const yesNo = (v: boolean) => (v ? 'Yes' : 'No');
+
+/**
+ * Head-to-head comparison of two exchanges for the detail page table.
+ */
+export function compareExchanges(id1: string, id2: string): {
+  exchange1: Exchange;
+  exchange2: Exchange;
+  rows: ExchangeComparisonRow[];
+} | null {
+  const exchange1 = getExchangeById(id1);
+  const exchange2 = getExchangeById(id2);
+  if (!exchange1 || !exchange2) return null;
+
+  const row = (label: string, get: (e: Exchange) => string): ExchangeComparisonRow => {
+    const values: [string, string] = [get(exchange1), get(exchange2)];
+    return { label, values, differs: values[0] !== values[1] };
+  };
+  const cost = (amount: number) => (e: Exchange) => {
+    const c = estimateBuyCost(e, amount);
+    return `$${c.total.toFixed(2)} (${fmtPct(c.pct)})`;
+  };
+
+  return {
+    exchange1,
+    exchange2,
+    rows: [
+      row('Editorial score', e => `${e.trust_score}/10`),
+      row('Maker / taker fee', e => `${fmtPct(e.fees.maker_fee)} / ${fmtPct(e.fees.taker_fee)}`),
+      row('Modelled cost of a $100 buy', cost(100)),
+      row('Modelled cost of a $1,000 buy', cost(1000)),
+      row('How the buy is priced', e => e.buy_cost.label),
+      row('Assets', e => e.assets_label),
+      row('Headquarters', e => e.country),
+      row('Founded', e => String(e.year_established)),
+      row('Staking', e => yesNo(e.features.staking)),
+      row('Margin / futures', e => `${yesNo(e.features.margin_trading)} / ${yesNo(e.features.futures_trading)}`),
+      row('Debit card', e => yesNo(e.features.debit_card)),
+      row('Availability', e => e.availability),
+      row('Best for', e => e.best_for),
+    ],
+  };
+}
+
+/** Default rival for the head-to-head table: the closest editorial score. */
+export function getDefaultExchangeRival(exchange: Exchange): Exchange | undefined {
+  return exchanges
+    .filter(e => e.id !== exchange.id)
+    .sort(
+      (a, b) =>
+        Math.abs(a.trust_score - exchange.trust_score) - Math.abs(b.trust_score - exchange.trust_score) ||
+        a.name.localeCompare(b.name)
+    )[0];
+}

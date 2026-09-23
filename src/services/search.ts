@@ -368,7 +368,6 @@ function searchExchanges(query: string): SearchResult[] {
         metadata: {
           country: exchange.country,
           trustScore: exchange.trust_score,
-          userRating: exchange.user_rating,
         },
       });
     }
@@ -403,7 +402,6 @@ function searchWallets(query: string): SearchResult[] {
         metadata: {
           type: wallet.type,
           price: wallet.price,
-          userRating: wallet.user_rating,
         },
       });
     }

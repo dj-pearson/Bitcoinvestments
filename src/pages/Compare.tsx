@@ -1,914 +1,699 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Building2, Wallet as WalletIcon, ArrowRight, Star, Shield, Check, X, ExternalLink, Award, ThumbsUp, Handshake, Info, ArrowLeft, Globe, Smartphone, Lock } from 'lucide-react';
-import { exchanges, getExchangeById } from '../data/exchanges';
-import { wallets, getWalletById } from '../data/wallets';
-import { ReviewSection } from '../components/reviews';
-import { cn } from '../lib/utils';
+import { useRef, type KeyboardEvent } from 'react';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Building2, Wallet as WalletIcon, ArrowRight, Check, X, Shield } from 'lucide-react';
 import {
-  AffiliateDisclosureBanner,
-  AffiliateBadge,
-  AffiliateCardFooter,
-} from '../components/AffiliateDisclosure';
-import { SEO, generateProductSchema, generateSoftwareSchema, generateBreadcrumbSchema, generateFAQSchema } from '../components/SEO';
-import type { Exchange, Wallet as WalletType } from '../types';
+  exchanges,
+  getExchangeById,
+  getExchangesSortedBy,
+  getBestExchangeFor,
+  estimateBuyCost,
+  EXCHANGES_LAST_VERIFIED,
+  LEGACY_EXCHANGE_IDS,
+  ORDER_BOOK_SPREAD_ASSUMPTION,
+  type ExchangeUseCase,
+} from '../data/exchanges';
+import {
+  wallets,
+  getWalletById,
+  getBestWalletFor,
+  WALLETS_LAST_VERIFIED,
+  type WalletUseCase,
+} from '../data/wallets';
+import { cn } from '../lib/utils';
+import { PageSEO } from '../components/PageSEO';
+import { generateBreadcrumbSchema } from '../components/SEO';
+import { AffiliateDisclosureBanner, SponsoredBadge, OutboundLink } from '../components/AffiliateDisclosure';
+import { FaqSection, VerifiedDate, type FaqItem } from '../components/compare/CompareBlocks';
+import { itemListSchema } from '../components/compare/schema';
+import { formatIsoDate, formatMonthYear, pct, usd } from '../components/compare/compareUtils';
+import { ExchangeDetail } from '../components/compare/ExchangeDetail';
+import { WalletDetail } from '../components/compare/WalletDetail';
+import { NotFound } from './NotFound';
+import type { Exchange, Wallet } from '../types';
 
-/**
- * Sponsored badge component with disclosure
- */
-function SponsoredBadge({ badgeType }: { badgeType: 'featured' | 'recommended' | 'partner' }) {
-  const badgeConfig = {
-    featured: {
-      icon: Award,
-      label: 'Featured',
-      className: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    },
-    recommended: {
-      icon: ThumbsUp,
-      label: 'Recommended',
-      className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    },
-    partner: {
-      icon: Handshake,
-      label: 'Partner',
-      className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    },
-  };
+type CompareTab = 'exchanges' | 'wallets';
+type ExchangeSort = 'score' | 'cost1000' | 'cost100' | 'fees';
+type WalletFilter = 'all' | 'hardware' | 'software' | 'mobile';
 
-  const config = badgeConfig[badgeType];
-  const Icon = config.icon;
+const EXCHANGE_SORTS: { value: ExchangeSort; label: string }[] = [
+  { value: 'score', label: 'Our editorial score (high to low)' },
+  { value: 'cost1000', label: 'Cost of a $1,000 buy (low to high)' },
+  { value: 'cost100', label: 'Cost of a $100 buy (low to high)' },
+  { value: 'fees', label: 'Taker fee (low to high)' },
+];
+const WALLET_FILTERS: WalletFilter[] = ['all', 'hardware', 'software', 'mobile'];
 
-  return (
-    <div className="flex items-center gap-2">
-      <span className={cn(
-        'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border',
-        config.className
-      )}>
-        <Icon className="w-3.5 h-3.5" />
-        {config.label}
-      </span>
-      <span className="group relative">
-        <Info className="w-4 h-4 text-gray-500 cursor-help" />
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 border border-white/10">
-          Sponsored placement
-        </span>
-      </span>
-    </div>
-  );
+const LAST_VERIFIED =
+  EXCHANGES_LAST_VERIFIED > WALLETS_LAST_VERIFIED ? EXCHANGES_LAST_VERIFIED : WALLETS_LAST_VERIFIED;
+
+function parseTab(value: string | null | undefined): CompareTab | null {
+  if (value === 'wallets' || value === 'wallet') return 'wallets';
+  if (value === 'exchanges' || value === 'exchange') return 'exchanges';
+  return null;
 }
 
-type CompareType = 'exchanges' | 'wallets';
-
+/**
+ * Routes:
+ *   /compare                      listing (?tab=wallets|exchanges, legacy ?type=)
+ *   /compare/wallets|exchanges    listing with that tab (needs the `compare/:type` route)
+ *   /compare/exchange/:id         exchange review
+ *   /compare/wallet/:id           wallet review
+ * Unknown types or ids render <NotFound/> (noindex).
+ */
 export function Compare() {
   const { type, id } = useParams<{ type?: string; id?: string }>();
-  const [activeTab, setActiveTab] = useState<CompareType>('exchanges');
 
-  // If we have type and id, show detail view
   if (type && id) {
     if (type === 'exchange') {
+      const merged = LEGACY_EXCHANGE_IDS[id];
+      if (merged) return <Navigate to={`/compare/exchange/${merged}`} replace />;
       const exchange = getExchangeById(id);
-      if (exchange) {
-        return <ExchangeDetail exchange={exchange} />;
-      }
+      return exchange ? <ExchangeDetail key={exchange.id} exchange={exchange} /> : <NotFound />;
     }
     if (type === 'wallet') {
       const wallet = getWalletById(id);
-      if (wallet) {
-        return <WalletDetail wallet={wallet} />;
-      }
+      return wallet ? <WalletDetail key={wallet.id} wallet={wallet} /> : <NotFound />;
     }
-    // Platform not found
-    return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-white mb-4">Platform Not Found</h1>
-        <Link to="/compare" className="text-orange-500 hover:text-orange-400">
-          Back to Compare
-        </Link>
-      </div>
-    );
+    return <NotFound />;
   }
 
-  // Generate FAQ schema for comparison page
-  const compareFAQSchema = generateFAQSchema([
-    {
-      question: 'What is the best cryptocurrency exchange for beginners?',
-      answer: 'For beginners, we recommend exchanges with user-friendly interfaces, strong security, and educational resources. Coinbase and Kraken are popular choices for new crypto investors due to their intuitive design and regulatory compliance.',
-    },
-    {
-      question: 'What is the difference between a hardware wallet and software wallet?',
-      answer: 'Hardware wallets are physical devices that store your private keys offline, providing maximum security against hacking. Software wallets are applications on your phone or computer that are more convenient but potentially more vulnerable to online threats.',
-    },
-    {
-      question: 'How do I choose the right crypto exchange?',
-      answer: 'Consider factors like security features (2FA, cold storage), trading fees, supported cryptocurrencies, user interface, customer support, and regulatory compliance. Our comparison tool helps you evaluate exchanges across all these criteria.',
-    },
-  ]);
+  if (type) {
+    const pathTab = parseTab(type);
+    return pathTab ? <CompareListing pathTab={pathTab} /> : <NotFound />;
+  }
 
-  const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: 'Home', url: '/' },
-    { name: 'Compare Platforms', url: '/compare' },
-  ]);
+  return <CompareListing />;
+}
+
+function buildListingFaqs(): FaqItem[] {
+  const cheapest = getExchangesSortedBy('buy_cost_1000', 'asc')[0];
+  const priciest = getExchangesSortedBy('buy_cost_1000', 'desc')[0];
+  const cheapCost = estimateBuyCost(cheapest, 1000);
+  const priceyCost = estimateBuyCost(priciest, 1000);
+  return [
+    {
+      question: 'What is the cheapest way to buy bitcoin?',
+      answer: `In our ${formatMonthYear(EXCHANGES_LAST_VERIFIED)} model, a $1,000 market buy costs about ${usd(cheapCost.total)} on ${cheapest.name} and about ${usd(priceyCost.total)} on ${priciest.name}, once trading fees and spreads are included. Order-book exchanges with limit orders are usually cheapest; "commission-free" apps charge through the spread. Withdrawal network fees are extra everywhere.`,
+    },
+    {
+      question: 'Which crypto exchange is best for beginners?',
+      answer:
+        'Coinbase is the simplest first purchase for most US beginners because it shows the full cost before you confirm. It is not the cheapest: once you are comfortable, a limit order on Coinbase Advanced or Kraken Pro costs less.',
+    },
+    {
+      question: 'What is the difference between a hardware wallet and a software wallet?',
+      answer:
+        'A hardware wallet is a small device that keeps your private keys offline and signs transactions on its own screen, so malware on your computer cannot take your keys. A software wallet is an app on an internet-connected phone or computer: free and convenient, but more exposed. Many people use both: a software wallet for small amounts and a hardware wallet for savings.',
+    },
+    {
+      question: 'Are these fees up to date?',
+      answer: `Every entry shows the date we last checked it (most recently ${formatIsoDate(LAST_VERIFIED)}) and links to the official fee page. Exchanges change fees often: Kraken changed its schedule on 2026-07-09 and Coinbase Advanced on 2026-09-16. Always confirm on the provider's site before you trade.`,
+    },
+    {
+      question: 'Do sponsorships or affiliate links change the order?',
+      answer:
+        'No. Entries marked "Sponsored" are paid placements, but they appear wherever your chosen sort puts them and are not numbered as rankings. Our editorial score comes from the published methodology below, and affiliate links (where configured) do not change it.',
+    },
+    {
+      question: 'Does Coinbase Pro still exist?',
+      answer:
+        'No. Coinbase Pro closed in 2023 and was replaced by Coinbase Advanced, which is part of the normal Coinbase account. We cover it on our Coinbase page.',
+    },
+    {
+      question: 'Is the Trezor Model T discontinued?',
+      answer:
+        'Yes. Trezor removed the Model T and Model One from its shop on 2026-01-08. Both still receive security updates. The Trezor Safe 3, Safe 5 and Safe 7 are the current models.',
+    },
+  ];
+}
+
+function CompareListing({ pathTab }: { pathTab?: CompareTab }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const tab: CompareTab =
+    pathTab ?? parseTab(searchParams.get('tab') ?? searchParams.get('type')) ?? 'exchanges';
+
+  const sortParam = searchParams.get('sort') as ExchangeSort | null;
+  const sort: ExchangeSort = EXCHANGE_SORTS.some(s => s.value === sortParam)
+    ? (sortParam as ExchangeSort)
+    : searchParams.get('filter') === 'fees'
+      ? 'cost1000'
+      : 'score';
+
+  const walletParam = searchParams.get('wallet') as WalletFilter | null;
+  const walletFilter: WalletFilter = walletParam && WALLET_FILTERS.includes(walletParam) ? walletParam : 'all';
+
+  const updateParams = (changes: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('type'); // legacy alias of `tab`
+    next.delete('filter'); // legacy, folded into `sort`
+    if (sort !== 'score' && !next.has('sort')) next.set('sort', sort);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === null) next.delete(key);
+      else next.set(key, value);
+    }
+    if (pathTab && !('tab' in changes)) next.set('tab', pathTab);
+    if (pathTab) {
+      navigate({ pathname: '/compare', search: `?${next.toString()}` }, { replace: true });
+    } else {
+      setSearchParams(next, { replace: true });
+    }
+  };
+
+  const selectTab = (next: CompareTab) => updateParams({ tab: next });
+
+  const tabRefs = useRef<Record<CompareTab, HTMLButtonElement | null>>({ exchanges: null, wallets: null });
+  const onTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const next: CompareTab = tab === 'exchanges' ? 'wallets' : 'exchanges';
+    selectTab(next);
+    tabRefs.current[next]?.focus();
+  };
+
+  const faqs = buildListingFaqs();
+
+  const schema = [
+    itemListSchema(
+      'Crypto exchanges compared',
+      getExchangesSortedBy('trust_score', 'desc').map(e => ({ name: e.name, path: `/compare/exchange/${e.id}` }))
+    ),
+    itemListSchema(
+      'Crypto wallets compared',
+      wallets.map(w => ({ name: w.name, path: `/compare/wallet/${w.id}` }))
+    ),
+    generateBreadcrumbSchema([
+      { name: 'Home', url: '/' },
+      { name: 'Compare', url: '/compare' },
+    ]),
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      {/* SEO Meta Tags and Structured Data */}
-      <SEO
-        title="Compare Crypto Exchanges & Wallets"
-        description="Compare the best cryptocurrency exchanges and wallets. Find detailed reviews, fees, security features, and user ratings to choose the right platform for your needs."
-        keywords={['crypto exchange comparison', 'best Bitcoin exchange', 'cryptocurrency wallet comparison', 'crypto wallet reviews', 'exchange fees', 'secure crypto wallet', 'hardware wallet comparison']}
-        schema={[compareFAQSchema, breadcrumbSchema]}
-      />
+    <div className="container mx-auto px-4 py-12 space-y-12">
+      <PageSEO pageKey="compare" urlPath="/compare" faqs={faqs} customSchema={schema} />
 
-      <div className="text-center mb-12">
+      <header className="text-center max-w-3xl mx-auto">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Compare <span className="text-gradient">Platforms</span>
+          Best Crypto Exchanges &amp; Wallets <span className="text-gradient">Compared (2026)</span>
         </h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Find the best cryptocurrency exchange or wallet for your needs with our comprehensive comparison tools.
+        <p className="text-gray-300 text-lg">
+          For most US beginners, Coinbase is the easiest first buy, but it is not the cheapest: a
+          limit order on an order-book exchange usually costs a fraction as much. For savings, move
+          coins to a hardware wallet; the Trezor Safe 3 is our best-value pick. Below are the real
+          costs of a $100 and $1,000 buy, current wallet lineups and how we score them.
+        </p>
+        <div className="mt-3">
+          <VerifiedDate date={LAST_VERIFIED} />
+        </div>
+      </header>
+
+      <BestForSummary />
+
+      <AffiliateDisclosureBanner variant="prominent" />
+
+      <section aria-label="Comparison tables">
+        <div role="tablist" aria-label="Compare exchanges or wallets" className="flex justify-center gap-4 mb-8">
+          {(['exchanges', 'wallets'] as const).map(t => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              id={`tab-${t}`}
+              ref={el => { tabRefs.current[t] = el; }}
+              aria-selected={tab === t}
+              aria-controls={`panel-${t}`}
+              tabIndex={tab === t ? 0 : -1}
+              onClick={() => selectTab(t)}
+              onKeyDown={onTabKeyDown}
+              className={cn(
+                'flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all',
+                tab === t ? 'bg-brand-primary text-white' : 'glass hover:bg-white/10 text-gray-300'
+              )}
+            >
+              {t === 'exchanges' ? <Building2 className="w-5 h-5" aria-hidden="true" /> : <WalletIcon className="w-5 h-5" aria-hidden="true" />}
+              {t === 'exchanges' ? 'Exchanges' : 'Wallets'}
+            </button>
+          ))}
+        </div>
+
+        {/* Both panels stay in the DOM (inactive one hidden) so crawlers and prerendering see all content. */}
+        <div role="tabpanel" id="panel-exchanges" aria-labelledby="tab-exchanges" hidden={tab !== 'exchanges'}>
+          <ExchangePanel sort={sort} onSortChange={value => updateParams({ sort: value === 'score' ? null : value })} />
+        </div>
+        <div role="tabpanel" id="panel-wallets" aria-labelledby="tab-wallets" hidden={tab !== 'wallets'}>
+          <WalletPanel filter={walletFilter} onFilterChange={value => updateParams({ wallet: value === 'all' ? null : value })} />
+        </div>
+      </section>
+
+      <FeeExamples />
+
+      <Methodology />
+
+      <FaqSection faqs={faqs} />
+
+      <section aria-labelledby="related-heading" className="glass-card p-6">
+        <h2 id="related-heading" className="text-xl font-bold text-white mb-3">Related guides and tools</h2>
+        <ul className="grid sm:grid-cols-2 gap-2 text-sm">
+          <li><Link className="text-orange-400 hover:text-orange-300 underline" to="/hardware-wallet">Hardware wallet comparison: Ledger vs Trezor</Link></li>
+          <li><Link className="text-orange-400 hover:text-orange-300 underline" to="/learn/crypto-wallets-explained">Crypto wallets explained</Link></li>
+          <li><Link className="text-orange-400 hover:text-orange-300 underline" to="/learn/how-to-buy-crypto">How to buy crypto safely</Link></li>
+          <li><Link className="text-orange-400 hover:text-orange-300 underline" to="/calculators">Fee and DCA calculators</Link></li>
+          <li><Link className="text-orange-400 hover:text-orange-300 underline" to="/scam-database">Check a platform in the scam database</Link></li>
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+const EXCHANGE_PICKS: { useCase: ExchangeUseCase; label: string }[] = [
+  { useCase: 'beginner', label: 'Best for beginners' },
+  { useCase: 'low_fees', label: 'Lowest cost ($1,000 buy)' },
+  { useCase: 'security', label: 'Best security record' },
+  { useCase: 'staking', label: 'Best for staking' },
+  { useCase: 'stocks_and_crypto', label: 'Stocks and crypto in one app' },
+];
+const WALLET_PICKS: { useCase: WalletUseCase; label: string }[] = [
+  { useCase: 'hardware_budget', label: 'Best-value hardware wallet' },
+  { useCase: 'hardware_open_source', label: 'Best open-source touchscreen' },
+  { useCase: 'hardware_mobile', label: 'Best hardware wallet for phones' },
+  { useCase: 'beginner', label: 'Easiest software wallet' },
+  { useCase: 'defi', label: 'Best for Ethereum DeFi' },
+  { useCase: 'bitcoin', label: 'Best Bitcoin-only mobile wallet' },
+];
+
+function BestForSummary() {
+  return (
+    <section aria-labelledby="picks-heading" className="glass-card p-6">
+      <h2 id="picks-heading" className="text-2xl font-bold text-white mb-1">Our picks at a glance</h2>
+      <p className="text-sm text-gray-400 mb-5">
+        Editorial picks from the data below, checked {formatIsoDate(LAST_VERIFIED)}. Sponsorship does not affect them.
+      </p>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-orange-400" aria-hidden="true" /> Exchanges
+          </h3>
+          <ul className="space-y-3">
+            {EXCHANGE_PICKS.map(({ useCase, label }) => {
+              const pick = getBestExchangeFor(useCase);
+              if (!pick) return null;
+              return (
+                <li key={useCase} className="text-sm">
+                  <span className="text-gray-400">{label}: </span>
+                  <Link to={`/compare/exchange/${pick.exchange.id}`} className="font-semibold text-orange-400 hover:text-orange-300 underline">
+                    {pick.exchange.name}
+                  </Link>
+                  <span className="block text-gray-300">{pick.reason}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        <div>
+          <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+            <WalletIcon className="w-4 h-4 text-orange-400" aria-hidden="true" /> Wallets
+          </h3>
+          <ul className="space-y-3">
+            {WALLET_PICKS.map(({ useCase, label }) => {
+              const pick = getBestWalletFor(useCase);
+              if (!pick) return null;
+              return (
+                <li key={useCase} className="text-sm">
+                  <span className="text-gray-400">{label}: </span>
+                  <Link to={`/compare/wallet/${pick.wallet.id}`} className="font-semibold text-orange-400 hover:text-orange-300 underline">
+                    {pick.wallet.name}
+                  </Link>
+                  <span className="block text-gray-300">{pick.reason}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function sortExchanges(sort: ExchangeSort): Exchange[] {
+  switch (sort) {
+    case 'cost1000':
+      return getExchangesSortedBy('buy_cost_1000', 'asc');
+    case 'cost100':
+      return getExchangesSortedBy('buy_cost_100', 'asc');
+    case 'fees':
+      return getExchangesSortedBy('fees', 'asc');
+    case 'score':
+    default:
+      return getExchangesSortedBy('trust_score', 'desc');
+  }
+}
+
+function ExchangePanel({ sort, onSortChange }: { sort: ExchangeSort; onSortChange: (s: ExchangeSort) => void }) {
+  // The reader's sort is the only ordering. Sponsored entries are never moved.
+  const sorted = sortExchanges(sort);
+  // Positions count only non-sponsored entries: paid placements are never numbered.
+  const ranks = new Map<string, number>();
+  for (const e of sorted) {
+    if (!e.sponsored?.is_sponsored) ranks.set(e.id, ranks.size + 1);
+  }
+
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Crypto exchanges compared</h2>
+          <p className="text-sm text-gray-400">{exchanges.length} US-available exchanges. Numbers show position in your chosen sort.</p>
+        </div>
+        <label className="flex flex-col text-sm text-gray-400 gap-1">
+          Sort exchanges by
+          <select
+            value={sort}
+            onChange={e => onSortChange(e.target.value as ExchangeSort)}
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
+          >
+            {EXCHANGE_SORTS.map(s => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <ol className="grid gap-6">
+        {sorted.map(exchange => {
+          const sponsored = Boolean(exchange.sponsored?.is_sponsored);
+          const rank = ranks.get(exchange.id);
+          const cost1000 = estimateBuyCost(exchange, 1000);
+          return (
+            <li key={exchange.id} className={cn('glass-card p-6', sponsored && 'ring-1 ring-purple-500/40')}>
+              <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                <div className="flex items-center gap-4">
+                  {sponsored ? (
+                    <SponsoredBadge />
+                  ) : (
+                    <div
+                      className="w-10 h-10 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-bold"
+                      aria-label={`Position ${rank}`}
+                    >
+                      {rank}
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-xl font-bold text-white">{exchange.name}</h3>
+                    <p className="text-sm text-gray-400">{exchange.country} · Est. {exchange.year_established}</p>
+                  </div>
+                </div>
+
+                <dl className="flex flex-wrap gap-6 lg:ml-auto">
+                  <div className="text-center">
+                    <dt className="text-xs text-gray-400">Our editorial score</dt>
+                    <dd className="flex items-center gap-1 justify-center text-xl font-bold text-white">
+                      <Shield className="w-4 h-4 text-green-400" aria-hidden="true" />
+                      {exchange.trust_score}/10
+                    </dd>
+                  </div>
+                  <div className="text-center">
+                    <dt className="text-xs text-gray-400">Taker fee</dt>
+                    <dd className="text-xl font-bold text-white">{pct(exchange.fees.taker_fee)}</dd>
+                  </div>
+                  <div className="text-center">
+                    <dt className="text-xs text-gray-400">$1,000 buy costs</dt>
+                    <dd className="text-xl font-bold text-white">{usd(cost1000.total)}</dd>
+                  </div>
+                  <div className="text-center">
+                    <dt className="text-xs text-gray-400">Assets</dt>
+                    <dd className="text-sm font-semibold text-white max-w-[9rem]">{exchange.assets_label}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <p className="text-sm text-gray-300 mb-3">
+                  <span className="text-gray-400">Best for: </span>{exchange.best_for}
+                </p>
+                <ul className="flex flex-wrap gap-2 mb-4" aria-label="Features">
+                  {exchange.features.staking && <li className="px-3 py-1 rounded-full bg-green-500/20 text-green-300 text-xs">Staking</li>}
+                  {exchange.features.margin_trading && <li className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs">Margin</li>}
+                  {exchange.features.futures_trading && <li className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs">Futures</li>}
+                  {exchange.features.debit_card && <li className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs">Debit card</li>}
+                  {exchange.features.earn_program && <li className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 text-xs">Rewards/Earn</li>}
+                  {exchange.mobile_app && <li className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-300 text-xs">Mobile app</li>}
+                </ul>
+
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                  <VerifiedDate date={exchange.last_verified} />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <OutboundLink
+                      partnerId={exchange.affiliate_partner_id}
+                      officialUrl={exchange.url}
+                      name={exchange.name}
+                      type="exchange"
+                      className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-200 text-sm"
+                    >
+                      Visit {exchange.name}
+                    </OutboundLink>
+                    <Link
+                      to={`/compare/exchange/${exchange.id}`}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-medium transition-colors"
+                    >
+                      {exchange.name} review <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function walletTypeClass(type: Wallet['type']) {
+  return type === 'hardware'
+    ? 'bg-orange-500/20 text-orange-300'
+    : type === 'software'
+      ? 'bg-blue-500/20 text-blue-300'
+      : 'bg-green-500/20 text-green-300';
+}
+
+function WalletPanel({ filter, onFilterChange }: { filter: WalletFilter; onFilterChange: (f: WalletFilter) => void }) {
+  const filtered = wallets
+    .filter(w => filter === 'all' || w.type === filter)
+    // Current products first; discontinued ones stay listed for owners.
+    .sort((a, b) => Number(a.status === 'discontinued') - Number(b.status === 'discontinued'));
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-white">Crypto wallets compared</h2>
+        <p className="text-sm text-gray-400">
+          Hardware prices are US list prices. For a full Ledger vs Trezor spec table see our{' '}
+          <Link to="/hardware-wallet" className="text-orange-400 hover:text-orange-300 underline">hardware wallet comparison</Link>.
         </p>
       </div>
 
-      {/* Tab Selection */}
-      <div className="flex justify-center gap-4 mb-8">
-        <button
-          onClick={() => setActiveTab('exchanges')}
-          className={cn(
-            'flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all',
-            activeTab === 'exchanges'
-              ? 'bg-brand-primary text-white'
-              : 'glass hover:bg-white/10 text-gray-300'
-          )}
-        >
-          <Building2 className="w-5 h-5" />
-          Exchanges
-        </button>
-        <button
-          onClick={() => setActiveTab('wallets')}
-          className={cn(
-            'flex items-center gap-2 px-6 py-3 rounded-full font-medium transition-all',
-            activeTab === 'wallets'
-              ? 'bg-brand-primary text-white'
-              : 'glass hover:bg-white/10 text-gray-300'
-          )}
-        >
-          <WalletIcon className="w-5 h-5" />
-          Wallets
-        </button>
-      </div>
-
-      {/* Content */}
-      {activeTab === 'exchanges' ? <ExchangeComparison /> : <WalletComparison />}
-    </div>
-  );
-}
-
-function ExchangeComparison() {
-  const [sortBy, setSortBy] = useState<'trust_score' | 'fees' | 'user_rating'>('trust_score');
-
-  // Sort exchanges with sponsored ones prioritized by tier, then by selected criteria
-  const sortedExchanges = [...exchanges].sort((a, b) => {
-    // Sponsored exchanges come first, sorted by placement tier
-    const aSponsored = a.sponsored?.is_sponsored ? (a.sponsored.placement_tier || 99) : 99;
-    const bSponsored = b.sponsored?.is_sponsored ? (b.sponsored.placement_tier || 99) : 99;
-
-    if (aSponsored !== bSponsored) {
-      return aSponsored - bSponsored;
-    }
-
-    // Then sort by selected criteria
-    switch (sortBy) {
-      case 'trust_score':
-        return b.trust_score - a.trust_score;
-      case 'fees':
-        return a.fees.taker_fee - b.fees.taker_fee;
-      case 'user_rating':
-        return b.user_rating - a.user_rating;
-      default:
-        return 0;
-    }
-  });
-
-  return (
-    <div>
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-8">
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
-        >
-          <option value="trust_score">Sort by Trust Score</option>
-          <option value="fees">Sort by Fees (Low to High)</option>
-          <option value="user_rating">Sort by User Rating</option>
-        </select>
-      </div>
-
-      {/* Affiliate & Sponsored Disclosure */}
-      <AffiliateDisclosureBanner variant="prominent" className="mb-6" />
-
-      {/* Exchange Cards */}
-      <div className="grid gap-6">
-        {sortedExchanges.map((exchange, index) => (
-          <div key={exchange.id} className={cn(
-            "glass-card p-6",
-            exchange.sponsored?.is_sponsored && "ring-1 ring-white/10"
-          )}>
-            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-              {/* Rank & Name */}
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary font-bold">
-                  {index + 1}
-                </div>
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-bold text-white">{exchange.name}</h3>
-                    {exchange.sponsored?.is_sponsored && (
-                      <SponsoredBadge badgeType={exchange.sponsored.badge_type} />
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-400">Est. {exchange.year_established}</p>
-                </div>
-              </div>
-
-              {/* Metrics */}
-              <div className="flex flex-wrap gap-6 lg:ml-auto">
-                <div className="text-center">
-                  <div className="flex items-center gap-1 justify-center">
-                    <Shield className="w-4 h-4 text-green-400" />
-                    <span className="text-xl font-bold text-white">{exchange.trust_score}/10</span>
-                  </div>
-                  <p className="text-xs text-gray-400">Trust Score</p>
-                </div>
-
-                <div className="text-center">
-                  <span className="text-xl font-bold text-white">{(exchange.fees.taker_fee * 100).toFixed(2)}%</span>
-                  <p className="text-xs text-gray-400">Taker Fee</p>
-                </div>
-
-                <div className="text-center">
-                  <div className="flex items-center gap-1 justify-center">
-                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <span className="text-xl font-bold text-white">{exchange.user_rating}</span>
-                  </div>
-                  <p className="text-xs text-gray-400">{exchange.review_count.toLocaleString()} reviews</p>
-                </div>
-
-                <div className="text-center">
-                  <span className="text-xl font-bold text-white">{exchange.supported_cryptocurrencies}+</span>
-                  <p className="text-xs text-gray-400">Cryptos</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="mt-6 pt-6 border-t border-white/10">
-              <div className="flex flex-wrap gap-4 mb-4">
-                {exchange.features.staking && (
-                  <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs">Staking</span>
-                )}
-                {exchange.features.margin_trading && (
-                  <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs">Margin</span>
-                )}
-                {exchange.features.debit_card && (
-                  <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-xs">Debit Card</span>
-                )}
-                {exchange.features.earn_program && (
-                  <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">Earn</span>
-                )}
-                {exchange.mobile_app && (
-                  <span className="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-xs">Mobile App</span>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-wrap gap-2">
-                  {exchange.pros.slice(0, 2).map((pro, i) => (
-                    <span key={i} className="flex items-center gap-1 text-xs text-gray-400">
-                      <Check className="w-3 h-3 text-green-400" />
-                      {pro}
-                    </span>
-                  ))}
-                </div>
-
-                <Link
-                  to={`/compare/exchange/${exchange.id}`}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-medium transition-colors"
-                >
-                  View Details & Reviews <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WalletComparison() {
-  const [walletType, setWalletType] = useState<'all' | 'hardware' | 'software' | 'mobile'>('all');
-
-  const filteredWallets = wallets.filter(wallet => {
-    if (walletType === 'all') return true;
-    return wallet.type === walletType;
-  });
-
-  return (
-    <div>
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {(['all', 'hardware', 'software', 'mobile'] as const).map((type) => (
+      <div className="flex flex-wrap gap-2 mb-6" role="group" aria-label="Filter wallets by type">
+        {WALLET_FILTERS.map(type => (
           <button
             key={type}
-            onClick={() => setWalletType(type)}
+            type="button"
+            aria-pressed={filter === type}
+            onClick={() => onFilterChange(type)}
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-all',
-              walletType === type
-                ? 'bg-brand-primary text-white'
-                : 'bg-white/5 text-gray-300 hover:bg-white/10'
+              filter === type ? 'bg-brand-primary text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'
             )}
           >
-            {type.charAt(0).toUpperCase() + type.slice(1)}
+            {type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
           </button>
         ))}
       </div>
 
-      {/* Affiliate Disclosure for Wallets */}
-      <AffiliateDisclosureBanner variant="compact" className="mb-6" />
-
-      {/* Wallet Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredWallets.map((wallet) => (
-          <div key={wallet.id} className="glass-card p-6 flex flex-col">
-            <div className="flex items-start justify-between mb-4">
+      <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.map(wallet => (
+          <li key={wallet.id} className={cn('glass-card p-6 flex flex-col', wallet.status === 'discontinued' && 'opacity-80')}>
+            <div className="flex items-start justify-between mb-3 gap-2">
               <div>
-                <span className={cn(
-                  'px-2 py-1 rounded text-xs font-medium mb-2 inline-block',
-                  wallet.type === 'hardware' ? 'bg-orange-500/20 text-orange-400' :
-                  wallet.type === 'software' ? 'bg-blue-500/20 text-blue-400' :
-                  'bg-green-500/20 text-green-400'
-                )}>
-                  {wallet.type.toUpperCase()}
-                </span>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <span className={cn('px-2 py-1 rounded text-xs font-medium', walletTypeClass(wallet.type))}>
+                    {wallet.type.toUpperCase()}
+                  </span>
+                  {wallet.status === 'discontinued' && (
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-300">DISCONTINUED</span>
+                  )}
+                </div>
                 <h3 className="text-xl font-bold text-white">{wallet.name}</h3>
               </div>
               {wallet.price ? (
-                <span className="text-lg font-bold text-brand-primary">${wallet.price}</span>
+                <span className="text-right">
+                  <span className="block text-lg font-bold text-brand-primary">${wallet.price}</span>
+                  <span className="block text-[11px] text-gray-500">{wallet.status === 'discontinued' ? 'last list price' : 'list price'}</span>
+                </span>
               ) : (
                 <span className="text-sm text-green-400">Free</span>
               )}
             </div>
 
-            <p className="text-gray-400 text-sm mb-4 flex-grow">
-              {wallet.description.slice(0, 120)}...
-            </p>
+            <p className="text-gray-400 text-sm mb-4 flex-grow">{wallet.best_for}</p>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <dl className="grid grid-cols-2 gap-3 mb-4 text-sm">
               <div>
-                <p className="text-xs text-gray-400">Supported Coins</p>
-                <p className="font-bold text-white">{wallet.supported_cryptocurrencies.toLocaleString()}+</p>
+                <dt className="text-xs text-gray-400">Assets</dt>
+                <dd className="text-white">{wallet.assets_label}</dd>
               </div>
               <div>
-                <p className="text-xs text-gray-400">Ease of Use</p>
-                <p className="font-bold text-white">{wallet.ease_of_use}/10</p>
+                <dt className="text-xs text-gray-400">Ease of use (editorial)</dt>
+                <dd className="text-white">{wallet.ease_of_use}/10</dd>
               </div>
-              <div>
-                <p className="text-xs text-gray-400">User Rating</p>
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  <span className="font-bold text-white">{wallet.user_rating}</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Reviews</p>
-                <p className="font-bold text-white">{wallet.review_count.toLocaleString()}</p>
-              </div>
-            </div>
+            </dl>
 
-            {/* Security Features */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {wallet.security_features.seed_phrase_backup && (
-                <span className="flex items-center gap-1 text-xs text-gray-400">
-                  <Check className="w-3 h-3 text-green-400" /> Seed Backup
-                </span>
+            <ul className="flex flex-wrap gap-3 mb-4 text-xs text-gray-300" aria-label="Security">
+              <li className="flex items-center gap-1">
+                {wallet.security_features.open_source ? <Check className="w-3 h-3 text-green-400" aria-hidden="true" /> : <X className="w-3 h-3 text-red-400" aria-hidden="true" />}
+                {wallet.security_features.open_source ? 'Open source' : 'Closed source'}
+              </li>
+              {wallet.type === 'hardware' && (
+                <li className="flex items-center gap-1">
+                  {wallet.security_features.secure_element ? <Check className="w-3 h-3 text-green-400" aria-hidden="true" /> : <X className="w-3 h-3 text-red-400" aria-hidden="true" />}
+                  {wallet.security_features.secure_element ? 'Secure element' : 'No secure element'}
+                </li>
               )}
-              {wallet.security_features.biometric_auth && (
-                <span className="flex items-center gap-1 text-xs text-gray-400">
-                  <Check className="w-3 h-3 text-green-400" /> Biometric
-                </span>
-              )}
-              {wallet.security_features.open_source && (
-                <span className="flex items-center gap-1 text-xs text-gray-400">
-                  <Check className="w-3 h-3 text-green-400" /> Open Source
-                </span>
-              )}
-              {!wallet.security_features.open_source && (
-                <span className="flex items-center gap-1 text-xs text-gray-400">
-                  <X className="w-3 h-3 text-red-400" /> Closed Source
-                </span>
-              )}
-            </div>
+            </ul>
 
-            {/* Affiliate Footer */}
-            {wallet.affiliate_url && (
-              <AffiliateCardFooter isAffiliate={true} className="mb-4" />
-            )}
+            <VerifiedDate date={wallet.last_verified} className="mb-4" />
 
-            {/* Actions */}
-            <div className="flex gap-2 mt-auto pt-4 border-t border-white/10">
+            <div className="flex flex-wrap items-center gap-2 mt-auto pt-4 border-t border-white/10">
               <Link
                 to={`/compare/wallet/${wallet.id}`}
                 className="flex-1 text-center py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-medium transition-colors"
               >
-                Details & Reviews
+                {wallet.name} review
               </Link>
-              <a
-                href={wallet.affiliate_url || wallet.url}
-                target="_blank"
-                rel={wallet.affiliate_url ? "noopener noreferrer sponsored" : "noopener noreferrer"}
-                className="flex items-center justify-center gap-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-sm transition-colors"
-                title={wallet.affiliate_url ? "Affiliate link - we may earn a commission" : "Visit website"}
+              <OutboundLink
+                partnerId={wallet.affiliate_partner_id}
+                officialUrl={wallet.url}
+                name={wallet.name}
+                type="wallet"
+                className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-200 text-sm"
               >
-                <ExternalLink className="w-4 h-4" />
-                {wallet.affiliate_url && <AffiliateBadge showTooltip={false} className="ml-1" />}
-              </a>
+                Official site
+              </OutboundLink>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }
 
-// Exchange Detail Component
-function ExchangeDetail({ exchange }: { exchange: Exchange }) {
-  // Generate Product schema for exchange with ratings
-  const exchangeSchema = generateProductSchema({
-    name: exchange.name,
-    description: exchange.description,
-    image: exchange.logo,
-    rating: exchange.user_rating,
-    reviewCount: exchange.review_count,
-    url: `https://bitcoinvestments.net/compare/exchange/${exchange.id}`,
-  });
-
-  const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: 'Home', url: '/' },
-    { name: 'Compare Platforms', url: '/compare' },
-    { name: 'Exchanges', url: '/compare' },
-    { name: exchange.name, url: `/compare/exchange/${exchange.id}` },
-  ]);
-
-  // Generate FAQ schema for this exchange
-  const exchangeFAQSchema = generateFAQSchema([
-    {
-      question: `Is ${exchange.name} safe and trustworthy?`,
-      answer: `${exchange.name} has a trust score of ${exchange.trust_score}/10 based on our comprehensive security analysis. ${exchange.pros[0] || 'The exchange implements industry-standard security measures.'}`,
-    },
-    {
-      question: `What are the trading fees on ${exchange.name}?`,
-      answer: `${exchange.name} charges a maker fee of ${(exchange.fees.maker_fee * 100).toFixed(2)}% and a taker fee of ${(exchange.fees.taker_fee * 100).toFixed(2)}%. ${exchange.fees.deposit_fee_fiat === 0 ? 'Fiat deposits are free.' : ''}`,
-    },
-    {
-      question: `How many cryptocurrencies does ${exchange.name} support?`,
-      answer: `${exchange.name} supports over ${exchange.supported_cryptocurrencies} cryptocurrencies for trading, making it suitable for both beginners and advanced traders.`,
-    },
-  ]);
-
+function FeeExamples() {
+  const rows = getExchangesSortedBy('buy_cost_1000', 'asc');
   return (
-    <div className="container mx-auto px-4 py-12">
-      {/* SEO Meta Tags and Structured Data */}
-      <SEO
-        title={`${exchange.name} Review - Fees, Security & User Ratings`}
-        description={`${exchange.name} review: ${exchange.trust_score}/10 trust score, ${(exchange.fees.taker_fee * 100).toFixed(2)}% trading fees, ${exchange.supported_cryptocurrencies}+ cryptos. Read ${exchange.review_count.toLocaleString()} user reviews.`}
-        keywords={[exchange.name, `${exchange.name} review`, `${exchange.name} fees`, 'crypto exchange', 'cryptocurrency trading', 'Bitcoin exchange', ...exchange.pros.slice(0, 3)]}
-        type="product"
-        schema={[exchangeSchema, breadcrumbSchema, exchangeFAQSchema]}
-      />
-
-      {/* Back Link */}
-      <Link
-        to="/compare"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Compare
-      </Link>
-
-      {/* Header */}
-      <div className="glass-card p-8 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-4 mb-4">
-              <h1 className="text-3xl font-bold text-white">{exchange.name}</h1>
-              {exchange.sponsored?.is_sponsored && (
-                <SponsoredBadge badgeType={exchange.sponsored.badge_type} />
-              )}
-            </div>
-            <p className="text-gray-400 mb-4">{exchange.description}</p>
-            <div className="flex flex-wrap gap-4">
-              <span className="flex items-center gap-2 text-sm text-gray-300">
-                <Globe className="w-4 h-4" />
-                {exchange.country}
-              </span>
-              <span className="text-sm text-gray-300">Est. {exchange.year_established}</span>
-              {exchange.mobile_app && (
-                <span className="flex items-center gap-2 text-sm text-gray-300">
-                  <Smartphone className="w-4 h-4" />
-                  Mobile App Available
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <a
-              href={exchange.affiliate_url || exchange.url}
-              target="_blank"
-              rel={exchange.affiliate_url ? "noopener noreferrer sponsored" : "noopener noreferrer"}
-              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors text-center"
-            >
-              Visit {exchange.name}
-            </a>
-            {exchange.affiliate_url && (
-              <div className="flex flex-col items-center gap-1">
-                <AffiliateBadge />
-                <p className="text-xs text-gray-500 text-center max-w-[200px]">
-                  We may earn a commission at no extra cost to you
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+    <section aria-labelledby="fee-examples-heading" className="glass-card p-6">
+      <h2 id="fee-examples-heading" className="text-2xl font-bold text-white mb-2">
+        What a $100 and a $1,000 bitcoin buy really cost
+      </h2>
+      <p className="text-sm text-gray-300 mb-4">
+        Worked examples for a market buy of BTC with USD, including the trading fee <em>and</em> the
+        spread (the gap between the price you pay and the market price). &quot;Commission-free&quot;
+        apps are not free: their cost is in the spread. Withdrawal network fees are extra on every
+        platform.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <caption className="sr-only">Modelled cost of buying $100 and $1,000 of bitcoin on each exchange</caption>
+          <thead>
+            <tr className="border-b border-white/10 text-gray-400">
+              <th scope="col" className="py-2 pr-4 font-medium">Exchange</th>
+              <th scope="col" className="py-2 pr-4 font-medium">How the buy is priced</th>
+              <th scope="col" className="py-2 pr-4 font-medium">Fee</th>
+              <th scope="col" className="py-2 pr-4 font-medium">Spread</th>
+              <th scope="col" className="py-2 pr-4 font-medium">$100 buy</th>
+              <th scope="col" className="py-2 font-medium">$1,000 buy</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(exchange => {
+              const c100 = estimateBuyCost(exchange, 100);
+              const c1000 = estimateBuyCost(exchange, 1000);
+              return (
+                <tr key={exchange.id} className="border-b border-white/5 align-top">
+                  <th scope="row" className="py-2 pr-4 text-white font-semibold">
+                    <Link to={`/compare/exchange/${exchange.id}`} className="hover:text-orange-300 underline">{exchange.name}</Link>
+                  </th>
+                  <td className="py-2 pr-4 text-gray-300">{exchange.buy_cost.label}</td>
+                  <td className="py-2 pr-4 text-gray-300">
+                    {pct(exchange.buy_cost.fee_pct)}
+                    {exchange.buy_cost.flat_fee && ` + $${exchange.buy_cost.flat_fee.amount} under $${exchange.buy_cost.flat_fee.below}`}
+                  </td>
+                  <td className="py-2 pr-4 text-gray-300">~{pct(exchange.buy_cost.spread_pct)}</td>
+                  <td className="py-2 pr-4 text-white">{usd(c100.total)}</td>
+                  <td className="py-2 text-white">{usd(c1000.total)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="glass-card p-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Shield className="w-6 h-6 text-green-400" />
-            <span className="text-3xl font-bold text-white">{exchange.trust_score}</span>
-            <span className="text-gray-400">/10</span>
-          </div>
-          <p className="text-sm text-gray-400">Trust Score</p>
-        </div>
-        <div className="glass-card p-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-            <span className="text-3xl font-bold text-white">{exchange.user_rating}</span>
-          </div>
-          <p className="text-sm text-gray-400">{exchange.review_count.toLocaleString()} Reviews</p>
-        </div>
-        <div className="glass-card p-6 text-center">
-          <span className="text-3xl font-bold text-white">{(exchange.fees.taker_fee * 100).toFixed(2)}%</span>
-          <p className="text-sm text-gray-400">Taker Fee</p>
-        </div>
-        <div className="glass-card p-6 text-center">
-          <span className="text-3xl font-bold text-white">{exchange.supported_cryptocurrencies}+</span>
-          <p className="text-sm text-gray-400">Cryptocurrencies</p>
-        </div>
-      </div>
-
-      {/* Features & Pros/Cons */}
-      <div className="grid md:grid-cols-2 gap-8 mb-12">
-        {/* Features */}
-        <div className="glass-card p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Features</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(exchange.features).map(([key, value]) => (
-              <div key={key} className="flex items-center gap-2">
-                {value ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                  <X className="w-4 h-4 text-red-400" />
-                )}
-                <span className={cn('text-sm', value ? 'text-gray-300' : 'text-gray-500')}>
-                  {key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Pros & Cons */}
-        <div className="glass-card p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Pros & Cons</h2>
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium text-green-400 mb-2">Pros</h3>
-              <ul className="space-y-2">
-                {exchange.pros.map((pro, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
-                    <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                    {pro}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-red-400 mb-2">Cons</h3>
-              <ul className="space-y-2">
-                {exchange.cons.map((con, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
-                    <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                    {con}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Fees Section */}
-      <div className="glass-card p-6 mb-12">
-        <h2 className="text-xl font-bold text-white mb-4">Fee Structure</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div>
-            <p className="text-xs text-gray-400 mb-1">Maker Fee</p>
-            <p className="text-lg font-bold text-white">{(exchange.fees.maker_fee * 100).toFixed(2)}%</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-1">Taker Fee</p>
-            <p className="text-lg font-bold text-white">{(exchange.fees.taker_fee * 100).toFixed(2)}%</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-1">BTC Withdrawal</p>
-            <p className="text-lg font-bold text-white">
-              {exchange.fees.withdrawal_fee_btc === 0 ? 'Free' : `${exchange.fees.withdrawal_fee_btc} BTC`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-1">ETH Withdrawal</p>
-            <p className="text-lg font-bold text-white">
-              {exchange.fees.withdrawal_fee_eth === 0 ? 'Free' : `${exchange.fees.withdrawal_fee_eth} ETH`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-1">Fiat Deposit</p>
-            <p className="text-lg font-bold text-white">
-              {exchange.fees.deposit_fee_fiat === 0 ? 'Free' : `$${exchange.fees.deposit_fee_fiat}`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 mb-1">Fiat Withdrawal</p>
-            <p className="text-lg font-bold text-white">
-              {exchange.fees.withdrawal_fee_fiat === 0 ? 'Free' : `$${exchange.fees.withdrawal_fee_fiat}`}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* User Reviews Section */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-6">User Reviews</h2>
-        <ReviewSection
-          platformType="exchange"
-          platformId={exchange.id}
-          platformName={exchange.name}
-        />
-      </div>
-    </div>
+      <ul className="mt-4 space-y-1 text-xs text-gray-400 list-disc pl-5">
+        <li>
+          Order-book exchanges (Kraken Pro, Binance.US, Gemini ActiveTrader, Crypto.com Exchange) use the
+          entry-tier taker fee plus an assumed {pct(ORDER_BOOK_SPREAD_ASSUMPTION)} spread for a BTC/USD
+          market order. A limit order pays the lower maker fee and usually no spread.
+        </li>
+        <li>Spread-based apps (Coinbase simple buy, Robinhood, Uphold) use the typical spreads publicly reported in 2026; the real spread moves with the market.</li>
+        <li>Figures checked {formatIsoDate(EXCHANGES_LAST_VERIFIED)}. Each exchange review links to the official fee page; confirm there before trading.</li>
+      </ul>
+    </section>
   );
 }
 
-// Wallet Detail Component
-function WalletDetail({ wallet }: { wallet: WalletType }) {
-  // Determine operating system based on wallet type
-  const getOperatingSystem = () => {
-    switch (wallet.type) {
-      case 'hardware':
-        return 'Hardware Device';
-      case 'mobile':
-        return 'iOS, Android';
-      case 'software':
-        return 'Windows, macOS, Linux, iOS, Android';
-      default:
-        return 'Cross-platform';
-    }
-  };
-
-  // Generate SoftwareApplication schema for wallet
-  const walletSchema = generateSoftwareSchema({
-    name: wallet.name,
-    description: wallet.description,
-    operatingSystem: getOperatingSystem(),
-    applicationCategory: 'FinanceApplication',
-    rating: wallet.user_rating,
-    reviewCount: wallet.review_count,
-    price: wallet.price ? wallet.price.toString() : '0',
-    url: `https://bitcoinvestments.net/compare/wallet/${wallet.id}`,
-  });
-
-  const breadcrumbSchema = generateBreadcrumbSchema([
-    { name: 'Home', url: '/' },
-    { name: 'Compare Platforms', url: '/compare' },
-    { name: 'Wallets', url: '/compare' },
-    { name: wallet.name, url: `/compare/wallet/${wallet.id}` },
-  ]);
-
-  // Generate FAQ schema for this wallet
-  const walletFAQSchema = generateFAQSchema([
-    {
-      question: `Is ${wallet.name} a secure crypto wallet?`,
-      answer: `${wallet.name} is a ${wallet.type} wallet with ${wallet.security_features.seed_phrase_backup ? 'seed phrase backup, ' : ''}${wallet.security_features.biometric_auth ? 'biometric authentication, ' : ''}${wallet.security_features.two_factor_auth ? '2FA, ' : ''}and ${wallet.security_features.open_source ? 'open-source code for transparency' : 'proprietary security features'}.`,
-    },
-    {
-      question: `How many cryptocurrencies does ${wallet.name} support?`,
-      answer: `${wallet.name} supports over ${wallet.supported_cryptocurrencies.toLocaleString()} cryptocurrencies across ${wallet.supported_chains.length} blockchain networks including ${wallet.supported_chains.slice(0, 3).join(', ')}.`,
-    },
-    {
-      question: `How much does ${wallet.name} cost?`,
-      answer: wallet.price ? `${wallet.name} costs $${wallet.price}. This is a one-time purchase for the ${wallet.type} wallet device.` : `${wallet.name} is free to download and use. There are no subscription fees or hidden costs.`,
-    },
-  ]);
-
+function Methodology() {
+  const rows = getExchangesSortedBy('trust_score', 'desc');
   return (
-    <div className="container mx-auto px-4 py-12">
-      {/* SEO Meta Tags and Structured Data */}
-      <SEO
-        title={`${wallet.name} Review - ${wallet.type.charAt(0).toUpperCase() + wallet.type.slice(1)} Wallet Features & Security`}
-        description={`${wallet.name} ${wallet.type} wallet review: ${wallet.user_rating}/5 rating, ${wallet.supported_cryptocurrencies.toLocaleString()}+ cryptos, ${wallet.ease_of_use}/10 ease of use. ${wallet.price ? `$${wallet.price}` : 'Free download'}.`}
-        keywords={[wallet.name, `${wallet.name} review`, `${wallet.type} wallet`, 'crypto wallet', 'cryptocurrency storage', 'Bitcoin wallet', ...wallet.supported_chains.slice(0, 3)]}
-        type="product"
-        schema={[walletSchema, breadcrumbSchema, walletFAQSchema]}
-      />
-
-      {/* Back Link */}
-      <Link
-        to="/compare"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Compare
-      </Link>
-
-      {/* Header */}
-      <div className="glass-card p-8 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-4 mb-4">
-              <span className={cn(
-                'px-3 py-1 rounded text-sm font-medium',
-                wallet.type === 'hardware' ? 'bg-orange-500/20 text-orange-400' :
-                wallet.type === 'software' ? 'bg-blue-500/20 text-blue-400' :
-                'bg-green-500/20 text-green-400'
-              )}>
-                {wallet.type.toUpperCase()} WALLET
-              </span>
-              {wallet.price ? (
-                <span className="text-2xl font-bold text-orange-400">${wallet.price}</span>
-              ) : (
-                <span className="text-lg text-green-400 font-medium">Free</span>
-              )}
-            </div>
-            <h1 className="text-3xl font-bold text-white mb-4">{wallet.name}</h1>
-            <p className="text-gray-400">{wallet.description}</p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <a
-              href={wallet.affiliate_url || wallet.url}
-              target="_blank"
-              rel={wallet.affiliate_url ? "noopener noreferrer sponsored" : "noopener noreferrer"}
-              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors text-center"
-            >
-              {wallet.price ? 'Buy Now' : 'Get ' + wallet.name}
-            </a>
-            {wallet.affiliate_url && (
-              <div className="flex flex-col items-center gap-1">
-                <AffiliateBadge />
-                <p className="text-xs text-gray-500 text-center max-w-[200px]">
-                  We may earn a commission at no extra cost to you
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="glass-card p-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-            <span className="text-3xl font-bold text-white">{wallet.user_rating}</span>
-          </div>
-          <p className="text-sm text-gray-400">{wallet.review_count.toLocaleString()} Reviews</p>
-        </div>
-        <div className="glass-card p-6 text-center">
-          <span className="text-3xl font-bold text-white">{wallet.ease_of_use}</span>
-          <span className="text-gray-400">/10</span>
-          <p className="text-sm text-gray-400">Ease of Use</p>
-        </div>
-        <div className="glass-card p-6 text-center">
-          <span className="text-3xl font-bold text-white">{wallet.supported_cryptocurrencies.toLocaleString()}+</span>
-          <p className="text-sm text-gray-400">Supported Coins</p>
-        </div>
-        <div className="glass-card p-6 text-center">
-          <span className="text-3xl font-bold text-white">{wallet.supported_chains.length}</span>
-          <p className="text-sm text-gray-400">Blockchains</p>
-        </div>
-      </div>
-
-      {/* Security & Features */}
-      <div className="grid md:grid-cols-2 gap-8 mb-12">
-        {/* Security Features */}
-        <div className="glass-card p-6">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <Lock className="w-5 h-5 text-green-400" />
-            Security Features
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(wallet.security_features).map(([key, value]) => (
-              <div key={key} className="flex items-center gap-2">
-                {value ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                  <X className="w-4 h-4 text-red-400" />
-                )}
-                <span className={cn('text-sm', value ? 'text-gray-300' : 'text-gray-500')}>
-                  {key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                </span>
-              </div>
+    <section aria-labelledby="methodology-heading" className="glass-card p-6">
+      <h2 id="methodology-heading" className="text-2xl font-bold text-white mb-2">How we score exchanges</h2>
+      <p className="text-sm text-gray-300 mb-3">
+        &quot;Our editorial score&quot; is a judgement by our editors, not a user rating, out of 10:
+      </p>
+      <ul className="text-sm text-gray-300 space-y-1 list-disc pl-5 mb-4">
+        <li><strong className="text-white">Regulation (0–3):</strong> licences, public listing and disclosures, enforcement history.</li>
+        <li><strong className="text-white">Security (0–3):</strong> hacks, breaches and how customers were treated afterwards.</li>
+        <li><strong className="text-white">Transparency (0–2):</strong> proof of reserves, audited or public financials.</li>
+        <li><strong className="text-white">Cost clarity (0–2):</strong> published fees versus costs hidden in spreads.</li>
+      </ul>
+      <p className="text-sm text-gray-300 mb-4">
+        Sponsorship and affiliate relationships do not change scores or the order of any sort. We do not
+        show star ratings or review counts until readers have actually submitted reviews.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <caption className="sr-only">Editorial score breakdown per exchange</caption>
+          <thead>
+            <tr className="border-b border-white/10 text-gray-400">
+              <th scope="col" className="py-2 pr-4 font-medium">Exchange</th>
+              <th scope="col" className="py-2 pr-4 font-medium">Regulation</th>
+              <th scope="col" className="py-2 pr-4 font-medium">Security</th>
+              <th scope="col" className="py-2 pr-4 font-medium">Transparency</th>
+              <th scope="col" className="py-2 pr-4 font-medium">Cost clarity</th>
+              <th scope="col" className="py-2 font-medium">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(e => (
+              <tr key={e.id} className="border-b border-white/5">
+                <th scope="row" className="py-2 pr-4 text-white font-semibold">{e.name}</th>
+                <td className="py-2 pr-4 text-gray-300">{e.editorial.regulation}/3</td>
+                <td className="py-2 pr-4 text-gray-300">{e.editorial.security}/3</td>
+                <td className="py-2 pr-4 text-gray-300">{e.editorial.transparency}/2</td>
+                <td className="py-2 pr-4 text-gray-300">{e.editorial.costs}/2</td>
+                <td className="py-2 text-white font-semibold">{e.trust_score}/10</td>
+              </tr>
             ))}
-          </div>
-        </div>
-
-        {/* Wallet Features */}
-        <div className="glass-card p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Features</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(wallet.features).map(([key, value]) => (
-              <div key={key} className="flex items-center gap-2">
-                {value ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                  <X className="w-4 h-4 text-red-400" />
-                )}
-                <span className={cn('text-sm', value ? 'text-gray-300' : 'text-gray-500')}>
-                  {key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
-
-      {/* Pros & Cons */}
-      <div className="glass-card p-6 mb-12">
-        <h2 className="text-xl font-bold text-white mb-4">Pros & Cons</h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-sm font-medium text-green-400 mb-3">Pros</h3>
-            <ul className="space-y-2">
-              {wallet.pros.map((pro, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
-                  <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                  {pro}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-red-400 mb-3">Cons</h3>
-            <ul className="space-y-2">
-              {wallet.cons.map((con, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
-                  <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  {con}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Supported Chains */}
-      <div className="glass-card p-6 mb-12">
-        <h2 className="text-xl font-bold text-white mb-4">Supported Blockchains</h2>
-        <div className="flex flex-wrap gap-2">
-          {wallet.supported_chains.map((chain, index) => (
-            <span
-              key={index}
-              className="px-3 py-1 rounded-full bg-white/5 text-gray-300 text-sm"
-            >
-              {chain}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* User Reviews Section */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-6">User Reviews</h2>
-        <ReviewSection
-          platformType="wallet"
-          platformId={wallet.id}
-          platformName={wallet.name}
-        />
-      </div>
-    </div>
+    </section>
   );
 }

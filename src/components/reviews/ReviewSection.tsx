@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MessageSquare, PenSquare, ChevronDown, AlertCircle } from 'lucide-react';
 import { ReviewCard } from './ReviewCard';
@@ -68,37 +68,36 @@ function LiveReviewSection({ platformType, platformId, platformName }: ReviewSec
   const [showForm, setShowForm] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [total, setTotal] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
   // Guards against a slow response for an old sort/platform overwriting a newer one.
   const requestId = useRef(0);
 
-  const loadFirstPage = useCallback(async () => {
-    const id = ++requestId.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const [reviewResult, reviewStats] = await Promise.all([
-        getReviews(platformType, platformId, { limit: REVIEWS_PER_PAGE, offset: 0, sortBy }),
-        getReviewStats(platformType, platformId),
-      ]);
-      if (id !== requestId.current) return;
-      if (reviewResult.error) {
-        setError(reviewResult.error);
-      }
-      setReviews(reviewResult.reviews);
-      setTotal(reviewResult.total);
-      setStats(reviewStats);
-    } catch (err) {
-      if (id !== requestId.current) return;
-      setError(err instanceof Error ? err.message : 'Could not load reviews');
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, [platformType, platformId, sortBy]);
-
-  // One effect covers mount, platform change and sort change (no double fetch).
+  // One effect covers mount, platform change, sort change and reloads (no double fetch).
   useEffect(() => {
-    void loadFirstPage();
-  }, [loadFirstPage]);
+    const id = ++requestId.current;
+    Promise.all([
+      getReviews(platformType, platformId, { limit: REVIEWS_PER_PAGE, offset: 0, sortBy }),
+      getReviewStats(platformType, platformId),
+    ])
+      .then(([reviewResult, reviewStats]) => {
+        if (id !== requestId.current) return;
+        setError(reviewResult.error);
+        setReviews(reviewResult.reviews);
+        setTotal(reviewResult.total);
+        setStats(reviewStats);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (id !== requestId.current) return;
+        setError(err instanceof Error ? err.message : 'Could not load reviews');
+        setLoading(false);
+      });
+  }, [platformType, platformId, sortBy, reloadToken]);
+
+  const changeSort = (value: SortOption) => {
+    setLoading(true);
+    setSortBy(value);
+  };
 
   const handleLoadMore = async () => {
     const id = requestId.current;
@@ -124,7 +123,8 @@ function LiveReviewSection({ platformType, platformId, platformName }: ReviewSec
 
   const handleReviewSubmitted = () => {
     setShowForm(false);
-    void loadFirstPage();
+    setLoading(true);
+    setReloadToken(t => t + 1);
   };
 
   const hasMore = reviews.length < total;
@@ -252,7 +252,7 @@ function LiveReviewSection({ platformType, platformId, platformName }: ReviewSec
               Sort reviews
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                onChange={(e) => changeSort(e.target.value as SortOption)}
                 className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="newest">Newest first</option>

@@ -970,9 +970,11 @@ export function getDefaultWalletRival(wallet: Wallet): Wallet | undefined {
     w.status === 'current' &&
     (wallet.type === 'hardware' ? w.type === 'hardware' && w.brand !== wallet.brand : w.type !== 'hardware')
   );
+  // Hardware: closest price. Software: most shared networks, then closest ease of use.
+  const shared = (w: Wallet) => w.supported_chains.filter(c => wallet.supported_chains.includes(c)).length;
   const distance = (w: Wallet) =>
     wallet.type === 'hardware'
       ? Math.abs((w.price ?? 0) - (wallet.price ?? 0))
-      : Math.abs(w.ease_of_use - wallet.ease_of_use);
+      : -shared(w) * 100 + Math.abs(w.ease_of_use - wallet.ease_of_use);
   return [...pool].sort((a, b) => distance(a) - distance(b) || a.name.localeCompare(b.name))[0];
 }

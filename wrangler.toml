@@ -8,8 +8,15 @@ pages_build_output_dir = "dist"
 # Build-time environment variables (public - embedded in frontend bundle)
 # These are safe to commit as they're public anyway
 [vars]
-VITE_SUPABASE_URL = "https://mkdckqrukmukbmgxabyk.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iim6AzEHVn7sGeqL5V9WJg_1dLtUT0W"
+# Supabase: none configured. The previous project (mkdckqrukmukbmgxabyk) no
+# longer exists, and pointing the site at it made every database call fail at
+# runtime instead of falling back to the static site. With these unset,
+# isSupabaseConfigured() is false and database features show their honest
+# "unavailable / coming soon" states. When a new project exists, add its URL
+# and publishable key here AND as Cloudflare Pages build variables (Vite reads
+# them at build time), then follow rebuild/REBUILD_GUIDE.md.
+# VITE_SUPABASE_URL = "https://<new-project>.supabase.co"
+# VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_..."
 
 # Stripe public keys (set your actual values here)
 # For testing: pk_test_xxxxx, For production: pk_live_xxxxx

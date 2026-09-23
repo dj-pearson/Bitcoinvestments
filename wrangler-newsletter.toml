@@ -12,7 +12,11 @@ compatibility_date = "2024-11-20"
 # - "0 17 * * 1" = Every Monday at 5:00 PM UTC (9:00 AM PST)
 # Adjust the schedule as needed for your target audience timezone
 [triggers]
-crons = ["0 14 * * 1"]  # Every Monday at 2:00 PM UTC (9:00 AM EST)
+# PAUSED: there is no database (the Supabase project was deleted), so every
+# run would fail. An empty list removes the schedule on the next deploy.
+# Restore the schedule once a new project is set up (rebuild/REBUILD_GUIDE.md).
+crons = []
+# crons = ["0 14 * * 1"]  # Every Monday at 2:00 PM UTC (9:00 AM EST)
 
 # Environment variables
 # Set these in Cloudflare Dashboard for security

@@ -28,7 +28,11 @@ PAGES_URL = "https://bitcoinvestments.net"
 # - "*/15 * * * *" = Every 15 minutes
 # - "0 * * * *" = Every hour
 [triggers]
-crons = ["*/5 * * * *"]
+# PAUSED: there is no database (the Supabase project was deleted), so every
+# run would fail. An empty list removes the schedule on the next deploy.
+# Restore the schedule once a new project is set up (rebuild/REBUILD_GUIDE.md).
+crons = []
+# crons = ["*/5 * * * *"]
 
 [env.production]
 vars = { PAGES_URL = "https://bitcoinvestments.net" }

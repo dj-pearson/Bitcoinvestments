@@ -10,6 +10,11 @@ Last reviewed: 2026-09-23.
 
 ---
 
+> **Status 2026-09-23:** the previous project (`mkdckqrukmukbmgxabyk`) no
+> longer exists, so "reconnect" (2B) is not an option: create a new project and
+> follow 2A. The repo currently configures no Supabase project and the cron
+> schedules are paused; restore both as part of going live.
+
 ## 0. Decide: reconnect or rebuild
 
 The last production project was Supabase `mkdckqrukmukbmgxabyk` (see

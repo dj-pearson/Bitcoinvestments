@@ -127,9 +127,11 @@ Idempotent reconcile migration (signup profile trigger + backfill, missing `user
 **Not verifiable from this environment** (no network to these hosts): Supabase (migrations untested against the live project; replayed on PGlite), DefiLlama, mempool.space, Blockchain.com, CoinGecko. Check `/api/yields`, `/api/onchain`, `/api/gas`, `/api/btc-fees` on a preview deploy.
 
 ### Owner checklist
-1. Confirm the Supabase project is live; apply migrations `20260923000000`-`20260923000400` (order in `rebuild/REBUILD_GUIDE.md`).
-2. Set repository/Pages build variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; secrets `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. If Cloudflare builds from git instead of `deploy.yml`, set them there as build variables.
+**Current state (confirmed by the owner 2026-09-23): the Supabase project no longer exists.** The site runs with no database: `wrangler.toml` no longer points at the deleted project, and the price-alert and newsletter cron schedules are paused (`crons = []`). Everything public works in this mode (it is the state the Playwright pass tested); what needs a database - newsletter/waitlist sign-up, scam-report search and submissions, live blog posts, reviews, accounts - shows an honest "unavailable / coming soon" state.
+
+1. In Cloudflare Pages -> Settings -> Variables and Secrets, delete (or replace) `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` if they still hold the old project; if left in place, every database call fails at runtime instead of falling back. Redeploy after changing them.
+2. To restore database features: create a new Supabase project, then follow `rebuild/REBUILD_GUIDE.md` section 2A (fresh database), set the new URL/key as build variables and `SUPABASE_SERVICE_ROLE_KEY` / `RESEND_API_KEY` as secrets, and restore the cron schedules in `wrangler-cron.toml` / `wrangler-newsletter.toml`. Note: free-tier projects pause after a week without traffic and are deleted after a long pause; the price-alert cron keeps a project active once re-enabled.
 3. Supply: author names/bios (`authors` table, `EDITORIAL_AUTHOR`), a CPA/EA reviewer for tax content, affiliate IDs (`VITE_AFFILIATE_*`), which sponsorships are real (`src/data/exchanges.ts`), legal entity/governing law (Terms/Privacy placeholders).
 4. Re-check flagged facts: Gemini ActiveTrader fees, hardware wallet prices, unverified state tax rows, IC3 2025 figures, `src/data/notableScams.ts`, `src/data/coins.ts`.
-5. Decide: AI-training crawler policy (currently allowed), which paid products will launch, price-history data licence (Coin Metrics CC BY-NC), whether to pause the price-alert cron while accounts are off.
+5. Decide: AI-training crawler policy (currently allowed), which paid products will launch, price-history data licence (Coin Metrics CC BY-NC).
 6. When ready for accounts: set `VITE_ACCOUNTS_ENABLED=true` and follow the go-live checklist.

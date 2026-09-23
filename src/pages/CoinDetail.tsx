@@ -45,10 +45,10 @@ function coinLabel(name: string, symbol: string): string {
   return !symbol || name.toUpperCase() === symbol ? name : `${name} (${symbol})`;
 }
 
-function coinPageTitle(name: string, symbol: string): string {
+function coinPageTitle(name: string, symbol: string, curated: boolean): string {
   const label = coinLabel(name, symbol);
   const candidates = [
-    `${label} Price, Chart & Guide`,
+    ...(curated ? [`${label} Price, Chart & Guide`] : []),
     `${label} Price & Chart`,
     `${name} Price & Chart`,
     `${name} Price`,
@@ -133,8 +133,8 @@ export function CoinDetail() {
   return (
     <>
       <SEO
-        title={coinPageTitle(name, symbol || id.toUpperCase().slice(0, 6))}
-        description={coinPageDescription(name, symbol || id.toUpperCase().slice(0, 6), !!profile)}
+        title={coinPageTitle(name, symbol, !!profile)}
+        description={coinPageDescription(name, symbol, !!profile)}
         keywords={[name, symbol, `${name} price`, `${symbol} price chart`, `what is ${name}`].filter(Boolean)}
         url={pageUrl}
         noindex={!profile}

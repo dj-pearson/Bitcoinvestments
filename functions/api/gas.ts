@@ -3,8 +3,8 @@
 // GET /api/gas
 //
 // Reads current fee data from public JSON-RPC endpoints for the EVM chains the
-// site tracks, plus Bitcoin's recommended fee rates from mempool.space, and
-// returns one JSON snapshot. It runs server-side so the browser only talks to
+// site tracks and returns one JSON snapshot. (Bitcoin fee rates are served by
+// /api/btc-fees.) It runs server-side so the browser only talks to
 // our own origin (the site CSP does not allow third-party RPC hosts), and it is
 // cached so every visitor shares one upstream fetch:
 //
@@ -14,7 +14,7 @@
 //   `fetchedAt`, and a chain with no good value at all is `ok: false`.
 //   Nothing is ever reported as a live zero.
 //
-// Response shape (all fee values in gwei, Bitcoin in sat/vB):
+// Response shape (all fee values in gwei):
 // {
 //   fetchedAt: number,               // epoch ms of this snapshot
 //   chains: {
@@ -25,9 +25,7 @@
 //       priorityFees: [p10, p50, p90] | null,  // from eth_feeHistory
 //       error?: string
 //     }
-//   },
-//   bitcoin: { ok, stale, fetchedAt, fastestFee, halfHourFee, hourFee,
-//              economyFee, minimumFee, error? }
+//   }
 // }
 
 // No bindings are required; the Cache API (caches.default) holds both copies.
@@ -42,8 +40,6 @@ const CHAINS: Record<string, string> = {
   avalanche: 'https://avalanche-c-chain-rpc.publicnode.com',
   base: 'https://base-rpc.publicnode.com',
 };
-
-const MEMPOOL_FEES_URL = 'https://mempool.space/api/v1/fees/recommended';
 
 const FRESH_TTL = 15; // seconds
 const LAST_GOOD_TTL = 60 * 60; // seconds
@@ -62,22 +58,9 @@ interface ChainFee {
   error?: string;
 }
 
-interface BitcoinFee {
-  ok: boolean;
-  stale: boolean;
-  fetchedAt: number | null;
-  fastestFee: number | null;
-  halfHourFee: number | null;
-  hourFee: number | null;
-  economyFee: number | null;
-  minimumFee: number | null;
-  error?: string;
-}
-
 interface Snapshot {
   fetchedAt: number;
   chains: Record<string, ChainFee>;
-  bitcoin: BitcoinFee;
 }
 
 function hexToGwei(hex: unknown): number | null {
@@ -147,39 +130,6 @@ async function readChain(url: string): Promise<ChainFee> {
   return { ok: true, stale: false, fetchedAt: now, gasPrice, baseFee, priorityFees };
 }
 
-async function readBitcoin(): Promise<BitcoinFee> {
-  try {
-    const res = await withTimeout(MEMPOOL_FEES_URL, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`mempool.space HTTP ${res.status}`);
-    const json = (await res.json()) as Record<string, unknown>;
-    const pick = (k: string) => (typeof json[k] === 'number' && (json[k] as number) > 0 ? (json[k] as number) : null);
-    const fee: BitcoinFee = {
-      ok: true,
-      stale: false,
-      fetchedAt: Date.now(),
-      fastestFee: pick('fastestFee'),
-      halfHourFee: pick('halfHourFee'),
-      hourFee: pick('hourFee'),
-      economyFee: pick('economyFee'),
-      minimumFee: pick('minimumFee'),
-    };
-    if (fee.fastestFee === null || fee.hourFee === null) throw new Error('Incomplete fee data');
-    return fee;
-  } catch (err) {
-    return {
-      ok: false,
-      stale: false,
-      fetchedAt: null,
-      fastestFee: null,
-      halfHourFee: null,
-      hourFee: null,
-      economyFee: null,
-      minimumFee: null,
-      error: err instanceof Error ? err.message : 'Unavailable',
-    };
-  }
-}
-
 async function readCachedJson<T>(key: string): Promise<T | null> {
   try {
     const hit = await caches.default.match(new Request(key));
@@ -231,18 +181,14 @@ export async function onRequest(context: {
   }
 
   const names = Object.keys(CHAINS);
-  const [chainResults, bitcoin] = await Promise.all([
-    Promise.all(names.map((name) => readChain(CHAINS[name]))),
-    readBitcoin(),
-  ]);
+  const chainResults = await Promise.all(names.map((name) => readChain(CHAINS[name])));
 
   const lastGood = await readCachedJson<Snapshot>(LAST_GOOD_KEY);
 
-  const snapshot: Snapshot = { fetchedAt: Date.now(), chains: {}, bitcoin };
+  const snapshot: Snapshot = { fetchedAt: Date.now(), chains: {} };
   const nextLastGood: Snapshot = {
     fetchedAt: snapshot.fetchedAt,
     chains: { ...(lastGood?.chains ?? {}) },
-    bitcoin: lastGood?.bitcoin ?? bitcoin,
   };
 
   names.forEach((name, i) => {
@@ -259,16 +205,6 @@ export async function onRequest(context: {
       snapshot.chains[name] = result;
     }
   });
-
-  if (bitcoin.ok) {
-    nextLastGood.bitcoin = bitcoin;
-  } else if (
-    lastGood?.bitcoin?.ok &&
-    lastGood.bitcoin.fetchedAt &&
-    Date.now() - lastGood.bitcoin.fetchedAt < LAST_GOOD_TTL * 1000
-  ) {
-    snapshot.bitcoin = { ...lastGood.bitcoin, stale: true, error: bitcoin.error };
-  }
 
   const writes = Promise.all([
     writeCachedJson(FRESH_KEY, snapshot, FRESH_TTL),

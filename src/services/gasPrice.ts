@@ -4,10 +4,11 @@
  * Where the data comes from
  * - Production: one same-origin request to `/api/gas` (functions/api/gas.ts),
  *   a Pages Function that reads eth_gasPrice / eth_feeHistory from public RPC
- *   endpoints and Bitcoin fee rates from mempool.space, cached for ~15 s. The
- *   browser never calls third-party RPC hosts (the CSP would block them).
+ *   endpoints, cached for ~15 s. Bitcoin fee rates come from `/api/btc-fees`
+ *   (functions/api/btc-fees.ts, a mempool.space proxy). The browser never
+ *   calls third-party RPC hosts (the CSP would block them).
  * - Development (`vite dev`, no Pages Functions): the same data is read
- *   directly from the RPC endpoints in the browser.
+ *   directly from the RPC endpoints / mempool.space in the browser.
  * - Native token USD prices come from CoinGecko via services/coingecko.
  *
  * Public API (stable — other pages, e.g. the gas optimizer, consume it)
@@ -183,22 +184,9 @@ interface RawChainFee {
   error?: string;
 }
 
-interface RawBitcoinFee {
-  ok: boolean;
-  stale: boolean;
-  fetchedAt: number | null;
-  fastestFee: number | null;
-  halfHourFee: number | null;
-  hourFee: number | null;
-  economyFee: number | null;
-  minimumFee: number | null;
-  error?: string;
-}
-
 interface GasSnapshot {
   fetchedAt: number;
   chains: Partial<Record<SupportedChain, RawChainFee>>;
-  bitcoin: RawBitcoinFee;
 }
 
 const SNAPSHOT_TTL = 15_000;
@@ -206,7 +194,6 @@ let snapshotCache: { data: GasSnapshot; at: number } | null = null;
 let snapshotInflight: Promise<GasSnapshot> | null = null;
 /** Last good per chain, so a failed refresh can fall back (marked stale). */
 const lastGoodChains = new Map<SupportedChain, RawChainFee>();
-let lastGoodBitcoin: RawBitcoinFee | null = null;
 
 const UNAVAILABLE_CHAIN: RawChainFee = {
   ok: false,
@@ -216,18 +203,6 @@ const UNAVAILABLE_CHAIN: RawChainFee = {
   baseFee: null,
   priorityFees: null,
   error: 'Gas data unavailable',
-};
-
-const UNAVAILABLE_BITCOIN: RawBitcoinFee = {
-  ok: false,
-  stale: false,
-  fetchedAt: null,
-  fastestFee: null,
-  halfHourFee: null,
-  hourFee: null,
-  economyFee: null,
-  minimumFee: null,
-  error: 'Fee data unavailable',
 };
 
 async function timedFetch(url: string, init: RequestInit = {}, ms = 6000): Promise<Response> {
@@ -288,27 +263,7 @@ async function buildSnapshotInBrowser(): Promise<GasSnapshot> {
     })
   );
 
-  let bitcoin: RawBitcoinFee = { ...UNAVAILABLE_BITCOIN };
-  try {
-    const res = await timedFetch('https://mempool.space/api/v1/fees/recommended');
-    if (res.ok) {
-      const j = await res.json();
-      bitcoin = {
-        ok: true,
-        stale: false,
-        fetchedAt: Date.now(),
-        fastestFee: j.fastestFee ?? null,
-        halfHourFee: j.halfHourFee ?? null,
-        hourFee: j.hourFee ?? null,
-        economyFee: j.economyFee ?? null,
-        minimumFee: j.minimumFee ?? null,
-      };
-    }
-  } catch {
-    /* unavailable */
-  }
-
-  return { fetchedAt: Date.now(), chains, bitcoin };
+  return { fetchedAt: Date.now(), chains };
 }
 
 async function loadSnapshot(force = false): Promise<GasSnapshot> {
@@ -330,12 +285,8 @@ async function loadSnapshot(force = false): Promise<GasSnapshot> {
           throw new Error('Unexpected gas API response');
         }
       }
-    } catch (err) {
-      snapshot = {
-        fetchedAt: Date.now(),
-        chains: {},
-        bitcoin: { ...UNAVAILABLE_BITCOIN, error: err instanceof Error ? err.message : 'Unavailable' },
-      };
+    } catch {
+      snapshot = { fetchedAt: Date.now(), chains: {} };
     }
 
     // Merge with last-good copies so a failed refresh degrades to stale data.
@@ -350,14 +301,6 @@ async function loadSnapshot(force = false): Promise<GasSnapshot> {
           : { ...UNAVAILABLE_CHAIN, error: raw?.error ?? UNAVAILABLE_CHAIN.error };
       }
     }
-    if (snapshot.bitcoin?.ok) {
-      lastGoodBitcoin = snapshot.bitcoin;
-    } else if (lastGoodBitcoin) {
-      snapshot.bitcoin = { ...lastGoodBitcoin, stale: true, error: snapshot.bitcoin?.error };
-    } else {
-      snapshot.bitcoin = snapshot.bitcoin ?? { ...UNAVAILABLE_BITCOIN };
-    }
-
     snapshotCache = { data: snapshot, at: Date.now() };
     return snapshot;
   })();
@@ -483,21 +426,53 @@ export async function getAllGasPrices(options: { force?: boolean } = {}): Promis
   return CHAIN_ORDER.map((chain) => toStatus(chain, snapshot.chains[chain] ?? UNAVAILABLE_CHAIN, prices));
 }
 
+const BTC_FEES_TTL = 60_000;
+let btcCache: { data: BitcoinFeeEstimates; at: number } | null = null;
+let btcLastGood: BitcoinFeeEstimates | null = null;
+
 /** Bitcoin fee-rate estimates (sat/vB). Never rejects; check `available`. */
 export async function getBitcoinFeeEstimates(options: { force?: boolean } = {}): Promise<BitcoinFeeEstimates> {
-  const snapshot = await loadSnapshot(options.force);
-  const b = snapshot.bitcoin ?? UNAVAILABLE_BITCOIN;
-  return {
-    available: b.ok,
-    stale: b.ok ? b.stale : false,
-    fetchedAt: b.ok ? b.fetchedAt : null,
-    fastestFee: b.fastestFee,
-    halfHourFee: b.halfHourFee,
-    hourFee: b.hourFee,
-    economyFee: b.economyFee,
-    minimumFee: b.minimumFee,
-    error: b.error,
-  };
+  if (!options.force && btcCache && Date.now() - btcCache.at < BTC_FEES_TTL) {
+    return btcCache.data;
+  }
+  const url = import.meta.env.DEV ? 'https://mempool.space/api/v1/fees/recommended' : '/api/btc-fees';
+  let result: BitcoinFeeEstimates;
+  try {
+    const res = await timedFetch(url, { cache: options.force ? 'no-cache' : 'default' });
+    if (!res.ok) throw new Error(`Bitcoin fee API error: ${res.status}`);
+    const j = (await res.json()) as Record<string, unknown>;
+    const num = (k: string) => (typeof j[k] === 'number' && Number.isFinite(j[k]) && (j[k] as number) > 0 ? (j[k] as number) : null);
+    const asOf = typeof j.asOf === 'string' ? Date.parse(j.asOf) : NaN;
+    result = {
+      available: true,
+      stale: false,
+      fetchedAt: Number.isFinite(asOf) ? asOf : Date.now(),
+      fastestFee: num('fastestFee'),
+      halfHourFee: num('halfHourFee'),
+      hourFee: num('hourFee'),
+      economyFee: num('economyFee'),
+      minimumFee: num('minimumFee'),
+    };
+    if (result.fastestFee === null || result.hourFee === null) throw new Error('Incomplete fee data');
+    btcLastGood = result;
+  } catch (err) {
+    const error = err instanceof Error ? err.message : 'Unavailable';
+    result = btcLastGood
+      ? { ...btcLastGood, stale: true, error }
+      : {
+          available: false,
+          stale: false,
+          fetchedAt: null,
+          fastestFee: null,
+          halfHourFee: null,
+          hourFee: null,
+          economyFee: null,
+          minimumFee: null,
+          error,
+        };
+  }
+  btcCache = { data: result, at: Date.now() };
+  return result;
 }
 
 /** Whether a gas result holds real data that may be displayed. */
@@ -587,4 +562,5 @@ export function getChainStyle(chain: SupportedChain): { color: string; bgColor: 
  */
 export function clearGasCache(): void {
   snapshotCache = null;
+  btcCache = null;
 }

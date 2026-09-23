@@ -43,8 +43,16 @@ interface CheckoutRequest {
   userEmail: string;
   successUrl?: string;
   cancelUrl?: string;
-  mode?: 'subscription' | 'payment';
-  metadata?: Record<string, string>;
+}
+
+/**
+ * A redirect target is accepted only when it points back at one of our own
+ * origins. Any other https URL would turn a completed payment into an open
+ * redirect to a page the caller chose.
+ */
+function isOwnOriginUrl(url: string): boolean {
+  if (!validateUrl(url).isValid) return false;
+  return ALLOWED_ORIGINS.includes(new URL(url.trim()).origin);
 }
 
 /**
@@ -103,7 +111,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return addCorsHeaders(jsonError(parseError || 'Invalid request body', 400));
     }
 
-    const { priceId, userId, userEmail, successUrl, cancelUrl, mode: requestedMode, metadata } = body;
+    // `mode` and `metadata` are deliberately NOT read from the body. The webhook
+    // trusts session metadata (subscriptionType, apiTier, productType) to decide
+    // what was bought, so letting the caller set it meant paying for the $9.99
+    // plan could record an Enterprise API subscription. Both are derived from
+    // the server-side price whitelist instead.
+    const { priceId, userId, userEmail, successUrl, cancelUrl } = body;
 
     // Validate user email
     const emailValidation = validateEmail(userEmail);
@@ -129,7 +142,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     // Get the checkout mode for this price
     const priceConfig = validPricesMap[priceId];
-    const checkoutMode = requestedMode || priceConfig.mode;
+    const checkoutMode = priceConfig.mode;
 
     // Initialize Stripe
     const stripe = new Stripe(context.env.STRIPE_SECRET_KEY, {
@@ -145,8 +158,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Validate optional URLs if provided
     let validatedSuccessUrl = `${origin}/profile?session_id={CHECKOUT_SESSION_ID}`;
     if (successUrl) {
-      const successUrlValidation = validateUrl(successUrl, { requireHttps: true });
-      if (!successUrlValidation.isValid) {
+      if (!isOwnOriginUrl(successUrl)) {
         return addCorsHeaders(jsonError('Invalid success URL', 400));
       }
       validatedSuccessUrl = successUrl;
@@ -154,8 +166,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     let validatedCancelUrl = `${origin}/pricing`;
     if (cancelUrl) {
-      const cancelUrlValidation = validateUrl(cancelUrl, { requireHttps: true });
-      if (!cancelUrlValidation.isValid) {
+      if (!isOwnOriginUrl(cancelUrl)) {
         return addCorsHeaders(jsonError('Invalid cancel URL', 400));
       }
       validatedCancelUrl = cancelUrl;
@@ -164,7 +175,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Build session metadata
     const sessionMetadata: Record<string, string> = {
       userId: userId,
-      ...metadata,
     };
 
     // Add product type for one-time purchases

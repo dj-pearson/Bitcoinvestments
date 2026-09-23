@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 export interface Breadcrumb {
   label: string;
@@ -53,39 +53,67 @@ const ROUTE_LABELS: Record<string, string> = {
 };
 
 /**
- * Dynamic route patterns and their label generators
+ * Dynamic route patterns and their label generators.
+ *
+ * Labels come from the regex captures rather than useParams(): Breadcrumbs is
+ * rendered by the Layout, above the matched child route, so useParams() there
+ * does not see the child's params. Nothing here may read `window` - this runs
+ * during render, including server-side prerendering.
  */
 interface DynamicRouteConfig {
   pattern: RegExp;
-  getLabel: (params: Record<string, string>) => string;
-  getParent?: () => { label: string; path: string };
+  getLabel: (match: RegExpMatchArray) => string;
+  getParent?: (match: RegExpMatchArray) => { label: string; path: string };
 }
 
 const DYNAMIC_ROUTES: DynamicRouteConfig[] = [
   {
-    pattern: /^\/learn\/(.+)$/,
-    getLabel: (params) => formatSlug(params.guideId || 'Guide'),
+    pattern: /^\/learn\/([^/]+)$/,
+    getLabel: (m) => formatSlug(m[1]),
     getParent: () => ({ label: 'Learn', path: '/learn' }),
   },
   {
     pattern: /^\/course\/([^/]+)$/,
-    getLabel: (params) => formatSlug(params.courseId || 'Course'),
+    getLabel: (m) => formatSlug(m[1]),
     getParent: () => ({ label: 'Learn', path: '/learn' }),
   },
   {
-    pattern: /^\/course\/([^/]+)\/(.+)$/,
-    getLabel: (params) => formatSlug(params.moduleId || 'Module'),
-    getParent: () => ({ label: 'Course', path: `/course/${window.location.pathname.split('/')[2]}` }),
+    pattern: /^\/course\/([^/]+)\/([^/]+)$/,
+    getLabel: (m) => formatSlug(m[2]),
+    getParent: (m) => ({ label: 'Course', path: `/course/${m[1]}` }),
   },
   {
-    pattern: /^\/article\/(.+)$/,
-    getLabel: (params) => formatSlug(params.slug || 'Article'),
-    getParent: () => ({ label: 'Learn', path: '/learn' }),
-  },
-  {
-    pattern: /^\/compare\/(.+)\/(.+)$/,
-    getLabel: (params) => `${formatSlug(params.type || '')} - ${formatSlug(params.id || '')}`,
+    pattern: /^\/compare\/([^/]+)\/([^/]+)$/,
+    getLabel: (m) => formatSlug(m[2]),
     getParent: () => ({ label: 'Compare', path: '/compare' }),
+  },
+  {
+    pattern: /^\/coin\/([^/]+)$/,
+    getLabel: (m) => formatSlug(m[1]),
+    getParent: () => ({ label: 'Prices', path: '/dashboard' }),
+  },
+  {
+    pattern: /^\/scam\/([^/]+)$/,
+    getLabel: () => 'Scam Report',
+    getParent: () => ({ label: 'Scam Database', path: '/scam-database' }),
+  },
+  {
+    pattern: /^\/blog\/category\/([^/]+)$/,
+    getLabel: (m) => formatSlug(m[1]),
+    getParent: () => ({ label: 'Blog', path: '/blog' }),
+  },
+  {
+    pattern: /^\/blog\/([^/]+)$/,
+    getLabel: (m) => formatSlug(m[1]),
+    getParent: () => ({ label: 'Blog', path: '/blog' }),
+  },
+  {
+    pattern: /^\/sponsored\/([^/]+)$/,
+    getLabel: (m) => formatSlug(m[1]),
+  },
+  {
+    pattern: /^\/developers\/([^/]+)$/,
+    getLabel: (m) => (m[1] === 'pricing' ? 'API Pricing' : formatSlug(m[1])),
   },
 ];
 
@@ -118,7 +146,6 @@ void _getParentPath;
  */
 export function useBreadcrumbs(): Breadcrumb[] {
   const location = useLocation();
-  const params = useParams();
 
   return useMemo(() => {
     const path = location.pathname;
@@ -135,17 +162,19 @@ export function useBreadcrumbs(): Breadcrumb[] {
 
     // Check if it's a dynamic route
     let dynamicConfig: DynamicRouteConfig | null = null;
+    let match: RegExpMatchArray | null = null;
     for (const config of DYNAMIC_ROUTES) {
-      if (config.pattern.test(path)) {
+      match = path.match(config.pattern);
+      if (match) {
         dynamicConfig = config;
         break;
       }
     }
 
-    if (dynamicConfig) {
+    if (dynamicConfig && match) {
       // Add parent breadcrumb for dynamic routes
       if (dynamicConfig.getParent) {
-        const parent = dynamicConfig.getParent();
+        const parent = dynamicConfig.getParent(match);
         breadcrumbs.push({
           label: parent.label,
           path: parent.path,
@@ -155,7 +184,7 @@ export function useBreadcrumbs(): Breadcrumb[] {
 
       // Add current page
       breadcrumbs.push({
-        label: dynamicConfig.getLabel(params as Record<string, string>),
+        label: dynamicConfig.getLabel(match),
         path: path,
         isCurrentPage: true,
       });
@@ -172,7 +201,9 @@ export function useBreadcrumbs(): Breadcrumb[] {
         let label = ROUTE_LABELS[currentPath];
 
         if (!label) {
-          // Try parent paths (e.g., /admin/users -> check /admin first)
+          // An intermediate segment that is not itself a page would render a
+          // crumb linking to a 404, so it is left out.
+          if (!isLast) continue;
           label = formatSlug(segments[i]);
         }
 
@@ -196,7 +227,7 @@ export function useBreadcrumbs(): Breadcrumb[] {
     }
 
     return breadcrumbs;
-  }, [location.pathname, params]);
+  }, [location.pathname]);
 }
 
 /**

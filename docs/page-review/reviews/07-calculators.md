@@ -1,0 +1,241 @@
+# 07 — Calculators review (/calculators, /staking-calculator, /retirement-calculator, /backtesting)
+
+Cross-cutting findings (these apply to all four routes):
+- **Most of the calculator service layer is not used.** `src/services/calculators/{dcaCalculator,feeCalculator,stakingCalculator,premiumCalculatorFeatures}.ts` are not imported by any page. `taxCalculator.ts` is used only for `STATE_TAX_RATES` (by `src/services/taxReportService.ts:14`). `Calculators.tsx` has its own simpler inline math (see below), so the better-tested service code (IRS holding-period rule, bracket stacking, state tax) never reaches users.
+- **Tax data is from 2024 everywhere.** `src/services/calculators/taxCalculator.ts:5-21` and `src/types/premiumFeatures.ts:554-586` (`FEDERAL_TAX_BRACKETS_2024`, `CAPITAL_GAINS_BRACKETS_2024`, used by the retirement calculator) both use 2024 single/MFJ thresholds. Current figures (verify against IRS Rev. Proc. 2024-40 and 2025-32 before shipping):
+  - **2025 single:** 10% ≤11,925 · 12% ≤48,475 · 22% ≤103,350 · 24% ≤197,300 · 32% ≤250,525 · 35% ≤626,350 · 37% above. LTCG: 0% ≤48,350 · 15% ≤533,400 · 20% above. **MFJ:** 23,850/96,950/206,700/394,600/501,050/751,600. LTCG 0% ≤96,700, 15% ≤600,050.
+  - **2026 single:** 12,400/50,400/105,700/201,775/256,225/640,600. LTCG 0% ≤49,450, 15% ≤545,500. **MFJ:** 24,800/100,800/211,400/403,550/512,450/768,700. LTCG 0% ≤98,900, 15% ≤613,700.
+  - None of the calculators model the 3.8% NIIT, the standard deduction (2026: $16,100 single / $32,200 MFJ), or Head of Household / MFS brackets.
+- **State tax tables are stale or wrong in both copies:**
+  - `taxCalculator.ts:24-72`: OH = 0, but Ohio does tax capital gains. IA 6% (flat 3.8% since 2025). NC 5.25% (4.25% in 2025, 3.99% in 2026). LA 4.25% (flat 3% from 2025). MS 5% (4.4%). NY 8.82% (top rate is 10.9%). DE, RI, NM and DC are missing. The note about WA's 7% tax on gains over $250k is unreachable, because WA is in `noTaxStates` and the first branch catches it (`:413-416`). The WA threshold is now indexed (about $270k), with an added 2.9% on gains over $1M. The NH note is also outdated.
+  - `retirementCalculator.ts:101-110` is a second, different table (CA 9.3% here vs 13.3% in the other; OH 4% here vs 0).
+  - Keep one dated table in `src/data/`.
+- **No DB and no saved scenarios anywhere.** No route reads or writes Supabase. There are no `staking_*`, `retirement_*` or `backtest*` tables in `supabase/schema.sql` or the migrations. No localStorage fallback either. The retirement pricing promises "3 saved scenarios" (`retirementCalculator.ts:31`, `subscriptionLimits.ts:1165`), and that feature does not exist.
+- **Premium gates can never unlock in STATIC_MODE**, because there is no auth. Every page still shows paywalls and "Upgrade" CTAs linking to `/pricing`.
+- **Prerendering:** the SPA serves an empty shell, and none of these pages have static explanatory text. Each needs a prerendered block: H1, a BLUF summary, "how it's calculated", assumptions with sources, FAQ and a last-updated date.
+- **Titles are too long.** `SEO.tsx:109` appends " | Bitcoinvestments" (19 characters):
+  - /calculators: 69 characters
+  - /staking-calculator: 72
+  - /retirement-calculator: 66
+  - /backtesting: 68
+- **Descriptions over 160 characters:** /calculators is 172 (`Calculators.tsx:132`).
+- **Missing schema:** no `HowTo` on any route, and no `BreadcrumbList` on the three `PageSEO` routes.
+
+---
+
+### /calculators — src/pages/Calculators.tsx
+- **Purpose / target query:** "crypto calculator", "DCA calculator", "crypto tax calculator", "crypto fee calculator", "crypto converter".
+- **Verdict:** Poor. The DCA and tax results are mathematically meaningless or wrong, and the JSON-LD contains a fabricated rating.
+- **Up-to-date issues:**
+  - Fee table (`:549-554`) is hardcoded and undated:
+    - Kraken 0.16/0.26%: Kraken Pro's entry tier is now 0.25/0.40%.
+    - Coinbase 0.4/0.6%: Coinbase Advanced's entry tier has been up to 0.60/1.20% since late 2023.
+    - Binance.US 0.1/0.1%: needs verification.
+    - It also duplicates `src/data/exchanges.ts`, which still contains a `coinbase-pro` entry (`:347`); that product was discontinued in 2023.
+  - Tax form (`:705`) hardcodes long-term = 15% for everyone and uses no brackets at all. The bracket data in `services/calculators/taxCalculator.ts:5` is labelled "2024".
+  - No "last updated" date anywhere.
+- **SEO issues:**
+  - `:83-89` `aggregateRating` 4.7 from 892 ratings is **fabricated**. There is no rating system. This is a structured-data spam violation and a YMYL trust risk.
+  - `:96-124` FAQPage Q&As are not visible on the page, which breaks Google's FAQ guidelines.
+  - Title 69 / description 172 characters (`:131-132`). `PAGE_METADATA.calculators` (`seo.ts:93`) exists but is not used, so there are two diverging sources of metadata.
+  - Heading order: tab buttons render `<h3>` (`:178`) before the panel `<h2>` (`:259`).
+  - `?type=` deep links all canonicalize to `/calculators` (`SEO.tsx:112`). That is fine, but it means the individual calculators can't rank for their own queries.
+  - The page's "Staking" tab duplicates `/staking-calculator`, and the two use different math.
+  - No internal links or RelatedPages on the page.
+- **GEO issues:** No BLUF summary and no text explaining results (only a footnote at `:372`). No formulas, no sourced assumptions, no FAQ in the body, no author or date signals.
+- **Static + DB:**
+  - DCA and Converter depend on live CoinGecko. `getTopCryptocurrencies` returns `[]` on failure (`coingecko.ts:176`), so:
+    - DCA shows "Enter valid inputs to see results." (`:369`), which is misleading.
+    - The converter renders an empty `<select>` with no error state (`:451`).
+  - Fees, Staking and Tax are fully static.
+  - No DB use. No saved scenarios.
+- **Uniqueness / content gaps:**
+  - The DCA tool doesn't backtest; `/backtesting` does, but it locks DCA behind premium.
+  - Missing: a historical DCA (e.g. "$100/week in BTC since 2020"), a fee comparison with spread and deposit method, and a tax calculator with dates, filing status, state and 2025/2026 brackets. The 1099-DA and per-wallet cost-basis rules (from 2025) are missing and would make strong GEO content.
+- **Bugs:**
+  - **DCA math is a tautology** (`:231-237`). Every buy is priced at today's price, so `currentValue === totalInvested` and Net Return is always $0.00 (0.0%). "Average Cost" always equals the current price.
+  - Tax:
+    - The long-term rate is fixed at 15% (`:705`). A 0%-bracket filer is overcharged, and the 20% bracket is undercharged.
+    - The bracket selector is hidden for long-term sales (`:783`).
+    - The label "Short-term (< 1 year)" (`:778`) should read "1 year or less".
+    - Negative values render as "$-1,000" (`:822`).
+  - Staking tab:
+    - The compounding select is ignored (`:579-586`). It always compounds monthly, and "No compounding" still compounds.
+    - "APY" input is compounded again as if it were APR.
+    - `effectiveApy` (`:591`) is a simple average of the compounded return, which is wrong for durations other than 12 months. Duration 0 gives NaN/Infinity.
+  - The fee "Total Cost" column uses only the taker fee (`:560`). Maker fees are shown but never used.
+  - Grid is `md:grid-cols-4` with 5 tabs (`:162`), so one tab wraps alone.
+  - Tab buttons lack `aria-pressed`/tablist semantics. `<label>`s lack `htmlFor`.
+- **Recommended fixes:**
+  - **P0:** Remove `aggregateRating` (`:83-89`).
+  - **P0:** Replace inline DCA with a historical backtest. Use `getHistoricalDataRange` (`coingecko.ts:255`) with the bundled/static series as fallback, or reuse `services/backtesting.ts`. Show buy-by-buy cost basis and a real return.
+  - **P0:** Replace inline tax math with `calculateCapitalGainsTax` (`services/calculators/taxCalculator.ts`), after updating it:
+    - Move brackets to a dated `src/data/taxBrackets.ts` keyed by tax year (2025 and 2026) and filing status.
+    - Compute LTCG by stacking gain on ordinary income across the 0/15/20 bands instead of applying one rate.
+    - Add purchase and sale dates, filing status, state and NIIT.
+    - Fix the state table and the unreachable WA branch.
+  - **P1:** Wire the staking tab to `services/calculators/stakingCalculator.ts` or drop it and link to `/staking-calculator`. Treat APY as already compounded.
+  - **P1:** Pull fee rows from `src/data/exchanges.ts`, add a "fees verified <date>" line, and update Kraken/Coinbase tiers. **NEEDS-OWNER:** confirm the current fee schedules. Remove `coinbase-pro` from the data file.
+  - **P1:** Put all form inputs in the URL (e.g. `?type=dca&coin=bitcoin&amount=100&freq=weekly&months=12`) so results are shareable.
+  - **P1:** Add visible content that matches the schema:
+    - A BLUF paragraph
+    - A "How each calculator works" section with formulas
+    - A visible FAQ (the same Q&As as the JSON-LD)
+    - A last-updated date
+    - Per-calculator `SoftwareApplication`/`WebApplication` entries
+    - `HowTo` for the DCA and tax walkthroughs
+  - **P1:** Title ≤41 characters before the suffix, e.g. "Crypto Calculators: DCA, Tax, Fees, Staking". Description ≤155.
+  - **P2:** Converter/DCA error state when prices fail. Fix the tab grid to 5 columns and heading order. Add `htmlFor`. Add RelatedPages. Delete or wire up dead `premiumCalculatorFeatures.ts`, `dcaCalculator.ts` and `feeCalculator.ts`.
+
+---
+
+### /staking-calculator — src/pages/StakingCalculator.tsx + src/services/stakingCalculator.ts
+- **Purpose / target query:** "staking calculator", "ETH staking rewards calculator", "best staking APY".
+- **Verdict:** Poor. Mock APYs are shown as live data, some listed products are discontinued, and there are several math/UX bugs.
+- **Up-to-date issues:**
+  - `services/stakingCalculator.ts:18-37` is hardcoded "Mock staking platforms/opportunities" data, but the UI never says it is a sample. Every row gets `last_updated_at: new Date()` (`:30-36`), which fakes freshness.
+  - **Dead products:**
+    - Lido on Solana / stSOL (`:34`) was sunset in 2023–24.
+    - Lido "MATIC" (`:20`): Lido on Polygon wound down, and MATIC has migrated to POL.
+    - Binance "BETH" (`:33`) was replaced by WBETH.
+    - Binance.com (`:23`, `:36`) is not available to US users, the core audience.
+  - APYs look like 2023–24 levels: Lido 4.2%, Rocket Pool 4.8%, Coinbase 3.8%. ETH staking yields have since been roughly 2.5–3.5%. **NEEDS-OWNER/verify.**
+  - `services/calculators/stakingCalculator.ts:250-257` (unused) lists "MATIC" and ATOM 15–20% / DOT 10–15%, also stale.
+- **SEO issues:**
+  - Title 72 characters (`seo.ts:201`).
+  - No BreadcrumbList or HowTo.
+  - The FAQ answer claims "We factor in … platform fees" (`:125`), but there is no fee input. It is also not visible on the page.
+  - H1 is followed by H2/H3 cards; OK.
+  - While `isLoading` is true (`:107-113`), the page renders only a spinner, with no `PageSEO` and no H1.
+- **GEO issues:** No BLUF summary and no explanatory text about how rewards are computed, slashing, lockups, liquid staking tokens or taxes on staking rewards (IRS Rev. Rul. 2023-14). No sources and no date.
+- **Static + DB:** Fully static mock data. There is no DB table or read path. The premium "optimal strategy" is a heuristic over the same mock data.
+- **Uniqueness / content gaps:** Needs real, dated per-asset data:
+  - Protocol reward rate vs. provider net APY, commission, lockup/unbonding, minimum, custodial vs. liquid
+  - Token-denominated rewards plus a price-change scenario (the `price_change_assumption` input exists but is hardcoded to 0 at `:94`)
+  - An after-tax view
+- **Bugs:**
+  - **ADA and DOT are selectable (`:175-176`) but have no opportunities.** `loadData` keeps the previous `selectedOpportunity` (`:74-76`), so "Calculate" for ADA uses Lido's ETH APY.
+  - **Compound "none" with `reinvest_rewards: true` gives $0 rewards.** At `services/stakingCalculator.ts:96-114` `currentAmount` is never increased in the simple branch, so `cumulativeRewards = currentAmount - stake = 0`. That hits Coinbase ("manual" becomes "none", `:92`) for premium users. The chart then divides by 0 (`:292`).
+  - APY is compounded again as if it were APR (`:101-103`), so the final balance exceeds the stated APY while "Effective APY" shows the raw input (`:139`).
+  - "Risk Score {adjustedScore}/100" (`:324`) shows an APY-scale number (about 4) as a score out of 100.
+  - "Showing top 3 of {opportunities.length}+" (`:345`): the list is already sliced to 3.
+  - Opportunity cards are clickable `div`s (`:350-352`), not keyboard-accessible.
+  - The effect dependency on `loadData` is missing; it is re-created each render (lint only).
+- **Recommended fixes:**
+  - **P0:** Label all APYs as "Sample rates as of <date>, verify with provider", or remove the platform list.
+  - **P0:** Delete stSOL, Lido-MATIC, BETH and Binance.com. Add Kraken/Coinbase US options with current rates. **NEEDS-OWNER:** real rates, ideally in a `staking_opportunities` Supabase table with `src/data/staking.ts` as the static fallback and a visible `last_verified` date.
+  - **P0:** Fix the "none" compounding branch and the stale-opportunity bug. Clear the selection and show an empty state when an asset has no rows, or remove ADA/DOT.
+  - **P1:** Treat input as APY: `periodic = (1+APY)^(1/n)-1`. Add a token-amount mode and a price-change input.
+  - **P1:** Put state in URL params (`?asset=ETH&amount=1000&months=12&platform=lido-eth`). Auto-calculate on change instead of requiring the button.
+  - **P1:** Render the SEO/H1 shell during loading. Add a visible FAQ (matching the schema; drop the "platform fees" claim), a BLUF summary, a "How staking rewards are calculated" HowTo and a staking-tax note. Shorten the title.
+  - **P2:** Fix the risk-score label, the "top 3 of N" text and button semantics. Delete the duplicate `services/calculators/stakingCalculator.ts` or merge the two implementations.
+
+---
+
+### /retirement-calculator — src/pages/RetirementCalculator.tsx + src/services/retirementCalculator.ts
+- **Purpose / target query:** "crypto retirement calculator", "how much bitcoin to retire", "FIRE calculator crypto".
+- **Verdict:** Needs work. The engine is reasonably careful in places, but the Monte Carlo can produce negative balances, the tax model is 2024-only, several inputs do nothing, and "saved scenarios" do not exist.
+- **Up-to-date issues:**
+  - Uses `FEDERAL_TAX_BRACKETS_2024`/`CAPITAL_GAINS_BRACKETS_2024` (`retirementCalculator.ts:18-19`, `:345-369`). Those 2024 brackets are applied unindexed to nominal withdrawals 30+ years out, which massively overstates bracket creep.
+  - The state table (`:101-110`) is stale and inconsistent with the other copy (see the cross-cutting section).
+  - Default return assumptions (BTC 15%, ETH 20%, crypto 12% at `:84-96`) are unsourced.
+- **SEO issues:**
+  - Title 66 characters.
+  - No FAQ, HowTo or BreadcrumbList. `PageSEO` only emits WebPage and SoftwareApplication (`:87`).
+  - H1 is followed directly by `<h3>` sections (`:134`); there are no H2s.
+  - No RelatedPages or internal links.
+  - A "PREMIUM" badge is always shown next to the H1 (`:96-98`), even though the tool is free.
+- **GEO issues:** No explanation of the method (the 4% rule, Monte Carlo, what "success probability" means), no sourced assumptions, no worked example and no date. Results are numbers and bars only, with no sentence summary such as "You're projected to have $X at 65 against $Y needed."
+- **Static + DB:**
+  - Fully client-side, and works without the DB.
+  - `user?.id` is only stamped into the result.
+  - No save/load, no DB table and no localStorage, despite the "3 saved scenarios" promise.
+  - `isPremium` is hardcoded `useState(false)` (`:41`), so paying users can never get export.
+  - "PDF export" is actually a JSON download (`:67-76`, `retirementCalculator.ts:623`).
+- **Uniqueness / content gaps:** This could be the site's differentiator:
+  - Scenario comparison (0/5/10/20% crypto)
+  - Sequence-of-returns risk illustration
+  - Social Security claiming age
+  - Account types (Roth, traditional, taxable)
+  - Real vs. nominal toggle
+- **Bugs:**
+  - **Monte Carlo draws normal returns with σ=60%** (`:408`, `:452`). About 3% of years draw a return below −100%, which makes `cryptoValue` negative and corrupts portfolio totals and percentiles. Use lognormal returns, or clamp at −100%.
+  - **`total_needed_at_retirement` does not inflate guaranteed income** (`:127-128`), while the projection (`:259`) and the Monte Carlo (`:429`) do. With the defaults the "needed" figure is overstated by about 25%, and funding ratio and gap are wrong.
+  - If guaranteed income exceeds desired income, the shortfall is negative. `totalNeeded` becomes negative, `funding_ratio` goes negative, and the status shows "Needs Attention" (`:80-82`).
+  - With no validation, `retirement_age <= current_age` gives divide-by-zero.
+  - The discount rate uses a 100%-stock return (`:129`), while retirement-phase growth uses a 40/60 mix (`:282`) and the Monte Carlo drops bonds entirely (`:451`). Three inconsistent return assumptions.
+  - The Monte Carlo ignores taxes, but the deterministic projection includes them (`:264`).
+  - LTCG is bracketed on the gain alone, not stacked on income (`:366-383`). The same bug was already fixed in `taxCalculator.ts:120-126`.
+  - No standard deduction. MFS and HoH silently use single brackets (`:345-347`).
+  - Label "Total Contribution ($)" (`page:225`) is treated as the traditional-only stream, and the crypto contribution is added on top (`service:184-191`). A user entering a total double-counts.
+  - The "Crypto Allocation %" slider (`page:198-215`) has no effect on the projection; it only triggers a recommendation (`service:565`).
+  - The `crypto_allocations` array (`:83-87`) is unused.
+  - `projected_savings_at_retirement` is taken after the first retirement-year withdrawal and growth (`:132`, `:226`).
+  - Percentile `probability_of_success` / `years_portfolio_lasts` (`:469-475`) use `ending > 0`, which ignores the `depleted` flag.
+  - Tax tab numbers are fabricated heuristics:
+    - Roth "opportunity" = savings × 10% × years (`:514`), e.g. $300K.
+    - "TLH opportunities annually" = 10% of crypto (`:518`).
+    - Recommendation "+8%/+12%/+15%" impacts are constants (`:550-581`).
+    - `:579` "could add 36000" is missing a `$` and ignores growth.
+  - Chart: `cryptoHeight/height` gives NaN when the portfolio is 0 (`page:508`). No text alternative. Labels lack `htmlFor`.
+- **Recommended fixes:**
+  - **P0:** Switch the Monte Carlo to lognormal returns, inflate guaranteed income in `totalNeeded`, guard negative shortfall and invalid ages, and use one consistent return model (with or without taxes, but the same in both engines).
+  - **P0:** Move brackets to a dated, year-keyed data file (2026), index brackets by inflation in future years (or model in real dollars), add the standard deduction and HoH/MFS, and stack LTCG.
+  - **P0:** Remove or clearly label the fabricated tax-tab figures and recommendation impact percentages, e.g. "illustrative"; better, compute impacts by re-running the simulation with the changed input. Remove the always-on PREMIUM badge.
+  - **P1:** Saved scenarios: a `retirement_scenarios` Supabase table (user_id, name, inputs jsonb, created_at) with RLS. Use localStorage when not signed in or when `!isSupabaseConfigured()`. Encode inputs in the URL (`?age=35&retire=65&...`) for sharing. Wire `isPremium` to `hasActiveMainSubscription`.
+  - **P1:** Make the crypto allocation slider actually split contributions, or remove it. Rename "Total Contribution" to "Non-crypto contribution".
+  - **P1:** Add content:
+    - A plain-language result summary sentence
+    - A "How this calculator works" section (HowTo)
+    - An assumptions table with sources (inflation, historical returns)
+    - A visible FAQ and FAQPage schema
+    - A last-updated date, H2 structure, RelatedPages and a shorter title
+  - **P2:** Real PDF export or rename it to "Export JSON". Chart a11y (table fallback). `htmlFor` on labels.
+
+---
+
+### /backtesting — src/pages/Backtesting.tsx + src/services/backtesting.ts
+- **Purpose / target query:** "what if I invested in bitcoin", "bitcoin DCA backtest", "bitcoin lump sum vs DCA".
+- **Verdict:** Poor. The bundled price data ends 2024-12-09, so today's default run covers about 2.5 months of 2024. DCA (the main use case) is locked behind a premium tier that can't be bought in STATIC_MODE.
+- **Up-to-date issues:**
+  - `HISTORICAL_PRICES` (`backtesting.ts:81-144`) ends **2024-12-09**, about 21 months stale. The "1 Year" preset is disabled.
+  - The default `getStartDateFromPeriod(24)` (`page:41`) resolves to 2024-09-23 and is clamped to end 2024-12-09 (`service:457-458`). The default result therefore describes Sep–Dec 2024.
+  - Only 16–20 anchors per asset, with linear interpolation. Some anchors are off: SOL 2023-12-01 = 110 (`:136`) was about $60 at the time.
+  - The meta description promises "custom strategies" (`seo.ts:189`); none exist.
+- **SEO issues:**
+  - Title 68 characters.
+  - The visible H1 is "Investment Backtesting" and never mentions Bitcoin or crypto (`page:122-124`).
+  - No BreadcrumbList or HowTo. The FAQ is in JSON-LD only, not visible.
+  - H3s appear under the results without an H2 (`:322`).
+- **GEO issues:**
+  - No BLUF summary or answer text for the target query (e.g. "$1,000 in BTC on Jan 1 2020 would be worth $X on <date>").
+  - The DCA explanation text is formulaic and partly wrong: "DCA outperformed … due to favorable market conditions" (`:492`). DCA beats lump sum in falling or choppy markets.
+  - The disclaimer is good (`:535-539`).
+- **Static + DB:**
+  - Fully static bundled data. No DB. No use of the existing `getHistoricalDataRange` (`coingecko.ts:255`).
+  - The CoinGecko free/demo API only returns about 365 days of history, so a hybrid approach is needed: a static daily/weekly dataset in `src/data` or `public/` (regenerated by a script) with the API for recent days.
+- **Uniqueness / content gaps:**
+  - The static baseline should be a weekly BTC/ETH/SOL close series from 2014/2016/2020 to date, with sources (e.g. CoinGecko or CoinMetrics) and a "data through" date.
+  - Unlock DCA for everyone; it's the page's reason to exist.
+  - Add:
+    - A lump-sum vs DCA chart
+    - XIRR for DCA
+    - Pre-computed landmark tables ("$100/week since 2020 halving"), which can be prerendered as static text for SEO/GEO
+- **Bugs:**
+  - **Enabling DCA without editing the amount silently runs lump sum.** The input shows `input.dcaAmount || 100` (`page:251`), but state stays `undefined`, so `if (input.dcaAmount && input.dcaFrequency)` (`service:542`) is false. The same applies to frequency (`page:261`).
+  - **Lump-sum max drawdown is computed from only two points** (start and end, `service:586-600`), so a 2021-11 to 2022-12 buy-and-hold reports the drop only from the start date, and interior crashes are missed. Compute drawdown from `priceHistory` (daily data).
+  - For DCA, drawdown is computed on a portfolio value inflated by new contributions (`:387-397`), which masks losses.
+  - "All-Time High" and "ATH Date" (`page:419-425`) show peak portfolio value, not the asset's ATH. The label is misleading.
+  - DCA "Annualized Return" applies the total-return CAGR to the whole window (`service:606`), but most of the money was invested late. Use XIRR.
+  - "Final Value" is always green, even for losses (`page:353`).
+  - A local `const window` (`page:55`) shadows the global `window`.
+  - The artificial 500 ms `setTimeout` "API delay" (`page:66-76`) adds latency for no reason.
+  - The timeline table shows only the last 10 rows (`:514`) with no note.
+  - Labels lack `htmlFor`. The DCA toggle is a button without `aria-pressed`.
+- **Recommended fixes:**
+  - **P0:** Replace `HISTORICAL_PRICES` with a generated static dataset, e.g. `public/data/prices/{bitcoin,ethereum,solana}-weekly.json` from a `scripts/update-price-history.mjs` run in CI/cron, with a visible "Data through <date> · Source: CoinGecko". Top up the most recent days from `getHistoricalDataRange` when online.
+  - **P0:** Initialise `dcaAmount: 100, dcaFrequency: 'monthly'` when DCA is toggled on. Make DCA free, or at least not gated in STATIC_MODE.
+  - **P1:** Compute drawdown and ATH from the price series. Use XIRR for DCA. Fix colour logic and the DCA explanation text.
+  - **P1:** URL params for every input (`?asset=bitcoin&start=2020-01-01&amount=1000&dca=100&freq=weekly`) and a shareable result link. Optional saved backtests: a `saved_backtests` table plus localStorage fallback.
+  - **P1:** H1 "Bitcoin & Crypto Backtesting: Lump Sum vs DCA". A BLUF sentence under results. A visible FAQ, HowTo, Breadcrumb and a dataset "last updated". Fix the meta description (remove "custom strategies"). Title ≤41 characters before the suffix.
+  - **P2:** Remove the fake delay, rename `window`, note the "last 10 of N" rows or paginate, and fix a11y labels.

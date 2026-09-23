@@ -994,7 +994,7 @@ export function generateGlossarySchema({
     '@context': 'https://schema.org',
     '@type': 'DefinedTermSet',
     name: 'Cryptocurrency Glossary',
-    description: 'Comprehensive glossary of 300+ cryptocurrency and blockchain terms explained in plain English.',
+    description: 'Cryptocurrency and blockchain terms explained in plain English.',
     url: `${SEO_CONFIG.siteUrl}/glossary`,
     hasDefinedTerm: terms.map((t) => ({
       '@type': 'DefinedTerm',
@@ -1223,13 +1223,6 @@ export function generateLocalBusinessSchema() {
           },
         },
       ],
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: '1250',
-      bestRating: '5',
-      worstRating: '1',
     },
   };
 }
@@ -1460,7 +1453,7 @@ export function getRelatedPages(currentPath: string): RelatedLink[] {
       { title: 'Scam Database', url: '/scam-database', description: 'Verify before you trade' },
     ],
     '/learn': [
-      { title: 'Glossary', url: '/glossary', description: '300+ crypto terms explained' },
+      { title: 'Glossary', url: '/glossary', description: 'Crypto terms explained in plain English' },
       { title: 'Compare Platforms', url: '/compare', description: 'Find the right tools' },
       { title: 'Calculators', url: '/calculators', description: 'Plan your investments' },
     ],

@@ -226,7 +226,7 @@ const CONTENT_HUBS: Record<ContentHubProps['category'], RelatedLink[]> = {
   ],
   education: [
     { title: 'Getting Started', url: '/learn', description: 'Beginner guides' },
-    { title: 'Glossary', url: '/glossary', description: '300+ terms explained' },
+    { title: 'Glossary', url: '/glossary', description: 'Crypto terms explained in plain English' },
     { title: 'What is Bitcoin', url: '/article/what-is-bitcoin', description: 'Bitcoin basics' },
     { title: 'DeFi Basics', url: '/article/defi-basics', description: 'DeFi explained' },
     { title: 'Crypto Wallets', url: '/article/crypto-wallets-explained', description: 'Wallet guide' },

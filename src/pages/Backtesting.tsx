@@ -67,7 +67,7 @@ const FAQS: FaqItem[] = [
   {
     question: 'Where does the price data come from?',
     answer:
-      'Weekly (Monday) USD prices from Coin Metrics’ free community dataset through May 2026, then daily CoinGecko prices. When your browser can reach CoinGecko, the last 12 months are replaced with daily prices. Prices between data points are interpolated, so results are close approximations rather than exchange fills, and fees are not included.',
+      'Weekly (Monday) USD prices from Coin Metrics’ free community dataset through May 2026, then weekly points from daily CoinGecko snapshots. When your browser can reach CoinGecko, the last 12 months are replaced with daily prices. Prices between data points are interpolated, so results are close approximations rather than exchange fills, and fees are not included.',
   },
   {
     question: 'Why does Solana history only start in December 2025?',
@@ -214,7 +214,7 @@ export function Backtesting() {
     'What if you had invested in Bitcoin? Backtest lump sum vs DCA for BTC and ETH since 2014 on weekly price history, with drawdowns and XIRR returns.';
 
   const bluf = ok
-    ? `${form.dcaOn ? `Investing ${formatUsd(form.amount, 0)} up front plus ${formatUsd(form.dcaAmount, 0)} ${FREQ_LABEL[form.freq].toLowerCase()}` : `${formatUsd(ok.totalInvested, 0)} invested`} in ${assetMeta.name} from ${formatIsoDate(ok.startDate)} would be worth ${formatUsd(ok.finalValue, 0)} on ${formatIsoDate(ok.endDate)}: a ${ok.profit >= 0 ? 'gain' : 'loss'} of ${formatUsd(Math.abs(ok.profit), 0)} (${formatSignedPct(ok.totalReturnPct)}) on ${formatUsd(ok.totalInvested, 0)} put in.`
+    ? `${form.dcaOn ? `Investing ${form.amount > 0 ? `${formatUsd(form.amount, 0)} up front plus ` : ''}${formatUsd(form.dcaAmount, 0)} ${FREQ_LABEL[form.freq].toLowerCase()}` : `${formatUsd(ok.totalInvested, 0)} invested`} in ${assetMeta.name} from ${formatIsoDate(ok.startDate)} would be worth ${formatUsd(ok.finalValue, 0)} on ${formatIsoDate(ok.endDate)}: a ${ok.profit >= 0 ? 'gain' : 'loss'} of ${formatUsd(Math.abs(ok.profit), 0)} (${formatSignedPct(ok.totalReturnPct)}) on ${formatUsd(ok.totalInvested, 0)} put in.`
     : null;
 
   const tableRows = ok ? samplePath(ok.path, 24) : [];

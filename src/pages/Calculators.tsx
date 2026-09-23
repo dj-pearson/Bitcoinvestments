@@ -403,7 +403,7 @@ function TaxCalculatorForm() {
                 </Row>
                 <Row label="Federal income tax on it">{signedUsd(r.federalIncomeTax)}</Row>
                 <Row label="Net investment income tax (3.8%)">{formatUsd(r.niit)}</Row>
-                <Row label={state ? `${STATE_TAX_BY_CODE[state].name} tax (estimate)` : 'State tax'}>{state ? formatUsd(r.stateTax) : 'Not included'}</Row>
+                <Row label={state ? `${STATE_TAX_BY_CODE[state].name} tax (top-rate estimate, may be lower)` : 'State tax'}>{state ? formatUsd(r.stateTax) : 'Not included'}</Row>
                 <Row label="Total extra tax" strong>{signedUsd(r.totalTax)}</Row>
                 {r.gain > 0 && <Row label="Kept after tax">{formatUsd(r.netAfterTax)}</Row>}
                 {r.lossCarryforward > 0 && <Row label="Loss carried to next year">{formatUsd(r.lossCarryforward)}</Row>}

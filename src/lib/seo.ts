@@ -154,9 +154,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   scamDatabase: {
-    title: 'Crypto Scam Database - Protect Yourself from Fraud',
+    title: 'Crypto Scam Checker & Scam Types Guide',
     description:
-      'Free community-powered cryptocurrency scam database. Search known scams, report fraud, and protect yourself from phishing, rug pulls, and ponzi schemes.',
+      'Check a crypto wallet or website before you send, learn how 11 common crypto scams work, see FBI IC3 loss data, and know what to do if you are scammed.',
     keywords: [
       'crypto scam database',
       'cryptocurrency scams',
@@ -483,17 +483,16 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   reportScam: {
-    title: 'Report a Crypto Scam - Help Protect the Community',
+    title: 'How to Report a Crypto Scam',
     description:
-      'Report cryptocurrency scams to our community database. Submit details about phishing sites, rug pulls, fake exchanges, and other crypto fraud to protect other investors.',
+      'Step-by-step guide to reporting a crypto scam to the FBI IC3, FTC, SEC, CFTC and your exchange, what evidence to keep, and how to avoid recovery scams.',
     keywords: [
+      'how to report a crypto scam',
       'report crypto scam',
-      'report fraud',
-      'crypto scam report',
-      'phishing report',
-      'rug pull report',
-      'scam submission',
-      'crypto fraud alert',
+      'report bitcoin scam',
+      'IC3 crypto complaint',
+      'crypto scam recovery',
+      'crypto fraud report',
     ],
   },
 };

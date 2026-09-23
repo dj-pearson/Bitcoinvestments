@@ -90,7 +90,7 @@ const DYNAMIC_ROUTES: DynamicRouteConfig[] = [
   {
     pattern: /^\/coin\/([^/]+)$/,
     getLabel: (m) => formatSlug(m[1]),
-    getParent: () => ({ label: 'Prices', path: '/dashboard' }),
+    getParent: () => ({ label: 'Crypto Prices', path: '/dashboard' }),
   },
   {
     pattern: /^\/scam\/([^/]+)$/,

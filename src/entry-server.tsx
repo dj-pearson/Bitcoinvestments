@@ -15,6 +15,8 @@ import { QueryClient } from '@tanstack/react-query';
 import App from './App';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import { HeadContext, createHeadCollector, renderHeadTags } from './lib/head';
+import { CURATED_COIN_IDS } from './data/coins';
+import { getSnapshotPosts, getSnapshotCategories } from './content/blog';
 
 export interface RenderResult {
   html: string;
@@ -77,5 +79,16 @@ export { shouldNoindex } from './lib/index-pruning';
  * discover from App.tsx and src/data alone.
  */
 export function prerenderExtraPaths(): string[] {
-  return [];
+  const posts = getSnapshotPosts();
+  const categoriesWithPosts = new Set(posts.map((p) => p.category_slug).filter(Boolean));
+  return [
+    // Curated coin profiles are the only indexable /coin pages.
+    ...CURATED_COIN_IDS.map((id) => `/coin/${id}`),
+    // Published posts from the build-time snapshot of the database; posts
+    // published since the build are served by functions/blog.
+    ...posts.map((p) => `/blog/${p.slug}`),
+    ...getSnapshotCategories()
+      .filter((c) => categoriesWithPosts.has(c.slug))
+      .map((c) => `/blog/category/${c.slug}`),
+  ];
 }

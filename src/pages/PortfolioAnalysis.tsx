@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Brain,
@@ -20,29 +20,71 @@ import { useAuth } from '../contexts/AuthContext';
 import { hasAIPortfolioAnalysis } from '../services/subscriptionLimits';
 import { AnalysisSkeleton } from '../components/LoadingSkeletons';
 import { SEO } from '../components/SEO';
-import { generateToolSchema, generateFAQSchema } from '../lib/seo';
 import {
   generatePortfolioAnalysis,
   type PortfolioAnalysisInput,
   type PortfolioAnalysisResult,
 } from '../services/ai';
 import { cn } from '../lib/utils';
+import { getPortfolio } from '../services/portfolio';
+import { getSimplePrices } from '../services/coingecko';
 
-// Demo portfolio data
-const demoPortfolio: PortfolioAnalysisInput = {
-  holdings: [
-    { symbol: 'BTC', name: 'Bitcoin', amount: 0.5, currentValue: 49000, costBasis: 35000, allocationPercentage: 55 },
-    { symbol: 'ETH', name: 'Ethereum', amount: 5, currentValue: 19500, costBasis: 12000, allocationPercentage: 22 },
-    { symbol: 'SOL', name: 'Solana', amount: 50, currentValue: 11000, costBasis: 8000, allocationPercentage: 12 },
-    { symbol: 'LINK', name: 'Chainlink', amount: 200, currentValue: 5000, costBasis: 4500, allocationPercentage: 6 },
-    { symbol: 'UNI', name: 'Uniswap', amount: 150, currentValue: 4500, costBasis: 5000, allocationPercentage: 5 },
-  ],
-  totalValue: 89000,
-  totalCostBasis: 64500,
-  riskTolerance: 'medium',
-  investmentGoal: 'Long-term growth',
-  timeHorizon: 'long',
-};
+type PortfolioLoadState =
+  | { status: 'loading' }
+  | { status: 'empty' }
+  | { status: 'error'; message: string }
+  | {
+      status: 'ready';
+      data: Pick<PortfolioAnalysisInput, 'holdings' | 'totalValue' | 'totalCostBasis'>;
+      /** Symbols with no live price; they are valued at cost basis. */
+      unpriced: string[];
+    };
+
+/**
+ * Build the analysis input from the signed-in user's own saved portfolio,
+ * valued at current CoinGecko prices. (This page used to analyse a hard-coded
+ * sample portfolio and presented the result as the user's.)
+ */
+async function loadUserPortfolio(): Promise<PortfolioLoadState> {
+  const portfolio = await getPortfolio();
+  const holdings = (portfolio?.holdings ?? []).filter((h) => h.amount > 0);
+  if (holdings.length === 0) return { status: 'empty' };
+
+  const prices = await getSimplePrices(holdings.map((h) => h.cryptocurrency_id), ['usd']);
+  const unpriced: string[] = [];
+  const valued = holdings.map((h) => {
+    const live = prices[h.cryptocurrency_id]?.usd;
+    if (typeof live !== 'number') unpriced.push(h.symbol.toUpperCase());
+    const currentValue = typeof live === 'number' ? h.amount * live : h.cost_basis;
+    return {
+      symbol: h.symbol.toUpperCase(),
+      name: h.name,
+      amount: h.amount,
+      currentValue,
+      costBasis: h.cost_basis,
+    };
+  });
+
+  const totalValue = valued.reduce((sum, h) => sum + h.currentValue, 0);
+  const totalCostBasis = valued.reduce((sum, h) => sum + h.costBasis, 0);
+  return {
+    status: 'ready',
+    unpriced,
+    data: {
+      holdings: valued
+        .map((h) => ({
+          ...h,
+          allocationPercentage: totalValue > 0 ? Math.round((h.currentValue / totalValue) * 1000) / 10 : 0,
+        }))
+        .sort((a, b) => b.currentValue - a.currentValue),
+      totalValue,
+      totalCostBasis,
+    },
+  };
+}
+
+const formatUsd = (value: number) =>
+  value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 
 export function PortfolioAnalysis() {
   const { profile } = useAuth();
@@ -58,11 +100,30 @@ export function PortfolioAnalysis() {
   const [investmentGoal, setInvestmentGoal] = useState('Long-term growth');
   const [timeHorizon, setTimeHorizon] = useState<'short' | 'medium' | 'long'>('long');
 
-  // In production, this would come from the user's actual portfolio
-  const portfolioData = demoPortfolio;
+  const [portfolioState, setPortfolioState] = useState<PortfolioLoadState>({ status: 'loading' });
+
+  useEffect(() => {
+    if (!isPremium) return;
+    let cancelled = false;
+    loadUserPortfolio()
+      .then((state) => {
+        if (!cancelled) setPortfolioState(state);
+      })
+      .catch((err: unknown) => {
+        console.error('Error loading portfolio for analysis:', err);
+        if (!cancelled) {
+          setPortfolioState({ status: 'error', message: 'We could not load your portfolio. Please try again.' });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPremium]);
+
+  const portfolioData = portfolioState.status === 'ready' ? portfolioState.data : null;
 
   const runAnalysis = async () => {
-    if (!isPremium) return;
+    if (!isPremium || !portfolioData) return;
 
     setLoading(true);
     setError(null);
@@ -117,32 +178,14 @@ export function PortfolioAnalysis() {
     return 'bg-red-500';
   };
 
-  // SEO schema for portfolio analysis tool
-  const portfolioSchema = [
-    generateToolSchema({
-      name: 'AI Portfolio Analysis',
-      description: 'Get AI-powered insights into your cryptocurrency portfolio including risk assessment, diversification score, and personalized rebalancing suggestions.',
-      url: '/portfolio-analysis',
-    }),
-    generateFAQSchema([
-      {
-        question: 'What is AI portfolio analysis?',
-        answer: 'AI portfolio analysis uses artificial intelligence to evaluate your cryptocurrency holdings, assess risk exposure, measure diversification, and provide personalized suggestions for optimizing your investment strategy.',
-      },
-      {
-        question: 'How does the diversification score work?',
-        answer: 'The diversification score measures how well your portfolio is spread across different cryptocurrencies and sectors. A higher score indicates better diversification, which typically reduces overall risk.',
-      },
-    ]),
-  ];
-
   return (
     <>
+      {/* Signed-in tool: noindex, and no FAQ/tool schema because none of that
+          content is shown on the page. */}
       <SEO
-        title="AI Portfolio Analysis - Crypto Investment Insights"
-        description="Get AI-powered insights into your cryptocurrency portfolio. Analyze risk exposure, diversification score, and receive personalized rebalancing suggestions."
-        keywords={['portfolio analysis', 'crypto portfolio', 'AI analysis', 'risk assessment', 'diversification', 'rebalancing', 'cryptocurrency investment']}
-        schema={portfolioSchema}
+        title="AI Portfolio Analysis"
+        description="Analyse the diversification and risk of the crypto holdings you have saved, with plain-English notes. Educational only, not financial advice."
+        noindex
       />
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -185,50 +228,89 @@ export function PortfolioAnalysis() {
             <div className="glass-card p-6 sticky top-24">
               <h2 className="text-lg font-semibold text-white mb-4">Your Portfolio</h2>
 
-              {/* Holdings List */}
-              <div className="space-y-3 mb-6">
-                {portfolioData.holdings.map((holding) => (
-                  <div key={holding.symbol} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-xs font-bold text-brand-primary">
-                        {holding.symbol.slice(0, 2)}
-                      </div>
-                      <div>
-                        <p className="text-white font-medium">{holding.symbol}</p>
-                        <p className="text-xs text-gray-500">{holding.name}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white font-medium">{holding.allocationPercentage}%</p>
-                      <p className="text-xs text-gray-500">${holding.currentValue.toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {portfolioState.status === 'loading' && (
+                <div className="space-y-3 mb-6" aria-busy="true" aria-live="polite">
+                  <p className="sr-only">Loading your portfolio</p>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-10 rounded-lg bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              )}
 
-              {/* Portfolio Total */}
-              <div className="p-4 rounded-lg bg-white/5 mb-6">
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-400">Total Value</span>
-                  <span className="text-white font-bold">${portfolioData.totalValue.toLocaleString()}</span>
+              {portfolioState.status === 'error' && (
+                <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-300" role="alert">
+                  {portfolioState.message}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Total P/L</span>
-                  <span className={cn(
-                    "font-bold",
-                    portfolioData.totalValue > portfolioData.totalCostBasis ? "text-green-500" : "text-red-500"
-                  )}>
-                    {portfolioData.totalValue > portfolioData.totalCostBasis ? '+' : ''}
-                    {(((portfolioData.totalValue - portfolioData.totalCostBasis) / portfolioData.totalCostBasis) * 100).toFixed(1)}%
-                  </span>
+              )}
+
+              {portfolioState.status === 'empty' && (
+                <div className="mb-6 p-4 rounded-lg bg-white/5 text-sm text-gray-300">
+                  <p className="mb-3">
+                    You have no holdings saved yet. Add what you own on the dashboard, then come back to analyse it.
+                  </p>
+                  <Link to="/dashboard" className="inline-flex items-center gap-1 text-brand-accent hover:text-white">
+                    Add holdings on the dashboard <ArrowRight className="w-4 h-4" />
+                  </Link>
                 </div>
-              </div>
+              )}
+
+              {portfolioData && (
+                <>
+                  {/* Holdings List */}
+                  <div className="space-y-3 mb-6">
+                    {portfolioData.holdings.map((holding) => (
+                      <div key={holding.symbol} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-xs font-bold text-brand-primary">
+                            {holding.symbol.slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">{holding.symbol}</p>
+                            <p className="text-xs text-gray-500">{holding.name}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-medium">{holding.allocationPercentage}%</p>
+                          <p className="text-xs text-gray-500">{formatUsd(holding.currentValue)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {portfolioState.status === 'ready' && portfolioState.unpriced.length > 0 && (
+                    <p className="mb-4 text-xs text-yellow-300">
+                      No live price for {portfolioState.unpriced.join(', ')}; valued at what you paid.
+                    </p>
+                  )}
+
+                  {/* Portfolio Total */}
+                  <div className="p-4 rounded-lg bg-white/5 mb-6">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-gray-400">Total Value</span>
+                      <span className="text-white font-bold">{formatUsd(portfolioData.totalValue)}</span>
+                    </div>
+                    {portfolioData.totalCostBasis > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Total P/L</span>
+                        <span className={cn(
+                          "font-bold",
+                          portfolioData.totalValue >= portfolioData.totalCostBasis ? "text-green-500" : "text-red-500"
+                        )}>
+                          {portfolioData.totalValue >= portfolioData.totalCostBasis ? '+' : ''}
+                          {(((portfolioData.totalValue - portfolioData.totalCostBasis) / portfolioData.totalCostBasis) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Analysis Settings */}
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Risk Tolerance</label>
+                  <label htmlFor="pa-risk" className="block text-sm text-gray-400 mb-2">Risk Tolerance</label>
                   <select
+                    id="pa-risk"
                     value={riskTolerance}
                     onChange={(e) => setRiskTolerance(e.target.value as typeof riskTolerance)}
                     className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
@@ -240,8 +322,9 @@ export function PortfolioAnalysis() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Investment Goal</label>
+                  <label htmlFor="pa-goal" className="block text-sm text-gray-400 mb-2">Investment Goal</label>
                   <input
+                    id="pa-goal"
                     type="text"
                     value={investmentGoal}
                     onChange={(e) => setInvestmentGoal(e.target.value)}
@@ -251,8 +334,9 @@ export function PortfolioAnalysis() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Time Horizon</label>
+                  <label htmlFor="pa-horizon" className="block text-sm text-gray-400 mb-2">Time Horizon</label>
                   <select
+                    id="pa-horizon"
                     value={timeHorizon}
                     onChange={(e) => setTimeHorizon(e.target.value as typeof timeHorizon)}
                     className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
@@ -267,7 +351,7 @@ export function PortfolioAnalysis() {
               {/* Run Analysis Button */}
               <button
                 onClick={runAnalysis}
-                disabled={loading}
+                disabled={loading || !portfolioData}
                 className="w-full py-3 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {loading ? (

@@ -86,7 +86,8 @@ DROP POLICY IF EXISTS "Users can read own profile via wallet" ON public.users;
 -- ============================================================================
 
 -- Default preferences, previously written by the browser in
--- src/services/auth.ts signUp().
+-- src/services/auth.ts signUp(). risk_tolerance uses the values the Profile
+-- page offers (conservative / moderate / aggressive).
 CREATE OR REPLACE FUNCTION public.default_user_preferences()
 RETURNS JSONB
 LANGUAGE sql
@@ -95,7 +96,7 @@ SET search_path = public, pg_temp
 AS $$
   SELECT jsonb_build_object(
     'experience_level', 'beginner',
-    'risk_tolerance', 'medium',
+    'risk_tolerance', 'moderate',
     'favorite_cryptocurrencies', '[]'::jsonb,
     'notification_settings', jsonb_build_object(
       'price_alerts', true,

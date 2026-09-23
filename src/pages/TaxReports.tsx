@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getCurrentUser, getUserProfile } from '../services/auth';
 import { getPortfolio } from '../services/portfolio';
-import { hasTaxReportPurchase, getTaxReportPackageType } from '../services/database';
+import { getUserTaxReportPurchases } from '../services/database';
 import { hasPremiumAccess } from '../services/stripe';
 import {
   generateTaxReport,
@@ -22,7 +22,7 @@ import {
   type TaxReport,
   type CostBasisMethod,
 } from '../services/taxReportService';
-import { TAX_PACKAGE, isTaxSeasonActive } from '../services/subscriptionLimits';
+import { isTaxSeasonActive } from '../services/subscriptionLimits';
 import { TaxSeasonPackage } from '../components/TaxSeasonPackage';
 import type { Portfolio } from '../types';
 import { usePageTitle } from '../hooks/usePageTitle';
@@ -97,9 +97,10 @@ export default function TaxReports() {
   // Auth state
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const [hasAccess, setHasAccess] = useState(false);
-  const [packageType, setPackageType] = useState<'basic' | 'premium' | null>(null);
-  const [_isPremiumUser, setIsPremiumUser] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
+  // Completed tax-package purchases, one per tax year (a package covers the
+  // year it was bought for, not whatever year the site last hard-coded).
+  const [purchases, setPurchases] = useState<{ year: number; type: 'basic' | 'premium' }[]>([]);
 
   // Portfolio state
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -138,13 +139,17 @@ export default function TaxReports() {
         );
         setIsPremiumUser(isPremium);
 
-        // Check for tax package purchase
-        const hasPurchase = await hasTaxReportPurchase(user.id, TAX_PACKAGE.taxYear);
-        const pkgType = hasPurchase ? await getTaxReportPackageType(user.id, TAX_PACKAGE.taxYear) : null;
-        setPackageType(pkgType);
+        // Tax package purchases, by the tax year each one covers
+        const rows = await getUserTaxReportPurchases(user.id);
+        const completed = rows
+          .filter((r) => r.status === 'completed')
+          .map((r) => ({ year: r.tax_year, type: r.package_type as 'basic' | 'premium' }));
+        setPurchases(completed);
 
-        // User has access if premium OR has purchased tax package
-        setHasAccess(isPremium || hasPurchase);
+        // Without a subscription, open on the most recent year they paid for.
+        if (!isPremium && completed.length > 0) {
+          setTaxYear(Math.max(...completed.map((c) => c.year)));
+        }
 
         // Load portfolio
         const userPortfolio = await getPortfolio();
@@ -161,6 +166,10 @@ export default function TaxReports() {
   }, []);
 
   const handleGenerateReport = async () => {
+    if (!isPremiumUser && !purchases.some((p) => p.year === taxYear)) {
+      setError(`Your tax package does not cover ${taxYear}.`);
+      return;
+    }
     if (!portfolio) {
       setError('No portfolio data found. Please add some transactions first.');
       return;
@@ -281,6 +290,13 @@ export default function TaxReports() {
     );
   }
 
+  // Premium covers every year; a tax package covers the year it was bought for.
+  const hasAccess = isPremiumUser || purchases.length > 0;
+  const packageForYear = purchases.find((p) => p.year === taxYear) ?? null;
+  const packageType = packageForYear?.type ?? null;
+  const yearCovered = isPremiumUser || packageForYear !== null;
+  const purchasedYears = purchases.map((p) => p.year).sort((a, b) => b - a);
+
   // No access - show purchase option
   if (!hasAccess) {
     return (
@@ -345,8 +361,9 @@ export default function TaxReports() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Tax Year */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Tax Year</label>
+              <label htmlFor="tax-year" className="block text-sm text-gray-400 mb-1">Tax Year</label>
               <select
+                id="tax-year"
                 value={taxYear}
                 onChange={(e) => setTaxYear(Number(e.target.value))}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -359,8 +376,9 @@ export default function TaxReports() {
 
             {/* Cost Basis Method */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Cost Basis Method</label>
+              <label htmlFor="tax-method" className="block text-sm text-gray-400 mb-1">Cost Basis Method</label>
               <select
+                id="tax-method"
                 value={costBasisMethod}
                 onChange={(e) => setCostBasisMethod(e.target.value as CostBasisMethod)}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -373,8 +391,9 @@ export default function TaxReports() {
 
             {/* State */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">State</label>
+              <label htmlFor="tax-state" className="block text-sm text-gray-400 mb-1">State</label>
               <select
+                id="tax-state"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -387,8 +406,9 @@ export default function TaxReports() {
 
             {/* Tax Bracket */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Tax Bracket</label>
+              <label htmlFor="tax-bracket" className="block text-sm text-gray-400 mb-1">Tax Bracket</label>
               <select
+                id="tax-bracket"
                 value={taxBracket}
                 onChange={(e) => setTaxBracket(Number(e.target.value))}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -400,9 +420,16 @@ export default function TaxReports() {
             </div>
           </div>
 
+          {!yearCovered && (
+            <p className="mb-4 text-sm text-yellow-300" role="status">
+              Your tax package covers {purchasedYears.join(', ')}. Choose {purchasedYears.length > 1 ? 'one of those years' : 'that year'}, or{' '}
+              <Link to="/pricing" className="underline hover:text-white">upgrade to Premium</Link> for every year.
+            </p>
+          )}
+
           <button
             onClick={handleGenerateReport}
-            disabled={generating || !portfolio}
+            disabled={generating || !portfolio || !yearCovered}
             className="px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             {generating ? (

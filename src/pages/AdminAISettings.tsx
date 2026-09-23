@@ -149,31 +149,27 @@ export function AdminAISettings() {
                 Configure Claude AI models for all AI-powered features
               </p>
             </div>
-            {settings.isConfigured && (
-              <div className="flex items-center text-green-600 dark:text-green-400">
-                <CheckCircle className="w-5 h-5 mr-2" />
-                <span className="text-sm font-medium">Configured</span>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Status Banner */}
-        {!settings.isConfigured && (
-          <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <div className="flex items-start">
-              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
-              <div>
-                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                  AI Not Configured
-                </h3>
-                <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                  Test both models and save settings to enable AI features across the platform.
-                </p>
-              </div>
+        {/* What this page does and does not control */}
+        <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4" role="note">
+          <div className="flex items-start">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
+            <div>
+              <h2 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                Saved choices are not applied yet
+              </h2>
+              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                The AI features call <code>/api/claude</code>, which always uses{' '}
+                <code>claude-sonnet-4-5-20250929</code> for &quot;default&quot; requests and{' '}
+                <code>claude-haiku-4-5-20251001</code> for &quot;lightweight&quot; ones. Those are set in{' '}
+                <code>functions/api/claude.ts</code>; the endpoint does not read the settings saved here. Saving below
+                only records your preference. To change the live model, change that file and redeploy.
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* API Key Info */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-6">
@@ -355,7 +351,7 @@ export function AdminAISettings() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Save Settings
+              Save preference (not applied)
             </button>
           </div>
         </div>

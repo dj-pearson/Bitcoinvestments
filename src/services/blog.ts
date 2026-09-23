@@ -5,6 +5,7 @@
 
 import { db, isSupabaseConfigured } from '../lib/supabase';
 import type {
+  BlogAuthor,
   BlogPost,
   BlogCategory,
   BlogRevision,
@@ -15,6 +16,13 @@ import type {
   BlogStats,
 } from '../types/blog';
 import { pgrestContains } from '../lib/postgrestFilter';
+import {
+  normalizeAuthor,
+  normalizeCategory,
+  normalizePost,
+  postTimestamp,
+  sortPosts,
+} from '../content/blog';
 
 /**
  * Generate a URL-friendly slug from a title
@@ -222,10 +230,7 @@ export async function getBlogPostById(
   try {
     const { data, error } = await db
       .from('articles')
-      .select(`
-        *,
-        author:users!articles_author_id_fkey(id, email)
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -237,45 +242,6 @@ export async function getBlogPostById(
     return { data: data as BlogPost, error: null };
   } catch (err) {
     console.error('Error fetching blog post:', err);
-    return { data: null, error: 'Failed to fetch blog post' };
-  }
-}
-
-/**
- * Get a blog post by slug (for public viewing)
- */
-export async function getBlogPostBySlug(
-  slug: string
-): Promise<{ data: BlogPost | null; error: string | null }> {
-  if (!isSupabaseConfigured()) {
-    return { data: null, error: 'Database not configured' };
-  }
-
-  try {
-    const { data, error } = await db
-      .from('articles')
-      .select(`
-        *,
-        author:users!articles_author_id_fkey(id, email)
-      `)
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single();
-
-    if (error) {
-      console.error('Error fetching blog post by slug:', error);
-      return { data: null, error: error.message };
-    }
-
-    // Increment view count asynchronously
-    db.from('articles')
-      .update({ view_count: (data.view_count || 0) + 1 })
-      .eq('id', data.id)
-      .then(() => {});
-
-    return { data: data as BlogPost, error: null };
-  } catch (err) {
-    console.error('Error fetching blog post by slug:', err);
     return { data: null, error: 'Failed to fetch blog post' };
   }
 }
@@ -305,10 +271,7 @@ export async function getAdminBlogPosts(
 
     let query = db
       .from('articles')
-      .select(`
-        *,
-        author:users!articles_author_id_fkey(id, email)
-      `, { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     // Apply filters
     if (status !== 'all') {
@@ -361,143 +324,6 @@ export async function getAdminBlogPosts(
   } catch (err) {
     console.error('Error fetching admin blog posts:', err);
     return { data: null, error: 'Failed to fetch blog posts' };
-  }
-}
-
-/**
- * Get published blog posts for public viewing
- */
-export async function getPublicBlogPosts(
-  options: {
-    category?: string;
-    tag?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-  } = {}
-): Promise<{ data: PaginatedBlogPosts | null; error: string | null }> {
-  if (!isSupabaseConfigured()) {
-    return { data: null, error: 'Database not configured' };
-  }
-
-  try {
-    const { category, tag, search, page = 1, limit = 12 } = options;
-
-    let query = db
-      .from('articles')
-      .select(`
-        *,
-        author:users!articles_author_id_fkey(id, email)
-      `, { count: 'exact' })
-      .eq('status', 'published');
-
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    if (tag) {
-      query = query.contains('tags', [tag]);
-    }
-
-    if (search) {
-      query = query.or(
-        `title.ilike.${pgrestContains(search)},excerpt.ilike.${pgrestContains(search)}`
-      );
-    }
-
-    query = query.order('published_at', { ascending: false });
-
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-    query = query.range(from, to);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      console.error('Error fetching public blog posts:', error);
-      return { data: null, error: error.message };
-    }
-
-    return {
-      data: {
-        posts: (data || []) as BlogPost[],
-        total: count || 0,
-        page,
-        limit,
-        totalPages: Math.ceil((count || 0) / limit),
-      },
-      error: null,
-    };
-  } catch (err) {
-    console.error('Error fetching public blog posts:', err);
-    return { data: null, error: 'Failed to fetch blog posts' };
-  }
-}
-
-/**
- * Get related posts by category/tags
- */
-export async function getRelatedPosts(
-  postId: string,
-  category: string,
-  _tags: string[],
-  limit: number = 3
-): Promise<{ data: BlogPost[]; error: string | null }> {
-  if (!isSupabaseConfigured()) {
-    return { data: [], error: 'Database not configured' };
-  }
-
-  try {
-    const { data, error } = await db
-      .from('articles')
-      .select('*')
-      .eq('status', 'published')
-      .neq('id', postId)
-      .eq('category', category)
-      .order('published_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error fetching related posts:', error);
-      return { data: [], error: error.message };
-    }
-
-    return { data: (data || []) as BlogPost[], error: null };
-  } catch (err) {
-    console.error('Error fetching related posts:', err);
-    return { data: [], error: 'Failed to fetch related posts' };
-  }
-}
-
-/**
- * Get featured/latest post
- */
-export async function getFeaturedPost(): Promise<{ data: BlogPost | null; error: string | null }> {
-  if (!isSupabaseConfigured()) {
-    return { data: null, error: 'Database not configured' };
-  }
-
-  try {
-    const { data, error } = await db
-      .from('articles')
-      .select(`
-        *,
-        author:users!articles_author_id_fkey(id, email)
-      `)
-      .eq('status', 'published')
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching featured post:', error);
-      return { data: null, error: error.message };
-    }
-
-    return { data: data as BlogPost | null, error: null };
-  } catch (err) {
-    console.error('Error fetching featured post:', err);
-    return { data: null, error: 'Failed to fetch featured post' };
   }
 }
 
@@ -914,3 +740,276 @@ export async function isSlugUnique(
     return false;
   }
 }
+
+// ============================================
+// PUBLIC READS: static snapshot first, live Supabase on top
+// ============================================
+//
+// Public pages render the build-time snapshot (src/content/blog) on their
+// first render, then call the functions below from an effect and merge the
+// result. A failed or slow live request never replaces snapshot content with
+// an error; it only reports failure so the page can say it is showing the
+// saved copy.
+//
+// Public reads never touch `public.users`: `anon` has no privileges on it
+// (the embed failed the whole request) and it exposed author emails. Bylines
+// come from the public `authors` table instead.
+
+/** Give up on a live request after this long and keep the snapshot. */
+export const LIVE_TIMEOUT_MS = 4000;
+/** Posts fetched for the live index; below this the list is known complete. */
+const LIVE_INDEX_LIMIT = 500;
+
+const LIST_COLUMNS =
+  'id,slug,title,excerpt,featured_image,og_image,category,tags,meta_keywords,seo_title,seo_description,status,ai_generated,word_count,read_time_minutes,published_at,created_at,updated_at,author_profile_id';
+// Columns from the original `articles` schema, used when the newer migrations
+// (blog enhancements, public authors) have not been applied to the database.
+const BASE_LIST_COLUMNS =
+  'id,slug,title,excerpt,featured_image,category,tags,seo_title,seo_description,status,read_time_minutes,published_at,created_at,updated_at';
+const AUTHOR_COLUMNS = 'id,slug,display_name,bio,credentials,avatar_url,profile_links';
+const AUTHOR_EMBED = `author:authors(${AUTHOR_COLUMNS})`;
+
+export interface BlogIndex {
+  posts: BlogPost[];
+  categories: BlogCategory[];
+  authors: BlogAuthor[];
+}
+
+export interface LiveBlogIndex extends BlogIndex {
+  /** True when every published post was returned (no truncation). */
+  complete: boolean;
+}
+
+export type LivePostResult =
+  | { status: 'found'; post: BlogPost }
+  | { status: 'missing' }
+  | { status: 'error' };
+
+function withTimeout<T>(promise: PromiseLike<T>, ms = LIVE_TIMEOUT_MS): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+type Row = Record<string, unknown>;
+interface PgResult {
+  data: unknown;
+  error: { message: string; code?: string } | null;
+}
+
+/**
+ * Run a published-articles query with progressively simpler column sets, so
+ * a database that is missing the `authors` table or newer columns still
+ * returns posts (without bylines) instead of failing outright.
+ */
+async function selectPublishedArticles(
+  columnSets: string[],
+  build: (columns: string) => PromiseLike<PgResult>
+): Promise<unknown> {
+  let lastError: PgResult['error'] = null;
+  for (const columns of columnSets) {
+    const { data, error } = await withTimeout(build(columns));
+    if (!error) return data;
+    lastError = error;
+    // Only fall back for schema mismatches (unknown column / relationship);
+    // anything else (RLS, network) will not be fixed by asking for less.
+    const schemaError =
+      error.code === 'PGRST200' || error.code === 'PGRST204' || error.code === '42703' || error.code === '42P01';
+    if (!schemaError) break;
+  }
+  throw new Error(lastError?.message || 'Query failed');
+}
+
+async function fetchLiveCategories(): Promise<BlogCategory[]> {
+  const { data, error } = await withTimeout(
+    db
+      .from('blog_categories')
+      .select('id,name,slug,description,sort_order,created_at')
+      .order('sort_order', { ascending: true })
+  );
+  if (error) throw new Error(error.message);
+  return ((data || []) as Row[]).map(normalizeCategory);
+}
+
+async function fetchLiveAuthors(): Promise<BlogAuthor[]> {
+  // Optional: the table only exists once 20260923000200_public_authors.sql is applied.
+  try {
+    const { data, error } = await withTimeout(db.from('authors').select(AUTHOR_COLUMNS));
+    if (error) return [];
+    return ((data || []) as Row[])
+      .map((r) => normalizeAuthor(r))
+      .filter((a): a is BlogAuthor => a !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch the live list of published posts (without bodies), categories and
+ * authors. Returns null when Supabase is not configured or the request fails.
+ */
+export async function fetchLiveBlogIndex(): Promise<LiveBlogIndex | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const [rows, categories, authors] = await Promise.all([
+      selectPublishedArticles(
+        [`${LIST_COLUMNS},${AUTHOR_EMBED}`, LIST_COLUMNS, BASE_LIST_COLUMNS],
+        (columns) =>
+          db
+            .from('articles')
+            .select(columns)
+            .eq('status', 'published')
+            .order('published_at', { ascending: false })
+            .limit(LIVE_INDEX_LIMIT)
+      ),
+      fetchLiveCategories().catch(() => [] as BlogCategory[]),
+      fetchLiveAuthors(),
+    ]);
+    const list = Array.isArray(rows) ? (rows as Row[]) : [];
+    return {
+      posts: sortPosts(list.map((r) => normalizePost(r, categories, authors))),
+      categories,
+      authors,
+      complete: list.length < LIVE_INDEX_LIMIT,
+    };
+  } catch (err) {
+    console.warn('Live blog index unavailable; showing the saved snapshot.', err);
+    return null;
+  }
+}
+
+/**
+ * Fetch one published post (with body) by slug. `missing` means the database
+ * answered and the post is not published; `error` means we could not tell.
+ */
+export async function fetchLivePostBySlug(
+  slug: string,
+  categories: BlogCategory[] = []
+): Promise<LivePostResult> {
+  if (!isSupabaseConfigured()) return { status: 'error' };
+  try {
+    const row = await selectPublishedArticles(
+      [`${LIST_COLUMNS},content,${AUTHOR_EMBED}`, `${LIST_COLUMNS},content`, `${BASE_LIST_COLUMNS},content`],
+      (columns) =>
+        db.from('articles').select(columns).eq('slug', slug).eq('status', 'published').maybeSingle()
+    );
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return { status: 'missing' };
+    return { status: 'found', post: normalizePost(row as Row, categories, []) };
+  } catch (err) {
+    console.warn('Live blog post unavailable; showing the saved snapshot if there is one.', err);
+    return { status: 'error' };
+  }
+}
+
+/**
+ * Merge a live post over its snapshot copy: the live row wins unless the
+ * snapshot is strictly newer, and a body missing from a list row is kept.
+ */
+export function mergePost(snapshot: BlogPost | undefined, live: BlogPost): BlogPost {
+  if (!snapshot) return live;
+  if (postTimestamp(snapshot) > postTimestamp(live)) return snapshot;
+  return {
+    ...live,
+    content: live.content || snapshot.content,
+    author: live.author || snapshot.author || null,
+  };
+}
+
+/**
+ * Merge the live index over the snapshot, matching posts by id or slug.
+ * When the live list is complete it is authoritative, so snapshot posts that
+ * have since been unpublished drop out.
+ */
+export function mergeBlogIndex(snapshot: BlogIndex, live: LiveBlogIndex): BlogIndex {
+  const categories = live.categories.length ? live.categories : snapshot.categories;
+  const authors = [
+    ...live.authors,
+    ...snapshot.authors.filter((a) => !live.authors.some((l) => l.id === a.id)),
+  ];
+
+  const findSnap = (p: BlogPost) => snapshot.posts.find((s) => s.id === p.id || s.slug === p.slug);
+  const merged: BlogPost[] = live.posts.map((p) => {
+    const m = mergePost(findSnap(p), p);
+    // Re-resolve the author if the live row had no embed (older schema).
+    const author =
+      m.author || (m.author_profile_id ? authors.find((a) => a.id === m.author_profile_id) || null : null);
+    return { ...m, author };
+  });
+
+  if (!live.complete) {
+    for (const s of snapshot.posts) {
+      if (!merged.some((p) => p.id === s.id || p.slug === s.slug)) merged.push(s);
+    }
+  }
+  return { posts: sortPosts(merged), categories, authors };
+}
+
+/** Filter posts for the listing. Category matches by slug, case-insensitively. */
+export function filterPosts(
+  posts: BlogPost[],
+  { category, tag, search }: { category?: string; tag?: string; search?: string }
+): BlogPost[] {
+  const cat = category?.toLowerCase();
+  const t = tag?.toLowerCase();
+  const q = search?.trim().toLowerCase();
+  return posts.filter((p) => {
+    if (cat && (p.category_slug || '').toLowerCase() !== cat) return false;
+    if (t && !p.tags.some((x) => x.toLowerCase() === t)) return false;
+    if (q) {
+      const haystack = `${p.title} ${p.excerpt} ${p.tags.join(' ')}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/** Up to `limit` related posts: same category first, then shared tags. */
+export function getRelatedFrom(posts: BlogPost[], post: BlogPost, limit = 3): BlogPost[] {
+  const tags = new Set(post.tags.map((t) => t.toLowerCase()));
+  return posts
+    .filter((p) => p.id !== post.id && p.slug !== post.slug)
+    .map((p) => ({
+      p,
+      score:
+        (p.category_slug && p.category_slug === post.category_slug ? 10 : 0) +
+        p.tags.filter((t) => tags.has(t.toLowerCase())).length,
+    }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.p);
+}
+
+/**
+ * Count a view. Fire-and-forget: never awaited before render, and failures
+ * (no database, RPC not deployed yet) are ignored.
+ */
+export function incrementArticleView(slug: string): void {
+  if (!isSupabaseConfigured() || !slug) return;
+  try {
+    db.rpc('increment_article_view', { p_slug: slug }).then(
+      () => undefined,
+      () => undefined
+    );
+  } catch {
+    // ignore
+  }
+}
+
+export {
+  getBlogSnapshot,
+  getSnapshotPosts,
+  getSnapshotPost,
+  getSnapshotCategories,
+  FALLBACK_AUTHOR_NAME,
+} from '../content/blog';

@@ -31,6 +31,7 @@ import {
   isSlugUnique,
 } from '../../services/blog';
 import type { BlogCategory, BlogRevision, GeneratedBlogContent } from '../../types/blog';
+import { resolveCategory } from '../../content/blog';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { usePageTitle } from '../../hooks/usePageTitle';
@@ -87,7 +88,8 @@ export function AdminBlogEditor() {
           setContent(post.content);
           setContentJson(post.content_json);
           setFeaturedImage(post.featured_image || '');
-          setCategory(post.category);
+          // Older rows stored the category name; the listing filters by slug.
+          setCategory(resolveCategory(post.category, categoriesResult.data).slug);
           setTags(post.tags || []);
           setSeoTitle(post.seo_title || '');
           setSeoDescription(post.seo_description || '');
@@ -105,7 +107,7 @@ export function AdminBlogEditor() {
       } else {
         // Set default category
         if (categoriesResult.data.length > 0) {
-          setCategory(categoriesResult.data[0].name);
+          setCategory(categoriesResult.data[0].slug);
         }
         setLoading(false);
       }
@@ -266,7 +268,7 @@ export function AdminBlogEditor() {
     setSeoDescription(generated.meta_description);
     setMetaKeywords(generated.meta_keywords);
     setTags(generated.suggested_tags);
-    setCategory(generated.suggested_category);
+    setCategory(resolveCategory(generated.suggested_category, categories).slug);
     setAiGenerated(true);
     setHasUnsavedChanges(true);
     toastSuccess('AI content inserted! Review and edit as needed.');
@@ -393,7 +395,7 @@ export function AdminBlogEditor() {
               className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-lg text-white focus:outline-none focus:border-orange-500"
             >
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.name}>
+                <option key={cat.id} value={cat.slug}>
                   {cat.name}
                 </option>
               ))}
@@ -563,7 +565,7 @@ export function AdminBlogEditor() {
           content,
           excerpt,
           featuredImage,
-          category,
+          category: categories.find((c) => c.slug === category)?.name || category,
           readTime: Math.ceil(content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200),
           author: user?.email || undefined,
         }}

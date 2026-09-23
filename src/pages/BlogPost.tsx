@@ -1,15 +1,18 @@
 /**
- * BlogPost Page
- * Individual blog post view with SEO and related posts
+ * Blog post: /blog/:slug (the one canonical URL for every `articles` row).
+ *
+ * A post present in the build-time snapshot renders completely on the first
+ * render — H1, byline, dates, body, JSON-LD — with no network request. The
+ * live row from Supabase then replaces it if it is newer. Unknown slugs render
+ * <NotFound /> once the database confirms the post is not published (or
+ * immediately when there is no database and no snapshot copy).
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   Calendar,
   Clock,
-  Eye,
   ArrowLeft,
   Facebook,
   Twitter,
@@ -20,75 +23,105 @@ import {
   ChevronRight,
   User,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
-import { getBlogPostBySlug, getRelatedPosts } from '../services/blog';
-import { BlogPostCard } from '../components/blog';
-import type { BlogPost as BlogPostType } from '../types/blog';
-import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
-
+import { BlogPostCard } from '../components/blog/BlogPostCard';
+import { useBlogIndex, useBlogPost } from '../components/blog/useBlogData';
+import {
+  SITE_URL,
+  addHeadingIds,
+  buildBlogPostingSchema,
+  formatDate,
+  wasUpdated,
+} from '../components/blog/blogUtils';
+import { getRelatedFrom, incrementArticleView } from '../services/blog';
+import { FALLBACK_AUTHOR_NAME, resolveCategory } from '../content/blog';
+import { Newsletter } from '../components/Newsletter';
+import { SEO, generateBreadcrumbSchema } from '../components/SEO';
 import { sanitizeArticleHtml } from '../lib/validation';
-/** Byline used for article schema when a post has a linked author record. */
-const SITE_AUTHOR = 'Bitcoinvestments Editorial';
+import { NotFound } from './NotFound';
+import type { BlogPost as BlogPostType } from '../types/blog';
+
+/** Evergreen guides and tools to read next, by category slug. */
+const KEEP_LEARNING: Record<string, Array<{ to: string; label: string }>> = {
+  bitcoin: [
+    { to: '/learn/what-is-bitcoin', label: 'What is Bitcoin?' },
+    { to: '/learn/how-to-buy-crypto', label: 'How to buy crypto safely' },
+  ],
+  altcoins: [
+    { to: '/learn/understanding-blockchain', label: 'Understanding blockchain' },
+    { to: '/learn/common-crypto-mistakes', label: 'Common crypto mistakes' },
+  ],
+  defi: [
+    { to: '/learn/defi-basics', label: 'DeFi basics' },
+    { to: '/learn/defi-risks', label: 'DeFi risks' },
+  ],
+  trading: [
+    { to: '/learn/risk-management', label: 'Risk management' },
+    { to: '/learn/dca-strategies', label: 'Dollar-cost averaging strategies' },
+  ],
+  security: [
+    { to: '/learn/crypto-wallets-explained', label: 'Crypto wallets explained' },
+    { to: '/scam-database', label: 'Crypto scam database' },
+  ],
+  regulation: [
+    { to: '/learn/crypto-taxes-basics', label: 'Crypto tax basics' },
+    { to: '/learn/common-crypto-mistakes', label: 'Common crypto mistakes' },
+  ],
+  technology: [
+    { to: '/learn/understanding-blockchain', label: 'Understanding blockchain' },
+    { to: '/learn/what-is-bitcoin', label: 'What is Bitcoin?' },
+  ],
+  education: [
+    { to: '/learn', label: 'All beginner guides' },
+    { to: '/learn/common-crypto-mistakes', label: 'Common crypto mistakes' },
+  ],
+};
+const ALWAYS_LEARNING = [
+  { to: '/glossary', label: 'Crypto glossary' },
+  { to: '/calculators', label: 'Free crypto calculators' },
+];
 
 export function BlogPost() {
   const { slug } = useParams();
-  const [post, setPost] = useState<BlogPostType | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<BlogPostType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { index } = useBlogIndex();
+  const state = useBlogPost(slug, index.categories);
   const [copied, setCopied] = useState(false);
+  const countedSlug = useRef<string | null>(null);
+
+  const post: BlogPostType | null = state.status === 'ready' ? state.post : null;
+
+  // Sanitise once per body, then anchor the headings in the same string the
+  // table of contents is built from, so every TOC link has a target.
+  const body = useMemo(
+    () => (post ? addHeadingIds(sanitizeArticleHtml(post.content)) : { html: '', toc: [] }),
+    [post]
+  );
 
   useEffect(() => {
-    const loadPost = async () => {
-      if (!slug) {
-        setError('Post not found');
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      const result = await getBlogPostBySlug(slug);
-
-      if (result.error || !result.data) {
-        setError(result.error || 'Post not found');
-        setLoading(false);
-        return;
-      }
-
-      setPost(result.data);
-
-      // Load related posts
-      const relatedResult = await getRelatedPosts(
-        result.data.id,
-        result.data.category,
-        result.data.tags,
-        3
-      );
-      setRelatedPosts(relatedResult.data);
-
-      setLoading(false);
-    };
-
-    loadPost();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0 });
   }, [slug]);
 
-  const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  // Count the view once per slug, in the background.
+  useEffect(() => {
+    if (!post || countedSlug.current === post.slug) return;
+    countedSlug.current = post.slug;
+    incrementArticleView(post.slug);
+  }, [post]);
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareTitle = post?.title || 'Blog Post';
+  if (state.status === 'missing') {
+    return <NotFound />;
+  }
 
-  if (loading) {
+  if (state.status === 'loading') {
     return (
       <div className="min-h-screen py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse space-y-6">
+        <SEO title="Loading article" noindex />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8" aria-busy="true">
+          <p className="sr-only" role="status">
+            Loading article…
+          </p>
+          <div className="animate-pulse space-y-6" aria-hidden="true">
             <div className="h-8 bg-slate-800 rounded w-3/4" />
             <div className="h-4 bg-slate-800 rounded w-1/4" />
             <div className="aspect-video bg-slate-800 rounded-xl" />
@@ -103,38 +136,57 @@ export function BlogPost() {
     );
   }
 
-  if (error || !post) {
+  if (state.status === 'error' || !post) {
     return (
       <div className="min-h-screen py-12 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Post Not Found</h1>
-          <p className="text-slate-400 mb-6">{error || 'The post you are looking for does not exist.'}</p>
-          <Link
-            to="/blog"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Blog
-          </Link>
+        <SEO title="Article temporarily unavailable" noindex />
+        <div className="text-center px-4 max-w-lg">
+          <h1 className="text-2xl font-bold text-white mb-4">This article could not be loaded</h1>
+          <p className="text-slate-400 mb-6">
+            We could not reach our article database just now. Please try again in a moment, or browse the rest of
+            the blog.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
+              Try again
+            </button>
+            <Link
+              to="/blog"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              Back to Blog
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  const formattedDate = post.published_at
-    ? new Date(post.published_at).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : '';
+  const category = resolveCategory(post.category, index.categories);
+  const canonical = `${SITE_URL}/blog/${post.slug}`;
+  const shareTitle = post.title;
+  const publishedIso = post.published_at || post.created_at;
+  const showUpdated = wasUpdated(post);
+  const authorName = post.author?.display_name || FALLBACK_AUTHOR_NAME;
+  const related = getRelatedFrom(index.posts, post, 3);
+  const keepLearning = [...(KEEP_LEARNING[category.slug] || []), ...ALWAYS_LEARNING];
 
-  // Generate table of contents from headings
-  const headings = post.content.match(/<h2[^>]*>(.*?)<\/h2>/gi) || [];
-  const toc = headings.map((h, i) => ({
-    id: `heading-${i}`,
-    text: h.replace(/<[^>]*>/g, ''),
-  }));
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(canonical);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable (insecure context or permission denied).
+      window.prompt('Copy this link:', canonical);
+    }
+  };
 
   return (
     <>
@@ -144,169 +196,173 @@ export function BlogPost() {
         keywords={post.meta_keywords?.length ? post.meta_keywords : post.tags}
         image={post.og_image || post.featured_image || undefined}
         imageAlt={post.title}
+        url={canonical}
         type="article"
-        author={post.author?.email ? SITE_AUTHOR : undefined}
-        publishedTime={post.published_at || undefined}
-        modifiedTime={post.updated_at}
-        section={post.category}
+        author={authorName}
+        publishedTime={publishedIso || undefined}
+        modifiedTime={post.updated_at || undefined}
+        section={category.name}
         tags={post.tags}
         blufSummary={post.excerpt}
-        contentCategory={post.category}
+        contentCategory={category.name}
         schema={[
-          generateArticleSchema({
-            title: post.seo_title || post.title,
-            description: post.seo_description || post.excerpt,
-            image: post.og_image || post.featured_image || undefined,
-            publishedDate: post.published_at || post.created_at,
-            modifiedDate: post.updated_at,
-            url: `https://bitcoinvestments.net/blog/${post.slug}`,
-          }),
+          buildBlogPostingSchema(post, category.name),
           generateBreadcrumbSchema([
             { name: 'Home', url: '/' },
             { name: 'Blog', url: '/blog' },
+            ...(category.slug ? [{ name: category.name, url: `/blog/category/${category.slug}` }] : []),
             { name: post.title, url: `/blog/${post.slug}` },
           ]),
         ]}
       />
 
-
       <article className="min-h-screen py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Back link */}
           <Link
             to="/blog"
             className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             Back to Blog
           </Link>
 
-          {/* Header */}
-          <motion.header
-            className="mb-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {/* Category & Tags */}
+          <header className="mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              <Link
-                to={`/blog/category/${post.category.toLowerCase()}`}
-                className="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm font-medium rounded-full hover:bg-orange-500/30 transition-colors"
-              >
-                {post.category}
-              </Link>
+              {category.slug && (
+                <Link
+                  to={`/blog/category/${category.slug}`}
+                  className="px-3 py-1 bg-orange-500/20 text-orange-400 text-sm font-medium rounded-full hover:bg-orange-500/30 transition-colors"
+                >
+                  {category.name}
+                </Link>
+              )}
               {post.ai_generated && (
-                <span className="flex items-center gap-1 px-3 py-1 bg-violet-500/20 text-violet-400 text-sm font-medium rounded-full">
-                  <Sparkles className="w-3 h-3" />
-                  AI Generated
+                <span className="flex items-center gap-1 px-3 py-1 bg-violet-500/20 text-violet-300 text-sm font-medium rounded-full">
+                  <Sparkles className="w-3 h-3" aria-hidden="true" />
+                  Written with AI assistance
                 </span>
               )}
             </div>
 
-            {/* Title */}
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
               {post.title}
             </h1>
 
-            {/* Meta */}
+            {/* Answer-first summary */}
+            {post.excerpt && <p className="text-lg text-slate-300 mb-6">{post.excerpt}</p>}
+
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400 mb-6">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span>{post.author?.email || 'Bitcoinvestments'}</span>
+                <User className="w-4 h-4" aria-hidden="true" />
+                <span>By {authorName}</span>
               </div>
+              {publishedIso && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" aria-hidden="true" />
+                  <span>
+                    Published <time dateTime={publishedIso}>{formatDate(publishedIso)}</time>
+                  </span>
+                </div>
+              )}
+              {showUpdated && (
+                <div className="flex items-center gap-2">
+                  <span>
+                    Updated <time dateTime={post.updated_at}>{formatDate(post.updated_at)}</time>
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <time dateTime={post.published_at || ''}>{formattedDate}</time>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4" aria-hidden="true" />
                 <span>{post.read_time_minutes} min read</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4" />
-                <span>{post.view_count.toLocaleString()} views</span>
-              </div>
             </div>
 
-            {/* Share */}
-            <div className="relative flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <span className="text-sm text-slate-500">Share:</span>
               <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(canonical)}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Share on X (Twitter)"
                 className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:text-white hover:bg-slate-700 transition-colors"
               >
-                <Twitter className="w-4 h-4" />
+                <Twitter className="w-4 h-4" aria-hidden="true" />
               </a>
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonical)}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Share on Facebook"
                 className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:text-white hover:bg-slate-700 transition-colors"
               >
-                <Facebook className="w-4 h-4" />
+                <Facebook className="w-4 h-4" aria-hidden="true" />
               </a>
               <a
-                href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}`}
+                href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(canonical)}&title=${encodeURIComponent(shareTitle)}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Share on LinkedIn"
                 className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:text-white hover:bg-slate-700 transition-colors"
               >
-                <Linkedin className="w-4 h-4" />
+                <Linkedin className="w-4 h-4" aria-hidden="true" />
               </a>
               <button
+                type="button"
                 onClick={handleCopyLink}
+                aria-label={copied ? 'Link copied' : 'Copy link to this article'}
                 className="p-2 bg-slate-800 text-slate-400 rounded-lg hover:text-white hover:bg-slate-700 transition-colors"
               >
-                {copied ? <Check className="w-4 h-4 text-green-400" /> : <LinkIcon className="w-4 h-4" />}
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-400" aria-hidden="true" />
+                ) : (
+                  <LinkIcon className="w-4 h-4" aria-hidden="true" />
+                )}
               </button>
+              <span className="sr-only" role="status">
+                {copied ? 'Link copied to clipboard' : ''}
+              </span>
             </div>
-          </motion.header>
+          </header>
 
-          {/* Featured Image */}
           {post.featured_image && (
-            <motion.div
-              className="mb-8 rounded-2xl overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+            <div className="mb-8 rounded-2xl overflow-hidden">
               <img
                 src={post.featured_image}
-                alt={post.title}
+                alt=""
+                width={1200}
+                height={675}
+                loading="eager"
+                decoding="async"
                 className="w-full aspect-video object-cover"
               />
-            </motion.div>
+            </div>
           )}
 
-          {/* Table of Contents */}
-          {toc.length > 2 && (
-            <motion.nav
+          {body.toc.length > 2 && (
+            <nav
               className="mb-8 p-4 bg-slate-800/50 rounded-xl border border-white/10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
+              aria-labelledby="toc-heading"
             >
-              <h2 className="text-sm font-semibold text-white mb-3">Table of Contents</h2>
+              <h2 id="toc-heading" className="text-sm font-semibold text-white mb-3">
+                Table of Contents
+              </h2>
               <ul className="space-y-2">
-                {toc.map((heading, i) => (
-                  <li key={i}>
+                {body.toc.map((heading) => (
+                  <li key={heading.id}>
                     <a
                       href={`#${heading.id}`}
                       className="flex items-center gap-2 text-sm text-slate-400 hover:text-orange-400 transition-colors"
                     >
-                      <ChevronRight className="w-3 h-3" />
+                      <ChevronRight className="w-3 h-3" aria-hidden="true" />
                       {heading.text}
                     </a>
                   </li>
                 ))}
               </ul>
-            </motion.nav>
+            </nav>
           )}
 
-          {/* Content */}
-          <motion.div
+          <div
             className="prose prose-lg prose-invert max-w-none
               prose-headings:text-white prose-headings:font-bold prose-headings:scroll-mt-24
               prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
@@ -323,30 +379,30 @@ export function BlogPost() {
               prose-img:rounded-xl prose-img:mx-auto
               prose-hr:border-white/10
             "
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            dangerouslySetInnerHTML={{
-              // Stored article HTML is untrusted on the read path: anyone with
-              // write access to `articles` could otherwise inject script that
-              // runs for every reader. Sanitize first, then add heading anchors.
-              __html: sanitizeArticleHtml(post.content).replace(
-                /<h2([^>]*)>/g,
-                (_, attrs, i) => `<h2${attrs} id="heading-${i}">`
-              ),
-            }}
+            // Stored article HTML is untrusted on the read path: it is
+            // sanitised before the heading anchors are added.
+            dangerouslySetInnerHTML={{ __html: body.html }}
           />
 
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <motion.div
-              className="mt-12 pt-8 border-t border-white/10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-            >
+          {post.ai_generated && (
+            // NEEDS-OWNER: state who reviews AI-assisted posts and when, once an
+            // editorial review process (and a `reviewed_by` field) exists.
+            <p className="mt-8 text-sm text-slate-400 border-l-2 border-violet-500/50 pl-3">
+              This article was drafted with the help of AI tools and published by the Bitcoinvestments team. Check
+              important facts against the linked sources before acting on them.
+            </p>
+          )}
+
+          <p className="mt-8 text-sm text-slate-500">
+            This article is for education only and is not financial, tax or legal advice. Crypto assets are volatile
+            and you can lose money.
+          </p>
+
+          {post.tags.length > 0 && (
+            <div className="mt-12 pt-8 border-t border-white/10">
               <div className="flex items-center gap-2 flex-wrap">
-                <Tag className="w-4 h-4 text-slate-500" />
+                <Tag className="w-4 h-4 text-slate-500" aria-hidden="true" />
+                <span className="sr-only">Tags:</span>
                 {post.tags.map((tag) => (
                   <Link
                     key={tag}
@@ -357,49 +413,88 @@ export function BlogPost() {
                   </Link>
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
 
-          {/* Author Bio */}
-          <motion.div
-            className="mt-12 p-6 bg-slate-800/50 rounded-xl border border-white/10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.35 }}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-                <span className="text-2xl font-bold text-white">
-                  {(post.author?.email || 'B').charAt(0).toUpperCase()}
-                </span>
-              </div>
+          {/* Author */}
+          <section className="mt-12 p-6 bg-slate-800/50 rounded-xl border border-white/10" aria-labelledby="author-heading">
+            <div className="flex items-start gap-4">
+              {post.author?.avatar_url ? (
+                <img
+                  src={post.author.avatar_url}
+                  alt=""
+                  width={64}
+                  height={64}
+                  loading="lazy"
+                  className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                />
+              ) : (
+                <div
+                  className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center flex-shrink-0"
+                  aria-hidden="true"
+                >
+                  <span className="text-2xl font-bold text-white">{authorName.charAt(0).toUpperCase()}</span>
+                </div>
+              )}
               <div>
-                <h3 className="font-semibold text-white">
-                  {post.author?.email || 'Bitcoinvestments Team'}
-                </h3>
+                <h2 id="author-heading" className="font-semibold text-white">
+                  {authorName}
+                </h2>
+                {post.author?.credentials && (
+                  <p className="text-sm text-orange-300 mb-1">{post.author.credentials}</p>
+                )}
                 <p className="text-sm text-slate-400">
-                  Passionate about cryptocurrency education and helping investors make informed decisions.
+                  {post.author?.bio ||
+                    'Posts without a named author are written and edited by the Bitcoinvestments editorial team.'}
                 </p>
+                {post.author?.profile_links && post.author.profile_links.length > 0 && (
+                  <ul className="mt-2 flex flex-wrap gap-3 text-sm">
+                    {post.author.profile_links.map((href) => (
+                      <li key={href}>
+                        <a href={href} target="_blank" rel="me noopener noreferrer" className="text-orange-400 hover:text-orange-300">
+                          {href.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
-          </motion.div>
+          </section>
 
-          {/* Related Posts */}
-          {relatedPosts.length > 0 && (
-            <motion.section
-              className="mt-16"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              <h2 className="text-2xl font-bold text-white mb-6">Related Posts</h2>
+          {/* Keep learning */}
+          <nav className="mt-8 p-6 bg-slate-800/30 rounded-xl border border-white/10" aria-labelledby="keep-learning-heading">
+            <h2 id="keep-learning-heading" className="text-lg font-semibold text-white mb-3">
+              Keep learning
+            </h2>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {keepLearning.map((l) => (
+                <li key={l.to}>
+                  <Link to={l.to} className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300">
+                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {related.length > 0 && (
+            <section className="mt-16" aria-labelledby="related-heading">
+              <h2 id="related-heading" className="text-2xl font-bold text-white mb-6">
+                Related Posts
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {relatedPosts.map((relatedPost) => (
+                {related.map((relatedPost) => (
                   <BlogPostCard key={relatedPost.id} post={relatedPost} />
                 ))}
               </div>
-            </motion.section>
+            </section>
           )}
+
+          <div id="newsletter" className="mt-16">
+            <Newsletter source="blog-post" variant="card" />
+          </div>
         </div>
       </article>
     </>

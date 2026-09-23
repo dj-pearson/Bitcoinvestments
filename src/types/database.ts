@@ -1,10 +1,22 @@
 /**
  * Supabase Database Types
  *
- * These types define the schema for all database tables.
- * Run the Supabase CLI to generate these automatically:
- * npx supabase gen types typescript --project-id <project-id> > src/types/database.ts
+ * Hand-maintained from supabase/migrations (last reconciled with
+ * 20260923000300_reconcile_schema.sql). Only the tables the typed `supabase`
+ * client touches need to be here; code that uses the untyped `db` client from
+ * src/lib/supabase.ts is not checked against this file.
+ *
+ * Tables keyed by something other than `id` (app_meta, notification_preferences,
+ * platform_review_helpful_votes) are deliberately left out: src/security/layers.ts
+ * filters any typed table by `id`, which a keyless table would break. They are
+ * read through `db`.
+ *
+ * With access to the live project, prefer regenerating it:
+ *   pnpm dlx supabase gen types typescript --project-id <project-id> > src/types/database.ts
  */
+
+/** Values of the public.subscription_status enum. */
+export type SubscriptionStatusValue = 'free' | 'premium' | 'advisor' | 'enterprise' | 'api' | 'lifetime';
 
 export type Json =
   | string
@@ -20,10 +32,15 @@ export type Database = {
       users: {
         Row: {
           id: string;
-          email: string | null; // Made optional for wallet-only accounts
-          wallet_address: string | null; // Ethereum wallet address for wallet auth
+          email: string | null;
+          wallet_address: string | null; // legacy, from the removed wallet login
           created_at: string;
           updated_at: string;
+          // The column can hold every SubscriptionStatusValue since the
+          // 2026-09-23 reconcile migration. It stays typed as the original pair
+          // until the helpers that take it (AdUnit, Advertisement, useDataDelay,
+          // useSubscription, portfolio.ts, the premium-gated pages) accept the
+          // wider type; widening it here first would break those call sites.
           subscription_status: 'free' | 'premium';
           subscription_tier: string | null;
           subscription_expires_at: string | null;
@@ -43,13 +60,16 @@ export type Database = {
           two_factor_secret: string | null;
           two_factor_recovery_codes: string[] | null;
           two_factor_enabled_at: string | null;
+          username: string | null;
+          lifetime_purchase_date: string | null;
+          lifetime_purchase_amount: number | null;
+          payment_failed_at: string | null;
         };
         Insert: {
           id?: string;
           email?: string | null; // Made optional for wallet-only accounts
-          wallet_address?: string | null; // Ethereum wallet address
-          username?: string; // For wallet-only users
-          created_at?: string;
+          wallet_address?: string | null;
+                    created_at?: string;
           updated_at?: string;
           subscription_status?: 'free' | 'premium';
           subscription_tier?: string | null;
@@ -69,11 +89,15 @@ export type Database = {
           two_factor_secret?: string | null;
           two_factor_recovery_codes?: string[] | null;
           two_factor_enabled_at?: string | null;
+          username?: string | null;
+          lifetime_purchase_date?: string | null;
+          lifetime_purchase_amount?: number | null;
+          payment_failed_at?: string | null;
         };
         Update: {
           id?: string;
           email?: string | null;
-          wallet_address?: string | null; // Can update wallet address
+          wallet_address?: string | null;
           created_at?: string;
           updated_at?: string;
           subscription_status?: 'free' | 'premium';
@@ -94,6 +118,10 @@ export type Database = {
           two_factor_secret?: string | null;
           two_factor_recovery_codes?: string[] | null;
           two_factor_enabled_at?: string | null;
+          username?: string | null;
+          lifetime_purchase_date?: string | null;
+          lifetime_purchase_amount?: number | null;
+          payment_failed_at?: string | null;
         };
         Relationships: [];
       };
@@ -1055,6 +1083,316 @@ export type Database = {
         ];
       };
       // User Sessions table for session management
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          keys: Json;
+          device_name: string | null;
+          is_active: boolean;
+          created_at: string;
+          last_used_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          keys: Json;
+          device_name?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          last_used_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          endpoint?: string;
+          keys?: Json;
+          device_name?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          last_used_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'push_subscriptions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      moderation_queue: {
+        Row: {
+          id: string;
+          type: 'review' | 'comment' | 'report';
+          source_id: string | null;
+          content: string;
+          author_id: string | null;
+          author_email: string | null;
+          status: 'pending' | 'approved' | 'rejected';
+          flagged: boolean;
+          flag_reason: string | null;
+          flagged_by: string | null;
+          moderated_by: string | null;
+          moderated_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          type: 'review' | 'comment' | 'report';
+          source_id?: string | null;
+          content: string;
+          author_id?: string | null;
+          author_email?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          flagged?: boolean;
+          flag_reason?: string | null;
+          flagged_by?: string | null;
+          moderated_by?: string | null;
+          moderated_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: 'review' | 'comment' | 'report';
+          source_id?: string | null;
+          content?: string;
+          author_id?: string | null;
+          author_email?: string | null;
+          status?: 'pending' | 'approved' | 'rejected';
+          flagged?: boolean;
+          flag_reason?: string | null;
+          flagged_by?: string | null;
+          moderated_by?: string | null;
+          moderated_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      influencer_referrals: {
+        Row: {
+          id: string;
+          affiliate_code: string;
+          session_id: string | null;
+          user_id: string | null;
+          landing_page: string | null;
+          source_url: string | null;
+          clicked_at: string;
+          expires_at: string | null;
+          converted: boolean;
+          converted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          affiliate_code: string;
+          session_id?: string | null;
+          user_id?: string | null;
+          landing_page?: string | null;
+          source_url?: string | null;
+          clicked_at?: string;
+          expires_at?: string | null;
+          converted?: boolean;
+          converted_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          affiliate_code?: string;
+          session_id?: string | null;
+          user_id?: string | null;
+          landing_page?: string | null;
+          source_url?: string | null;
+          clicked_at?: string;
+          expires_at?: string | null;
+          converted?: boolean;
+          converted_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      affiliate_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          email: string;
+          platform: 'youtube' | 'twitter' | 'blog' | 'podcast' | 'instagram' | 'tiktok' | 'other';
+          platform_url: string;
+          followers_count: number | null;
+          content_description: string | null;
+          why_join: string | null;
+          agreed_to_terms: boolean;
+          status: 'pending' | 'approved' | 'rejected';
+          reviewer_id: string | null;
+          reviewer_notes: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          email: string;
+          platform: 'youtube' | 'twitter' | 'blog' | 'podcast' | 'instagram' | 'tiktok' | 'other';
+          platform_url: string;
+          followers_count?: number | null;
+          content_description?: string | null;
+          why_join?: string | null;
+          agreed_to_terms?: boolean;
+          status?: 'pending' | 'approved' | 'rejected';
+          reviewer_id?: string | null;
+          reviewer_notes?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          email?: string;
+          platform?: 'youtube' | 'twitter' | 'blog' | 'podcast' | 'instagram' | 'tiktok' | 'other';
+          platform_url?: string;
+          followers_count?: number | null;
+          content_description?: string | null;
+          why_join?: string | null;
+          agreed_to_terms?: boolean;
+          status?: 'pending' | 'approved' | 'rejected';
+          reviewer_id?: string | null;
+          reviewer_notes?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'affiliate_applications_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      api_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          tier: 'free' | 'starter' | 'professional' | 'enterprise';
+          status: 'active' | 'past_due' | 'inactive' | 'canceled';
+          started_at: string;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          stripe_subscription_id: string | null;
+          stripe_customer_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          tier?: 'free' | 'starter' | 'professional' | 'enterprise';
+          status?: 'active' | 'past_due' | 'inactive' | 'canceled';
+          started_at?: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          stripe_subscription_id?: string | null;
+          stripe_customer_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          tier?: 'free' | 'starter' | 'professional' | 'enterprise';
+          status?: 'active' | 'past_due' | 'inactive' | 'canceled';
+          started_at?: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          stripe_subscription_id?: string | null;
+          stripe_customer_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      api_keys: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          tier: 'free' | 'starter' | 'professional' | 'enterprise';
+          status: 'active' | 'suspended' | 'revoked' | 'expired';
+          permissions: string[];
+          rate_limit_per_minute: number;
+          rate_limit_per_day: number;
+          requests_today: number;
+          requests_this_month: number;
+          last_used_at: string | null;
+          expires_at: string | null;
+          ip_whitelist: string[];
+          allowed_origins: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          tier?: 'free' | 'starter' | 'professional' | 'enterprise';
+          status?: 'active' | 'suspended' | 'revoked' | 'expired';
+          permissions?: string[];
+          rate_limit_per_minute?: number;
+          rate_limit_per_day?: number;
+          requests_today?: number;
+          requests_this_month?: number;
+          last_used_at?: string | null;
+          expires_at?: string | null;
+          ip_whitelist?: string[];
+          allowed_origins?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          key_prefix?: string;
+          key_hash?: string;
+          tier?: 'free' | 'starter' | 'professional' | 'enterprise';
+          status?: 'active' | 'suspended' | 'revoked' | 'expired';
+          permissions?: string[];
+          rate_limit_per_minute?: number;
+          rate_limit_per_day?: number;
+          requests_today?: number;
+          requests_this_month?: number;
+          last_used_at?: string | null;
+          expires_at?: string | null;
+          ip_whitelist?: string[];
+          allowed_origins?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_sessions: {
         Row: {
           id: string;
@@ -1139,6 +1477,12 @@ export type Database = {
         };
         Returns: string | null;
       };
+      increment_review_helpful: {
+        Args: {
+          review_id: string;
+        };
+        Returns: undefined;
+      };
       increment_tax_report_download: {
         Args: {
           p_purchase_id: string;
@@ -1147,7 +1491,7 @@ export type Database = {
       };
     };
     Enums: {
-      subscription_status: 'free' | 'premium';
+      subscription_status: SubscriptionStatusValue;
       transaction_type: 'buy' | 'sell' | 'transfer_in' | 'transfer_out' | 'staking_reward';
       alert_condition: 'above' | 'below';
       platform_type: 'exchange' | 'wallet' | 'tax_software' | 'course';
@@ -1179,6 +1523,10 @@ export type NewsletterSubscriber = Tables<'newsletter_subscribers'>;
 export type TaxReportPurchase = Tables<'tax_report_purchases'>;
 export type PlatformReview = Tables<'platform_reviews'>;
 export type UserSession = Tables<'user_sessions'>;
+export type PushSubscriptionRow = Tables<'push_subscriptions'>;
+export type ModerationQueueItem = Tables<'moderation_queue'>;
+export type AffiliateApplication = Tables<'affiliate_applications'>;
+export type ApiSubscription = Tables<'api_subscriptions'>;
 
 // Type for database function calls
 type PublicSchema = Database[Extract<keyof Database, 'public'>];

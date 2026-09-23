@@ -21,8 +21,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    // Redirect to login, preserving the intended destination as a string path
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    // Redirect to login, preserving the intended destination (path and query)
+    // as a string; Login reduces it to a same-origin path before using it.
+    return <Navigate to="/login" state={{ from: `${location.pathname}${location.search}` }} replace />;
   }
 
   return <>{children}</>;

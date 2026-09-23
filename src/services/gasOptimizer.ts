@@ -1,430 +1,136 @@
 /**
- * Gas Fee Optimizer Service
+ * Page-local helpers for /gas-optimizer.
  *
- * Predict optimal times for Ethereum transactions to minimize gas fees.
- * Free: Basic current prices, 3 alerts
- * Premium: Real-time predictions, unlimited alerts, historical data
+ * Live EVM gas prices come from src/services/gasPrice.ts (owned by the market
+ * workstream; consumed here, not edited). This module adds:
+ *  - correct USD cost maths per transaction type,
+ *  - chain metadata (which chains are rollups that also pay an L1 data fee),
+ *  - Bitcoin fee rates via the same-origin /api/btc-fees function,
+ *  - a BTC/USD price via the existing /api/coingecko proxy.
+ *
+ * Nothing here generates numbers: if a source fails, callers get null/throw
+ * and the page says the figure is unavailable.
  */
 
-import type {
-  GasPriceData,
-  GasPricePrediction,
-  GasPriceHistory,
-  GasAlert,
-  GasPriceTier,
-} from '../types/premiumFeatures';
-import { GAS_USAGE_ESTIMATES, PREMIUM_FEATURES_PRICING } from '../types/premiumFeatures';
+import type { ChainGasInfo } from '../types';
 
-// Supported chains for gas tracking
-export const SUPPORTED_GAS_CHAINS = [
-  { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', decimals: 9 },
-  { id: 'polygon', name: 'Polygon', symbol: 'MATIC', decimals: 9 },
-  { id: 'arbitrum', name: 'Arbitrum', symbol: 'ETH', decimals: 9 },
-  { id: 'optimism', name: 'Optimism', symbol: 'ETH', decimals: 9 },
-  { id: 'avalanche', name: 'Avalanche', symbol: 'AVAX', decimals: 9 },
-  { id: 'bsc', name: 'BNB Chain', symbol: 'BNB', decimals: 9 },
-  { id: 'base', name: 'Base', symbol: 'ETH', decimals: 9 },
+/** Typical gas used by common actions (order-of-magnitude; real usage varies by contract). */
+export const TX_TYPES = [
+  { id: 'eth_transfer', label: 'Send ETH (native coin)', gas: 21_000 },
+  { id: 'erc20_transfer', label: 'Send a token (ERC-20)', gas: 65_000 },
+  { id: 'erc20_approve', label: 'Approve a token', gas: 46_000 },
+  { id: 'dex_swap', label: 'Swap on a DEX', gas: 150_000 },
+  { id: 'nft_mint', label: 'Mint an NFT', gas: 150_000 },
+  { id: 'lending_deposit', label: 'Deposit into a lending market', gas: 200_000 },
+  { id: 'contract_deploy', label: 'Deploy a contract', gas: 1_500_000 },
 ] as const;
 
-// Gas Optimizer Pricing
-export const GAS_OPTIMIZER_PRICING = {
-  free: {
-    id: 'gas-optimizer-free',
-    name: 'Gas Optimizer Free',
-    price: 0,
-    features: [
-      'Current gas prices for all chains',
-      'Basic transaction cost estimates',
-      '3 price alerts',
-      '24-hour price history',
-    ],
-    limits: {
-      maxAlerts: 3,
-      hasPredictions: false,
-      hasRealtime: false,
-      hasHistorical: false,
-    },
-  },
-  premium: {
-    id: 'gas-optimizer-premium',
-    name: 'Gas Optimizer Pro',
-    price_monthly: PREMIUM_FEATURES_PRICING.gas_optimizer.premium_monthly,
-    price_yearly: PREMIUM_FEATURES_PRICING.gas_optimizer.premium_yearly,
-    features: [
-      'Real-time gas price updates',
-      'AI-powered price predictions',
-      'Optimal timing recommendations',
-      '50 price alerts',
-      '30-day price history',
-      'Email & push notifications',
-      'Transaction scheduling',
-    ],
-    limits: {
-      maxAlerts: 50,
-      hasPredictions: true,
-      hasRealtime: true,
-      hasHistorical: true,
-    },
-    stripePriceId: {
-      monthly: import.meta.env.VITE_STRIPE_GAS_OPTIMIZER_MONTHLY || 'price_gas_monthly',
-      yearly: import.meta.env.VITE_STRIPE_GAS_OPTIMIZER_YEARLY || 'price_gas_yearly',
-    },
-  },
-} as const;
+export type TxTypeId = (typeof TX_TYPES)[number]['id'];
 
-// Demo alert storage
-const userAlerts: Map<string, GasAlert[]> = new Map();
+/** Rollups that post data to Ethereum and charge an L1 data fee on top of execution gas. */
+const ROLLUP_CHAIN_IDS = new Set([42161, 10, 8453]);
+
+export function isRollup(chainId: number): boolean {
+  return ROLLUP_CHAIN_IDS.has(chainId);
+}
+
+/** gasPrice.ts returns an all-zero record when a chain could not be reached. */
+export function isGasDataAvailable(info: ChainGasInfo | undefined): info is ChainGasInfo {
+  return !!info && Number.isFinite(info.gasPrice.average) && info.gasPrice.average > 0;
+}
+
+export function hasTokenPrice(info: ChainGasInfo): boolean {
+  return typeof info.nativeTokenPrice === 'number' && info.nativeTokenPrice > 0;
+}
 
 /**
- * Get current gas prices for all supported chains
+ * USD cost = gas price (gwei) × gas units × 1e-9 × native token price.
+ * Returns null when the price is unknown rather than pretending it is $0.
  */
-export async function getCurrentGasPrices(): Promise<GasPriceData[]> {
-  // In production, fetch from gas price APIs (Etherscan, Blocknative, etc.)
-  // For demo, return simulated data
+export function estimateCostUsd(gwei: number, gasUnits: number, nativeTokenPrice?: number): number | null {
+  if (!Number.isFinite(gwei) || gwei <= 0) return null;
+  if (typeof nativeTokenPrice !== 'number' || nativeTokenPrice <= 0) return null;
+  return ((gwei * gasUnits) / 1e9) * nativeTokenPrice;
+}
 
-  const ethPrice = 2500; // USD
-  const maticPrice = 0.85;
-  const avaxPrice = 35;
-  const bnbPrice = 310;
+/** Cost in the chain's native coin (always computable when gas data exists). */
+export function estimateCostNative(gwei: number, gasUnits: number): number {
+  return (gwei * gasUnits) / 1e9;
+}
 
-  return SUPPORTED_GAS_CHAINS.map(chain => {
-    const baseGwei = getBaseGweiForChain(chain.id);
-    const nativePrice = getNativePriceForChain(chain.id, ethPrice, maticPrice, avaxPrice, bnbPrice);
+export function formatUsd(value: number | null): string {
+  if (value === null) return 'Price unavailable';
+  if (value < 0.01) return '< $0.01';
+  if (value < 1) return `$${value.toFixed(3)}`;
+  return `$${value.toFixed(2)}`;
+}
 
-    return {
-      chain: chain.id,
-      chain_name: chain.name,
-      native_token: chain.symbol,
-      base_fee: baseGwei,
-      priority_fee_slow: baseGwei * 0.1,
-      priority_fee_standard: baseGwei * 0.2,
-      priority_fee_fast: baseGwei * 0.5,
-      priority_fee_instant: baseGwei * 1.0,
-      gas_price_slow: baseGwei * 1.1,
-      gas_price_standard: baseGwei * 1.2,
-      gas_price_fast: baseGwei * 1.5,
-      gas_price_instant: baseGwei * 2.0,
-      transfer_cost_usd: calculateTransactionCosts(baseGwei, nativePrice, GAS_USAGE_ESTIMATES.eth_transfer),
-      swap_cost_usd: calculateTransactionCosts(baseGwei, nativePrice, GAS_USAGE_ESTIMATES.uniswap_v3_swap),
-      nft_mint_cost_usd: calculateTransactionCosts(baseGwei, nativePrice, GAS_USAGE_ESTIMATES.nft_mint),
-      updated_at: new Date().toISOString(),
+export function formatNative(value: number, symbol: string): string {
+  if (value === 0) return `0 ${symbol}`;
+  if (value < 0.000001) return `< 0.000001 ${symbol}`;
+  return `${value.toPrecision(3)} ${symbol}`;
+}
+
+export function formatGwei(gwei: number | undefined): string {
+  if (gwei === undefined || !Number.isFinite(gwei)) return 'n/a';
+  if (gwei === 0) return '0';
+  if (gwei < 0.001) return '< 0.001';
+  if (gwei < 1) return gwei.toFixed(3);
+  if (gwei < 10) return gwei.toFixed(2);
+  return gwei.toFixed(1);
+}
+
+// ============================================
+// Bitcoin fees
+// ============================================
+
+export interface BtcFees {
+  asOf: string;
+  source: string;
+  fastestFee: number;
+  halfHourFee: number;
+  hourFee: number;
+  economyFee: number;
+  minimumFee: number;
+}
+
+/**
+ * Typical size of a one-input, two-output native SegWit (P2WPKH) payment:
+ * 10.5 vB overhead + 68 vB per input + 31 vB per output ≈ 141 vB.
+ */
+export const TYPICAL_BTC_TX_VBYTES = 141;
+
+async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
+  const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`${url} responded ${res.status}`);
+  if (!(res.headers.get('content-type') || '').includes('application/json')) {
+    throw new Error(`${url} did not return JSON`);
+  }
+  return res.json();
+}
+
+export async function fetchBtcFees(signal?: AbortSignal): Promise<BtcFees> {
+  const json = (await fetchJson('/api/btc-fees', signal)) as Partial<BtcFees>;
+  if (typeof json.fastestFee !== 'number' || typeof json.asOf !== 'string') {
+    throw new Error('Unexpected Bitcoin fee data');
+  }
+  return json as BtcFees;
+}
+
+/** BTC/USD via the same-origin CoinGecko proxy; null if unavailable. */
+export async function fetchBtcPrice(signal?: AbortSignal): Promise<number | null> {
+  try {
+    const json = (await fetchJson('/api/coingecko/simple/price?ids=bitcoin&vs_currencies=usd', signal)) as {
+      bitcoin?: { usd?: number };
     };
-  });
-}
-
-function getBaseGweiForChain(chainId: string): number {
-  // Simulated base gas prices in Gwei
-  const basePrices: Record<string, number> = {
-    ethereum: 25 + Math.random() * 20,
-    polygon: 50 + Math.random() * 100,
-    arbitrum: 0.1 + Math.random() * 0.2,
-    optimism: 0.001 + Math.random() * 0.005,
-    avalanche: 25 + Math.random() * 10,
-    bsc: 3 + Math.random() * 2,
-    base: 0.01 + Math.random() * 0.05,
-  };
-  return basePrices[chainId] || 20;
-}
-
-function getNativePriceForChain(
-  chainId: string,
-  ethPrice: number,
-  maticPrice: number,
-  avaxPrice: number,
-  bnbPrice: number
-): number {
-  const prices: Record<string, number> = {
-    ethereum: ethPrice,
-    polygon: maticPrice,
-    arbitrum: ethPrice,
-    optimism: ethPrice,
-    avalanche: avaxPrice,
-    bsc: bnbPrice,
-    base: ethPrice,
-  };
-  return prices[chainId] || ethPrice;
-}
-
-function calculateTransactionCosts(
-  baseGwei: number,
-  nativePrice: number,
-  gasUsed: number
-): { slow: number; standard: number; fast: number; instant: number } {
-  const gweiToEth = 1e-9;
-
-  return {
-    slow: baseGwei * 1.1 * gasUsed * gweiToEth * nativePrice,
-    standard: baseGwei * 1.2 * gasUsed * gweiToEth * nativePrice,
-    fast: baseGwei * 1.5 * gasUsed * gweiToEth * nativePrice,
-    instant: baseGwei * 2.0 * gasUsed * gweiToEth * nativePrice,
-  };
-}
-
-/**
- * Get gas price predictions for optimal transaction timing
- * Premium feature
- */
-export async function getGasPricePredictions(
-  chain: string,
-  _hoursAhead: number = 24
-): Promise<GasPricePrediction> {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentDay = now.getDay();
-
-  // Generate optimal time windows based on historical patterns
-  // Gas is typically lowest during weekends and late night/early morning hours
-  const optimalWindows = generateOptimalWindows(now, chain);
-
-  // Prediction factors based on current network state
-  const baseFee = getBaseGweiForChain(chain);
-
-  return {
-    chain,
-    timestamp: now.toISOString(),
-    predicted_gas_price: baseFee * 0.9, // Predict slightly lower
-    confidence: 0.75 + Math.random() * 0.15, // 75-90% confidence
-    optimal_time_windows: optimalWindows,
-    prediction_factors: {
-      hour_of_day: currentHour,
-      day_of_week: currentDay,
-      network_congestion: 0.3 + Math.random() * 0.4,
-      pending_transactions: Math.floor(100000 + Math.random() * 50000),
-      block_utilization: 0.5 + Math.random() * 0.3,
-    },
-  };
-}
-
-function generateOptimalWindows(
-  now: Date,
-  chain: string
-): GasPricePrediction['optimal_time_windows'] {
-  const windows: GasPricePrediction['optimal_time_windows'] = [];
-  const baseFee = getBaseGweiForChain(chain);
-
-  // Find next optimal windows (typically 2-6 AM UTC and weekends)
-  for (let i = 0; i < 48; i++) {
-    const windowStart = new Date(now.getTime() + i * 60 * 60 * 1000);
-    const hour = windowStart.getUTCHours();
-    const day = windowStart.getUTCDay();
-
-    // Low gas hours: 2-6 AM UTC, weekends
-    const isLowHour = hour >= 2 && hour <= 6;
-    const isWeekend = day === 0 || day === 6;
-
-    if (isLowHour || isWeekend) {
-      const savingsMultiplier = isLowHour && isWeekend ? 0.5 : isLowHour ? 0.6 : 0.75;
-      const predictedPrice = baseFee * savingsMultiplier;
-      const savingsPercent = ((baseFee - predictedPrice) / baseFee) * 100;
-
-      windows.push({
-        start: windowStart.toISOString(),
-        end: new Date(windowStart.getTime() + 60 * 60 * 1000).toISOString(),
-        predicted_price: predictedPrice,
-        savings_percent: savingsPercent,
-      });
-
-      if (windows.length >= 5) break;
-    }
+    const p = json.bitcoin?.usd;
+    return typeof p === 'number' && p > 0 ? p : null;
+  } catch {
+    return null;
   }
-
-  return windows;
 }
 
-/**
- * Get historical gas prices
- * Premium feature for 30-day history
- */
-export async function getGasPriceHistory(
-  chain: string,
-  hours: number = 24
-): Promise<GasPriceHistory[]> {
-  const history: GasPriceHistory[] = [];
-  const now = Date.now();
-
-  for (let i = 0; i < hours; i++) {
-    const timestamp = new Date(now - i * 60 * 60 * 1000);
-    const hour = timestamp.getUTCHours();
-
-    // Simulate lower gas during off-peak hours
-    const peakMultiplier = hour >= 14 && hour <= 22 ? 1.5 : hour >= 2 && hour <= 6 ? 0.6 : 1.0;
-    const baseFee = getBaseGweiForChain(chain) * peakMultiplier;
-
-    history.push({
-      id: `history_${chain}_${i}`,
-      chain,
-      timestamp: timestamp.toISOString(),
-      base_fee: baseFee,
-      priority_fee: baseFee * 0.2,
-      gas_price: baseFee * 1.2,
-      block_number: 18500000 - i * 300,
-      block_utilization: 0.5 + Math.random() * 0.4,
-      pending_transactions: Math.floor(80000 + Math.random() * 40000),
-    });
-  }
-
-  return history.reverse();
-}
-
-/**
- * Create a gas price alert
- */
-export async function createGasAlert(
-  userId: string,
-  chain: string,
-  thresholdGwei: number,
-  condition: 'below' | 'above' | 'optimal_detected',
-  notifyEmail: boolean = true,
-  notifyPush: boolean = true
-): Promise<{ alert: GasAlert | null; error: string | null }> {
-  const existingAlerts = userAlerts.get(userId) || [];
-
-  // Check limits (free: 3, premium: 50)
-  const maxAlerts = GAS_OPTIMIZER_PRICING.free.limits.maxAlerts; // Would check subscription in production
-
-  if (existingAlerts.length >= maxAlerts) {
-    return {
-      alert: null,
-      error: `You have reached the maximum of ${maxAlerts} alerts. Upgrade to Premium for more alerts.`,
-    };
-  }
-
-  const alert: GasAlert = {
-    id: `gasalert_${Date.now()}`,
-    user_id: userId,
-    chain,
-    alert_type: condition === 'optimal_detected' ? 'optimal_time' : 'price_threshold',
-    condition,
-    threshold_gwei: thresholdGwei,
-    is_active: true,
-    triggered_at: null,
-    notify_email: notifyEmail,
-    notify_push: notifyPush,
-    cooldown_minutes: 60,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  existingAlerts.push(alert);
-  userAlerts.set(userId, existingAlerts);
-
-  return { alert, error: null };
-}
-
-/**
- * Get user's gas alerts
- */
-export function getUserGasAlerts(userId: string): GasAlert[] {
-  return userAlerts.get(userId) || [];
-}
-
-/**
- * Delete a gas alert
- */
-export async function deleteGasAlert(
-  userId: string,
-  alertId: string
-): Promise<{ success: boolean; error: string | null }> {
-  const alerts = userAlerts.get(userId) || [];
-  const index = alerts.findIndex(a => a.id === alertId);
-
-  if (index === -1) {
-    return { success: false, error: 'Alert not found' };
-  }
-
-  alerts.splice(index, 1);
-  userAlerts.set(userId, alerts);
-
-  return { success: true, error: null };
-}
-
-/**
- * Toggle alert active status
- */
-export async function toggleGasAlert(
-  userId: string,
-  alertId: string
-): Promise<{ alert: GasAlert | null; error: string | null }> {
-  const alerts = userAlerts.get(userId) || [];
-  const alert = alerts.find(a => a.id === alertId);
-
-  if (!alert) {
-    return { alert: null, error: 'Alert not found' };
-  }
-
-  alert.is_active = !alert.is_active;
-  alert.updated_at = new Date().toISOString();
-
-  return { alert, error: null };
-}
-
-/**
- * Estimate transaction cost
- */
-export function estimateTransactionCost(
-  gasPrice: GasPriceData,
-  transactionType: keyof typeof GAS_USAGE_ESTIMATES,
-  tier: GasPriceTier = 'standard'
-): { gasUsed: number; costGwei: number; costUsd: number } {
-  const gasUsed = GAS_USAGE_ESTIMATES[transactionType];
-  const priceKey = `gas_price_${tier}` as keyof GasPriceData;
-  const gasPriceGwei = gasPrice[priceKey] as number;
-
-  const costKey = `${transactionType === 'eth_transfer' ? 'transfer' : transactionType === 'uniswap_v3_swap' ? 'swap' : 'nft_mint'}_cost_usd` as keyof GasPriceData;
-  const costs = gasPrice[costKey] as { slow: number; standard: number; fast: number; instant: number };
-
-  return {
-    gasUsed,
-    costGwei: gasPriceGwei * gasUsed,
-    costUsd: costs[tier],
-  };
-}
-
-/**
- * Get gas savings by waiting
- */
-export function calculatePotentialSavings(
-  currentPrice: number,
-  predictedLowPrice: number,
-  gasUsed: number,
-  nativeTokenPrice: number
-): { savingsGwei: number; savingsUsd: number; savingsPercent: number } {
-  const currentCostGwei = currentPrice * gasUsed;
-  const lowCostGwei = predictedLowPrice * gasUsed;
-  const savingsGwei = currentCostGwei - lowCostGwei;
-
-  const gweiToEth = 1e-9;
-  const savingsUsd = savingsGwei * gweiToEth * nativeTokenPrice;
-  const savingsPercent = (savingsGwei / currentCostGwei) * 100;
-
-  return { savingsGwei, savingsUsd, savingsPercent };
-}
-
-/**
- * Format gas price for display
- */
-export function formatGasPrice(gwei: number): string {
-  if (gwei < 0.01) return `${(gwei * 1000).toFixed(2)} mGwei`;
-  if (gwei < 1) return `${gwei.toFixed(3)} Gwei`;
-  if (gwei < 100) return `${gwei.toFixed(1)} Gwei`;
-  return `${Math.round(gwei)} Gwei`;
-}
-
-/**
- * Get recommended tier based on urgency
- */
-export function getRecommendedTier(
-  urgency: 'low' | 'medium' | 'high' | 'immediate'
-): { tier: GasPriceTier; waitTime: string } {
-  switch (urgency) {
-    case 'immediate':
-      return { tier: 'instant', waitTime: '~15 seconds' };
-    case 'high':
-      return { tier: 'fast', waitTime: '~30 seconds' };
-    case 'medium':
-      return { tier: 'standard', waitTime: '~2 minutes' };
-    case 'low':
-    default:
-      return { tier: 'slow', waitTime: '~5 minutes' };
-  }
+export function btcFeeUsd(satPerVb: number, vbytes: number, btcPrice: number | null): number | null {
+  if (btcPrice === null) return null;
+  return ((satPerVb * vbytes) / 1e8) * btcPrice;
 }

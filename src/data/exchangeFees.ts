@@ -1,58 +1,38 @@
 /**
- * Entry-tier (lowest 30-day volume) advanced-trading fees for US exchanges,
- * used by the fee calculator on /calculators.
+ * Entry-tier maker/taker fees for the fee calculator on /calculators.
  *
- * Kept separate from src/data/exchanges.ts (owned by the compare pages) so this
- * table can carry its own verification date. Checked against the exchanges'
- * published fee schedules and third-party fee comparisons on `lastVerified`.
- * NEEDS-OWNER: re-confirm against each exchange's fee page before relying on it,
- * and consider merging with src/data/exchanges.ts once that file is refreshed.
+ * Derived from src/data/exchanges.ts - the dated, sourced exchange data the
+ * comparison pages use - so the calculator and /compare can never quote two
+ * different fee schedules for the same exchange. Update fees there.
  */
+
+import { exchanges, EXCHANGES_LAST_VERIFIED } from './exchanges';
 
 export interface ExchangeFeeRow {
   id: string;
   name: string;
-  product: string;
   /** Percent of trade value. */
   maker: number;
   taker: number;
   tier: string;
   feePageUrl: string;
-  note?: string;
 }
 
 export const EXCHANGE_FEES_META = {
-  lastVerified: '2026-09-23',
+  lastVerified: EXCHANGES_LAST_VERIFIED,
   note:
-    'Lowest-volume tier on each exchange’s advanced trading screen. Simple "Buy" buttons and card purchases usually cost more through spreads and flat fees.',
+    'Lowest-volume tier on each exchange’s order-book screen. Simple "Buy" buttons and card purchases usually cost more through spreads and flat fees.',
 } as const;
 
-export const EXCHANGE_FEES: ExchangeFeeRow[] = [
-  {
-    id: 'kraken-pro',
-    name: 'Kraken Pro',
-    product: 'Advanced trading',
-    maker: 0.25,
-    taker: 0.4,
-    tier: '$0-$10K 30-day volume',
-    feePageUrl: 'https://www.kraken.com/features/fee-schedule',
-  },
-  {
-    id: 'gemini-activetrader',
-    name: 'Gemini ActiveTrader',
-    product: 'Advanced trading',
-    maker: 0.2,
-    taker: 0.4,
-    tier: 'Lowest volume tier',
-    feePageUrl: 'https://www.gemini.com/fees/activetrader-fee-schedule',
-  },
-  {
-    id: 'coinbase-advanced',
-    name: 'Coinbase Advanced',
-    product: 'Advanced trading',
-    maker: 0.6,
-    taker: 1.2,
-    tier: '$0-$1K 30-day volume (drops to 0.25%/0.40% at $10K-$50K)',
-    feePageUrl: 'https://help.coinbase.com/en/coinbase/trading-and-funding/advanced-trade/advanced-trade-fees',
-  },
-];
+export const EXCHANGE_FEES: ExchangeFeeRow[] = exchanges
+  // Spread-only brokers (no published maker/taker schedule) don't belong in a
+  // maker/taker comparison.
+  .filter((e) => e.fees.maker_fee > 0 || e.fees.taker_fee > 0)
+  .map((e) => ({
+    id: e.id,
+    name: e.name,
+    maker: +(e.fees.maker_fee * 100).toFixed(3),
+    taker: +(e.fees.taker_fee * 100).toFixed(3),
+    tier: 'Entry tier, lowest 30-day volume',
+    feePageUrl: e.fees_url ?? e.url,
+  }));

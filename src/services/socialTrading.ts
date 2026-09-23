@@ -1,8 +1,12 @@
 /**
  * Social Trading / Copy Portfolio Service
  *
- * Users can publish their portfolios, others can copy allocation for $9.99/month.
- * Original users earn 20% of subscription. Creates content and retention.
+ * Supabase functions for a possible future feature where users publish and
+ * copy portfolios. NOT used by any page: /social-trading is an educational
+ * "copy trading explained" guide. Do not wire these up until auth and the
+ * database are live AND the owner has had legal review, because charging for
+ * copied allocations can count as investment-adviser or signal activity.
+ * NEEDS-OWNER: legal sign-off before this is ever productised.
  */
 
 import { db } from '../lib/supabase';
@@ -580,115 +584,5 @@ export async function getLeaderboard(): Promise<SocialTradingLeaderboard> {
     most_copied: (mostCopied.data || []) as PublishedPortfolio[],
     trending: (trending.data || []) as PublishedPortfolio[],
     new_creators: (newCreators.data || []) as PublishedPortfolio[],
-  };
-}
-
-// ============================================
-// DEMO DATA
-// ============================================
-
-export const DEMO_PUBLISHED_PORTFOLIOS: Partial<PublishedPortfolio>[] = [
-  {
-    id: 'demo-1',
-    name: 'BTC Maximalist',
-    slug: 'btc-maximalist',
-    description: 'Long-term Bitcoin accumulation strategy with DCA approach.',
-    trading_style: 'hodl',
-    risk_level: 'moderate',
-    specialization: 'Bitcoin',
-    total_return_percent: 145.5,
-    monthly_return_percent: 8.2,
-    yearly_return_percent: 145.5,
-    max_drawdown_percent: -25.3,
-    sharpe_ratio: 1.85,
-    win_rate: 72,
-    followers_count: 1250,
-    copiers_count: 320,
-    views_count: 8500,
-    is_free: false,
-    subscription_price: 9.99,
-    is_verified: true,
-    is_active: true,
-  },
-  {
-    id: 'demo-2',
-    name: 'DeFi Alpha Hunter',
-    slug: 'defi-alpha-hunter',
-    description: 'Active DeFi trading focused on yield opportunities and emerging protocols.',
-    trading_style: 'yield_farming',
-    risk_level: 'aggressive',
-    specialization: 'DeFi',
-    total_return_percent: 285.2,
-    monthly_return_percent: 18.5,
-    yearly_return_percent: 285.2,
-    max_drawdown_percent: -42.1,
-    sharpe_ratio: 1.45,
-    win_rate: 65,
-    followers_count: 890,
-    copiers_count: 185,
-    views_count: 5200,
-    is_free: false,
-    subscription_price: 14.99,
-    is_verified: true,
-    is_active: true,
-  },
-  {
-    id: 'demo-3',
-    name: 'Balanced Crypto Index',
-    slug: 'balanced-crypto-index',
-    description: 'Diversified portfolio tracking top 20 cryptocurrencies by market cap.',
-    trading_style: 'dca',
-    risk_level: 'conservative',
-    specialization: 'Index',
-    total_return_percent: 85.3,
-    monthly_return_percent: 5.2,
-    yearly_return_percent: 85.3,
-    max_drawdown_percent: -18.5,
-    sharpe_ratio: 2.1,
-    win_rate: 78,
-    followers_count: 2100,
-    copiers_count: 520,
-    views_count: 12500,
-    is_free: false,
-    subscription_price: 9.99,
-    is_verified: true,
-    is_active: true,
-  },
-  {
-    id: 'demo-4',
-    name: 'Altcoin Season Trader',
-    slug: 'altcoin-season-trader',
-    description: 'Swing trading altcoins during market cycles.',
-    trading_style: 'swing_trading',
-    risk_level: 'degen',
-    specialization: 'Altcoins',
-    total_return_percent: 450.8,
-    monthly_return_percent: 32.1,
-    yearly_return_percent: 450.8,
-    max_drawdown_percent: -65.2,
-    sharpe_ratio: 0.95,
-    win_rate: 55,
-    followers_count: 650,
-    copiers_count: 95,
-    views_count: 3800,
-    is_free: false,
-    subscription_price: 19.99,
-    is_verified: false,
-    is_active: true,
-  },
-];
-
-/**
- * Get demo leaderboard data
- */
-export function getDemoLeaderboard(): SocialTradingLeaderboard {
-  const portfolios = DEMO_PUBLISHED_PORTFOLIOS as PublishedPortfolio[];
-  return {
-    top_performers: [...portfolios].sort(
-      (a, b) => (b.total_return_percent || 0) - (a.total_return_percent || 0)
-    ),
-    most_copied: [...portfolios].sort((a, b) => b.copiers_count - a.copiers_count),
-    trending: [...portfolios].sort((a, b) => b.followers_count - a.followers_count),
-    new_creators: [...portfolios].slice(0, 3),
   };
 }

@@ -1,8 +1,11 @@
 /**
  * On-Chain Analytics Dashboard Service
  *
- * Advanced metrics: network activity, miner flows, exchange inflows/outflows.
- * Free users get basic metrics, premium gets pro analytics: $29.99/month tier
+ * Supabase-backed storage for on-chain metric series, alerts and dashboards.
+ * Not used by any page yet: /onchain-analytics reads live public data through
+ * functions/api/onchain (see services/onchainPublic.ts). These functions are
+ * kept for when the database is live and can cache those series server-side.
+ * The paid tiers below are not on sale and must not be shown to users.
  */
 
 import { db } from '../lib/supabase';
@@ -579,109 +582,3 @@ export async function getOnChainDashboardData(
     available_metrics: ON_CHAIN_METRIC_CATEGORIES,
   };
 }
-
-// ============================================
-// DEMO DATA
-// ============================================
-
-export function generateDemoMetrics(
-  asset: string = 'BTC',
-  metricType: OnChainMetricType,
-  days: number = 30
-): OnChainMetric[] {
-  const metrics: OnChainMetric[] = [];
-  const now = new Date();
-
-  const baseValues: Record<OnChainMetricType, number> = {
-    active_addresses: 950000,
-    transaction_count: 350000,
-    transaction_volume: 25000000000,
-    exchange_inflow: 15000,
-    exchange_outflow: 18000,
-    exchange_netflow: -3000,
-    miner_revenue: 25000000,
-    miner_outflow: 500,
-    hash_rate: 450000000,
-    difficulty: 65000000000000,
-    block_size: 1500000,
-    fees: 2500000,
-    nvt_ratio: 65,
-    mvrv_ratio: 1.8,
-    sopr: 1.02,
-    realized_cap: 450000000000,
-    thermocap: 28000000000,
-    supply_held_1y_plus: 67.5,
-    whale_transactions: 1250,
-    large_transactions: 8500,
-    stablecoin_supply: 130000000000,
-    defi_tvl: 85000000000,
-  };
-
-  for (let i = days; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-
-    const baseValue = baseValues[metricType] || 1000;
-    const noise = (Math.random() - 0.5) * 0.1 * baseValue;
-    const trend = Math.sin(i * 0.1) * 0.05 * baseValue;
-
-    metrics.push({
-      id: `demo-${metricType}-${i}`,
-      asset_symbol: asset,
-      asset_name: asset === 'BTC' ? 'Bitcoin' : asset,
-      chain: 'bitcoin',
-      metric_type: metricType,
-      timestamp: date.toISOString(),
-      value: baseValue + noise + trend,
-      value_usd: null,
-      change_24h: (Math.random() - 0.5) * 10,
-      change_7d: (Math.random() - 0.5) * 20,
-      change_30d: (Math.random() - 0.5) * 30,
-      aggregation_period: 'daily',
-      data_source: 'demo',
-      created_at: date.toISOString(),
-    });
-  }
-
-  return metrics;
-}
-
-export const DEMO_DASHBOARD_WIDGETS = [
-  {
-    id: 'widget-1',
-    type: 'chart' as const,
-    title: 'Active Addresses',
-    config: {
-      metric: 'active_addresses',
-      chartType: 'line',
-      timeframe: '30d',
-    },
-  },
-  {
-    id: 'widget-2',
-    type: 'metric' as const,
-    title: 'Exchange Net Flow',
-    config: {
-      metric: 'exchange_netflow',
-      showChange: true,
-    },
-  },
-  {
-    id: 'widget-3',
-    type: 'chart' as const,
-    title: 'MVRV Ratio',
-    config: {
-      metric: 'mvrv_ratio',
-      chartType: 'area',
-      timeframe: '90d',
-    },
-  },
-  {
-    id: 'widget-4',
-    type: 'heatmap' as const,
-    title: 'Holder Distribution',
-    config: {
-      metric: 'supply_held_1y_plus',
-    },
-  },
-];

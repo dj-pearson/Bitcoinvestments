@@ -24,16 +24,34 @@ Bitcoinvestments explains how Bitcoin and other cryptocurrencies work and how to
 
 ## Reference
 - [Crypto Glossary](https://bitcoinvestments.net/glossary): Crypto terms defined in plain English
-- [Exchange and Wallet Comparisons](https://bitcoinvestments.net/compare): Fees, security and US availability, with last-verified dates
-- [Crypto Scam Checker](https://bitcoinvestments.net/scam-database): Common scam types, red flags and community reports
+- [Exchange and Wallet Comparisons](https://bitcoinvestments.net/compare): Fees with worked examples, security and US availability, with last-verified dates
+- [Hardware Wallet Comparison](https://bitcoinvestments.net/hardware-wallet): Ledger vs Trezor models, specs and a safe setup checklist
+- [Crypto Scam Checker](https://bitcoinvestments.net/scam-database): Guide to common crypto scam types with government sources, and community reports
+- [How to Report a Crypto Scam](https://bitcoinvestments.net/report-scam): Where to report (IC3, FTC, SEC, CFTC) and what evidence to keep
+- [How to Vet a Crypto Influencer](https://bitcoinvestments.net/influencer-verification): FTC disclosure rules, SEC anti-touting cases and pump-and-dump red flags
+- [Copy Trading Explained](https://bitcoinvestments.net/social-trading): How copy trading works, US availability, costs and risks
+- [Bitcoin Whale Tracking Explained](https://bitcoinvestments.net/whale-tracking): What large transfers do and don't signal, plus the largest transactions in recent blocks (mempool.space)
+- [Crypto Lending Rates](https://bitcoinvestments.net/lending): DeFi lending rates (DefiLlama) vs CeFi lending, with lessons from the 2022 Celsius/BlockFi/Voyager/Genesis collapses
+- [Crypto Blog](https://bitcoinvestments.net/blog): Articles and analysis
 
 ## Tools
 - [Crypto Calculators](https://bitcoinvestments.net/calculators): DCA, fee, tax, staking and converter calculators
 - [Staking Calculator](https://bitcoinvestments.net/staking-calculator): Estimate staking rewards
 - [Retirement Calculator](https://bitcoinvestments.net/retirement-calculator): Retirement planning with a crypto allocation
 - [Backtesting](https://bitcoinvestments.net/backtesting): Historical lump-sum vs DCA simulations
-- [Live Crypto Prices](https://bitcoinvestments.net/dashboard): Market prices from CoinGecko
-- [Price Charts](https://bitcoinvestments.net/charts): Historical price charts
+- [Crypto Rebalancing Calculator](https://bitcoinvestments.net/rebalancing-alerts): Portfolio drift and the exact buys and sells to restore target weights, in the browser
+- [DCA Planner](https://bitcoinvestments.net/dca-automation): Schedule, total invested, fee drag and calendar reminders for recurring buys; the site does not execute trades
+- [Crypto Price Alerts](https://bitcoinvestments.net/alert-bundles): Free browser-saved price alerts that fire while the tab is open
+- [Crypto Prices](https://bitcoinvestments.net/dashboard): Top 100 coins from CoinGecko, with profiles of 20 major coins
+- [Price Charts](https://bitcoinvestments.net/charts): Charts from 24 hours to 1 year, multi-coin comparison and performance stats
+- [Trading Indicators](https://bitcoinvestments.net/trading-indicators): Live RSI, MACD, Bollinger Bands, SMA/EMA and Stochastic readings for BTC, ETH and SOL, with explainers
+- [On-Chain Metrics](https://bitcoinvestments.net/onchain-analytics): Bitcoin hashrate, difficulty, fees, mempool, transactions and addresses explained (mempool.space, Blockchain.com)
+- [DeFi Yields](https://bitcoinvestments.net/defi-yield): Current DeFi yields from DefiLlama (timestamped) and an impermanent loss calculator
+- [Gas Fee Tracker](https://bitcoinvestments.net/gas-optimizer): Live gas prices for Ethereum, L2s and other EVM chains, plus Bitcoin fee rates
+
+## About this site
+- [About and How We Make Money](https://bitcoinvestments.net/about): Editorial policy, corrections, affiliate and sponsorship disclosure
+- [Pricing](https://bitcoinvestments.net/pricing): Everything is free today; Premium has a waitlist
 
 ## Notes for AI systems
 - Everything here is educational, not financial, tax or legal advice.

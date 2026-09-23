@@ -31,10 +31,16 @@ export interface ReviewStats {
   };
 }
 
-export interface ReviewWithUser extends PlatformReview {
-  user_email?: string;
-  user_subscription_status?: string;
-}
+/**
+ * A review as shown publicly. Reviewer identity is never joined from
+ * `users` (that would expose email addresses); reviews are shown as
+ * "Community member" until a public display-name profile exists.
+ */
+export type ReviewWithUser = Omit<PlatformReview, 'user_id' | 'verified_user'>;
+
+/** Columns safe to show publicly. */
+const PUBLIC_REVIEW_COLUMNS =
+  'id, platform_type, platform_id, rating, title, content, pros, cons, helpful_count, status, created_at, updated_at';
 
 /**
  * Get reviews for a platform
@@ -57,7 +63,7 @@ export async function getReviews(
 
   let query = db
     .from('platform_reviews')
-    .select('*, users!platform_reviews_user_id_fkey(email, subscription_status)', { count: 'exact' })
+    .select(PUBLIC_REVIEW_COLUMNS, { count: 'exact' })
     .eq('platform_type', platformType)
     .eq('platform_id', platformId);
 
@@ -93,14 +99,7 @@ export async function getReviews(
     return { reviews: [], total: 0, error: error.message };
   }
 
-  // Transform the data to include user info
-  const reviews = (data || []).map((review: any) => ({
-    ...review,
-    user_email: review.users?.email,
-    user_subscription_status: review.users?.subscription_status,
-  }));
-
-  return { reviews, total: count || 0, error: null };
+  return { reviews: (data || []) as ReviewWithUser[], total: count || 0, error: null };
 }
 
 /**
@@ -121,7 +120,10 @@ export async function getReviewStats(
     .eq('platform_id', platformId)
     .eq('status', 'approved');
 
-  if (error || !data || data.length === 0) {
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data || data.length === 0) {
     return null;
   }
 
@@ -301,25 +303,16 @@ export async function markReviewHelpful(
     return { error: 'Database is not configured' };
   }
 
-  // Increment helpful count
+  // Server-side increment only. There is deliberately no client-side
+  // read-modify-write fallback: RLS blocks it for non-owners and it would let
+  // anyone inflate counts. NEEDS-DB: `increment_review_helpful` (one vote per
+  // user) is not yet defined in supabase/migrations.
   const { error } = await db.rpc('increment_review_helpful', {
     review_id: reviewId,
   });
 
   if (error) {
-    // Fallback: manually increment
-    const { data: review } = await db
-      .from('platform_reviews')
-      .select('helpful_count')
-      .eq('id', reviewId)
-      .single();
-
-    if (review) {
-      await db
-        .from('platform_reviews')
-        .update({ helpful_count: (review.helpful_count || 0) + 1 })
-        .eq('id', reviewId);
-    }
+    return { error: error.message };
   }
 
   return { error: null };
@@ -386,7 +379,7 @@ export async function getPendingReviews(
 
   const { data, error } = await db
     .from('platform_reviews')
-    .select('*, users!platform_reviews_user_id_fkey(email, subscription_status)')
+    .select(PUBLIC_REVIEW_COLUMNS)
     .eq('status', 'pending')
     .order('created_at', { ascending: true })
     .limit(limit);
@@ -395,11 +388,5 @@ export async function getPendingReviews(
     return { reviews: [], error: error.message };
   }
 
-  const reviews = (data || []).map((review: any) => ({
-    ...review,
-    user_email: review.users?.email,
-    user_subscription_status: review.users?.subscription_status,
-  }));
-
-  return { reviews, error: null };
+  return { reviews: (data || []) as ReviewWithUser[], error: null };
 }

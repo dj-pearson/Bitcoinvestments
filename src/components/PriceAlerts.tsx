@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getUserPriceAlerts, createPriceAlert, deletePriceAlert } from '../services/database';
 import { getCurrentUser, getUserProfile } from '../services/auth';
 import { TIER_LIMITS } from '../services/subscriptionLimits';
@@ -6,6 +7,12 @@ import { hasPremiumAccess } from '../services/stripe';
 import { UpgradePrompt, LimitCounter } from './UpgradePrompt';
 import type { PriceAlert } from '../types/database';
 import { formatCryptoPrice } from '../lib/utils';
+import { COMMON_COINS } from '../lib/coinIds';
+
+// Coins offered in the form. The stored `cryptocurrency_id` must be a CoinGecko
+// id ("bitcoin"), because check-price-alerts looks prices up by id; storing the
+// lowercased ticker ("btc") meant no alert could ever fire.
+const ALERT_COINS = COMMON_COINS.filter((c) => c.symbol !== 'USDC');
 
 interface PriceAlertsProps {
   className?: string;
@@ -23,7 +30,7 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
   const [activeAlertCount, setActiveAlertCount] = useState(0);
 
   // Form state
-  const [symbol, setSymbol] = useState('BTC');
+  const [coinId, setCoinId] = useState(ALERT_COINS[0].id);
   const [targetPrice, setTargetPrice] = useState('');
   const [condition, setCondition] = useState<'above' | 'below'>('above');
   const [submitting, setSubmitting] = useState(false);
@@ -76,10 +83,11 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
 
     setSubmitting(true);
 
+    const coin = ALERT_COINS.find((c) => c.id === coinId) ?? ALERT_COINS[0];
     const newAlert = await createPriceAlert({
       user_id: userId,
-      cryptocurrency_id: symbol.toLowerCase(),
-      symbol: symbol.toUpperCase(),
+      cryptocurrency_id: coin.id,
+      symbol: coin.symbol,
       target_price: parseFloat(targetPrice),
       condition,
     });
@@ -130,12 +138,12 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
           <p className="text-gray-400 text-sm mb-4">
             Sign in to set custom price alerts for your favorite cryptocurrencies.
           </p>
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="inline-block px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors"
           >
             Sign In
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -179,23 +187,22 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
         <form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-700/50 rounded-lg">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Cryptocurrency</label>
+              <label htmlFor="price-alert-coin" className="block text-sm text-gray-400 mb-1">Cryptocurrency</label>
               <select
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
+                id="price-alert-coin"
+                value={coinId}
+                onChange={(e) => setCoinId(e.target.value)}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
-                <option value="BTC">Bitcoin (BTC)</option>
-                <option value="ETH">Ethereum (ETH)</option>
-                <option value="SOL">Solana (SOL)</option>
-                <option value="XRP">Ripple (XRP)</option>
-                <option value="ADA">Cardano (ADA)</option>
-                <option value="DOGE">Dogecoin (DOGE)</option>
+                {ALERT_COINS.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Condition</label>
+              <label htmlFor="price-alert-condition" className="block text-sm text-gray-400 mb-1">Condition</label>
               <select
+                id="price-alert-condition"
                 value={condition}
                 onChange={(e) => setCondition(e.target.value as 'above' | 'below')}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -206,8 +213,9 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
             </div>
           </div>
           <div className="mb-4">
-            <label className="block text-sm text-gray-400 mb-1">Target Price (USD)</label>
+            <label htmlFor="price-alert-target" className="block text-sm text-gray-400 mb-1">Target Price (USD)</label>
             <input
+              id="price-alert-target"
               type="number"
               value={targetPrice}
               onChange={(e) => setTargetPrice(e.target.value)}
@@ -284,6 +292,7 @@ export function PriceAlerts({ className = '' }: PriceAlertsProps) {
                 onClick={() => handleDelete(alert.id)}
                 className="p-2 text-gray-400 hover:text-red-400 transition-colors"
                 title="Delete alert"
+                aria-label={`Delete ${alert.symbol} alert`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

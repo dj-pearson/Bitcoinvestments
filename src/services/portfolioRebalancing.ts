@@ -1,299 +1,254 @@
 /**
- * Portfolio Rebalancing Alerts Service
+ * Portfolio rebalancing maths for the client-side rebalancing calculator
+ * (/rebalancing-alerts).
  *
- * AI-powered alerts when portfolio drifts from target allocation.
- * Free users: monthly alerts, 1 portfolio
- * Premium: real-time, unlimited portfolios, AI optimization
+ * Pure functions only: no network, no storage, no mock data. The page supplies
+ * the holdings the visitor typed in.
  */
 
-import type {
-  TargetAllocation,
-  PortfolioRebalanceConfig,
-  DriftAnalysis,
-  RebalanceRecommendation,
-  RebalanceAlert,
-  RebalanceFrequency,
-  RebalanceMethod,
-} from '../types/premiumFeatures';
-
-// Mock portfolio holdings
-interface PortfolioHolding {
+export interface RebalanceHolding {
+  /** Ticker or label, e.g. "BTC". Compared case-insensitively. */
   symbol: string;
-  name: string;
-  amount: number;
-  currentPrice: number;
+  /** Current market value in USD. */
   value: number;
 }
 
-const mockHoldings: PortfolioHolding[] = [
-  { symbol: 'BTC', name: 'Bitcoin', amount: 0.5, currentPrice: 43000, value: 21500 },
-  { symbol: 'ETH', name: 'Ethereum', amount: 5.0, currentPrice: 2400, value: 12000 },
-  { symbol: 'SOL', name: 'Solana', amount: 50, currentPrice: 100, value: 5000 },
-  { symbol: 'LINK', name: 'Chainlink', amount: 200, currentPrice: 15, value: 3000 },
-  { symbol: 'USDC', name: 'USD Coin', amount: 3500, currentPrice: 1, value: 3500 },
-];
+export interface RebalanceTarget {
+  symbol: string;
+  /** Target weight, 0-100. */
+  targetPercent: number;
+}
 
-/**
- * Create a rebalancing configuration
- */
-export async function createRebalanceConfig(
-  userId: string,
-  portfolioId: string,
-  config: {
-    name: string;
-    rebalanceMethod: RebalanceMethod;
-    checkFrequency: RebalanceFrequency;
-    driftThresholdPercent: number;
-    minTradeValueUsd: number;
-    taxLossHarvesting: boolean;
-    avoidShortTermGains: boolean;
-    targetAllocations: Omit<TargetAllocation, 'id' | 'portfolio_id' | 'created_at' | 'updated_at'>[];
-  }
-): Promise<PortfolioRebalanceConfig> {
-  const targetAllocations: TargetAllocation[] = config.targetAllocations.map((t, i) => ({
-    id: `target-${Date.now()}-${i}`,
-    portfolio_id: portfolioId,
-    asset_symbol: t.asset_symbol,
-    asset_name: t.asset_name,
-    target_percent: t.target_percent,
-    min_percent: t.min_percent,
-    max_percent: t.max_percent,
-    priority: t.priority,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }));
+export type RebalanceMode = 'full' | 'buy-only';
 
-  return {
-    id: `config-${Date.now()}`,
-    user_id: userId,
-    portfolio_id: portfolioId,
-    name: config.name,
-    is_active: true,
-    rebalance_method: config.rebalanceMethod,
-    check_frequency: config.checkFrequency,
-    drift_threshold_percent: config.driftThresholdPercent,
-    min_trade_value_usd: config.minTradeValueUsd,
-    tax_loss_harvesting: config.taxLossHarvesting,
-    avoid_short_term_gains: config.avoidShortTermGains,
-    target_allocations: targetAllocations,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+export interface RebalanceOptions {
+  /** Tolerance band in percentage points, e.g. 5 means target ±5 points. */
+  bandPoints: number;
+  /** Trades smaller than this (USD) are skipped. */
+  minTradeUsd: number;
+  /** New cash to invest this time (USD). */
+  newCashUsd: number;
+  /** 'full' buys and sells back to target; 'buy-only' only spends new cash. */
+  mode: RebalanceMode;
+  /** Estimated trading cost as a percentage of each trade (0-100). */
+  feePercent: number;
+}
+
+export interface DriftRow {
+  symbol: string;
+  currentValue: number;
+  currentPercent: number;
+  targetPercent: number;
+  /** currentPercent - targetPercent, in percentage points. */
+  driftPoints: number;
+  /** True when the holding has no target and so counts as a 0% target. */
+  untargeted: boolean;
+  outsideBand: boolean;
+}
+
+export interface Trade {
+  symbol: string;
+  action: 'buy' | 'sell';
+  amountUsd: number;
+}
+
+export interface RebalanceResult {
+  totalValue: number;
+  totalAfter: number;
+  rows: DriftRow[];
+  /** Largest absolute drift of any asset, in percentage points. */
+  maxDriftPoints: number;
+  /** Sum of |drift| / 2: the share of the portfolio that sits in the "wrong" asset. */
+  totalDriftPoints: number;
+  /** True when at least one asset is outside the band. */
+  bandBreached: boolean;
+  trades: Trade[];
+  /** Trades that were computed but fall under the minimum trade size. */
+  skippedTrades: Trade[];
+  estimatedFeesUsd: number;
+  /** New cash left unspent in buy-only mode (because of min trade size). */
+  unallocatedCashUsd: number;
+}
+
+const norm = (s: string) => s.trim().toUpperCase();
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Sum of target weights. The calculator requires this to be 100. */
+export function sumTargets(targets: RebalanceTarget[]): number {
+  return targets.reduce((sum, t) => sum + (Number.isFinite(t.targetPercent) ? t.targetPercent : 0), 0);
 }
 
 /**
- * Analyze portfolio drift from target allocation
+ * Current weight vs target weight for every asset that is either held or
+ * targeted. A holding with no target is treated as a 0% target (so it shows up
+ * as fully overweight) instead of being silently dropped, which would make the
+ * displayed weights sum to less than 100%.
  */
 export function analyzeDrift(
-  holdings: PortfolioHolding[],
-  targetAllocations: TargetAllocation[]
-): DriftAnalysis[] {
-  const totalValue = holdings.reduce((sum, h) => sum + h.value, 0);
+  holdings: RebalanceHolding[],
+  targets: RebalanceTarget[],
+  bandPoints = 5
+): DriftRow[] {
+  const values = new Map<string, number>();
+  for (const h of holdings) {
+    const key = norm(h.symbol);
+    if (!key) continue;
+    const v = Number.isFinite(h.value) && h.value > 0 ? h.value : 0;
+    values.set(key, (values.get(key) ?? 0) + v);
+  }
 
-  return targetAllocations.map(target => {
-    const holding = holdings.find(h => h.symbol === target.asset_symbol);
-    const currentValue = holding?.value || 0;
+  const targetMap = new Map<string, number>();
+  for (const t of targets) {
+    const key = norm(t.symbol);
+    if (!key) continue;
+    const pct = Number.isFinite(t.targetPercent) && t.targetPercent > 0 ? t.targetPercent : 0;
+    targetMap.set(key, (targetMap.get(key) ?? 0) + pct);
+  }
+
+  const totalValue = [...values.values()].reduce((a, b) => a + b, 0);
+  const symbols = [...new Set([...values.keys(), ...targetMap.keys()])];
+
+  return symbols.map((symbol) => {
+    const currentValue = values.get(symbol) ?? 0;
+    const hasTarget = targetMap.has(symbol);
+    const targetPercent = targetMap.get(symbol) ?? 0;
     const currentPercent = totalValue > 0 ? (currentValue / totalValue) * 100 : 0;
-    const driftPercent = currentPercent - target.target_percent;
-    const driftValueUsd = (driftPercent / 100) * totalValue;
-
-    let actionRequired: 'buy' | 'sell' | 'hold' = 'hold';
-    let urgency: 'low' | 'medium' | 'high' = 'low';
-
-    if (currentPercent < target.min_percent) {
-      actionRequired = 'buy';
-      urgency = currentPercent < target.min_percent - 5 ? 'high' : 'medium';
-    } else if (currentPercent > target.max_percent) {
-      actionRequired = 'sell';
-      urgency = currentPercent > target.max_percent + 5 ? 'high' : 'medium';
-    }
-
-    const tradeAmountUsd = Math.abs(driftValueUsd);
-
+    const driftPoints = currentPercent - targetPercent;
     return {
-      asset_symbol: target.asset_symbol,
-      asset_name: target.asset_name,
-      target_percent: target.target_percent,
-      current_percent: parseFloat(currentPercent.toFixed(2)),
-      drift_percent: parseFloat(driftPercent.toFixed(2)),
-      drift_value_usd: parseFloat(driftValueUsd.toFixed(2)),
-      action_required: actionRequired,
-      trade_amount_usd: parseFloat(tradeAmountUsd.toFixed(2)),
-      urgency,
+      symbol,
+      currentValue,
+      currentPercent,
+      targetPercent,
+      driftPoints,
+      untargeted: !hasTarget && currentValue > 0,
+      outsideBand: totalValue > 0 && Math.abs(driftPoints) > bandPoints,
     };
   });
 }
 
 /**
- * Generate rebalancing recommendation
+ * Trades that bring the portfolio to its target weights.
+ *
+ * - 'full': the post-trade portfolio (current value + new cash) is split by
+ *   target weight; each asset buys or sells the difference.
+ * - 'buy-only': nothing is sold. New cash goes to underweight assets in
+ *   proportion to how far each is below its target value.
+ *
+ * Trades below `minTradeUsd` are reported as skipped rather than executed.
  */
-export async function generateRebalanceRecommendation(
-  config: PortfolioRebalanceConfig,
-  holdings: PortfolioHolding[] = mockHoldings
-): Promise<RebalanceRecommendation> {
-  const driftAnalysis = analyzeDrift(holdings, config.target_allocations);
-  const totalDrift = driftAnalysis.reduce((sum, d) => sum + Math.abs(d.drift_percent), 0) / 2;
+export function computeRebalance(
+  holdings: RebalanceHolding[],
+  targets: RebalanceTarget[],
+  options: RebalanceOptions
+): RebalanceResult {
+  const band = Math.max(0, options.bandPoints || 0);
+  const minTrade = Math.max(0, options.minTradeUsd || 0);
+  const newCash = Math.max(0, options.newCashUsd || 0);
+  const feeRate = Math.max(0, options.feePercent || 0) / 100;
 
-  const isRebalanceRecommended = totalDrift > config.drift_threshold_percent;
+  const rows = analyzeDrift(holdings, targets, band);
+  const totalValue = rows.reduce((s, r) => s + r.currentValue, 0);
+  const totalAfter = totalValue + newCash;
+  const maxDriftPoints = rows.reduce((m, r) => Math.max(m, Math.abs(r.driftPoints)), 0);
+  const totalDriftPoints = rows.reduce((s, r) => s + Math.abs(r.driftPoints), 0) / 2;
+  const bandBreached = rows.some((r) => r.outsideBand);
 
-  const suggestedTrades = driftAnalysis
-    .filter(d => d.action_required !== 'hold' && d.trade_amount_usd >= config.min_trade_value_usd)
-    .map(d => ({
-      asset_symbol: d.asset_symbol,
-      action: d.action_required as 'buy' | 'sell',
-      amount: d.trade_amount_usd / (holdings.find(h => h.symbol === d.asset_symbol)?.currentPrice || 1),
-      amount_usd: d.trade_amount_usd,
-      exchange: null,
-      estimated_fee_usd: d.trade_amount_usd * 0.001, // 0.1% estimated fee
+  const raw: Trade[] = [];
+  let unallocatedCashUsd = 0;
+
+  if (options.mode === 'buy-only') {
+    const deficits = rows.map((r) => ({
+      symbol: r.symbol,
+      deficit: Math.max(0, (r.targetPercent / 100) * totalAfter - r.currentValue),
     }));
-
-  // Estimate tax impact (simplified)
-  const sellTrades = suggestedTrades.filter(t => t.action === 'sell');
-  const estimatedTaxImpact = sellTrades.reduce((sum, t) => sum + t.amount_usd * 0.15, 0); // 15% assumed gains
-
-  const rationalePoints: string[] = [];
-  if (isRebalanceRecommended) {
-    rationalePoints.push(`Portfolio has drifted ${totalDrift.toFixed(1)}% from target allocation`);
-
-    const highUrgency = driftAnalysis.filter(d => d.urgency === 'high');
-    if (highUrgency.length > 0) {
-      rationalePoints.push(`${highUrgency.length} position(s) require urgent attention`);
+    const totalDeficit = deficits.reduce((s, d) => s + d.deficit, 0);
+    if (newCash > 0 && totalDeficit > 0) {
+      const scale = Math.min(1, newCash / totalDeficit);
+      for (const d of deficits) {
+        const amount = d.deficit * scale;
+        if (amount > 0.005) raw.push({ symbol: d.symbol, action: 'buy', amountUsd: amount });
+      }
     }
-
-    if (config.tax_loss_harvesting) {
-      rationalePoints.push('Tax-loss harvesting opportunities have been considered');
-    }
+    const spent = raw.reduce((s, t) => s + t.amountUsd, 0);
+    unallocatedCashUsd = Math.max(0, newCash - spent);
   } else {
-    rationalePoints.push('Portfolio is within acceptable drift range');
-    rationalePoints.push('No rebalancing action required at this time');
+    for (const r of rows) {
+      const targetValue = (r.targetPercent / 100) * totalAfter;
+      const diff = targetValue - r.currentValue;
+      if (Math.abs(diff) > 0.005) {
+        raw.push({ symbol: r.symbol, action: diff > 0 ? 'buy' : 'sell', amountUsd: Math.abs(diff) });
+      }
+    }
   }
 
+  const trades: Trade[] = [];
+  const skippedTrades: Trade[] = [];
+  for (const t of raw) {
+    const rounded = { ...t, amountUsd: round2(t.amountUsd) };
+    if (rounded.amountUsd < minTrade) skippedTrades.push(rounded);
+    else trades.push(rounded);
+  }
+  if (options.mode === 'buy-only') {
+    unallocatedCashUsd += skippedTrades.reduce((s, t) => s + t.amountUsd, 0);
+  }
+
+  // Sells first, then buys: the order you would place them in.
+  trades.sort((a, b) => (a.action === b.action ? b.amountUsd - a.amountUsd : a.action === 'sell' ? -1 : 1));
+
+  const estimatedFeesUsd = round2(trades.reduce((s, t) => s + t.amountUsd * feeRate, 0));
+
   return {
-    id: `rec-${Date.now()}`,
-    config_id: config.id,
-    portfolio_id: config.portfolio_id,
-    generated_at: new Date().toISOString(),
-    total_drift_percent: parseFloat(totalDrift.toFixed(2)),
-    is_rebalance_recommended: isRebalanceRecommended,
-    drift_analysis: driftAnalysis,
-    suggested_trades: suggestedTrades,
-    estimated_tax_impact_usd: parseFloat(estimatedTaxImpact.toFixed(2)),
-    rationale: rationalePoints.join('. '),
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Expires in 24h
+    totalValue,
+    totalAfter,
+    rows,
+    maxDriftPoints,
+    totalDriftPoints,
+    bandBreached,
+    trades,
+    skippedTrades,
+    estimatedFeesUsd,
+    unallocatedCashUsd: round2(unallocatedCashUsd),
   };
 }
 
-/**
- * Get user's rebalancing alerts
- */
-export async function getRebalanceAlerts(
-  userId: string,
-  isPremium: boolean = false
-): Promise<RebalanceAlert[]> {
-  const mockAlerts: RebalanceAlert[] = [
-    {
-      id: 'alert-1',
-      user_id: userId,
-      config_id: 'config-1',
-      alert_type: 'drift_threshold',
-      triggered_at: new Date(Date.now() - 86400000).toISOString(),
-      drift_percent: 8.5,
-      message: 'Your portfolio has drifted 8.5% from target allocation. BTC is overweight by 5.2%.',
-      recommendation_id: 'rec-1',
-      is_read: false,
-      is_dismissed: false,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'alert-2',
-      user_id: userId,
-      config_id: 'config-1',
-      alert_type: 'scheduled_check',
-      triggered_at: new Date(Date.now() - 604800000).toISOString(),
-      drift_percent: 3.2,
-      message: 'Monthly rebalance check: Portfolio drift is 3.2%, within acceptable range.',
-      recommendation_id: null,
-      is_read: true,
-      is_dismissed: false,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: 'alert-3',
-      user_id: userId,
-      config_id: 'config-1',
-      alert_type: 'opportunity',
-      triggered_at: new Date(Date.now() - 172800000).toISOString(),
-      drift_percent: 0,
-      message: 'Tax-loss harvesting opportunity detected for LINK position.',
-      recommendation_id: 'rec-2',
-      is_read: true,
-      is_dismissed: true,
-      created_at: new Date().toISOString(),
-    },
-  ];
-
-  if (!isPremium) {
-    // Free users get monthly alerts only
-    return mockAlerts.filter(a => a.alert_type === 'scheduled_check').slice(0, 1);
-  }
-
-  return mockAlerts;
-}
-
-/**
- * Get default target allocations templates
- */
-export function getTargetAllocationTemplates(): {
+export interface AllocationTemplate {
   name: string;
   description: string;
-  allocations: Omit<TargetAllocation, 'id' | 'portfolio_id' | 'created_at' | 'updated_at'>[];
-}[] {
-  return [
-    {
-      name: 'Conservative',
-      description: 'Low-risk portfolio focused on Bitcoin with stablecoin buffer',
-      allocations: [
-        { asset_symbol: 'BTC', asset_name: 'Bitcoin', target_percent: 50, min_percent: 45, max_percent: 55, priority: 1 },
-        { asset_symbol: 'ETH', asset_name: 'Ethereum', target_percent: 25, min_percent: 20, max_percent: 30, priority: 2 },
-        { asset_symbol: 'USDC', asset_name: 'USD Coin', target_percent: 25, min_percent: 20, max_percent: 35, priority: 3 },
-      ],
-    },
-    {
-      name: 'Balanced',
-      description: 'Diversified portfolio across major cryptocurrencies',
-      allocations: [
-        { asset_symbol: 'BTC', asset_name: 'Bitcoin', target_percent: 40, min_percent: 35, max_percent: 45, priority: 1 },
-        { asset_symbol: 'ETH', asset_name: 'Ethereum', target_percent: 30, min_percent: 25, max_percent: 35, priority: 2 },
-        { asset_symbol: 'SOL', asset_name: 'Solana', target_percent: 15, min_percent: 10, max_percent: 20, priority: 3 },
-        { asset_symbol: 'USDC', asset_name: 'USD Coin', target_percent: 15, min_percent: 10, max_percent: 20, priority: 4 },
-      ],
-    },
-    {
-      name: 'Aggressive',
-      description: 'Higher-risk portfolio with more altcoin exposure',
-      allocations: [
-        { asset_symbol: 'BTC', asset_name: 'Bitcoin', target_percent: 30, min_percent: 25, max_percent: 35, priority: 1 },
-        { asset_symbol: 'ETH', asset_name: 'Ethereum', target_percent: 30, min_percent: 25, max_percent: 35, priority: 2 },
-        { asset_symbol: 'SOL', asset_name: 'Solana', target_percent: 20, min_percent: 15, max_percent: 25, priority: 3 },
-        { asset_symbol: 'LINK', asset_name: 'Chainlink', target_percent: 10, min_percent: 5, max_percent: 15, priority: 4 },
-        { asset_symbol: 'AVAX', asset_name: 'Avalanche', target_percent: 10, min_percent: 5, max_percent: 15, priority: 5 },
-      ],
-    },
-  ];
+  targets: RebalanceTarget[];
 }
 
 /**
- * Check if rebalancing is needed
+ * Example target mixes used to prefill the calculator. They are illustrations
+ * of different risk levels, not recommendations.
  */
-export async function checkRebalancingNeeded(
-  config: PortfolioRebalanceConfig,
-  holdings: PortfolioHolding[] = mockHoldings
-): Promise<{ needed: boolean; driftPercent: number; recommendation?: RebalanceRecommendation }> {
-  const recommendation = await generateRebalanceRecommendation(config, holdings);
-
-  return {
-    needed: recommendation.is_rebalance_recommended,
-    driftPercent: recommendation.total_drift_percent,
-    recommendation: recommendation.is_rebalance_recommended ? recommendation : undefined,
-  };
+export function getTargetAllocationTemplates(): AllocationTemplate[] {
+  return [
+    {
+      name: 'Bitcoin + cash buffer',
+      description: 'Mostly BTC, some ETH, a stablecoin buffer to buy dips with.',
+      targets: [
+        { symbol: 'BTC', targetPercent: 50 },
+        { symbol: 'ETH', targetPercent: 25 },
+        { symbol: 'USDC', targetPercent: 25 },
+      ],
+    },
+    {
+      name: 'Large-cap mix',
+      description: 'BTC and ETH core with a smaller SOL slice and a stablecoin buffer.',
+      targets: [
+        { symbol: 'BTC', targetPercent: 40 },
+        { symbol: 'ETH', targetPercent: 30 },
+        { symbol: 'SOL', targetPercent: 15 },
+        { symbol: 'USDC', targetPercent: 15 },
+      ],
+    },
+    {
+      name: 'Bitcoin only + cash',
+      description: 'A two-asset split: rebalancing just moves money between BTC and a stablecoin.',
+      targets: [
+        { symbol: 'BTC', targetPercent: 80 },
+        { symbol: 'USDC', targetPercent: 20 },
+      ],
+    },
+  ];
 }

@@ -197,7 +197,7 @@ function generateNewsletterHTML(content: NewsletterContent): string {
         <a href="https://bitcoinvestments.net/glossary">Glossary</a>
       </div>
       <div class="unsubscribe">
-        <a href="https://bitcoinvestments.net/unsubscribe?email={{email}}">Unsubscribe from this newsletter</a>
+        <a href="https://bitcoinvestments.net/unsubscribe?email={{email}}&amp;token={{token}}">Unsubscribe from this newsletter</a>
       </div>
       <p class="footer-text" style="margin-top: 16px;">&copy; ${year} Bitcoinvestments. All rights reserved.</p>
     </div>
@@ -285,13 +285,18 @@ async function generateDefaultContent(): Promise<NewsletterContent> {
  */
 async function sendEmail(
   to: string,
+  unsubscribeToken: string,
   subject: string,
   htmlContent: string,
   fromEmail: string
 ): Promise<boolean> {
   try {
-    // Personalize unsubscribe link
-    const personalizedHtml = htmlContent.replace('{{email}}', encodeURIComponent(to));
+    // Personalize the unsubscribe link. The token comes from
+    // newsletter_subscribers.unsubscribe_token (20260923000400 migration) and
+    // is checked by the unsubscribe_newsletter() database function.
+    const personalizedHtml = htmlContent
+      .replace('{{email}}', encodeURIComponent(to))
+      .replace('{{token}}', encodeURIComponent(unsubscribeToken));
 
     const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
       method: 'POST',
@@ -363,7 +368,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Fetch active subscribers
     const { data: subscribers, error: subError } = await supabase
       .from('newsletter_subscribers')
-      .select('email')
+      .select('email, unsubscribe_token')
       .eq('is_active', true)
       .is('unsubscribed_at', null);
 
@@ -403,7 +408,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       const batch = subscribers.slice(i, i + batchSize);
 
       const results = await Promise.allSettled(
-        batch.map(({ email }) => sendEmail(email, content.subject, htmlContent, fromEmail))
+        batch.map(({ email, unsubscribe_token }) =>
+          sendEmail(email, unsubscribe_token, content.subject, htmlContent, fromEmail)
+        )
       );
 
       for (let j = 0; j < results.length; j++) {

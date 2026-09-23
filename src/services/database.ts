@@ -5,7 +5,7 @@
  * Falls back to local storage when Supabase is not configured or user is not authenticated.
  */
 
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, db, isSupabaseConfigured } from '../lib/supabase';
 import type { Database } from '../types/database';
 
 type Portfolio = Database['public']['Tables']['portfolios']['Row'];
@@ -399,68 +399,78 @@ export async function deletePriceAlert(alertId: string): Promise<boolean> {
 
 // ==================== Newsletter Operations ====================
 
+export type NewsletterSubscribeResult =
+  | { success: true }
+  | {
+      success: false;
+      /**
+       * already_subscribed - the address is already on the list (or unsubscribed earlier)
+       * unavailable        - Supabase is not configured in this build
+       * invalid_email      - the address failed basic validation
+       * failed             - anything else; details are logged, not shown
+       */
+      code: 'already_subscribed' | 'unavailable' | 'invalid_email' | 'failed';
+      error: string;
+    };
+
+/** True when this build can store newsletter sign-ups at all. */
+export function isNewsletterAvailable(): boolean {
+  return isSupabaseConfigured();
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
- * Subscribe to newsletter
+ * Subscribe to newsletter.
+ *
+ * Anonymous visitors may INSERT into newsletter_subscribers but not SELECT from
+ * it (RLS, 20260128000000_comprehensive_rls_security.sql), so there is no
+ * "already subscribed?" pre-check: we insert once and treat the unique-email
+ * violation (Postgres 23505) as "already on the list". That also means an
+ * address that unsubscribed earlier is not silently re-subscribed by whoever
+ * types it in; the message tells them how to rejoin.
  */
 export async function subscribeToNewsletter(
-  email: string,
+  rawEmail: string,
   source?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<NewsletterSubscribeResult> {
   if (!isSupabaseConfigured()) {
-    return { success: false, error: 'Newsletter subscription is not configured' };
+    return {
+      success: false,
+      code: 'unavailable',
+      error: 'Newsletter sign-up is temporarily unavailable.',
+    };
   }
 
-  // Check if already subscribed
-  const { data: existing } = await supabase
-    .from('newsletter_subscribers')
-    .select('id, is_active')
-    .eq('email', email)
-    .single();
-
-  if (existing) {
-    if (existing.is_active) {
-      return { success: false, error: 'Email is already subscribed' };
-    }
-
-    // Reactivate subscription
-    const { error } = await supabase
-      .from('newsletter_subscribers')
-      .update({
-        is_active: true,
-        unsubscribed_at: null,
-      })
-      .eq('id', existing.id);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    // Send welcome email for reactivated subscriber
-    // Import dynamically to avoid circular dependencies
-    import('./email').then(({ sendNewsletterWelcomeEmail }) => {
-      sendNewsletterWelcomeEmail(email).catch(err =>
-        console.error('Failed to send welcome email:', err)
-      );
-    });
-
-    return { success: true };
+  const email = rawEmail.trim().toLowerCase();
+  if (!EMAIL_PATTERN.test(email) || email.length > 254) {
+    return { success: false, code: 'invalid_email', error: 'Please enter a valid email address.' };
   }
 
-  // Create new subscription
-  const { error } = await supabase
-    .from('newsletter_subscribers')
-    .insert({
-      email,
-      source,
-      is_active: true,
-    });
+  const { error } = await supabase.from('newsletter_subscribers').insert({
+    email,
+    source,
+    is_active: true,
+  });
 
   if (error) {
-    return { success: false, error: error.message };
+    if (error.code === '23505') {
+      return {
+        success: false,
+        code: 'already_subscribed',
+        error: "You're already on the list with that address.",
+      };
+    }
+    console.error('Newsletter subscribe failed:', error);
+    return {
+      success: false,
+      code: 'failed',
+      error: "We couldn't sign you up just now. Please try again later.",
+    };
   }
 
-  // Send welcome email (don't await - fire and forget)
-  // Import dynamically to avoid circular dependencies
+  // Welcome email: fixed template, server-side (see functions/api/newsletter-welcome.ts).
+  // Fire and forget - a failed welcome mail doesn't undo the subscription.
   import('./email').then(({ sendNewsletterWelcomeEmail }) => {
     sendNewsletterWelcomeEmail(email).catch(err =>
       console.error('Failed to send welcome email:', err)
@@ -471,28 +481,43 @@ export async function subscribeToNewsletter(
 }
 
 /**
- * Unsubscribe from newsletter
+ * Unsubscribe from newsletter using the per-subscriber token from the email
+ * footer link. Calls the SECURITY DEFINER function added in
+ * supabase/migrations/20260923000400_newsletter_unsubscribe.sql, which only
+ * matches when both the email and the token agree, and is idempotent.
+ *
+ * `code: 'not_deployed'` means the database function does not exist yet, so the
+ * caller can fall back to "reply to any email" instructions.
  */
 export async function unsubscribeFromNewsletter(
-  email: string
-): Promise<{ success: boolean; error?: string }> {
+  rawEmail: string,
+  token: string
+): Promise<{ success: boolean; code?: 'unavailable' | 'invalid_link' | 'not_deployed' | 'failed' }> {
   if (!isSupabaseConfigured()) {
-    return { success: false, error: 'Newsletter subscription is not configured' };
+    return { success: false, code: 'unavailable' };
   }
 
-  const { error } = await supabase
-    .from('newsletter_subscribers')
-    .update({
-      is_active: false,
-      unsubscribed_at: new Date().toISOString(),
-    })
-    .eq('email', email);
+  const email = rawEmail.trim().toLowerCase();
+  const tokenPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!email || !tokenPattern.test(token.trim())) {
+    return { success: false, code: 'invalid_link' };
+  }
+
+  const { data, error } = await db.rpc('unsubscribe_newsletter', {
+    p_email: email,
+    p_token: token.trim(),
+  });
 
   if (error) {
-    return { success: false, error: error.message };
+    // PGRST202: function not found in the schema cache (migration not applied).
+    if (error.code === 'PGRST202' || error.code === '42883') {
+      return { success: false, code: 'not_deployed' };
+    }
+    console.error('Newsletter unsubscribe failed:', error);
+    return { success: false, code: 'failed' };
   }
 
-  return { success: true };
+  return data === true ? { success: true } : { success: false, code: 'invalid_link' };
 }
 
 // ==================== Article Operations ====================

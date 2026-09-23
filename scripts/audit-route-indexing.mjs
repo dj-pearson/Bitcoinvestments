@@ -37,7 +37,29 @@ const SITE_URL = 'https://bitcoinvestments.net';
  * Route path prefixes whose children come from a CMS or database, so their
  * validity cannot be checked from the repo.
  */
-const DYNAMIC_PREFIXES = ['/learn/', '/course/', '/blog/', '/article/', '/coin/', '/scam/', '/sponsored/'];
+const DYNAMIC_PREFIXES = ['/blog/', '/article/', '/coin/', '/scam/', '/sponsored/'];
+
+/**
+ * Guide and course URLs are data-driven, but the data lives in the repo, so
+ * like comparison pages they are checked exactly rather than waved through.
+ */
+function extractContentUrls() {
+  const urls = new Set();
+  for (const [, slug] of read('src/data/guides/index.ts').matchAll(/^\s*'([a-z0-9-]+)':\s*\w+/gm)) {
+    urls.add(`/learn/${slug}`);
+  }
+  const courses = read('src/data/courses/index.ts');
+  let course = null;
+  for (const [, indent, id] of courses.matchAll(/^(\s*)id: '([a-z0-9-]+)'/gm)) {
+    if (indent.length <= 2) {
+      course = id;
+      urls.add(`/course/${id}`);
+    } else if (course) {
+      urls.add(`/course/${course}/${id}`);
+    }
+  }
+  return urls;
+}
 
 /**
  * Comparison detail URLs are data-driven but the data lives in the repo, so
@@ -55,39 +77,29 @@ function extractCompareUrls() {
   ]);
 }
 
-/** Site-relative URLs hardcoded in the /api/sitemap Pages Function. */
-function extractFunctionSitemap() {
-  const src = read('functions/api/sitemap.ts');
-  const urls = new Set([...src.matchAll(/loc: '([^']+)'/g)].map((m) => m[1]));
-
-  // The function appends data-driven entries via template literals. Each URL
-  // prefix draws from exactly one data file - pairing them the wrong way round
-  // would invent URLs like /compare/exchange/metamask.
-  const idsFor = {
-    '/compare/exchange': 'src/data/exchanges.ts',
-    '/compare/wallet': 'src/data/wallets.ts',
-  };
-
-  const unknownPrefixes = [];
-
-  for (const [, prefix] of src.matchAll(/loc: `(\/[a-z/-]+)\/\$\{id\}`/g)) {
-    const dataFile = idsFor[prefix];
-    if (!dataFile) {
-      // CMS-backed prefixes cannot be checked from the repo, but anything else
-      // is a typo. Skipping quietly is how the plural '/compare/exchanges/:id'
-      // form hid here, generating eighteen URLs that every one of which
-      // rendered Compare.tsx's "Platform Not Found" branch.
-      if (!DYNAMIC_PREFIXES.includes(`${prefix}/`)) {
-        unknownPrefixes.push(prefix);
-      }
-      continue;
+/**
+ * Site-relative URLs published for AI crawlers in llms.txt and ai.txt. These
+ * files were hand-written and listed eleven guide and course URLs that never
+ * existed, so they are held to the same rules as the sitemap.
+ */
+function extractAiFileUrls() {
+  const urls = new Map();
+  for (const file of ['public/llms.txt', 'public/ai.txt']) {
+    const src = read(file);
+    for (const [, url] of src.matchAll(/https:\/\/bitcoinvestments\.net(\/[a-z0-9/_-]*)(?![a-z0-9/_.-])/g)) {
+      urls.set(url.replace(/\/$/, '') || '/', file);
     }
-    for (const [, id] of read(dataFile).matchAll(/^\s*id: '([a-z0-9-]+)'/gm)) {
-      urls.add(`${prefix}/${id}`);
+    for (const [, url] of src.matchAll(/\]\((\/[a-z0-9/_-]*)\)/g)) {
+      urls.set(url.replace(/\/$/, '') || '/', file);
+    }
+    // ai.txt lists paths as YAML-ish "- /path" items. Only the ones offered
+    // for citation count; restricted-paths is a deny list.
+    const offered = src.split(/^restricted-paths:/m)[0];
+    for (const [, url] of offered.matchAll(/^\s*-\s+(\/[a-z0-9/_-]+)\s*$/gm)) {
+      urls.set(url, file);
     }
   }
-
-  return { urls, unknownPrefixes };
+  return urls;
 }
 
 /**
@@ -155,7 +167,7 @@ const routes = extractRoutes();
 const isNoindexed = extractNoindexRules();
 const sitemap = extractSitemap();
 const declaredPaths = new Set(routes.map((r) => r.path));
-const validCompareUrls = extractCompareUrls();
+const validCompareUrls = new Set([...extractCompareUrls(), ...extractContentUrls()]);
 
 const problems = [];
 
@@ -192,29 +204,16 @@ for (const entry of sitemap) {
 // canonical URLs, so an omission here means those pages are never submitted.
 for (const url of validCompareUrls) {
   if (!sitemap.has(url)) {
-    problems.push(`Indexable but unlisted: ${url} is a comparison detail page missing from public/sitemap.xml.`);
+    problems.push(`Indexable but unlisted: ${url} is a data-driven detail page missing from public/sitemap.xml.`);
   }
 }
 
-// /api/sitemap is a second, hardcoded sitemap source. It is not advertised in
-// robots.txt today, but it drifted out of sync with the routes while nothing
-// checked it, so hold it to the same rules.
-const functionSitemap = extractFunctionSitemap();
-
-for (const prefix of functionSitemap.unknownPrefixes) {
-  problems.push(
-    `functions/api/sitemap.ts builds URLs under "${prefix}/", which matches no route ` +
-      `and no known CMS prefix. Note that Compare.tsx matches the SINGULAR type ` +
-      `segment: /compare/exchange/:id and /compare/wallet/:id.`
-  );
-}
-
-for (const url of functionSitemap.urls) {
+for (const [url, file] of extractAiFileUrls()) {
   const isDynamic = DYNAMIC_PREFIXES.some((prefix) => url.startsWith(prefix));
   if (isNoindexed(url)) {
-    problems.push(`functions/api/sitemap.ts lists ${url}, which emits "noindex".`);
+    problems.push(`${file} lists ${url}, which emits "noindex".`);
   } else if (!isDynamic && !declaredPaths.has(url) && !validCompareUrls.has(url)) {
-    problems.push(`functions/api/sitemap.ts lists ${url}, which matches no route.`);
+    problems.push(`${file} lists ${url}, which matches no route.`);
   }
 }
 

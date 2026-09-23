@@ -8,10 +8,12 @@ import { SkipLinks } from '../accessibility/SkipLinks';
 import { RouteAnnouncer } from '../accessibility/RouteAnnouncer';
 import { KeyboardShortcutsHelp } from '../accessibility/KeyboardShortcutsHelp';
 import { AccessibilityWidget } from '../accessibility/AccessibilityWidget';
+import { RouteHead } from '../RouteHead';
 
 export function Layout() {
     return (
         <div className="min-h-screen flex flex-col bg-brand-dark text-white selection:bg-brand-primary/30">
+            <RouteHead />
             <SkipLinks />
             <RouteAnnouncer />
             <KeyboardShortcutsHelp />

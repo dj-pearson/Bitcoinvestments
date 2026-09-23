@@ -103,9 +103,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   compare: {
-    title: 'Compare Cryptocurrency Exchanges & Wallets',
+    title: 'Best Crypto Exchanges & Wallets (2026)',
     description:
-      'Side-by-side comparison of the best cryptocurrency exchanges and wallets. Compare fees, security, features, and user ratings to find the best platform for you.',
+      'Crypto exchanges and wallets compared: real costs of a $100 and $1,000 bitcoin buy, fees verified Sept 2026, hardware wallet specs and our scoring method.',
     keywords: [
       'crypto exchange comparison',
       'best crypto exchange',
@@ -285,9 +285,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   hardwareWallet: {
-    title: 'Hardware Wallet Guide - Secure Your Crypto',
+    title: 'Hardware Wallet Comparison (2026)',
     description:
-      'Complete guide to cryptocurrency hardware wallets. Compare Ledger, Trezor, and other hardware wallets to secure your digital assets.',
+      'Ledger vs Trezor and other hardware wallets compared: current models, list prices, secure elements, open-source firmware and connectivity, checked Sept 2026.',
     keywords: [
       'hardware wallet',
       'Ledger wallet',

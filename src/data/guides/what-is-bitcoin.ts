@@ -1,158 +1,176 @@
-export const whatIsBitcoinGuide = {
+import type { GuideSource } from './index';
+
+export const whatIsBitcoinGuide: GuideSource = {
   id: 'what-is-bitcoin',
   title: 'What is Bitcoin? A Beginner\'s Guide',
-  description: 'Learn the basics of Bitcoin, how it works, and why it matters for the future of money.',
+  seoTitle: 'What Is Bitcoin? A Beginner\'s Guide',
+  description:
+    'What Bitcoin is, how it works, the 21 million supply cap and halving, spot Bitcoin ETFs, and the real risks, explained in plain English for beginners.',
+  summary:
+    'Bitcoin is a digital currency that runs on a public network no company or government controls. Only 21 million will ever exist, new coins are issued on a fixed schedule that halves roughly every four years, and you can own it directly in a wallet or indirectly through a spot Bitcoin ETF.',
   category: 'Basics',
-  readTime: 8,
   icon: '₿',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['understanding-blockchain', 'how-to-buy-crypto', 'crypto-wallets-explained', 'common-crypto-mistakes'],
+  relatedTools: [
+    { label: 'Market dashboard', url: '/dashboard', description: 'Current Bitcoin price and market data' },
+    { label: 'DCA calculator', url: '/calculators', description: 'Model buying a fixed amount on a schedule' },
+    { label: 'Crypto glossary', url: '/glossary', description: 'Plain-English definitions of the jargon' },
+    { label: 'Free beginner course', url: '/course/beginner-complete-course', description: 'Six short modules, no account needed' },
+  ],
+  faqs: [
+    {
+      question: 'Who created Bitcoin?',
+      answer:
+        'A person or group using the name Satoshi Nakamoto published the Bitcoin whitepaper in October 2008 and launched the network in January 2009. Their real identity has never been confirmed.',
+    },
+    {
+      question: 'How many bitcoins are left to mine?',
+      answer:
+        'The 20 millionth bitcoin was mined in March 2026, so fewer than 1 million remain. Because the block reward keeps halving, the last fractions will not be issued until around the year 2140.',
+    },
+    {
+      question: 'What is the Bitcoin halving?',
+      answer:
+        'Every 210,000 blocks (about four years) the number of new bitcoins paid to miners per block is cut in half. The most recent halving, in April 2024, cut it from 6.25 to 3.125 BTC. The next is expected around 2028.',
+    },
+    {
+      question: 'Can I buy a fraction of a bitcoin?',
+      answer:
+        'Yes. One bitcoin divides into 100 million units called satoshis, and most exchanges and apps let you buy a few dollars\' worth.',
+    },
+    {
+      question: 'Is Bitcoin legal in the US?',
+      answer:
+        'Yes. Buying, holding and selling bitcoin is legal in the United States. The IRS treats it as property, so selling or spending it can trigger capital gains tax.',
+    },
+    {
+      question: 'Should I buy bitcoin directly or through an ETF?',
+      answer:
+        'Buying directly lets you hold the coins yourself and move them; an ETF lives in a normal brokerage or retirement account with no keys to manage, but you pay an annual fund fee and cannot withdraw actual bitcoin. Neither removes price risk.',
+    },
+  ],
   content: `
 # What is Bitcoin? A Beginner's Guide
 
-Bitcoin (BTC) is the first and most well-known cryptocurrency, created in 2009 by an anonymous person or group using the pseudonym Satoshi Nakamoto. It represents a revolutionary approach to money and finance that operates independently of governments and banks.
+Bitcoin (BTC) is the first and best-known cryptocurrency. It was described in a whitepaper published in October 2008 by someone using the pseudonym Satoshi Nakamoto, and the network went live in January 2009. It is money that runs on a public network rather than through a bank or government.
 
 ## Understanding Bitcoin Basics
 
 ### What Makes Bitcoin Different?
 
-Bitcoin is fundamentally different from traditional currencies in several ways:
-
-1. **Decentralized**: No single entity controls Bitcoin. It operates on a network of thousands of computers worldwide.
-2. **Digital**: Bitcoin exists only in electronic form - there are no physical bitcoins.
-3. **Limited Supply**: Only 21 million bitcoins will ever exist, making it scarce like gold.
-4. **Peer-to-Peer**: You can send Bitcoin directly to anyone, anywhere, without intermediaries.
+1. **Decentralized**: No single entity controls Bitcoin. Thousands of independently run computers (nodes) enforce the same rules.
+2. **Digital**: Bitcoin exists only in electronic form. There are no physical bitcoins.
+3. **Limited supply**: No more than 21 million bitcoins will ever exist.
+4. **Peer-to-peer**: You can send bitcoin directly to anyone, anywhere, without asking a bank's permission.
 
 ### How Does Bitcoin Work?
 
-Bitcoin operates on a technology called **blockchain** - a public ledger that records all transactions. Think of it as a shared spreadsheet that everyone can view but no one can cheat.
+Bitcoin runs on a **blockchain**: a public ledger of every transaction, copied across the network. Our [blockchain guide](/learn/understanding-blockchain) explains the mechanics in more depth.
 
-When you send Bitcoin:
-1. You initiate a transaction from your wallet
+When you send bitcoin:
+1. Your wallet signs a transaction with your private key
 2. The transaction is broadcast to the network
-3. Miners verify the transaction
-4. The transaction is added to the blockchain
-5. The recipient receives the Bitcoin
+3. Miners include it in a new block (roughly every 10 minutes)
+4. Each later block adds another "confirmation", making it harder to reverse
+5. The recipient's wallet shows the funds
 
-## Why Bitcoin Matters
+## Supply and the Halving
 
-### Store of Value
+New bitcoins enter circulation as a reward to miners for each block. That reward is cut in half every 210,000 blocks, roughly every four years:
 
-Many investors view Bitcoin as "digital gold" - a hedge against inflation and economic uncertainty. With its fixed supply of 21 million coins, Bitcoin cannot be inflated away like fiat currencies.
+| Period | New BTC per block |
+|--------|-------------------|
+| 2009–2012 | 50 |
+| 2012–2016 | 25 |
+| 2016–2020 | 12.5 |
+| 2020–April 2024 | 6.25 |
+| April 2024–about 2028 | 3.125 |
 
-### Financial Freedom
+The fourth halving happened in April 2024 at block 840,000. The 20 millionth bitcoin was mined in March 2026, so more than 95% of all bitcoin that will ever exist is already in circulation. The remaining supply trickles out until around 2140.
 
-Bitcoin enables:
-- **Borderless transactions**: Send money anywhere instantly
-- **Financial inclusion**: Access to financial services without a bank account
-- **Censorship resistance**: No one can freeze or seize your Bitcoin (if properly secured)
+Past halvings were followed by large price rallies, but that history is short (four cycles) and it is not a guarantee. Since the 2024 halving, much more of the buying has come through ETFs and large institutions, which may change how cycles behave.
 
-### Investment Potential
+## Spot Bitcoin ETFs
 
-Since its creation in 2009:
-- Bitcoin has grown from worthless to over $40,000+ per coin
-- Major institutions and companies have adopted Bitcoin
-- Countries have made it legal tender (El Salvador, Central African Republic)
+Since January 2024, US investors can buy **spot Bitcoin exchange-traded funds (ETFs)** in an ordinary brokerage account or IRA. Each fund holds actual bitcoin with a custodian, and its shares trade on the stock market like any other ETF. Spot Ether ETFs followed in July 2024.
+
+| | Buying bitcoin directly | Buying a spot Bitcoin ETF |
+|---|---|---|
+| Where you hold it | Exchange account or your own wallet | Brokerage account or IRA |
+| Keys to manage | Yes, if you self-custody | No |
+| Trading hours | 24/7 | Stock-market hours |
+| Ongoing cost | None to hold (fees when you buy/sell) | Annual expense ratio |
+| Can you withdraw coins? | Yes | No |
+| Tax paperwork | Form 1099-DA from US brokers (2025+) | Normal brokerage 1099 |
+
+ETFs are a simpler route for many people, especially in retirement accounts. Self-custody gives you full control and no ongoing fee, but you take on the job of protecting your keys. See our [wallet guide](/learn/crypto-wallets-explained) before choosing that route.
+
+## Why People Own Bitcoin
+
+### Store of value
+
+Many holders see Bitcoin as "digital gold": a scarce asset whose supply schedule no one can change. Critics point out that its price has been far more volatile than gold, with several falls of 75% or more from a peak.
+
+### Payments and access
+
+- **Borderless transfers**: send value across borders at any hour
+- **Access**: anyone with an internet connection can hold it, without a bank account
+- **Censorship resistance**: coins held in your own wallet cannot be frozen by a third party (coins on an exchange can be)
+
+### Price history
+
+Bitcoin went from essentially no value in 2009 to an all-time high of about $126,000 in early October 2025. It has also fallen sharply many times along the way. For the current price, see the [market dashboard](/dashboard). Treat past performance as history, not a forecast.
+
+### Adoption and legal status
+
+- In the US, spot Bitcoin ETFs have made it a mainstream holding in brokerage accounts and some pension and advisory portfolios.
+- El Salvador made bitcoin legal tender in 2021, but in January 2025 it amended the law as part of an IMF agreement, so businesses are no longer required to accept it. The Central African Republic adopted it in 2022 and reversed course in 2023.
+- Rules differ by country and keep changing, so check your own country's position.
 
 ## Key Concepts to Know
 
-### Bitcoin Address
+- **Bitcoin address**: a string you share to receive bitcoin, like an account number. Example: \`bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq\`
+- **Private key**: the secret that lets you spend your bitcoin. **Never share it.**
+- **Seed phrase**: 12 or 24 words that back up all the keys in a wallet.
+- **Mining**: using specialised computers to add blocks and secure the network in exchange for new bitcoin and fees.
+- **Satoshi (sat)**: the smallest unit. 1 BTC = 100,000,000 sats.
 
-A unique identifier (like an email address) where you receive Bitcoin. It looks like: \`1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\`
-
-### Private Key
-
-The secret password that proves you own your Bitcoin. **Never share this with anyone!**
-
-### Bitcoin Mining
-
-The process of validating transactions and securing the network. Miners use powerful computers to solve complex mathematical problems and are rewarded with new Bitcoin.
-
-### Satoshi
-
-The smallest unit of Bitcoin. 1 Bitcoin = 100,000,000 Satoshis. Named after Bitcoin's creator.
+The [glossary](/glossary) has more terms.
 
 ## Getting Started with Bitcoin
 
-### 1. Learn the Basics
-
-Before investing, understand:
-- How Bitcoin works
-- The risks involved
-- How to secure your investment
-
-### 2. Choose a Secure Wallet
-
-Options include:
-- **Hardware wallets** (most secure): Ledger, Trezor
-- **Software wallets**: Exodus, BlueWallet
-- **Exchange wallets** (least secure): Coinbase, Kraken
-
-### 3. Buy Bitcoin
-
-Purchase through:
-- Cryptocurrency exchanges (Coinbase, Kraken, Gemini)
-- Bitcoin ATMs
-- Peer-to-peer platforms
-
-### 4. Secure Your Investment
-
-- Enable two-factor authentication
-- Store large amounts in hardware wallets
-- Write down your seed phrase and store it safely
-- Never share your private keys
+1. **Learn the basics** and the risks (you are doing that now).
+2. **Decide how you will hold it**: an ETF in a brokerage account, an exchange account, or your own wallet. Hardware wallets such as Ledger and Trezor are the usual choice for larger self-custodied amounts.
+3. **Buy from a reputable provider**: see [How to Buy Your First Cryptocurrency](/learn/how-to-buy-crypto) and our [exchange comparison](/compare).
+4. **Secure it**: turn on two-factor authentication, write your seed phrase on paper or metal, and never type it into a website.
 
 ## Common Bitcoin Myths
 
-### "Bitcoin is Anonymous"
-
-**False**: Bitcoin is pseudonymous. All transactions are recorded on the public blockchain. With enough analysis, transactions can be traced.
-
-### "Bitcoin is Only for Criminals"
-
-**False**: While Bitcoin has been used illegally, the vast majority of transactions are legitimate. Cash is used far more often in criminal activity.
-
-### "Bitcoin Has No Value"
-
-**False**: Bitcoin's value comes from its scarcity, utility, network effect, and the fact that people agree it has value - just like gold or art.
-
-### "Bitcoin is Too Expensive"
-
-**False**: You don't need to buy a whole Bitcoin. You can purchase as little as $10 worth. Bitcoin is divisible down to 100 millionth of a coin.
+- **"Bitcoin is anonymous."** False. It is pseudonymous. Every transaction is public and can often be traced to a person.
+- **"Bitcoin is only for criminals."** Illicit use exists, but blockchain-analytics firms such as Chainalysis estimate it is a small share of on-chain volume.
+- **"You have to buy a whole bitcoin."** False. You can buy a few dollars' worth.
+- **"Bitcoin has no value."** Its value, like gold's, rests on people agreeing it is scarce and useful. That agreement can weaken, which is one reason the price is volatile.
 
 ## Risks to Consider
 
-1. **Volatility**: Bitcoin's price can swing dramatically
-2. **Irreversible transactions**: If you send to the wrong address, you can't get it back
-3. **Security responsibility**: You're your own bank - lose your keys, lose your Bitcoin
-4. **Regulatory uncertainty**: Laws around Bitcoin are still evolving
-
-## Next Steps
-
-Now that you understand Bitcoin basics:
-
-1. **Start Small**: Only invest what you can afford to lose
-2. **Dollar-Cost Average**: Invest a fixed amount regularly to reduce risk
-3. **Keep Learning**: The crypto space evolves rapidly
-4. **Practice Security**: Set up a secure wallet and practice sending small amounts
-
-## Resources
-
-- [Bitcoin.org](https://bitcoin.org) - Official Bitcoin resources
-- [Bitcoin Whitepaper](https://bitcoin.org/bitcoin.pdf) - Satoshi's original vision
-- Our [How to Buy Crypto Guide](/learn/how-to-buy-crypto)
-- Our [Wallet Security Guide](/learn/crypto-wallets-explained)
+1. **Volatility**: falls of 50–80% have happened several times.
+2. **Irreversible transactions**: send to the wrong address and it is usually gone.
+3. **Custody risk**: lose your keys and you lose your bitcoin; leave it with a company and you depend on that company.
+4. **Scams**: fake giveaways, fake apps and "investment managers" target new buyers. See [common mistakes](/learn/common-crypto-mistakes) and the [scam database](/scam-database).
+5. **Regulation and tax**: rules are still evolving. Selling or spending bitcoin can be a taxable event; see [crypto taxes](/learn/crypto-taxes-basics).
 
 ## Key Takeaways
 
-✓ Bitcoin is a decentralized digital currency with a fixed supply of 21 million coins
+- Bitcoin is a decentralized digital currency with a hard cap of 21 million coins.
+- New issuance halves about every four years; the latest halving was April 2024.
+- You can own it directly or through a spot Bitcoin ETF.
+- It is volatile. Only invest money you can afford to leave alone through a large drop.
 
-✓ It operates on blockchain technology, enabling peer-to-peer transactions
+## Resources
 
-✓ Bitcoin offers financial freedom, potential as a store of value, and investment opportunities
-
-✓ Security is your responsibility - learn proper wallet management
-
-✓ Start small and continue educating yourself
-
-Remember: Investing in Bitcoin carries risks. Never invest more than you can afford to lose, and always do your own research before making investment decisions.
+- [Bitcoin whitepaper](https://bitcoin.org/bitcoin.pdf) (Satoshi Nakamoto, 2008)
+- [Bitcoin.org](https://bitcoin.org), community-maintained reference
 `,
 };

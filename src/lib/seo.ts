@@ -122,9 +122,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   learn: {
-    title: 'Learn Cryptocurrency - Free Guides & Courses',
+    title: 'Learn Crypto Investing: Free Guides',
     description:
-      'Free cryptocurrency education from blockchain basics to advanced trading strategies. Beginner-friendly guides, courses, and tutorials for Bitcoin and crypto investing.',
+      'Free, plain-English crypto guides and a 6-module beginner course: Bitcoin, wallets, buying safely, taxes, DCA, risk and DeFi, with a start-here learning path.',
     keywords: [
       'learn cryptocurrency',
       'crypto education',
@@ -138,9 +138,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   glossary: {
-    title: 'Cryptocurrency Glossary - 300+ Crypto Terms Explained',
+    title: 'Crypto Glossary: Key Terms Explained',
     description:
-      'Comprehensive cryptocurrency glossary with 300+ terms explained in plain English. From HODL to DeFi, understand every crypto term and concept.',
+      'Plain-English definitions of the crypto terms beginners meet most, from Bitcoin and seed phrases to staking, slippage and spot ETFs, each with its own link.',
     keywords: [
       'crypto glossary',
       'cryptocurrency terms',

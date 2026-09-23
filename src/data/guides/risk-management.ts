@@ -1,10 +1,22 @@
-export const riskManagementGuide = {
+import type { GuideSource } from './index';
+
+export const riskManagementGuide: GuideSource = {
   id: 'risk-management',
   title: 'Crypto Risk Management: Protecting Your Portfolio',
-  description: 'Master position sizing, stop-losses, portfolio diversification, and advanced risk management techniques for cryptocurrency investing.',
+  seoTitle: 'Crypto Risk Management Guide',
+  description: 'Crypto risk management in practice: how much to allocate, position sizing, stop-losses, diversification, hedging with ETF options, and a written plan.',
+  summary:
+    'Crypto risk management starts with deciding how much of your total wealth belongs in crypto at all, then sizing each position so a 75% or larger drop would not derail your finances. Diversification, custody choices, stop-losses and profit-taking rules help, but position size is the control that matters most.',
   category: 'Trading',
-  readTime: 16,
   icon: '🛡️',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['portfolio-rebalancing', 'dca-strategies', 'defi-risks'],
+  relatedTools: [
+    { label: 'Strategy backtester', url: '/backtesting', description: 'See historical drawdowns for yourself' },
+    { label: 'Crypto calculators', url: '/calculators', description: 'Position, DCA and tax calculators' },
+    { label: 'Rebalancing calculator', url: '/rebalancing-alerts', description: 'Keep allocations inside your limits' },
+  ],
   content: `
 # Crypto Risk Management: Protecting Your Portfolio
 
@@ -15,7 +27,7 @@ Risk management is what separates successful investors from gamblers. In crypto'
 ### Types of Risk in Cryptocurrency
 
 #### 1. Market Risk (Volatility)
-Price can drop 50-80% in bear markets. Even blue chips like Bitcoin have seen 80%+ drawdowns.
+Price can drop 50–80% in bear markets. Even Bitcoin has fallen roughly 77–86% from its peak in each major bear market since 2014 (and about 93% in 2011). Smaller coins often fall further and never recover.
 
 #### 2. Liquidity Risk
 Inability to sell at desired price, especially in smaller altcoins or during market panic.
@@ -28,9 +40,11 @@ Risk of losing access to your funds through:
 
 #### 4. Regulatory Risk
 Government actions can impact prices and access:
-- Trading bans
-- Tax changes
+- Trading bans or restrictions on platforms
+- Tax changes (for example, US broker reporting on Form 1099-DA started with 2025 transactions)
 - Securities classifications
+
+The US picture shifted in 2025: the SEC dropped most of its enforcement cases against major exchanges, and the GENIUS Act (signed July 2025) created a federal framework for payment stablecoins. A broader market-structure bill (the CLARITY Act) passed the House in 2025 and was still being debated in the Senate as of September 2026. Policy can swing back, so treat regulation as an ongoing risk rather than a solved one.
 
 #### 5. Smart Contract Risk
 For DeFi and tokens:
@@ -47,7 +61,7 @@ Relying on third parties:
 ### Quantifying Risk: Key Metrics
 
 **Maximum Drawdown (Max DD):**
-The largest peak-to-trough decline. Bitcoin's historical max DD is ~85%.
+The largest peak-to-trough decline. Bitcoin's worst was about 93% (2011); each bear market since 2014 has seen roughly 77–86%.
 
 **Volatility:**
 Standard deviation of returns. Crypto typically 3-5x more volatile than stocks.
@@ -57,6 +71,12 @@ Return per unit of risk. Higher is better.
 
 **Value at Risk (VaR):**
 Maximum expected loss over a period at a given confidence level.
+
+## Step Zero: How Much Crypto in Total?
+
+Before sizing individual coins, decide what share of your **total investable wealth** goes into crypto at all. Many financial planners suggest a small allocation for most people (often in the low single digits, and rarely more than about 10%), sized so that losing 80% of it would be painful but not life-changing. Pay off high-interest debt and hold an emergency fund first.
+
+The percentages in the rest of this guide describe how to split **your crypto allocation**, not your whole net worth.
 
 ## Position Sizing
 
@@ -115,7 +135,7 @@ R = Win/Loss ratio
 - Average win is 2x average loss (R = 2)
 - Kelly % = 0.6 - (0.4 / 2) = 40%
 
-**Important:** Most professionals use "half Kelly" (20% in this example) for safety.
+**Important:** Most professionals use "half Kelly" (20% in this example) for safety. For long-term investing you rarely know W or R with any confidence, so treat Kelly as a way to see why over-betting is dangerous, not as a precise sizing rule.
 
 ### Position Sizing Example
 
@@ -209,9 +229,11 @@ Invest across different crypto categories:
 |----------|----------|-------------|
 | Store of Value | BTC | 40-50% |
 | Smart Contracts | ETH, SOL, AVAX | 20-30% |
-| DeFi | UNI, AAVE, MKR | 5-10% |
+| DeFi | UNI, AAVE, SKY (formerly MKR) | 5-10% |
 | Infrastructure | LINK, GRT | 5-10% |
-| Stablecoins | USDC, DAI | 5-10% |
+| Stablecoins | USDC, USDS (formerly DAI) | 5-10% |
+
+(MakerDAO rebranded to Sky in 2024; DAI still exists alongside the newer USDS.)
 
 #### 3. Temporal Diversification
 Don't invest all at once:
@@ -235,8 +257,10 @@ Assets that move together don't provide diversification.
 - DeFi tokens correlate with ETH
 
 **Lower correlation:**
-- Stablecoins vs. crypto
+- Stablecoins vs. crypto (but stablecoins carry their own issuer and de-peg risk)
 - Some sector-specific tokens
+
+In sharp sell-offs, correlations between crypto assets tend to rise towards 1, so "diversifying" across ten altcoins protects less than it seems.
 
 ## Advanced Risk Management Techniques
 
@@ -254,9 +278,10 @@ Investment B has better risk-adjusted returns.
 
 Protect against downside using:
 
-**Options (where available):**
+**Options:**
 - Buy puts to protect against drops
 - Sell covered calls for income
+- Since November 2024, US investors can trade listed options on spot Bitcoin ETFs (for example IBIT) through an ordinary brokerage account, which is the most accessible route for most retail investors. Options can expire worthless; learn how they work before using them
 
 **Short positions:**
 - Short futures to hedge long exposure
@@ -399,6 +424,8 @@ Leaving everything on one exchange.
 5. Set up tracking and alerts
 6. Write down your risk management policy
 
-Remember: In crypto, those who manage risk survive to see the next bull market. Don't be a cautionary tale.
+Next, put the plan into practice with [Portfolio Rebalancing](/learn/portfolio-rebalancing) and [DCA strategies](/learn/dca-strategies), check historical drawdowns in the [backtester](/backtesting), and if you use DeFi, read [DeFi Risks](/learn/defi-risks).
+
+Remember: In crypto, those who manage risk survive to see the next bull market.
 `
 };

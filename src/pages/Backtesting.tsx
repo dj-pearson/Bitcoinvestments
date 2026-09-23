@@ -1,554 +1,599 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  Lock,
-  RefreshCw,
-  Info,
-  ArrowRight,
-  AlertTriangle,
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { hasAdvancedBacktesting } from '../services/subscriptionLimits';
+/**
+ * Bitcoin & crypto backtester (/backtesting): lump sum vs DCA on real price history.
+ *
+ * First render computes a real result from the committed weekly price history
+ * (SSR-safe, no network). After mount the page tries to top up the series with
+ * daily CoinGecko prices and re-runs. All inputs live in the URL so any result
+ * can be shared.
+ */
+
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { AlertTriangle, BarChart3, Info, TrendingDown, TrendingUp } from 'lucide-react';
 import { PageSEO } from '../components/PageSEO';
-import { RelatedPages } from '../components/InternalLinks';
+import { FaqSection, HowItWorks, LastUpdated, RelatedLinks } from '../components/calculators/CalculatorContent';
 import {
+  breadcrumbSchema,
+  formatIsoDate,
+  howToSchema,
+  webApplicationSchema,
+  type FaqItem,
+  type HowToStep,
+} from '../components/calculators/calculatorSchema';
+import { ValueChart } from '../components/calculators/ValueChart';
+import {
+  PRICE_ASSETS,
+  PRICE_HISTORY_GENERATED,
+  PRICE_HISTORY_SOURCES,
+  addMonths,
+  getStaticSeries,
+  isPriceAsset,
+  type PriceHistoryAssetId,
+  type PriceSeries,
+} from '../data/priceHistory';
+import { loadPriceSeries } from '../services/priceHistory';
+import {
+  formatSignedPct,
+  formatUsd,
+  isBacktestError,
   runBacktest,
-  getSupportedAssets,
-  getAssetCoverage,
-  resolveWindow,
-  formatCurrency,
-  formatPercentage,
-  getPresetPeriods,
-  getStartDateFromPeriod,
-  type BacktestInput,
-  type BacktestResult,
+  samplePath,
+  type DcaFrequency,
 } from '../services/backtesting';
-import { cn, todayLocalISODate } from '../lib/utils';
+import { cn } from '../lib/utils';
+
+const PAGE_UPDATED = '2026-09-23';
+const FREQS: DcaFrequency[] = ['daily', 'weekly', 'biweekly', 'monthly'];
+const FREQ_LABEL: Record<DcaFrequency, string> = { daily: 'Daily', weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly' };
+const inputClass =
+  'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary';
+
+const FAQS: FaqItem[] = [
+  {
+    question: 'What if I had invested $1,000 in Bitcoin?',
+    answer:
+      'Pick Bitcoin, enter $1,000 and a start date, and the backtester shows what that purchase would be worth on the latest date in our price history, along with the total and annualised return and the biggest drop you would have sat through. The table of example results on this page shows $1,000 invested on January 1 of each year since 2015.',
+  },
+  {
+    question: 'Is DCA better than a lump sum?',
+    answer:
+      'Not usually in a market that mostly rises: studies of stocks find a lump sum beats dollar-cost averaging about two-thirds of the time because the money is invested for longer. DCA tends to win when prices fall or move sideways after you start, and it reduces the regret of buying right before a crash. Use the "Add a recurring buy" option to compare both on the same dates.',
+  },
+  {
+    question: 'What is the annualised return for DCA?',
+    answer:
+      'For a recurring buy the page shows the money-weighted return (XIRR). It accounts for the fact that most of your money went in later, so it is a fairer yearly figure than spreading the total return over the whole period. For a single purchase it shows the compound annual growth rate (CAGR).',
+  },
+  {
+    question: 'Where does the price data come from?',
+    answer:
+      'Weekly (Monday) USD prices from Coin Metrics’ free community dataset through May 2026, then daily CoinGecko prices. When your browser can reach CoinGecko, the last 12 months are replaced with daily prices. Prices between data points are interpolated, so results are close approximations rather than exchange fills, and fees are not included.',
+  },
+  {
+    question: 'Why does Solana history only start in December 2025?',
+    answer:
+      'The free datasets we can redistribute do not include older Solana prices, so we only bundle what we could source and cross-check. Bitcoin history starts in January 2014 and Ethereum in August 2015.',
+  },
+  {
+    question: 'Does past performance predict future returns?',
+    answer:
+      'No. Crypto has had several 70-85% declines, and its early growth is unlikely to repeat at the same pace. Use backtests to understand risk and timing, not to forecast.',
+  },
+];
+
+const HOW_STEPS: HowToStep[] = [
+  { name: 'Choose an asset and dates', text: 'Pick Bitcoin, Ethereum or Solana and a start and end date (or a preset like "5 years").' },
+  { name: 'Enter a one-off amount', text: 'The lump sum buys at the start date’s price. Set it to $0 if you only want to test recurring buys.' },
+  { name: 'Optionally add a recurring buy', text: 'Choose an amount and how often. Each buy uses the price on that date.' },
+  { name: 'Read the results', text: 'Final value, total and annualised return, the largest price drop in the window and your worst paper loss, plus DCA vs lump sum on the same money.' },
+  { name: 'Share or tweak', text: 'The URL updates as you type, so you can copy it to share the exact backtest.' },
+];
+
+interface FormState {
+  asset: PriceHistoryAssetId;
+  start: string;
+  end: string;
+  amount: number;
+  dcaOn: boolean;
+  dcaAmount: number;
+  freq: DcaFrequency;
+}
+
+function readForm(params: URLSearchParams, series: (a: PriceHistoryAssetId) => PriceSeries): FormState {
+  const assetParam = params.get('asset');
+  const asset: PriceHistoryAssetId = isPriceAsset(assetParam) ? assetParam : 'bitcoin';
+  const s = series(asset);
+  const defaultStart = asset === 'solana' ? s.start : '2020-01-06';
+  const num = (k: string, d: number) => {
+    const v = Number(params.get(k));
+    return params.get(k) !== null && Number.isFinite(v) && v >= 0 ? v : d;
+  };
+  const freqParam = params.get('freq') as DcaFrequency | null;
+  const dca = num('dca', 0);
+  return {
+    asset,
+    start: /^\d{4}-\d{2}-\d{2}$/.test(params.get('start') ?? '') ? params.get('start')! : defaultStart,
+    end: /^\d{4}-\d{2}-\d{2}$/.test(params.get('end') ?? '') ? params.get('end')! : '',
+    amount: num('amount', 1000),
+    dcaOn: dca > 0,
+    dcaAmount: dca > 0 ? dca : 100,
+    freq: freqParam && FREQS.includes(freqParam) ? freqParam : 'weekly',
+  };
+}
+
+function formToParams(f: FormState): URLSearchParams {
+  const p = new URLSearchParams();
+  p.set('asset', f.asset);
+  p.set('start', f.start);
+  if (f.end) p.set('end', f.end);
+  p.set('amount', String(f.amount));
+  if (f.dcaOn) {
+    p.set('dca', String(f.dcaAmount));
+    p.set('freq', f.freq);
+  }
+  return p;
+}
+
+/** Static landmark results computed from the committed history (prerender-safe). */
+function useLandmarks() {
+  return useMemo(() => {
+    const btc = getStaticSeries('bitcoin');
+    const years = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+    const lump = years.map((y) => {
+      const r = runBacktest(btc, { initialInvestment: 1000, startDate: `${y}-01-01`, endDate: btc.end });
+      return { year: y, r: isBacktestError(r) ? null : r };
+    });
+    const dcaCases = [
+      { label: '$100 a week since the May 2020 halving', start: '2020-05-11', amount: 100, freq: 'weekly' as const },
+      { label: '$100 a week since the Nov 2021 peak', start: '2021-11-08', amount: 100, freq: 'weekly' as const },
+      { label: '$250 a month since Jan 2018', start: '2018-01-01', amount: 250, freq: 'monthly' as const },
+    ].map((c) => {
+      const r = runBacktest(btc, { initialInvestment: 0, startDate: c.start, endDate: btc.end, dcaAmount: c.amount, dcaFrequency: c.freq });
+      return { ...c, r: isBacktestError(r) ? null : r };
+    });
+    return { end: btc.end, lump, dcaCases };
+  }, []);
+}
 
 export function Backtesting() {
-  const { profile } = useAuth();
-  const isPremium = profile ? hasAdvancedBacktesting(
-    profile.subscription_status,
-    profile.subscription_expires_at
-  ) : false;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [liveSeries, setLiveSeries] = useState<Partial<Record<PriceHistoryAssetId, PriceSeries>>>({});
+  const [liveError, setLiveError] = useState<string | null>(null);
 
-  const [input, setInput] = useState<BacktestInput>({
-    asset: 'bitcoin',
-    initialInvestment: 1000,
-    startDate: getStartDateFromPeriod(24), // 2 years ago
-    dcaAmount: undefined,
-    dcaFrequency: undefined,
+  const seriesFor = (a: PriceHistoryAssetId) => liveSeries[a] ?? getStaticSeries(a);
+  const form = readForm(searchParams, seriesFor);
+  const series = seriesFor(form.asset);
+  const endDate = form.end && form.end < series.end ? form.end : series.end;
+
+  const setForm = (patch: Partial<FormState>) => {
+    setSearchParams(formToParams({ ...form, ...patch }), { replace: true });
+  };
+
+  // Top up with live daily prices after mount (never during render).
+  useEffect(() => {
+    let cancelled = false;
+    loadPriceSeries(form.asset).then(({ series: s, liveError: err }) => {
+      if (cancelled) return;
+      setLiveSeries((prev) => ({ ...prev, [form.asset]: s }));
+      setLiveError(err);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.asset]);
+
+  const result = useMemo(
+    () =>
+      runBacktest(series, {
+        initialInvestment: form.amount,
+        startDate: form.start,
+        endDate,
+        dcaAmount: form.dcaOn ? form.dcaAmount : 0,
+        dcaFrequency: form.dcaOn ? form.freq : undefined,
+      }),
+    [series, form.amount, form.start, endDate, form.dcaOn, form.dcaAmount, form.freq]
+  );
+
+  const landmarks = useLandmarks();
+  const assetMeta = PRICE_ASSETS.find((a) => a.id === form.asset)!;
+  const ok = !isBacktestError(result) ? result : null;
+  const hasInvestment = form.amount > 0 || (form.dcaOn && form.dcaAmount > 0);
+
+  const presets = [
+    { label: '1 year', months: 12 },
+    { label: '2 years', months: 24 },
+    { label: '3 years', months: 36 },
+    { label: '5 years', months: 60 },
+    { label: 'All', months: 0 },
+  ].map((p) => {
+    const start = p.months === 0 ? series.start : addMonths(series.end, -p.months);
+    return { ...p, start, available: start >= series.start };
   });
 
-  const [enableDCA, setEnableDCA] = useState(false);
-  const [result, setResult] = useState<BacktestResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const description =
+    'What if you had invested in Bitcoin? Backtest lump sum vs DCA for BTC and ETH since 2014 on weekly price history, with drawdowns and XIRR returns.';
 
-  const assets = getSupportedAssets();
-  const periods = getPresetPeriods(input.asset);
-  const coverage = getAssetCoverage(input.asset);
-  const endDate = input.endDate ?? todayLocalISODate();
-  const window = resolveWindow(input.asset, input.startDate, endDate);
+  const bluf = ok
+    ? `${form.dcaOn ? `Investing ${formatUsd(form.amount, 0)} up front plus ${formatUsd(form.dcaAmount, 0)} ${FREQ_LABEL[form.freq].toLowerCase()}` : `${formatUsd(ok.totalInvested, 0)} invested`} in ${assetMeta.name} from ${formatIsoDate(ok.startDate)} would be worth ${formatUsd(ok.finalValue, 0)} on ${formatIsoDate(ok.endDate)}: a ${ok.profit >= 0 ? 'gain' : 'loss'} of ${formatUsd(Math.abs(ok.profit), 0)} (${formatSignedPct(ok.totalReturnPct)}) on ${formatUsd(ok.totalInvested, 0)} put in.`
+    : null;
 
-  const handleRunBacktest = () => {
-    if (!window.usable) {
-      setResult(null);
-      setError(window.reason ?? 'That date range cannot be backtested.');
-      return;
-    }
-
-    setError(null);
-    setLoading(true);
-    // Simulate API call delay
-    setTimeout(() => {
-      const backtestInput: BacktestInput = {
-        ...input,
-        dcaAmount: enableDCA ? input.dcaAmount : undefined,
-        dcaFrequency: enableDCA ? input.dcaFrequency : undefined,
-      };
-      const backtestResult = runBacktest(backtestInput);
-      setResult(backtestResult);
-      setLoading(false);
-    }, 500);
-  };
-
-  const handlePeriodSelect = (months: number) => {
-    setError(null);
-    setInput({
-      ...input,
-      startDate: getStartDateFromPeriod(months, input.asset),
-    });
-  };
-
-  const handleAssetSelect = (asset: string) => {
-    const assetCoverage = getAssetCoverage(asset);
-    setError(null);
-    setResult(null);
-    setInput({
-      ...input,
-      asset,
-      // Keep the start date inside the new asset's history.
-      startDate: assetCoverage && input.startDate < assetCoverage.dataStart
-        ? assetCoverage.dataStart
-        : input.startDate,
-    });
-  };
+  const tableRows = ok ? samplePath(ok.path, 24) : [];
 
   return (
     <>
       <PageSEO
         pageKey="backtesting"
-        isTool
-        toolName="Cryptocurrency Backtesting Tool"
         urlPath="/backtesting"
-        faqs={[
-          {
-            question: 'What is cryptocurrency backtesting?',
-            answer: 'Backtesting allows you to simulate how an investment strategy would have performed using historical data. You can test "what if" scenarios like investing a lump sum or using DCA.',
-          },
-          {
-            question: 'How accurate is backtesting?',
-            answer: 'This tool uses a bundled set of periodic historical price snapshots and interpolates between them, so results are a close approximation rather than tick-accurate. The covered date range is shown alongside every result, and past performance does not guarantee future results.',
-          },
+        faqs={FAQS}
+        customSchema={[
+          webApplicationSchema({
+            name: 'Bitcoin & Crypto Backtester',
+            description,
+            path: '/backtesting',
+            dateModified: PAGE_UPDATED,
+            featureList: ['Lump sum and DCA backtests', 'BTC since 2014, ETH since 2015', 'Max drawdown on the full price path', 'XIRR for recurring buys', 'Shareable URLs'],
+          }),
+          howToSchema('How to backtest a Bitcoin investment', description, HOW_STEPS),
+          breadcrumbSchema('Backtesting', '/backtesting'),
         ]}
       />
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-          Investment <span className="text-gradient">Backtesting</span>
-        </h1>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          "What if I had invested $X in Bitcoin Y years ago?" Find out with our backtesting tool.
-          Analyze historical performance and simulate DCA strategies.
-        </p>
-      </div>
+      <div className="container mx-auto px-4 py-10 space-y-8">
+        <header className="max-w-3xl">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+            Bitcoin &amp; Crypto Backtesting: <span className="text-gradient">Lump Sum vs DCA</span>
+          </h1>
+          <p className="text-lg text-gray-300 leading-relaxed">
+            See what a past investment in Bitcoin, Ethereum or Solana would be worth today, bought all at once or in
+            regular amounts (dollar-cost averaging). Results use real weekly prices since 2014 and show the return, the
+            annualised return and the worst drop along the way.
+          </p>
+          <div className="mt-3">
+            <LastUpdated date={PAGE_UPDATED}>
+              {' '}· Price data through {series.end} · {series.live ? 'daily CoinGecko prices for the last 12 months' : PRICE_HISTORY_SOURCES}
+            </LastUpdated>
+          </div>
+        </header>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Input Panel */}
-        <div className="lg:col-span-1">
-          <div className="glass-card p-6 sticky top-24">
-            <h2 className="text-lg font-semibold text-white mb-6">Backtest Parameters</h2>
+        <div className="grid lg:grid-cols-3 gap-8">
+          <section aria-labelledby="bt-inputs" className="lg:col-span-1">
+            <form className="glass-card p-6 space-y-5 lg:sticky lg:top-24" onSubmit={(e) => e.preventDefault()}>
+              <h2 id="bt-inputs" className="text-lg font-semibold text-white">Backtest settings</h2>
 
-            {/* Asset Selection */}
-            <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-2">Asset</label>
-              <select
-                value={input.asset}
-                onChange={(e) => handleAssetSelect(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
-              >
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.name} ({asset.symbol})
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label htmlFor="bt-asset" className="block text-sm text-gray-300 mb-1">Asset</label>
+                <select
+                  id="bt-asset"
+                  value={form.asset}
+                  onChange={(e) => {
+                    const a = e.target.value as PriceHistoryAssetId;
+                    const s = seriesFor(a);
+                    setForm({ asset: a, start: form.start < s.start ? s.start : form.start });
+                  }}
+                  className={inputClass}
+                >
+                  {PRICE_ASSETS.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.symbol}) · from {getStaticSeries(a.id).start.slice(0, 7)}</option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Initial Investment */}
-            <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-2">Initial Investment</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <div>
+                <label htmlFor="bt-amount" className="block text-sm text-gray-300 mb-1">One-off amount on the start date ($)</label>
                 <input
+                  id="bt-amount"
                   type="number"
-                  value={input.initialInvestment}
-                  onChange={(e) => setInput({ ...input, initialInvestment: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-4 py-3 pl-8 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
-                  min={1}
+                  min={0}
+                  step="any"
+                  value={form.amount}
+                  onChange={(e) => setForm({ amount: Math.max(0, Number(e.target.value) || 0) })}
+                  className={inputClass}
                 />
               </div>
-            </div>
 
-            {/* Time Period */}
-            <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-2">Time Period</label>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {periods.map((period) => (
-                  <button
-                    key={period.label}
-                    onClick={() => handlePeriodSelect(period.months)}
-                    disabled={!period.available}
-                    title={
-                      period.available
-                        ? undefined
-                        : `Historical data ends ${coverage?.dataEnd ?? 'earlier'}, so this period has no data yet.`
-                    }
-                    className={cn(
-                      "px-3 py-1 rounded-lg text-sm font-medium transition-colors",
-                      !period.available
-                        ? "bg-white/5 text-gray-600 cursor-not-allowed"
-                        : input.startDate === getStartDateFromPeriod(period.months, input.asset)
-                        ? "bg-brand-primary text-white"
-                        : "bg-white/5 text-gray-400 hover:bg-white/10"
-                    )}
-                  >
-                    {period.label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <input
-                    type="date"
-                    value={input.startDate}
-                    onChange={(e) => setInput({ ...input, startDate: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-primary"
-                    min={coverage?.dataStart}
-                    max={coverage?.dataEnd}
-                  />
-                </div>
-              </div>
-              {coverage && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Historical data available {coverage.dataStart} to {coverage.dataEnd}.
-                </p>
-              )}
-            </div>
-
-            {/* DCA Toggle */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-sm text-gray-400">Enable DCA Simulation</label>
-                {!isPremium && (
-                  <span className="flex items-center gap-1 text-xs text-brand-primary">
-                    <Lock className="w-3 h-3" />
-                    Premium
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => isPremium && setEnableDCA(!enableDCA)}
-                disabled={!isPremium}
-                className={cn(
-                  "w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2",
-                  enableDCA
-                    ? "bg-brand-primary text-white"
-                    : isPremium
-                    ? "bg-white/5 text-gray-400 hover:bg-white/10"
-                    : "bg-white/5 text-gray-500 cursor-not-allowed"
-                )}
-              >
-                {enableDCA ? 'DCA Enabled' : 'Enable DCA'}
-                {!isPremium && <Lock className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {/* DCA Options (if enabled) */}
-            {enableDCA && isPremium && (
-              <div className="space-y-4 mb-6 p-4 rounded-lg bg-white/5 border border-white/10">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Recurring Amount</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                    <input
-                      type="number"
-                      value={input.dcaAmount || 100}
-                      onChange={(e) => setInput({ ...input, dcaAmount: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 pl-8 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
-                      min={1}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Frequency</label>
-                  <select
-                    value={input.dcaFrequency || 'monthly'}
-                    onChange={(e) => setInput({ ...input, dcaFrequency: e.target.value as BacktestInput['dcaFrequency'] })}
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary"
-                  >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="biweekly">Bi-weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Run Button */}
-            <button
-              onClick={handleRunBacktest}
-              disabled={loading}
-              className="w-full py-3 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  Calculating...
-                </>
-              ) : (
-                <>
-                  <BarChart3 className="w-5 h-5" />
-                  Run Backtest
-                </>
-              )}
-            </button>
-
-            {error && (
-              <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-300">{error}</p>
-              </div>
-            )}
-
-            {/* Premium Upsell */}
-            {!isPremium && (
-              <div className="mt-6 p-4 rounded-lg bg-brand-primary/10 border border-brand-primary/30">
-                <p className="text-sm text-gray-300 mb-3">
-                  Unlock advanced backtesting with DCA simulation, multi-asset comparison, and more.
-                </p>
-                <Link
-                  to="/pricing"
-                  className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 font-medium transition-colors text-sm"
-                >
-                  Upgrade to Premium <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Results Panel */}
-        <div className="lg:col-span-2">
-          {!result ? (
-            <div className="glass-card p-12 text-center">
-              <BarChart3 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Run a Backtest</h3>
-              <p className="text-gray-400">
-                Configure your parameters and click "Run Backtest" to see what your investment
-                would have been worth at the end of the period.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {result.coverage.clamped && (
-                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-amber-200">
-                    Historical data for this asset runs {result.coverage.dataStart} to{' '}
-                    {result.coverage.dataEnd}. You asked for {result.coverage.requestedStart} to{' '}
-                    {result.coverage.requestedEnd}, so these results cover{' '}
-                    <span className="font-medium text-white">
-                      {result.coverage.effectiveStart} to {result.coverage.effectiveEnd}
-                    </span>{' '}
-                    only - price movement outside that range is not included.
-                  </p>
-                </div>
-              )}
-
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="glass-card p-4">
-                  <p className="text-gray-400 text-sm mb-1">Total Invested</p>
-                  <p className="text-xl font-bold text-white">{formatCurrency(result.totalInvested)}</p>
-                </div>
-                <div className="glass-card p-4">
-                  <p className="text-gray-400 text-sm mb-1">Final Value</p>
-                  <p className="text-xl font-bold text-green-500">{formatCurrency(result.finalValue)}</p>
-                </div>
-                <div className="glass-card p-4">
-                  <p className="text-gray-400 text-sm mb-1">Total Return</p>
-                  <p className={cn(
-                    "text-xl font-bold",
-                    result.totalReturn >= 0 ? "text-green-500" : "text-red-500"
-                  )}>
-                    {formatPercentage(result.totalReturnPercentage)}
-                  </p>
-                </div>
-                <div className="glass-card p-4">
-                  <p className="text-gray-400 text-sm mb-1">Annualized Return</p>
-                  <p className={cn(
-                    "text-xl font-bold",
-                    result.annualizedReturn >= 0 ? "text-green-500" : "text-red-500"
-                  )}>
-                    {formatPercentage(result.annualizedReturn)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Main Result Card */}
-              <div className="glass-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white">Investment Summary</h3>
-                  <span className="text-sm text-gray-400">
-                    {result.startDate} → {result.endDate}
-                  </span>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Profit/Loss */}
-                  <div className="p-4 rounded-lg bg-white/5">
-                    <div className="flex items-center gap-3 mb-3">
-                      {result.totalReturn >= 0 ? (
-                        <TrendingUp className="w-8 h-8 text-green-500" />
-                      ) : (
-                        <TrendingDown className="w-8 h-8 text-red-500" />
+              <fieldset>
+                <legend className="block text-sm text-gray-300 mb-2">Period</legend>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {presets.map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      disabled={!p.available}
+                      aria-pressed={form.start === p.start && !form.end}
+                      onClick={() => setForm({ start: p.start, end: '' })}
+                      className={cn(
+                        'px-3 py-1 rounded-lg text-sm font-medium transition-colors',
+                        !p.available
+                          ? 'bg-white/5 text-gray-600 cursor-not-allowed'
+                          : form.start === p.start && !form.end
+                            ? 'bg-brand-primary text-white'
+                            : 'bg-white/5 text-gray-300 hover:bg-white/10'
                       )}
-                      <div>
-                        <p className="text-sm text-gray-400">Profit/Loss</p>
-                        <p className={cn(
-                          "text-2xl font-bold",
-                          result.totalReturn >= 0 ? "text-green-500" : "text-red-500"
-                        )}>
-                          {result.totalReturn >= 0 ? '+' : ''}{formatCurrency(result.totalReturn)}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-400">
-                      Your {formatCurrency(result.totalInvested)} investment would have been worth{' '}
-                      <span className="text-white font-medium">{formatCurrency(result.finalValue)}</span> on{' '}
-                      {result.endDate}.
-                    </p>
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label htmlFor="bt-start" className="block text-xs text-gray-400 mb-1">Start</label>
+                    <input id="bt-start" type="date" value={form.start} min={series.start} max={series.end} onChange={(e) => setForm({ start: e.target.value })} className={inputClass} />
                   </div>
-
-                  {/* Risk Metrics */}
-                  <div className="p-4 rounded-lg bg-white/5">
-                    <h4 className="font-medium text-white mb-3">Risk Metrics</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Max Drawdown</span>
-                        <span className="text-red-400">-{result.maxDrawdown.toFixed(2)}%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">All-Time High</span>
-                        <span className="text-green-400">{formatCurrency(result.allTimeHigh)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">ATH Date</span>
-                        <span className="text-white">{result.allTimeHighDate}</span>
-                      </div>
-                    </div>
+                  <div>
+                    <label htmlFor="bt-end" className="block text-xs text-gray-400 mb-1">End</label>
+                    <input id="bt-end" type="date" value={form.end || series.end} min={series.start} max={series.end} onChange={(e) => setForm({ end: e.target.value === series.end ? '' : e.target.value })} className={inputClass} />
                   </div>
                 </div>
-              </div>
+                <p className="mt-2 text-xs text-gray-500">{assetMeta.name} data: {series.start} to {series.end}.</p>
+              </fieldset>
 
-              {/* DCA Comparison (if applicable) */}
-              {result.dcaSummary && (
+              <div>
+                <button
+                  type="button"
+                  aria-pressed={form.dcaOn}
+                  onClick={() => setForm({ dcaOn: !form.dcaOn })}
+                  className={cn(
+                    'w-full py-2.5 rounded-lg font-medium transition-colors',
+                    form.dcaOn ? 'bg-brand-primary text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10'
+                  )}
+                >
+                  {form.dcaOn ? 'Recurring buy: on' : 'Add a recurring buy (DCA)'}
+                </button>
+                {form.dcaOn && (
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div>
+                      <label htmlFor="bt-dca" className="block text-xs text-gray-400 mb-1">Amount ($)</label>
+                      <input id="bt-dca" type="number" min={1} step="any" value={form.dcaAmount} onChange={(e) => setForm({ dcaAmount: Math.max(0, Number(e.target.value) || 0) })} className={inputClass} />
+                    </div>
+                    <div>
+                      <label htmlFor="bt-freq" className="block text-xs text-gray-400 mb-1">How often</label>
+                      <select id="bt-freq" value={form.freq} onChange={(e) => setForm({ freq: e.target.value as DcaFrequency })} className={inputClass}>
+                        {FREQS.map((f) => (
+                          <option key={f} value={f}>{FREQ_LABEL[f]}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">Results update as you type. Copy the page URL to share this backtest.</p>
+            </form>
+          </section>
+
+          <section aria-labelledby="bt-results" aria-live="polite" className="lg:col-span-2 space-y-6">
+            <h2 id="bt-results" className="text-2xl font-bold text-white">Results</h2>
+            {liveError && (
+              <p className="text-xs text-gray-500">{liveError}</p>
+            )}
+            {!hasInvestment ? (
+              <div className="glass-card p-6 text-gray-300">Enter a one-off amount or turn on a recurring buy to see results.</div>
+            ) : isBacktestError(result) ? (
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 flex gap-2" role="alert">
+                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" aria-hidden="true" />
+                <p className="text-sm text-red-200">{result.error}</p>
+              </div>
+            ) : ok ? (
+              <>
+                {ok.coverage.clamped && (
+                  <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" aria-hidden="true" />
+                    <p className="text-sm text-amber-100">
+                      Data for {assetMeta.name} covers {ok.coverage.dataStart} to {ok.coverage.dataEnd}, so this backtest runs
+                      {' '}{ok.startDate} to {ok.endDate} instead of the dates you entered.
+                    </p>
+                  </div>
+                )}
+
                 <div className="glass-card p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">DCA vs Lump Sum Comparison</h3>
+                  <p className="text-gray-100 leading-relaxed">{bluf}</p>
+                </div>
 
-                  <div className="grid md:grid-cols-3 gap-4 mb-6">
-                    <div className="p-4 rounded-lg bg-white/5 text-center">
-                      <p className="text-sm text-gray-400 mb-1">Total Investments</p>
-                      <p className="text-xl font-bold text-white">{result.dcaSummary.totalInvestments}</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-white/5 text-center">
-                      <p className="text-sm text-gray-400 mb-1">Average Cost</p>
-                      <p className="text-xl font-bold text-white">{formatCurrency(result.dcaSummary.averageCost)}</p>
-                    </div>
-                    <div className="p-4 rounded-lg bg-white/5 text-center">
-                      <p className="text-sm text-gray-400 mb-1">Final Holdings</p>
-                      <p className="text-xl font-bold text-white">{result.dcaSummary.finalHoldings.toFixed(6)}</p>
-                    </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="glass-card p-4">
+                    <p className="text-gray-400 text-sm mb-1">Money invested</p>
+                    <p className="text-xl font-bold text-white">{formatUsd(ok.totalInvested, 0)}</p>
+                    <p className="text-xs text-gray-500">{ok.buys.length} buy{ok.buys.length === 1 ? '' : 's'}</p>
                   </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className={cn(
-                      "p-4 rounded-lg",
-                      result.dcaSummary.dcaAdvantage >= 0 ? "bg-green-500/10 border border-green-500/30" : "bg-white/5"
-                    )}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-white">DCA Strategy</span>
-                        {result.dcaSummary.dcaAdvantage >= 0 && (
-                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Better</span>
-                        )}
-                      </div>
-                      <p className={cn(
-                        "text-2xl font-bold",
-                        result.dcaSummary.dcaReturnPercentage >= 0 ? "text-green-500" : "text-red-500"
-                      )}>
-                        {formatPercentage(result.dcaSummary.dcaReturnPercentage)}
-                      </p>
-                    </div>
-                    <div className={cn(
-                      "p-4 rounded-lg",
-                      result.dcaSummary.dcaAdvantage < 0 ? "bg-green-500/10 border border-green-500/30" : "bg-white/5"
-                    )}>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-white">Lump Sum Strategy</span>
-                        {result.dcaSummary.dcaAdvantage < 0 && (
-                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">Better</span>
-                        )}
-                      </div>
-                      <p className={cn(
-                        "text-2xl font-bold",
-                        result.dcaSummary.lumpSumReturnPercentage >= 0 ? "text-green-500" : "text-red-500"
-                      )}>
-                        {formatPercentage(result.dcaSummary.lumpSumReturnPercentage)}
-                      </p>
-                    </div>
+                  <div className="glass-card p-4">
+                    <p className="text-gray-400 text-sm mb-1">Final value</p>
+                    <p className={cn('text-xl font-bold', ok.profit >= 0 ? 'text-green-400' : 'text-red-400')}>{formatUsd(ok.finalValue, 0)}</p>
                   </div>
+                  <div className="glass-card p-4">
+                    <p className="text-gray-400 text-sm mb-1">Total return</p>
+                    <p className={cn('text-xl font-bold', ok.totalReturnPct >= 0 ? 'text-green-400' : 'text-red-400')}>{formatSignedPct(ok.totalReturnPct)}</p>
+                  </div>
+                  <div className="glass-card p-4">
+                    <p className="text-gray-400 text-sm mb-1">Annualised ({ok.annualizedMethod === 'xirr' ? 'XIRR' : 'CAGR'})</p>
+                    <p className={cn('text-xl font-bold', (ok.annualizedReturnPct ?? 0) >= 0 ? 'text-green-400' : 'text-red-400')}>
+                      {ok.annualizedReturnPct === null ? '—' : `${formatSignedPct(ok.annualizedReturnPct)}/yr`}
+                    </p>
+                    {ok.annualizedReturnPct === null && <p className="text-xs text-gray-500">Window under 30 days</p>}
+                  </div>
+                </div>
 
-                  <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-start gap-2">
-                    <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-blue-300">
-                      {result.dcaSummary.dcaAdvantage >= 0
-                        ? `DCA outperformed lump sum by ${formatPercentage(result.dcaSummary.dcaAdvantage)} in this period due to favorable market conditions.`
-                        : `Lump sum outperformed DCA by ${formatPercentage(Math.abs(result.dcaSummary.dcaAdvantage))} in this period. In a bull market, early entry typically performs better.`
-                      }
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">Value vs money invested</h3>
+                  <ValueChart points={ok.path} label={`Value of the ${assetMeta.name} investment against money invested, ${ok.startDate} to ${ok.endDate}`} />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="glass-card p-6">
+                    <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                      {ok.profit >= 0 ? <TrendingUp className="w-5 h-5 text-green-400" aria-hidden="true" /> : <TrendingDown className="w-5 h-5 text-red-400" aria-hidden="true" />}
+                      What you held
+                    </h3>
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between"><dt className="text-gray-400">{assetMeta.symbol} accumulated</dt><dd className="text-white">{ok.units.toLocaleString(undefined, { maximumFractionDigits: 6 })}</dd></div>
+                      <div className="flex justify-between"><dt className="text-gray-400">Average cost per {assetMeta.symbol}</dt><dd className="text-white">{formatUsd(ok.averageCost)}</dd></div>
+                      <div className="flex justify-between"><dt className="text-gray-400">Price at start / end</dt><dd className="text-white">{formatUsd(ok.startPrice, 0)} / {formatUsd(ok.endPrice, 0)}</dd></div>
+                      <div className="flex justify-between"><dt className="text-gray-400">Profit / loss</dt><dd className={ok.profit >= 0 ? 'text-green-400' : 'text-red-400'}>{ok.profit >= 0 ? '+' : '-'}{formatUsd(Math.abs(ok.profit), 0)}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="glass-card p-6">
+                    <h3 className="font-semibold text-white mb-3">Risk along the way</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-400">Largest {assetMeta.symbol} price drop</dt>
+                        <dd className="text-red-400 text-right">-{ok.priceMaxDrawdownPct.toFixed(1)}%<span className="block text-xs text-gray-500">{ok.priceDrawdownPeakDate} → {ok.priceDrawdownTroughDate}</span></dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-400">Worst paper loss on your money</dt>
+                        <dd className={cn('text-right', ok.worstPaperLoss < 0 ? 'text-red-400' : 'text-gray-300')}>
+                          {ok.worstPaperLoss < 0 ? `${formatUsd(ok.worstPaperLoss, 0)} (${ok.worstPaperLossPct.toFixed(1)}%)` : 'Never below cost'}
+                          {ok.worstPaperLoss < 0 && <span className="block text-xs text-gray-500">{ok.worstPaperLossDate}</span>}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-gray-400">Highest {assetMeta.symbol} price in this window</dt>
+                        <dd className="text-white text-right">{formatUsd(ok.windowHighPrice, 0)}<span className="block text-xs text-gray-500">{ok.windowHighDate}</span></dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+
+                {ok.lumpSumComparison && (
+                  <div className="glass-card p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Your plan vs one lump sum on day one</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {[
+                        { name: 'Your plan', value: ok.finalValue, ret: ok.totalReturnPct, ann: ok.annualizedReturnPct, better: ok.finalValue >= ok.lumpSumComparison.finalValue },
+                        { name: `${formatUsd(ok.totalInvested, 0)} lump sum on ${ok.startDate}`, value: ok.lumpSumComparison.finalValue, ret: ok.lumpSumComparison.totalReturnPct, ann: ok.lumpSumComparison.annualizedReturnPct, better: ok.lumpSumComparison.finalValue > ok.finalValue },
+                      ].map((c) => (
+                        <div key={c.name} className={cn('p-4 rounded-lg', c.better ? 'bg-green-500/10 border border-green-500/30' : 'bg-white/5')}>
+                          <p className="font-medium text-white mb-1">{c.name}{c.better && <span className="ml-2 text-xs text-green-300">ended higher</span>}</p>
+                          <p className={cn('text-2xl font-bold', c.ret >= 0 ? 'text-green-400' : 'text-red-400')}>{formatUsd(c.value, 0)}</p>
+                          <p className="text-sm text-gray-400">{formatSignedPct(c.ret)} total · {c.ann === null ? '—' : `${formatSignedPct(c.ann)}/yr`}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-4 text-sm text-gray-300 flex gap-2">
+                      <Info className="w-4 h-4 text-blue-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                      {ok.lumpSumComparison.finalValue > ok.finalValue
+                        ? `A lump sum ended higher because ${assetMeta.name} finished well above its early prices, so money invested on day one had longer to grow. That is the usual result when prices rise over the period.`
+                        : `Spreading the buys ended higher because much of the money bought after prices had fallen below the starting level. DCA tends to win when prices drop or move sideways after you start.`}
                     </p>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Investment Timeline */}
-              <div className="glass-card p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Investment Timeline</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-white/5">
-                      <tr>
-                        <th className="text-left px-4 py-3 text-sm font-medium text-gray-400">Date</th>
-                        <th className="text-right px-4 py-3 text-sm font-medium text-gray-400">Invested</th>
-                        <th className="text-right px-4 py-3 text-sm font-medium text-gray-400">Value</th>
-                        <th className="text-right px-4 py-3 text-sm font-medium text-gray-400">Profit/Loss</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {result.investmentHistory.slice(-10).map((point, i) => (
-                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                          <td className="px-4 py-3 text-white">{point.date}</td>
-                          <td className="px-4 py-3 text-right text-gray-400">{formatCurrency(point.invested)}</td>
-                          <td className="px-4 py-3 text-right text-white font-medium">{formatCurrency(point.value)}</td>
-                          <td className={cn(
-                            "px-4 py-3 text-right font-medium",
-                            point.profit >= 0 ? "text-green-500" : "text-red-500"
-                          )}>
-                            {point.profit >= 0 ? '+' : ''}{formatCurrency(point.profit)}
-                          </td>
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-white mb-1">Timeline</h3>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Showing {tableRows.length} evenly spaced dates out of {ok.path.length} price points and {ok.buys.length} buys.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <caption className="sr-only">Invested amount and value over time</caption>
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th scope="col" className="text-left px-3 py-2 text-gray-400">Date</th>
+                          <th scope="col" className="text-right px-3 py-2 text-gray-400">{assetMeta.symbol} price</th>
+                          <th scope="col" className="text-right px-3 py-2 text-gray-400">Invested</th>
+                          <th scope="col" className="text-right px-3 py-2 text-gray-400">Value</th>
+                          <th scope="col" className="text-right px-3 py-2 text-gray-400">Profit/loss</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {tableRows.map((p) => {
+                          const pl = p.value - p.invested;
+                          return (
+                            <tr key={p.date}>
+                              <td className="px-3 py-2 text-white">{p.date}</td>
+                              <td className="px-3 py-2 text-right text-gray-300">{formatUsd(p.price, p.price < 10 ? 2 : 0)}</td>
+                              <td className="px-3 py-2 text-right text-gray-300">{formatUsd(p.invested, 0)}</td>
+                              <td className="px-3 py-2 text-right text-white">{formatUsd(p.value, 0)}</td>
+                              <td className={cn('px-3 py-2 text-right', pl >= 0 ? 'text-green-400' : 'text-red-400')}>{pl >= 0 ? '+' : '-'}{formatUsd(Math.abs(pl), 0)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+              </>
+            ) : null}
+          </section>
+        </div>
 
-              {/* Disclaimer */}
-              <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                <p className="text-sm text-yellow-300">
-                  <strong>Disclaimer:</strong> This tool runs on a bundled set of periodic historical
-                  price snapshots ({result.coverage.dataStart} to {result.coverage.dataEnd}), with prices
-                  between snapshots interpolated - figures are approximate, not tick-accurate. For
-                  educational purposes only. Past performance does not guarantee future results. This is
-                  not financial advice.
-                </p>
-              </div>
-            </div>
-          )}
+        <section aria-labelledby="landmarks-heading" className="glass-card p-6 md:p-8">
+          <h2 id="landmarks-heading" className="text-2xl font-bold text-white mb-2">What $1,000 in Bitcoin became</h2>
+          <p className="text-gray-400 mb-4">
+            $1,000 of BTC bought on January 1 of each year, valued on {formatIsoDate(landmarks.end)} (bundled weekly data, no fees).
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-400 border-b border-white/10">
+                  <th scope="col" className="text-left py-2 pr-4">Bought Jan 1</th>
+                  <th scope="col" className="text-right py-2 pr-4">BTC price then</th>
+                  <th scope="col" className="text-right py-2 pr-4">Worth now</th>
+                  <th scope="col" className="text-right py-2 pr-4">Total return</th>
+                  <th scope="col" className="text-right py-2">Per year</th>
+                </tr>
+              </thead>
+              <tbody>
+                {landmarks.lump.map(({ year, r }) =>
+                  r ? (
+                    <tr key={year} className="border-b border-white/5 text-gray-300">
+                      <td className="py-2 pr-4 text-white">{year}</td>
+                      <td className="py-2 pr-4 text-right">{formatUsd(r.startPrice, 0)}</td>
+                      <td className={cn('py-2 pr-4 text-right', r.profit >= 0 ? 'text-green-400' : 'text-red-400')}>{formatUsd(r.finalValue, 0)}</td>
+                      <td className="py-2 pr-4 text-right">{formatSignedPct(r.totalReturnPct, 0)}</td>
+                      <td className="py-2 text-right">{r.annualizedReturnPct === null ? '—' : formatSignedPct(r.annualizedReturnPct)}</td>
+                    </tr>
+                  ) : null
+                )}
+              </tbody>
+            </table>
+          </div>
+          <h3 className="text-lg font-semibold text-white mt-8 mb-3">Recurring-buy examples</h3>
+          <ul className="space-y-2 text-gray-300">
+            {landmarks.dcaCases.map((c) =>
+              c.r ? (
+                <li key={c.label}>
+                  <span className="text-white font-medium">{c.label}:</span> {formatUsd(c.r.totalInvested, 0)} invested became{' '}
+                  {formatUsd(c.r.finalValue, 0)} ({formatSignedPct(c.r.totalReturnPct, 0)}; XIRR {formatSignedPct(c.r.annualizedReturnPct)}/yr).
+                </li>
+              ) : null
+            )}
+          </ul>
+        </section>
+
+        <HowItWorks
+          title="How the backtest is calculated"
+          steps={HOW_STEPS}
+          intro={<p>Every buy converts dollars to coins at that day’s price; the final value is coins held × the price on the end date.</p>}
+        >
+          <p>
+            <strong className="text-white">Prices.</strong> {PRICE_HISTORY_SOURCES}; generated {PRICE_HISTORY_GENERATED}. With weekly
+            points, prices between Mondays are interpolated, so a daily DCA is approximate. When live data loads, the last 12 months
+            use daily closes.
+          </p>
+          <p>
+            <strong className="text-white">Largest price drop</strong> is the biggest peak-to-trough fall in the asset’s price inside
+            your window. <strong className="text-white">Worst paper loss</strong> is the lowest point of value minus money invested.
+            <strong className="text-white"> Annualised return</strong> is CAGR for a single buy and XIRR (money-weighted) when there are
+            recurring buys. Trading fees, spreads and taxes are not included.
+          </p>
+        </HowItWorks>
+
+        <FaqSection faqs={FAQS} />
+
+        <RelatedLinks
+          links={[
+            { to: '/calculators', label: 'DCA calculator', description: 'Quick recurring-buy results for BTC, ETH and SOL.' },
+            { to: '/learn/dca-strategies', label: 'DCA strategies guide', description: 'How dollar-cost averaging works and when it helps.' },
+            { to: '/calculators?type=tax', label: 'Crypto tax calculator', description: 'Estimate tax if you sold at today’s price.' },
+            { to: '/retirement-calculator', label: 'Crypto retirement calculator', description: 'Test crypto in a long-term plan with Monte Carlo.' },
+          ]}
+        />
+
+        <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex gap-2">
+          <BarChart3 className="w-5 h-5 text-yellow-300 flex-shrink-0" aria-hidden="true" />
+          <p className="text-sm text-yellow-100">
+            Educational tool, not financial advice. Past performance does not predict future results; crypto prices can fall
+            80% or more. Results exclude fees and taxes.
+          </p>
         </div>
       </div>
-
-      {/* Related Content */}
-      <div className="mt-12">
-        <RelatedPages currentPath="/backtesting" title="More Tools" />
-      </div>
-    </div>
     </>
   );
 }

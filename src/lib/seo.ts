@@ -430,7 +430,7 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
   blog: {
     title: 'Crypto Blog - News, Analysis & Education',
     description:
-      'Latest cryptocurrency news, market analysis, and educational content. Stay informed about Bitcoin, Ethereum, DeFi, and the broader crypto market with expert insights.',
+      'Plain-English crypto news analysis for everyday investors: Bitcoin, Ethereum, DeFi, security and regulation, linked to our free guides and calculators.',
     keywords: [
       'crypto blog',
       'cryptocurrency news',

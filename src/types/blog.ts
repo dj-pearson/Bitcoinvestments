@@ -28,11 +28,37 @@ export interface BlogPost {
   published_at: string | null;
   created_at: string;
   updated_at: string;
-  // Joined fields
-  author?: {
-    id: string;
-    email: string;
-  };
+  /** Public author profile (`authors` table). Never the private `users` row. */
+  author_profile_id?: string | null;
+  // Joined / derived fields
+  author?: BlogAuthor | null;
+  /** Normalised category slug, derived from `category` + `blog_categories`. */
+  category_slug?: string;
+  /** Human-readable category name, derived from `blog_categories`. */
+  category_name?: string;
+}
+
+/**
+ * Public author profile. Readable by anyone (see migration
+ * 20260923000200_public_authors.sql); contains no private account data.
+ */
+export interface BlogAuthor {
+  id: string;
+  slug: string;
+  display_name: string;
+  bio: string | null;
+  credentials: string | null;
+  avatar_url: string | null;
+  /** Public profile URLs (X, LinkedIn, personal site…) — schema.org sameAs. */
+  profile_links: string[] | null;
+}
+
+/** Build-time blog export written by scripts/export-blog.mjs. */
+export interface BlogSnapshot {
+  generatedAt: string | null;
+  posts: BlogPost[];
+  categories: BlogCategory[];
+  authors: BlogAuthor[];
 }
 
 export interface BlogCategory {

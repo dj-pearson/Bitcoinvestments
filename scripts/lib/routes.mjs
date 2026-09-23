@@ -76,9 +76,9 @@ export function extractRoutes() {
       if (!full.includes(':') && !full.includes('*')) {
         routes.push({
           path: full,
-          // A route that only sits behind ProtectedRoute when accounts are on
-          // (STATIC_MODE ? public page : <ProtectedRoute>) is public today.
-          gated: line.includes('<ProtectedRoute>') && !line.includes('STATIC_MODE ?'),
+          // A route whose FeatureGate has a public fallback page (served while
+          // accounts are off) is not login-walled for crawlers.
+          gated: line.includes('<ProtectedRoute>') && !line.includes('fallback='),
           // A route whose element is only a <Navigate> is a redirect, not a page.
           redirect: /element=\{<Navigate /.test(line),
         });

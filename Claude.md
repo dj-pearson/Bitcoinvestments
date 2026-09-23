@@ -85,6 +85,48 @@ gates on all four.
 - `PRD.md` / `PROGRESS.md` — Requirements & status
 - `docs/STRIPE_SETUP.md`, `docs/EMAIL_SETUP.md`, `docs/BACKEND_SETUP.md`, `docs/CLOUDFLARE_SETUP.md`, `docs/AD_SYSTEM.md`
 
+## Static baseline + database
+
+Every public page renders its complete content from repo data (`src/data`,
+`src/content`) on the first render, and live sources (CoinGecko via
+`/api/coingecko`, Supabase) load on top with loading, error and stale states.
+Nothing fabricated is ever shown as real data: no `Math.random()` figures, no
+invented ratings, counts or testimonials. Volatile facts carry a visible
+`lastVerified` date.
+
+- **Accounts switch**: `STATIC_MODE` is derived from `VITE_ACCOUNTS_ENABLED`
+  (unset = accounts off). Gated routes use `FeatureGate`, which also checks
+  `isSupabaseConfigured()`, `src/config/features.ts` and the database schema
+  version (`app_meta`) before showing an account feature; otherwise the
+  feature's `ComingSoon` page (noindexed, with a waitlist) renders.
+  `rebuild/REBUILD_GUIDE.md` is the go-live checklist.
+- **Blog**: `scripts/export-blog.mjs` (runs as `prebuild`) snapshots published
+  posts from Supabase into `src/content/blog/snapshot.json`; pages render the
+  snapshot first and merge live rows. It never fails a build.
+
+## Prerendering (SEO/GEO)
+
+`pnpm run build` = typecheck, browser bundle, SSR bundle
+(`src/entry-server.tsx`), then `scripts/prerender.mjs`, which writes real HTML
+for every public route (guides, course modules, compare pages, curated coins,
+snapshot blog posts) plus `404.html`, `_shell.html` and `sitemap.xml`. The
+browser hydrates prerendered pages (`main.tsx`).
+
+Rules for page code, enforced in CI with `PRERENDER_STRICT=1`:
+- Exactly one `<h1>`, a `<PageSEO>`/`<SEO>`, and titles <= 60 characters
+  including the " | Bitcoinvestments" suffix (base title <= 41), descriptions
+  <= 160.
+- Render the H1, summary and content on the first render; show skeletons only
+  inside data sections, never an early-return spinner.
+- No `window`, `document`, `localStorage` or `matchMedia` during render or at
+  module scope - only in effects and handlers.
+- Unknown ids render `<NotFound />`, never `<Navigate>` to a parent.
+- Noindex rules live in `src/lib/index-pruning.ts` and `public/_headers`;
+  `RouteHead` applies route defaults for pages without `<SEO>`.
+- `functions/{blog,coin,scam,sponsored,admin}/[[path]].ts` serve routes that
+  are not prerendered (a real `404.html` disables the SPA fallback).
+- `public/llms.txt` and `ai.txt` are checked by `pnpm run audit:routes`.
+
 ## No Web3
 
 Wallet connection was removed: the site runs as static content (`STATIC_MODE`),
@@ -105,15 +147,14 @@ demoted rule carries a comment saying what it takes to promote it back.
 
 - Test coverage — Playwright is wired up but there are no unit tests
 - ~230 lint warnings to burn down (see Lint Policy above)
-- `src/services/cryptoScamDbSync.ts` has no consumers (dead code)
 - `@sentry/react` is a dependency but `Sentry.init` is never called, so error
   monitoring is not actually running
-- Several dashboards render hardcoded sample data behind a simulated delay
-  (`AdminSubscriptions`, `AdminNewsletters`, `AdvisorDashboard`,
-  `InfluencerDashboard`). They show a `DemoDataBanner`; delete the banner in
-  the same change that connects the real data source.
-- `STATIC_MODE` (`src/config/staticMode.ts`) is `true`, so auth and all
-  database-backed features are disabled and protected routes render ComingSoon
+- `AdvisorDashboard` still has no data model and is kept dark via
+  `src/config/features.ts`
+- Accounts are off until the owner applies the 2026-09 migrations and sets
+  `VITE_ACCOUNTS_ENABLED` (see `rebuild/REBUILD_GUIDE.md`)
+- Owner-only facts are marked `NEEDS-OWNER` in code (author bylines, affiliate
+  IDs, sponsorships, legal entity); see `docs/page-review/ACTION_PLAN.md`
 - `Claude.md` and `claude.md` are byte-identical and differ only in case, which
   collides on case-insensitive filesystems — worth consolidating to one
 - API docs (OpenAPI), i18n

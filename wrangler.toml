@@ -35,12 +35,15 @@ VITE_STRIPE_LINK_ENTERPRISE = "https://buy.stripe.com/bJecN42GV4dv18rgZ25gc04"
 VITE_STRIPE_LINK_TAX_BASIC = "https://buy.stripe.com/5kQ8wO6Xb5hz6sLdMQ5gc05"
 VITE_STRIPE_LINK_TAX_PREMIUM = "https://buy.stripe.com/28E14m5T7dO5dVdgZ25gc06"
 
-# WalletConnect Project ID (required for wallet connections)
-# Get your free project ID at: https://cloud.walletconnect.com/
-VITE_WALLETCONNECT_PROJECT_ID = "9ecc8cf092ace1f3ce01523277569b2b"
-# Optional API keys (can be empty for basic functionality)
-VITE_RESEND_API_KEY = ""
+# Email: set RESEND_API_KEY (and optionally FROM_EMAIL) as encrypted Pages
+# secrets. Never as a VITE_ variable - every VITE_ value ships to browsers.
 VITE_FROM_EMAIL = ""
+
+# Accounts switch (see rebuild/REBUILD_GUIDE.md). VITE_ACCOUNTS_ENABLED and the
+# VITE_SUPABASE_* values must be set as Cloudflare Pages *build* variables (or
+# repository variables for .github/workflows/deploy.yml): Vite reads them when
+# building, and [vars] here only reach Pages Functions at runtime.
+# VITE_ACCOUNTS_ENABLED = "true"
 
 # Error Logging (Sentry)
 # Get your DSN from https://sentry.io/settings/projects/{project}/keys/

@@ -16,6 +16,14 @@ import type {
 /**
  * Get all users with pagination
  */
+/**
+ * Columns the admin screens show (AdminUser). Never `select('*')` on users:
+ * it would also ship every account's two_factor_secret and recovery codes to
+ * the admin's browser.
+ */
+const ADMIN_USER_COLUMNS =
+  'id, email, role, is_suspended, suspended_at, suspended_reason, last_login_at, created_at, updated_at, subscription_status, subscription_tier';
+
 export async function getAllUsers(params?: {
   page?: number;
   limit?: number;
@@ -29,7 +37,7 @@ export async function getAllUsers(params?: {
 
   let query = supabase
     .from('users')
-    .select('*', { count: 'exact' })
+    .select(ADMIN_USER_COLUMNS, { count: 'exact' })
     .order('created_at', { ascending: false });
 
   // Apply filters
@@ -76,7 +84,7 @@ export async function getAllUsers(params?: {
 export async function getUserById(userId: string) {
   const { data, error } = await supabase
     .from('users')
-    .select('*')
+    .select(ADMIN_USER_COLUMNS)
     .eq('id', userId)
     .single();
 

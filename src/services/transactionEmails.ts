@@ -9,6 +9,8 @@
  * - Failed payment notifications
  */
 
+import { emailAuthHeaders } from './email';
+
 export type TransactionEmailType =
   | 'subscription_created'
   | 'subscription_renewed'
@@ -394,7 +396,7 @@ export async function sendTransactionEmail(
 
     const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await emailAuthHeaders(),
       body: JSON.stringify({
         to: emailData.userEmail,
         subject,

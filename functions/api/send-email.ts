@@ -1,5 +1,10 @@
-// Cloudflare Pages Function: Send Email via MailChannels
-// With comprehensive input validation and sanitization
+// Cloudflare Pages Function: send a transactional email.
+//
+// SECURITY: this endpoint used to send any HTML to any address with no
+// credentials at all - an open relay on our own domain. A caller must now be
+// either a scheduled worker (bearer secret) or a signed-in Supabase user, and a
+// signed-in user may only email their own address unless their profile role is
+// admin/super_admin (support replies, advertiser invoices).
 
 import {
   parseAndValidateBody,
@@ -8,29 +13,61 @@ import {
   jsonError,
   jsonSuccess,
 } from '../lib/validation';
+import { sendMail, type MailerEnv } from '../lib/mailer';
 import { handleCorsPreflightRequest } from './_cors';
+import { isAuthorizedScheduledRequest } from './_scheduledAuth';
 
-interface Env {
-  AMAZON_SMTP_USER_NAME?: string;
-  AMAZON_SMTP_PASSWORD?: string;
-  AMAZON_SMTP_ENDPOINT?: string;
-  VITE_FROM_EMAIL?: string;
-  AWS_ACCESS_KEY_ID?: string;
-  AWS_SECRET_ACCESS_KEY?: string;
-  AWS_REGION?: string;
+interface Env extends MailerEnv {
+  VITE_SUPABASE_URL?: string;
+  VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
 }
 
-interface EmailRequest {
+type EmailRequest = {
   to: string;
   subject: string;
   html: string;
+};
+
+interface SupabaseUser {
+  id: string;
+  email?: string;
+}
+
+/** Resolve the Supabase user behind the request's bearer token, if any. */
+async function getRequestUser(request: Request, env: Env): Promise<SupabaseUser | null> {
+  const header = request.headers.get('Authorization');
+  if (!header?.startsWith('Bearer ') || !env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+    return null;
+  }
+  const response = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/user`, {
+    headers: { apikey: env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: header },
+  });
+  if (!response.ok) return null;
+  const user = (await response.json()) as SupabaseUser;
+  return user?.id ? user : null;
+}
+
+async function isAdmin(userId: string, env: Env): Promise<boolean> {
+  if (!env.VITE_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return false;
+  const response = await fetch(
+    `${env.VITE_SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=role`,
+    {
+      headers: {
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    }
+  );
+  if (!response.ok) return false;
+  const rows = (await response.json()) as Array<{ role?: string }>;
+  return rows[0]?.role === 'admin' || rows[0]?.role === 'super_admin';
 }
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const { request, env } = context;
 
   try {
-    // Parse and validate request body
     const { data: body, error: parseError } = await parseAndValidateBody<EmailRequest>(
       request,
       ['to', 'subject', 'html']
@@ -42,67 +79,31 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     const { to, subject, html } = body;
 
-    // Validate email content
     const contentValidation = validateEmailContent({ to, subject, html });
     if (!contentValidation.isValid) {
       return jsonError(contentValidation.error || 'Invalid email content', 400);
     }
 
-    // Sanitize subject (keep HTML in email body but sanitize subject)
-    const sanitizedSubject = sanitizeString(subject);
-
-    // The sender is configuration, never request input. This endpoint sends
-    // through our own SMTP credentials and domain, so honouring a caller
-    // supplied "from" let anyone send mail that authenticates as us - arbitrary
-    // spoofed sender, arbitrary recipient, arbitrary HTML body. Any "from" in
-    // the request body is ignored; no caller in this repo ever set one.
-    const fromEmail = env.VITE_FROM_EMAIL || 'Bitcoin Investments <noreply@bitcoinvestments.net>';
-
-    // Use MailChannels (free for Cloudflare Workers)
-    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: to.trim().toLowerCase() }],
-          },
-        ],
-        from: {
-          email: fromEmail.match(/<(.+)>/)?.[1] || fromEmail,
-          name: fromEmail.match(/^(.+?)\s*</)?.[1] || 'Bitcoin Investments',
-        },
-        subject: sanitizedSubject,
-        content: [
-          {
-            type: 'text/html',
-            value: html,
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('MailChannels error:', errorText);
-      return jsonError(`Email service error: ${errorText}`, 500);
+    if (!isAuthorizedScheduledRequest(request, env.SUPABASE_SERVICE_ROLE_KEY)) {
+      const user = await getRequestUser(request, env);
+      if (!user) {
+        return jsonError('Unauthorized', 401);
+      }
+      const ownAddress = user.email?.trim().toLowerCase() === to.trim().toLowerCase();
+      if (!ownAddress && !(await isAdmin(user.id, env))) {
+        return jsonError('Forbidden', 403);
+      }
     }
 
-    return jsonSuccess(
-      {
-        success: true,
-        messageId: `${Date.now()}-${to.trim().toLowerCase()}`,
-      },
-      200
-    );
+    const result = await sendMail(env, { to, subject: sanitizeString(subject), html });
+    if (!result.ok) {
+      return jsonError(result.error, 502);
+    }
+
+    return jsonSuccess({ success: true }, 200);
   } catch (error) {
     console.error('Email send error:', error);
-    return jsonError(
-      error instanceof Error ? error.message : 'Failed to send email',
-      500
-    );
+    return jsonError('Failed to send email', 500);
   }
 }
 

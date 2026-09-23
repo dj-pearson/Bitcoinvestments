@@ -1,9 +1,5 @@
-// DCA Calculator exports
-export {
-  calculateDCA,
-  projectFutureDCA,
-  compareLumpSumVsDCA,
-} from './dcaCalculator';
+// Staking math (shared by /staking-calculator and the staking tab on /calculators)
+export { calculateStaking, yearsToDouble, type StakingInput, type StakingResult, type RateType } from './stakingCalculator';
 
 // Fee Calculator exports
 export {
@@ -16,37 +12,15 @@ export {
   calculateVolumeBasedFees,
 } from './feeCalculator';
 
-// Staking Calculator exports
-export {
-  calculateStakingRewards,
-  compareCompoundingStrategies,
-  calculateDoubleTime,
-  calculateToReachTarget,
-  getPopularStakingRates,
-  calculateValidatorVsDelegator,
-} from './stakingCalculator';
-
 // Tax Calculator exports
 export {
   calculateCapitalGainsTax,
   calculateMultipleTransactionsTax,
+  estimateCryptoSaleTax,
   findTaxLossHarvestingOpportunities,
   calculateWashSaleImpact,
   estimateQuarterlyPayment,
   getStateTaxInfo,
+  type CryptoSaleTaxInput,
+  type CryptoSaleTaxResult,
 } from './taxCalculator';
-
-// Premium Calculator Features exports
-export {
-  checkFeatureAccess,
-  runMonteCarloSimulation,
-  compareMultipleAssets,
-  analyzeTaxOptimization,
-  analyzePortfolioRisk,
-  getAvailablePremiumFeatures,
-  type MonteCarloResult,
-  type MultiAssetComparison,
-  type TaxOptimizationResult,
-  type RiskAnalysisResult,
-  type PremiumCalculatorError,
-} from './premiumCalculatorFeatures';

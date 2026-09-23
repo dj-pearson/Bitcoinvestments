@@ -71,7 +71,14 @@ function getRateLimitConfig(path: string): RateLimitConfig {
   if (path.includes('auth') || path.includes('login') || path.includes('signup')) {
     return RATE_LIMITS.auth;
   }
-  if (path.includes('coingecko')) {
+  // Cached, read-only public data proxies
+  if (
+    path.includes('coingecko') ||
+    path.startsWith('/api/yields') ||
+    path.startsWith('/api/btc-fees') ||
+    path.startsWith('/api/gas') ||
+    path.startsWith('/api/onchain')
+  ) {
     return RATE_LIMITS.public;
   }
   return RATE_LIMITS.default;
@@ -201,7 +208,7 @@ async function checkRateLimit(
  *
  * SECURITY HARDENING (2025-12-30):
  * - Removed 'unsafe-eval' from script-src (not needed for React production builds)
- * - Added 'wasm-unsafe-eval' for WebAssembly (required by crypto/wallet libraries)
+ * - (2026-09) Dropped 'wasm-unsafe-eval' and the wallet RPC hosts with the Web3 stack
  * - Keeping 'unsafe-inline' for styles only (required by CSS-in-JS solutions)
  * - Removed 'unsafe-inline' from script-src to prevent XSS attacks
  */
@@ -210,14 +217,14 @@ function getSecurityHeaders(): Record<string, string> {
     // Content Security Policy - Hardened configuration
     'Content-Security-Policy': [
       "default-src 'self'",
-      // Scripts: No unsafe-inline or unsafe-eval; wasm-unsafe-eval for crypto libraries
-      "script-src 'self' 'wasm-unsafe-eval' https://js.stripe.com https://challenges.cloudflare.com",
+      // Scripts: No unsafe-inline or unsafe-eval
+      "script-src 'self' https://js.stripe.com https://challenges.cloudflare.com",
       // Styles: unsafe-inline needed for CSS-in-JS (styled-components, emotion, etc.)
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https: http:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.coingecko.com https://pro-api.coingecko.com https://api.stripe.com https://*.walletconnect.com wss://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://rpc.ankr.com https://*.infura.io wss://*.infura.io https://*.alchemy.com wss://*.alchemy.com https://cloudflare-eth.com",
-      "frame-src 'self' https://js.stripe.com https://challenges.cloudflare.com https://verify.walletconnect.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.coingecko.com https://pro-api.coingecko.com https://api.stripe.com",
+      "frame-src 'self' https://js.stripe.com https://challenges.cloudflare.com",
       "frame-ancestors 'self'",
       "form-action 'self'",
       "base-uri 'self'",

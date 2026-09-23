@@ -659,7 +659,7 @@ export interface RetirementCalculatorResponse {
 // 5. MULTI-EXCHANGE PORTFOLIO AGGREGATION
 // ============================================
 
-export type SupportedExchange = 'coinbase' | 'binance' | 'kraken' | 'gemini' | 'kucoin' | 'ftx' | 'bitfinex' | 'huobi' | 'okx' | 'bybit';
+export type SupportedExchange = 'coinbase' | 'binance' | 'kraken' | 'gemini' | 'kucoin' | 'bitfinex' | 'huobi' | 'okx' | 'bybit';
 export type ExchangeConnectionStatus = 'connected' | 'disconnected' | 'error' | 'syncing' | 'rate_limited';
 
 export interface ExchangeCredentials {

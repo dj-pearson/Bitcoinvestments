@@ -14,9 +14,10 @@
  * last word.
  */
 
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getIndexDirective } from '../lib/index-pruning';
+import { HeadContext } from '../lib/head';
 
 const SITE_URL = 'https://bitcoinvestments.net';
 
@@ -31,6 +32,16 @@ function upsert(selector: string, create: () => HTMLElement, attr: string, value
 
 export function RouteHead() {
   const { pathname } = useLocation();
+
+  // Prerendering: record the same defaults into the head collector. A page's
+  // <SEO> renders later in the tree and replaces them.
+  const collector = useContext(HeadContext);
+  if (collector) {
+    const path = pathname.replace(/\/$/, '') || '/';
+    collector.title ??= 'Bitcoinvestments';
+    collector.canonical = `${SITE_URL}${path}`;
+    collector.meta.set('name|robots', { attr: 'name', key: 'robots', content: getIndexDirective(path) });
+  }
 
   useEffect(() => {
     const path = pathname.replace(/\/$/, '') || '/';

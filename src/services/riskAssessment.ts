@@ -422,7 +422,7 @@ function generateRecommendations(
         title: 'Use a Hardware Wallet',
         description: 'For maximum security, store your crypto in a hardware wallet. Check our wallet comparison guide.',
         priority: 'medium',
-        link: '/compare/wallets',
+        link: '/compare?tab=wallets',
       });
       break;
 
@@ -464,7 +464,7 @@ function generateRecommendations(
         title: 'Learn About DeFi Safely',
         description: 'If exploring DeFi, start with established protocols and understand smart contract risks.',
         priority: 'medium',
-        link: '/learn/defi',
+        link: '/learn/defi-basics',
       });
       break;
   }

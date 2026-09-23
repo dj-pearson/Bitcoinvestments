@@ -16,6 +16,7 @@ import App from './App';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import { HeadContext, createHeadCollector, renderHeadTags } from './lib/head';
 import { CURATED_COIN_IDS } from './data/coins';
+import { getAllGuides } from './data/guides';
 import { getSnapshotPosts, getSnapshotCategories } from './content/blog';
 
 export interface RenderResult {
@@ -82,6 +83,9 @@ export function prerenderExtraPaths(): string[] {
   const posts = getSnapshotPosts();
   const categoriesWithPosts = new Set(posts.map((p) => p.category_slug).filter(Boolean));
   return [
+    // Every guide, straight from the data (scripts/lib/routes.mjs finds them
+    // from source files too; the union guards against either drifting).
+    ...getAllGuides().map((g) => `/learn/${g.id}`),
     // Curated coin profiles are the only indexable /coin pages.
     ...CURATED_COIN_IDS.map((id) => `/coin/${id}`),
     // Published posts from the build-time snapshot of the database; posts

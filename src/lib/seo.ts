@@ -996,28 +996,6 @@ export function generatePricingSchema({
   };
 }
 
-/**
- * Generate DefinedTermSet schema for glossary pages
- * Helps AI engines understand and cite glossary definitions
- */
-export function generateGlossarySchema({
-  terms,
-}: {
-  terms: Array<{ term: string; definition: string }>;
-}) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'DefinedTermSet',
-    name: 'Cryptocurrency Glossary',
-    description: 'Cryptocurrency and blockchain terms explained in plain English.',
-    url: `${SEO_CONFIG.siteUrl}/glossary`,
-    hasDefinedTerm: terms.map((t) => ({
-      '@type': 'DefinedTerm',
-      name: t.term,
-      description: t.definition,
-    })),
-  };
-}
 
 /**
  * Generate comprehensive FAQ schema optimized for AI citation

@@ -19,8 +19,11 @@ export const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
  */
 export function extractContentUrls() {
   const urls = new Set();
-  for (const [, slug] of read('src/data/guides/index.ts').matchAll(/^\s*'([a-z0-9-]+)':\s*\w+/gm)) {
-    urls.add(`/learn/${slug}`);
+  // One file per guide; its first `id:` is the guide's slug.
+  for (const file of fs.readdirSync(path.join(root, 'src/data/guides'))) {
+    if (!file.endsWith('.ts') || file === 'index.ts') continue;
+    const id = read(`src/data/guides/${file}`).match(/^\s*id: '([a-z0-9-]+)'/m)?.[1];
+    if (id) urls.add(`/learn/${id}`);
   }
   const courses = read('src/data/courses/index.ts');
   let course = null;

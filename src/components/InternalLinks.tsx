@@ -235,7 +235,7 @@ const CONTENT_HUBS: Record<ContentHubProps['category'], RelatedLink[]> = {
     { title: 'Exchange Comparison', url: '/compare', description: 'Compare exchanges' },
     { title: 'Best for Beginners', url: '/compare?filter=beginners', description: 'Beginner-friendly' },
     { title: 'Lowest Fees', url: '/compare?filter=fees', description: 'Fee comparison' },
-    { title: 'Wallet Comparison', url: '/compare?type=wallets', description: 'Compare wallets' },
+    { title: 'Wallet Comparison', url: '/compare?tab=wallets', description: 'Compare wallets' },
   ],
   security: [
     { title: 'Scam Database', url: '/scam-database', description: 'Check for scams' },
@@ -315,7 +315,7 @@ export function SEOFooterLinks({ className = '' }: SEOFooterLinksProps) {
       title: 'Compare',
       links: [
         { title: 'Best Exchanges', url: '/compare' },
-        { title: 'Best Wallets', url: '/compare?type=wallets' },
+        { title: 'Best Wallets', url: '/compare?tab=wallets' },
         { title: 'Hardware Wallets', url: '/hardware-wallet' },
         { title: 'Lending Platforms', url: '/lending' },
       ],

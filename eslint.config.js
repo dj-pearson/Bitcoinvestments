@@ -22,7 +22,7 @@ import eslintConfigPrettier from 'eslint-config-prettier'
  * into several hundred findings that would have blocked every build.
  */
 export default defineConfig([
-  globalIgnores(['dist', 'test-reports', 'rebuild']),
+  globalIgnores(['dist', 'dist-ssr', 'test-reports', 'rebuild', '.claude']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

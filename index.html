@@ -38,17 +38,16 @@
     </script>
 
     <meta charset="UTF-8" />
-    
+
     <!-- Preconnect to important domains for performance -->
     <link rel="preconnect" href="https://www.googletagmanager.com" />
     <link rel="preconnect" href="https://api.coingecko.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="https://api.alternative.me" />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -56,55 +55,37 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Bitcoinvestments" />
 
-    <!-- Primary Meta Tags -->
+    <!--
+      Site-wide defaults only. Everything page-specific - title, description,
+      canonical, robots, Open Graph and JSON-LD - is set per route by <SEO> and
+      written into each prerendered page at build time. Page-specific tags here
+      would be served on every URL (this file used to ship the homepage's
+      canonical, FAQ and a review rating on all of them).
+    -->
     <title>Bitcoinvestments | Learn Crypto Investing for Beginners</title>
-    <meta name="title" content="Bitcoinvestments | Learn Crypto Investing for Beginners" />
-    <meta name="description" content="Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators, portfolio tracking, and crypto scam database." />
-    <meta name="keywords" content="Bitcoin, cryptocurrency, crypto investment, DCA, dollar cost averaging, crypto education, exchange comparison, wallet comparison, Bitcoin guide, cryptocurrency for beginners, crypto scam database, scam checker, wallet address scam, rug pull checker, crypto fraud report, pig butchering scam, phishing crypto, fake exchange, blockchain scam tracker, Bitcoin calculator, crypto portfolio, Coinbase vs Kraken" />
+    <meta name="description" content="Learn to invest in Bitcoin and crypto safely: plain-English guides, exchange and wallet comparisons, free calculators and a scam checker." />
     <meta name="author" content="Bitcoinvestments" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <meta name="googlebot" content="index, follow, max-image-preview:large" />
-    <meta name="bingbot" content="index, follow" />
-    
-    <!-- Additional SEO Meta Tags -->
-    <meta name="rating" content="General" />
-    <meta name="distribution" content="global" />
-    <meta name="revisit-after" content="7 days" />
-    <meta name="language" content="English" />
-    <meta name="geo.region" content="US" />
-    <meta name="geo.placename" content="United States" />
-    <meta name="classification" content="Finance, Education, Cryptocurrency" />
-    <meta name="coverage" content="Worldwide" />
-    <meta name="target" content="all" />
 
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph / Twitter defaults -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://bitcoinvestments.net/" />
     <meta property="og:title" content="Bitcoinvestments | Learn Crypto Investing for Beginners" />
-    <meta property="og:description" content="Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners." />
+    <meta property="og:description" content="Learn to invest in Bitcoin and crypto safely: plain-English guides, exchange and wallet comparisons, free calculators and a scam checker." />
     <meta property="og:image" content="https://bitcoinvestments.net/og-image.png" />
     <meta property="og:site_name" content="Bitcoinvestments" />
     <meta property="og:locale" content="en_US" />
-
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://bitcoinvestments.net/" />
     <meta name="twitter:title" content="Bitcoinvestments | Learn Crypto Investing for Beginners" />
-    <meta name="twitter:description" content="Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners." />
+    <meta name="twitter:description" content="Learn to invest in Bitcoin and crypto safely: plain-English guides, exchange and wallet comparisons, free calculators and a scam checker." />
     <meta name="twitter:image" content="https://bitcoinvestments.net/og-image.png" />
-
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://bitcoinvestments.net/" />
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#F7931A" />
     <meta name="msapplication-TileColor" content="#F7931A" />
-
-    <!-- Accessibility -->
     <meta name="format-detection" content="telephone=no" />
     <meta name="color-scheme" content="dark" />
 
-    <!-- JSON-LD Organization Schema (Enhanced for GEO) -->
+    <!-- JSON-LD: the two entities that are true on every page -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -118,8 +99,7 @@
         "width": 512,
         "height": 512
       },
-      "description": "Bitcoinvestments is a comprehensive cryptocurrency education and investment platform for beginners, offering free DCA calculators, exchange comparisons, educational courses, and a community-powered scam database with 1,000+ verified reports.",
-      "foundingDate": "2024",
+      "description": "Bitcoinvestments is an independent cryptocurrency education site for beginners: plain-English guides, exchange and wallet comparisons, free calculators and a crypto scam checker.",
       "contactPoint": [
         {
           "@type": "ContactPoint",
@@ -132,328 +112,43 @@
         "Bitcoin",
         "Cryptocurrency",
         "Blockchain Technology",
-        "DeFi",
         "Dollar Cost Averaging",
-        "Crypto Security",
-        "Exchange Comparison",
-        "Wallet Security",
+        "Crypto Wallet Security",
+        "Cryptocurrency Exchanges",
         "Crypto Scam Prevention",
-        "Staking",
-        "NFTs",
-        "On-Chain Analytics"
+        "Cryptocurrency Taxes"
       ]
     }
     </script>
-
-    <!-- JSON-LD Website Schema with Search Action -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
+      "@id": "https://bitcoinvestments.net/#website",
       "name": "Bitcoinvestments",
       "url": "https://bitcoinvestments.net",
-      "potentialAction": [
-        {
-          "@type": "SearchAction",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://bitcoinvestments.net/search?q={search_term_string}"
-          },
-          "query-input": "required name=search_term_string"
+      "publisher": { "@id": "https://bitcoinvestments.net/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://bitcoinvestments.net/search?q={search_term_string}"
         },
-        {
-          "@type": "SearchAction",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://bitcoinvestments.net/scam-database?q={search_term_string}"
-          },
-          "query-input": "required name=search_term_string",
-          "description": "Search crypto scam database by wallet address, website, or name"
-        }
-      ]
-    }
-    </script>
-
-    <!-- JSON-LD Site Navigation Schema -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      "name": "Site Navigation",
-      "itemListElement": [
-        {
-          "@type": "SiteNavigationElement",
-          "position": 1,
-          "name": "Learn Crypto",
-          "description": "Educational guides for cryptocurrency beginners",
-          "url": "https://bitcoinvestments.net/learn"
-        },
-        {
-          "@type": "SiteNavigationElement",
-          "position": 2,
-          "name": "Scam Database",
-          "description": "Free crypto scam checker - search wallet addresses, websites, and report fraud",
-          "url": "https://bitcoinvestments.net/scam-database"
-        },
-        {
-          "@type": "SiteNavigationElement",
-          "position": 3,
-          "name": "Compare Exchanges",
-          "description": "Compare cryptocurrency exchanges with fees, features, and security ratings",
-          "url": "https://bitcoinvestments.net/compare"
-        },
-        {
-          "@type": "SiteNavigationElement",
-          "position": 4,
-          "name": "DCA Calculator",
-          "description": "Dollar cost averaging calculator for Bitcoin and crypto investments",
-          "url": "https://bitcoinvestments.net/calculators"
-        },
-        {
-          "@type": "SiteNavigationElement",
-          "position": 5,
-          "name": "Report a Scam",
-          "description": "Report cryptocurrency fraud and scams to protect the community",
-          "url": "https://bitcoinvestments.net/report-scam"
-        }
-      ]
-    }
-    </script>
-
-    <!-- JSON-LD WebApplication Schema (for tools) -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Bitcoinvestments",
-      "description": "Cryptocurrency investment platform with DCA calculator, portfolio tracker, and scam database",
-      "url": "https://bitcoinvestments.net",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Any",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "description": "Free tier available"
-      },
-      "featureList": [
-        "DCA Calculator",
-        "Portfolio Tracking",
-        "Crypto Scam Database",
-        "Exchange Comparison",
-        "Educational Guides",
-        "Price Alerts",
-        "Tax Reports"
-      ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "1250",
-        "bestRating": "5",
-        "worstRating": "1"
+        "query-input": "required name=search_term_string"
       }
     }
     </script>
-
-    <!-- JSON-LD FAQPage Schema for common questions (Enhanced for GEO) -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "What is Bitcoin?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Bitcoin is a decentralized digital currency created in 2009 by the pseudonymous Satoshi Nakamoto. It operates on a peer-to-peer network without intermediaries like banks, using blockchain technology to record all transactions securely and transparently. Bitcoin has a fixed supply of 21 million coins, making it a deflationary asset often compared to digital gold.",
-            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What is DCA (Dollar Cost Averaging) in crypto?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Dollar Cost Averaging (DCA) is an investment strategy where you invest a fixed amount of money into cryptocurrency at regular intervals, regardless of the asset's price. For example, investing $100 in Bitcoin every week. This approach reduces the impact of volatility and eliminates the need to time the market. Bitcoinvestments offers a free DCA calculator to simulate returns with historical data.",
-            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How do I avoid cryptocurrency scams?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "To avoid crypto scams: 1) Never share your private keys or seed phrases — no legitimate service will ask for these. 2) Use Bitcoinvestments' scam database to check wallet addresses and websites before transacting. 3) Be skeptical of guaranteed returns or celebrity endorsements. 4) Only use reputable exchanges verified through comparison tools. 5) Enable two-factor authentication on all accounts. 6) Research projects thoroughly before investing (DYOR).",
-            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Which cryptocurrency exchange is best for beginners?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "The best cryptocurrency exchange for beginners depends on your location and needs. Coinbase is widely recommended for its user-friendly interface, Kraken offers strong security features, and Binance provides the lowest fees. Key factors to compare include trading fees, security measures, supported cryptocurrencies, and ease of use. Bitcoinvestments' exchange comparison tool lets you evaluate these factors side-by-side.",
-            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "What is a crypto scam database?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "A crypto scam database is a searchable collection of reported cryptocurrency frauds including phishing websites, rug pull projects, fake exchanges, Ponzi schemes, and pig butchering scams. Bitcoinvestments' community-powered scam database contains 1,000+ verified reports. Users can search by wallet address, website URL, or project name to check if something is a known scam before investing.",
-            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Is Bitcoinvestments free to use?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Yes, Bitcoinvestments offers a generous free tier with access to educational guides, DCA calculator, crypto scam database search, exchange and wallet comparisons, glossary, price charts, and learning courses. Premium features like advanced portfolio tracking, multi-exchange integration, whale alerts, tax reports, and DeFi yield optimization are available with a paid subscription.",
-            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How do I start investing in Bitcoin as a beginner?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "To start investing in Bitcoin as a beginner: 1) Learn the basics using Bitcoinvestments' free educational guides. 2) Choose a reputable exchange using our comparison tool. 3) Create an account and complete identity verification. 4) Start with a small amount you can afford to lose. 5) Consider Dollar Cost Averaging instead of investing all at once. 6) Secure your crypto with a hardware wallet. 7) Never invest more than you can afford to lose.",
-            "author": { "@type": "Organization", "name": "Bitcoinvestments", "url": "https://bitcoinvestments.net" }
-          }
-        }
-      ]
-    }
-    </script>
-
-    <!-- JSON-LD BreadcrumbList Schema -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": "https://bitcoinvestments.net"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Learn",
-          "item": "https://bitcoinvestments.net/learn"
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": "Tools",
-          "item": "https://bitcoinvestments.net/calculators"
-        }
-      ]
-    }
-    </script>
-
-    <!-- JSON-LD EducationalOrganization Schema (for Knowledge Panel & AI attribution) -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "EducationalOrganization",
-      "@id": "https://bitcoinvestments.net/#educationalOrganization",
-      "name": "Bitcoinvestments",
-      "url": "https://bitcoinvestments.net",
-      "logo": "https://bitcoinvestments.net/logo.png",
-      "description": "Bitcoinvestments provides free cryptocurrency education, investment tools, and security resources for beginners learning to invest in Bitcoin and digital assets safely.",
-      "foundingDate": "2024",
-      "areaServed": "Worldwide",
-      "teaches": [
-        "Bitcoin investing fundamentals",
-        "Cryptocurrency security best practices",
-        "Dollar Cost Averaging strategy",
-        "Crypto scam identification and prevention",
-        "DeFi yield farming basics",
-        "Blockchain technology fundamentals",
-        "Exchange and wallet comparison methodology"
-      ]
-    }
-    </script>
-
-    <!-- JSON-LD FinancialService Schema (LocalBusiness type for rich results) -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "FinancialService",
-      "@id": "https://bitcoinvestments.net/#business",
-      "name": "Bitcoinvestments",
-      "url": "https://bitcoinvestments.net",
-      "logo": "https://bitcoinvestments.net/logo.png",
-      "description": "Online cryptocurrency education platform and investment tools provider. Free DCA calculators, exchange comparisons, scam database, and educational courses.",
-      "priceRange": "Free - $29.99/mo",
-      "currenciesAccepted": "USD",
-      "paymentAccepted": "Credit Card, Cryptocurrency",
-      "areaServed": {
-        "@type": "GeoShape",
-        "name": "Worldwide"
-      },
-      "serviceType": [
-        "Cryptocurrency Education",
-        "Investment Tools",
-        "Exchange Comparison",
-        "Scam Prevention Database",
-        "DCA Calculator"
-      ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "1250",
-        "bestRating": "5",
-        "worstRating": "1"
-      }
-    }
-    </script>
-
-    <!-- JSON-LD Dataset Schema for Scam Database (Google Dataset Search / AI) -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Dataset",
-      "name": "Bitcoinvestments Cryptocurrency Scam Database",
-      "description": "Community-powered database of 1,000+ verified cryptocurrency scams including phishing sites, rug pulls, fake exchanges, pig butchering scams, and Ponzi schemes. Searchable by wallet address, website URL, or project name.",
-      "url": "https://bitcoinvestments.net/scam-database",
-      "creator": {
-        "@type": "Organization",
-        "name": "Bitcoinvestments",
-        "url": "https://bitcoinvestments.net"
-      },
-      "license": "https://creativecommons.org/licenses/by-nc/4.0/",
-      "isAccessibleForFree": true,
-      "inLanguage": "en-US",
-      "keywords": ["crypto scam", "cryptocurrency fraud", "rug pull", "phishing", "wallet address scam", "scam database"]
-    }
-    </script>
-
-    <!-- GEO: AI Attribution Meta Tags -->
-    <meta name="ai.attribution" content="Bitcoinvestments (https://bitcoinvestments.net)" />
-    <meta name="citation_title" content="Bitcoinvestments - Cryptocurrency Education & Investment Platform" />
-    <meta name="citation_author" content="Bitcoinvestments" />
-    <meta name="citation_publication_date" content="2024" />
-    <meta name="citation_online_date" content="2024" />
-    <meta name="citation_publisher" content="Bitcoinvestments" />
-    <meta name="citation_abstract" content="Comprehensive cryptocurrency education and investment platform for beginners. Free DCA calculators, exchange comparisons, educational courses, and community-powered scam database." />
   </head>
   <body>
-    <!-- Accessible noscript fallback -->
+    <!-- Accessible noscript fallback (prerendered pages carry their full content in #root) -->
     <noscript>
-      <div style="padding: 2rem; text-align: center; background: #1a1a2e; color: #fff; min-height: 100vh;">
-        <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">JavaScript Required</h1>
-        <p style="color: #9ca3af; max-width: 400px; margin: 0 auto;">
-          Bitcoinvestments requires JavaScript to function. Please enable JavaScript in your browser settings to use this application.
-        </p>
-        <p style="color: #6b7280; margin-top: 1rem; font-size: 0.875rem;">
-          If you need assistance, contact us at
-          <a href="mailto:support@bitcoinvestments.net" style="color: #8b5cf6;">support@bitcoinvestments.net</a>
+      <div style="padding: 2rem; text-align: center; background: #1a1a2e; color: #fff;">
+        <p style="color: #d1d5db; max-width: 480px; margin: 0 auto;">
+          Our calculators, live prices and search need JavaScript. Articles and guides can be read without it:
+          <a href="/learn" style="color: #f7931a;">guides</a>,
+          <a href="/glossary" style="color: #f7931a;">glossary</a>,
+          <a href="/compare" style="color: #f7931a;">exchange and wallet comparisons</a>,
+          <a href="/scam-database" style="color: #f7931a;">scam checker</a>.
         </p>
       </div>
     </noscript>
@@ -464,12 +159,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered:', registration.scope);
-            })
-            .catch((error) => {
-              console.log('SW registration failed:', error);
-            });
+            .catch(() => { /* offline support is optional */ });
         });
       }
     </script>

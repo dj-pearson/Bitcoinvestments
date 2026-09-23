@@ -1,11 +1,11 @@
 /**
  * Accessibility Statement Page
  *
- * Comprehensive accessibility statement documenting WCAG 2.1 compliance,
- * available accessibility features, and contact information.
+ * Accessibility statement: our WCAG 2.2 AA target, a self-assessed status per
+ * criterion, known issues, display settings and how to report a barrier.
  *
- * WCAG 2.1 Success Criteria:
- * - All applicable criteria documented
+ * Statuses are self-assessed, not an independent audit. Only mark a criterion
+ * "no known issues" after checking it; otherwise use "not yet reviewed".
  */
 
 import { Link } from 'react-router-dom';
@@ -18,16 +18,20 @@ import {
     Type,
     MonitorSmartphone,
     CheckCircle2,
+    HelpCircle,
     AlertCircle,
     Mail,
     ExternalLink,
 } from 'lucide-react';
-import { SEO } from '../components/SEO';
 import { useAccessibility } from '../components/accessibility/AccessibilityContext';
+import { PageSEO } from '../components/PageSEO';
 
 // Fixed date of the last accessibility review. Update when a review is done;
 // do not render a live clock, which would falsely show today's date every visit.
-const LAST_REVIEWED = 'July 23, 2026';
+const LAST_REVIEWED = 'September 23, 2026';
+const LAST_REVIEWED_ISO = '2026-09-23';
+
+const FONT_SIZES = ['normal', 'large', 'larger'] as const;
 
 interface AccessibilityFeature {
     icon: React.ElementType;
@@ -42,35 +46,31 @@ const accessibilityFeatures: AccessibilityFeature[] = [
         title: 'Keyboard Navigation',
         description: 'Full keyboard support for all functionality',
         features: [
-            'Tab navigation through all interactive elements',
-            'Enter/Space to activate buttons and links',
-            'Arrow keys for menu navigation',
-            'Escape to close modals and dropdowns',
-            'Skip links to bypass navigation',
+            'Tab and Shift+Tab move between links, buttons and form fields',
+            'Enter/Space activate buttons and links',
+            'Escape closes dialogs and dropdowns',
+            'Skip link to jump past the navigation',
         ],
     },
     {
         icon: Eye,
         title: 'Screen Reader Support',
-        description: 'Compatible with popular screen readers',
+        description: 'Built with screen readers in mind',
         features: [
-            'Semantic HTML structure',
-            'ARIA labels and descriptions',
-            'Live regions for dynamic content',
-            'Descriptive link text',
-            'Image alt text throughout',
+            'Semantic HTML: headings, landmarks, lists and tables',
+            'Page changes announced after navigation',
+            'Live regions for form results and loading states',
+            'Decorative icons hidden from assistive technology',
         ],
     },
     {
         icon: Palette,
         title: 'Visual Accessibility',
-        description: 'Optimized for visual impairments',
+        description: 'Settings for low vision and colour needs',
         features: [
-            'WCAG AA color contrast ratios',
             'High contrast mode (Alt + H)',
-            'No color-only information',
-            'Clear focus indicators',
-            'Consistent visual design',
+            'Visible focus indicators',
+            'Aiming for WCAG AA colour contrast (see known issues)',
         ],
     },
     {
@@ -78,11 +78,9 @@ const accessibilityFeatures: AccessibilityFeature[] = [
         title: 'Text & Readability',
         description: 'Readable and resizable content',
         features: [
-            'Adjustable font sizes',
-            'Clear typography with good line height',
-            'Proper heading hierarchy',
-            'Readable paragraph lengths',
-            'Support for browser zoom up to 200%',
+            'Adjustable text size (below)',
+            'Text resizes with browser zoom',
+            'One H1 per page and ordered headings',
         ],
     },
     {
@@ -90,75 +88,100 @@ const accessibilityFeatures: AccessibilityFeature[] = [
         title: 'Motor Accessibility',
         description: 'Designed for various input methods',
         features: [
-            '44x44px minimum touch targets',
-            'No time-limited interactions',
-            'Reduced motion mode (Alt + M)',
-            'No keyboard traps',
-            'Single-click activation',
+            'No time limits on anything you do on the site',
+            'Reduced motion mode (Alt + M), which also follows your system setting',
+            'Moving price ticker on the home page can be paused',
         ],
     },
     {
         icon: Volume2,
         title: 'Audio & Multimedia',
-        description: 'Accessible media content',
+        description: 'Media and motion',
         features: [
             'No auto-playing audio',
-            'Text alternatives for media',
-            'Visual indicators for alerts',
-            'No seizure-inducing content',
-            'Pause/stop controls where needed',
+            'No flashing content',
         ],
     },
 ];
 
-const wcagCriteria = [
+type CriterionStatus = 'ok' | 'partial' | 'unreviewed';
+
+const STATUS_LABEL: Record<CriterionStatus, string> = {
+    ok: 'No known issues',
+    partial: 'Known issues',
+    unreviewed: 'Not yet reviewed',
+};
+
+// WCAG 2.2. 4.1.1 Parsing is obsolete in 2.2 and no longer listed.
+const wcagCriteria: Array<{
+    level: string;
+    title: string;
+    criteria: Array<{ id: string; name: string; status: CriterionStatus }>;
+}> = [
     {
         level: 'A',
-        title: 'Level A (Minimum)',
+        title: 'Level A',
         criteria: [
-            { id: '1.1.1', name: 'Non-text Content', status: 'pass' },
+            { id: '1.1.1', name: 'Non-text Content', status: 'partial' },
             { id: '1.3.1', name: 'Info and Relationships', status: 'partial' },
-            { id: '1.3.2', name: 'Meaningful Sequence', status: 'pass' },
-            { id: '1.4.1', name: 'Use of Color', status: 'pass' },
+            { id: '1.3.2', name: 'Meaningful Sequence', status: 'unreviewed' },
+            { id: '1.4.1', name: 'Use of Color', status: 'partial' },
             { id: '2.1.1', name: 'Keyboard', status: 'partial' },
-            { id: '2.1.2', name: 'No Keyboard Trap', status: 'pass' },
-            { id: '2.4.1', name: 'Bypass Blocks', status: 'pass' },
-            { id: '2.4.2', name: 'Page Titled', status: 'pass' },
+            { id: '2.1.2', name: 'No Keyboard Trap', status: 'unreviewed' },
+            { id: '2.2.2', name: 'Pause, Stop, Hide', status: 'partial' },
+            { id: '2.4.1', name: 'Bypass Blocks', status: 'ok' },
+            { id: '2.4.2', name: 'Page Titled', status: 'partial' },
             { id: '2.4.3', name: 'Focus Order', status: 'partial' },
-            { id: '2.4.4', name: 'Link Purpose (In Context)', status: 'pass' },
-            { id: '3.1.1', name: 'Language of Page', status: 'pass' },
-            { id: '3.2.1', name: 'On Focus', status: 'pass' },
-            { id: '3.2.2', name: 'On Input', status: 'pass' },
-            { id: '3.3.1', name: 'Error Identification', status: 'pass' },
+            { id: '2.4.4', name: 'Link Purpose (In Context)', status: 'partial' },
+            { id: '3.1.1', name: 'Language of Page', status: 'ok' },
+            { id: '3.2.1', name: 'On Focus', status: 'unreviewed' },
+            { id: '3.2.2', name: 'On Input', status: 'unreviewed' },
+            { id: '3.2.6', name: 'Consistent Help', status: 'unreviewed' },
+            { id: '3.3.1', name: 'Error Identification', status: 'unreviewed' },
             { id: '3.3.2', name: 'Labels or Instructions', status: 'partial' },
-            { id: '4.1.1', name: 'Parsing', status: 'pass' },
+            { id: '3.3.7', name: 'Redundant Entry', status: 'unreviewed' },
             { id: '4.1.2', name: 'Name, Role, Value', status: 'partial' },
         ],
     },
     {
         level: 'AA',
-        title: 'Level AA (Recommended)',
+        title: 'Level AA',
         criteria: [
-            { id: '1.3.4', name: 'Orientation', status: 'pass' },
-            { id: '1.3.5', name: 'Identify Input Purpose', status: 'pass' },
+            { id: '1.3.4', name: 'Orientation', status: 'unreviewed' },
+            { id: '1.3.5', name: 'Identify Input Purpose', status: 'unreviewed' },
             { id: '1.4.3', name: 'Contrast (Minimum)', status: 'partial' },
-            { id: '1.4.4', name: 'Resize Text', status: 'pass' },
-            { id: '1.4.5', name: 'Images of Text', status: 'pass' },
-            { id: '1.4.10', name: 'Reflow', status: 'pass' },
-            { id: '1.4.11', name: 'Non-text Contrast', status: 'pass' },
-            { id: '1.4.12', name: 'Text Spacing', status: 'pass' },
-            { id: '1.4.13', name: 'Content on Hover or Focus', status: 'pass' },
-            { id: '2.4.5', name: 'Multiple Ways', status: 'pass' },
-            { id: '2.4.6', name: 'Headings and Labels', status: 'pass' },
-            { id: '2.4.7', name: 'Focus Visible', status: 'pass' },
-            { id: '3.1.2', name: 'Language of Parts', status: 'pass' },
-            { id: '3.2.3', name: 'Consistent Navigation', status: 'pass' },
-            { id: '3.2.4', name: 'Consistent Identification', status: 'pass' },
-            { id: '3.3.3', name: 'Error Suggestion', status: 'pass' },
-            { id: '3.3.4', name: 'Error Prevention', status: 'pass' },
-            { id: '4.1.3', name: 'Status Messages', status: 'pass' },
+            { id: '1.4.4', name: 'Resize Text', status: 'unreviewed' },
+            { id: '1.4.5', name: 'Images of Text', status: 'unreviewed' },
+            { id: '1.4.10', name: 'Reflow', status: 'unreviewed' },
+            { id: '1.4.11', name: 'Non-text Contrast', status: 'unreviewed' },
+            { id: '1.4.12', name: 'Text Spacing', status: 'unreviewed' },
+            { id: '1.4.13', name: 'Content on Hover or Focus', status: 'partial' },
+            { id: '2.4.5', name: 'Multiple Ways', status: 'ok' },
+            { id: '2.4.6', name: 'Headings and Labels', status: 'unreviewed' },
+            { id: '2.4.7', name: 'Focus Visible', status: 'unreviewed' },
+            { id: '2.4.11', name: 'Focus Not Obscured (Minimum)', status: 'unreviewed' },
+            { id: '2.5.7', name: 'Dragging Movements', status: 'unreviewed' },
+            { id: '2.5.8', name: 'Target Size (Minimum)', status: 'unreviewed' },
+            { id: '3.1.2', name: 'Language of Parts', status: 'unreviewed' },
+            { id: '3.2.3', name: 'Consistent Navigation', status: 'ok' },
+            { id: '3.2.4', name: 'Consistent Identification', status: 'unreviewed' },
+            { id: '3.3.3', name: 'Error Suggestion', status: 'unreviewed' },
+            { id: '3.3.4', name: 'Error Prevention (Legal, Financial, Data)', status: 'unreviewed' },
+            { id: '3.3.8', name: 'Accessible Authentication (Minimum)', status: 'unreviewed' },
+            { id: '4.1.3', name: 'Status Messages', status: 'partial' },
         ],
     },
+];
+
+// Problems we know about. Remove an item only once it is fixed and checked.
+const KNOWN_ISSUES = [
+    'Between roughly 1024 and 1279 pixels wide, the main navigation shows icons without visible text labels, and screen readers may not announce a name for them.',
+    'In the mobile menu, links inside collapsed sections can still receive keyboard focus.',
+    'The site search suggestions do not yet use combobox semantics, so screen readers may not announce the highlighted suggestion.',
+    'Some charts convey information mainly through colour and do not yet have a text or table alternative.',
+    'Some hover tooltips cannot be reached with the keyboard or dismissed with Escape.',
+    'Some text, especially small grey text on dark backgrounds, may fall below the 4.5:1 contrast ratio.',
+    'Pages without their own title and description can briefly keep the previous page\'s title after navigation.',
 ];
 
 export function Accessibility() {
@@ -166,19 +189,17 @@ export function Accessibility() {
 
     return (
         <div className="min-h-screen py-12">
-            <SEO
-                title="Accessibility Statement"
-                description="Learn about our commitment to accessibility and WCAG 2.1 AA compliance at Bitcoinvestments."
-            />
+            <PageSEO pageKey="accessibility" urlPath="/accessibility" />
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <header className="text-center mb-12">
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                         Accessibility Statement
                     </h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        Bitcoinvestments is committed to ensuring digital accessibility for people with disabilities.
-                        We continually improve the user experience for everyone.
+                    <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                        We aim for Bitcoinvestments to meet WCAG 2.2 Level AA. It doesn&apos;t yet: parts of the
+                        site are partially conformant, and the known problems are listed below. This statement is
+                        based on our own review, not an independent audit.
                     </p>
                 </header>
 
@@ -189,17 +210,15 @@ export function Accessibility() {
                             <AlertCircle className="w-8 h-8 text-amber-400 flex-shrink-0" aria-hidden="true" />
                             <div>
                                 <h2 id="conformance-heading" className="text-xl font-semibold text-white mb-2">
-                                    WCAG 2.1 Level AA — Partially Conformant
+                                    WCAG 2.2 Level AA — Partially Conformant
                                 </h2>
                                 <p className="text-gray-300">
-                                    Bitcoinvestments aims to conform to the Web Content Accessibility Guidelines
-                                    (WCAG) 2.1 Level AA. We are currently <strong>partially conformant</strong>:
-                                    most of the site meets these standards, and we are actively remediating the
-                                    remaining known issues (see the success-criteria list below). "Partially
-                                    conformant" means some parts of the content do not yet fully conform.
+                                    Our target is the Web Content Accessibility Guidelines (WCAG) 2.2 Level AA.
+                                    The site is <strong>partially conformant</strong>: some content does not yet
+                                    fully conform. See the known issues and the per-criterion status below.
                                 </p>
                                 <p className="text-sm text-gray-400 mt-2">
-                                    Last reviewed: {LAST_REVIEWED}
+                                    Last reviewed: <time dateTime={LAST_REVIEWED_ISO}>{LAST_REVIEWED}</time>
                                 </p>
                             </div>
                         </div>
@@ -258,34 +277,70 @@ export function Accessibility() {
 
                     {/* Font Size Options */}
                     <div className="mt-6">
-                        <label className="block text-white font-medium mb-3">
+                        <p id="text-size-label" className="block text-white font-medium mb-3">
                             <Type className="w-5 h-5 inline-block mr-2" aria-hidden="true" />
-                            Text Size
-                        </label>
-                        <div className="flex gap-2" role="radiogroup" aria-label="Font size selection">
-                            {(['normal', 'large', 'larger'] as const).map((size) => (
-                                <button
-                                    key={size}
-                                    onClick={() => setFontSize(size)}
-                                    className={`px-4 py-2 rounded-lg border transition-all capitalize ${
-                                        settings.fontSize === size
-                                            ? 'bg-brand-primary border-brand-primary text-white'
-                                            : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
-                                    }`}
-                                    role="radio"
-                                    aria-checked={settings.fontSize === size}
-                                >
-                                    {size}
-                                </button>
-                            ))}
+                            Text size
+                        </p>
+                        <div
+                            className="flex gap-2"
+                            role="radiogroup"
+                            aria-labelledby="text-size-label"
+                            onKeyDown={(e) => {
+                                const i = FONT_SIZES.indexOf(settings.fontSize as (typeof FONT_SIZES)[number]);
+                                let next = -1;
+                                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % FONT_SIZES.length;
+                                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + FONT_SIZES.length) % FONT_SIZES.length;
+                                if (next === -1) return;
+                                e.preventDefault();
+                                setFontSize(FONT_SIZES[next]);
+                                const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+                                buttons[next]?.focus();
+                            }}
+                        >
+                            {FONT_SIZES.map((size) => {
+                                const checked = settings.fontSize === size;
+                                return (
+                                    <button
+                                        key={size}
+                                        type="button"
+                                        onClick={() => setFontSize(size)}
+                                        className={`px-4 py-2 rounded-lg border transition-all capitalize ${
+                                            checked
+                                                ? 'bg-brand-primary border-brand-primary text-white'
+                                                : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10'
+                                        }`}
+                                        role="radio"
+                                        aria-checked={checked}
+                                        tabIndex={checked ? 0 : -1}
+                                    >
+                                        {size}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
+                </section>
+
+                {/* Known issues */}
+                <section aria-labelledby="known-issues-heading" className="mb-12">
+                    <h2 id="known-issues-heading" className="text-2xl font-bold text-white mb-6">
+                        Known issues
+                    </h2>
+                    <ul className="list-disc pl-6 space-y-2 text-gray-300">
+                        {KNOWN_ISSUES.map((issue) => (
+                            <li key={issue}>{issue}</li>
+                        ))}
+                    </ul>
+                    <p className="text-gray-400 mt-4">
+                        If one of these stops you doing something, email us (below) and we&apos;ll help you
+                        another way.
+                    </p>
                 </section>
 
                 {/* Accessibility Features */}
                 <section aria-labelledby="features-heading" className="mb-12">
                     <h2 id="features-heading" className="text-2xl font-bold text-white mb-6">
-                        Accessibility Features
+                        What we have built in
                     </h2>
                     <div className="grid md:grid-cols-2 gap-6">
                         {accessibilityFeatures.map((feature) => {
@@ -303,9 +358,9 @@ export function Accessibility() {
                                     </div>
                                     <p className="text-gray-400 mb-4">{feature.description}</p>
                                     <ul className="space-y-2">
-                                        {feature.features.map((item, index) => (
-                                            <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
-                                                <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                                        {feature.features.map((item) => (
+                                            <li key={item} className="flex items-start gap-2 text-sm text-gray-300">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0 mt-2" aria-hidden="true" />
                                                 {item}
                                             </li>
                                         ))}
@@ -369,12 +424,6 @@ export function Accessibility() {
                                     </td>
                                     <td className="px-4 py-3 text-gray-300">Toggle reduced motion</td>
                                 </tr>
-                                <tr>
-                                    <td className="px-4 py-3">
-                                        <kbd className="px-2 py-1 bg-brand-dark border border-white/20 rounded text-sm font-mono">/</kbd>
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-300">Focus search</td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -383,10 +432,11 @@ export function Accessibility() {
                 {/* WCAG Compliance Details */}
                 <section aria-labelledby="wcag-heading" className="mb-12">
                     <h2 id="wcag-heading" className="text-2xl font-bold text-white mb-6">
-                        WCAG 2.1 Compliance Status
+                        WCAG 2.2 status by criterion
                     </h2>
                     <p className="text-gray-400 mb-6">
-                        Below is a detailed breakdown of our compliance with WCAG 2.1 success criteria.
+                        Self-assessed status for each WCAG 2.2 Level A and AA success criterion. &ldquo;No known
+                        issues&rdquo; means we checked and found none, not that an auditor certified it.
                     </p>
 
                     {wcagCriteria.map((level) => (
@@ -411,17 +461,24 @@ export function Accessibility() {
                                                 {criterion.name}
                                             </span>
                                             <span className="flex items-center gap-1 text-sm">
-                                                {criterion.status === 'pass' ? (
-                                                    <>
-                                                        <CheckCircle2 className="w-4 h-4 text-green-400" aria-hidden="true" />
-                                                        <span className="text-green-400">Pass</span>
-                                                    </>
+                                                {criterion.status === 'ok' ? (
+                                                    <CheckCircle2 className="w-4 h-4 text-green-400" aria-hidden="true" />
+                                                ) : criterion.status === 'partial' ? (
+                                                    <AlertCircle className="w-4 h-4 text-amber-400" aria-hidden="true" />
                                                 ) : (
-                                                    <>
-                                                        <AlertCircle className="w-4 h-4 text-amber-400" aria-hidden="true" />
-                                                        <span className="text-amber-400">In Progress</span>
-                                                    </>
+                                                    <HelpCircle className="w-4 h-4 text-gray-400" aria-hidden="true" />
                                                 )}
+                                                <span
+                                                    className={
+                                                        criterion.status === 'ok'
+                                                            ? 'text-green-400'
+                                                            : criterion.status === 'partial'
+                                                              ? 'text-amber-400'
+                                                              : 'text-gray-400'
+                                                    }
+                                                >
+                                                    {STATUS_LABEL[criterion.status]}
+                                                </span>
                                             </span>
                                         </div>
                                     ))}
@@ -438,8 +495,8 @@ export function Accessibility() {
                     </h2>
                     <div className="bg-white/5 border border-white/10 rounded-xl p-6">
                         <p className="text-gray-300 mb-4">
-                            This website is designed and being tested for compatibility with the following
-                            assistive technologies:
+                            We have not finished testing with assistive technology. These are the tools we
+                            intend to test with:
                         </p>
                         <ul className="grid sm:grid-cols-2 gap-3">
                             {[
@@ -451,7 +508,7 @@ export function Accessibility() {
                                 'ZoomText',
                             ].map((tech) => (
                                 <li key={tech} className="flex items-center gap-2 text-gray-300">
-                                    <CheckCircle2 className="w-4 h-4 text-green-400" aria-hidden="true" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400" aria-hidden="true" />
                                     {tech}
                                 </li>
                             ))}

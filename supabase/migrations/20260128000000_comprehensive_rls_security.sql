@@ -549,42 +549,53 @@ CREATE POLICY "scam_report_comments_delete_own"
 -- PLATFORM REVIEWS TABLE RLS
 -- ============================================
 
-ALTER TABLE public.platform_reviews ENABLE ROW LEVEL SECURITY;
+-- Replay fix (2026-09-23): no migration creates platform_reviews, so on a fresh
+-- database the unguarded statements below aborted this whole file. They now
+-- run only when the table exists (as on a database where it was created by
+-- hand); 20260923000300_reconcile_schema.sql creates it and applies the same
+-- policies otherwise.
+DO $platform_reviews$
+BEGIN
+  IF to_regclass('public.platform_reviews') IS NOT NULL THEN
+    ALTER TABLE public.platform_reviews ENABLE ROW LEVEL SECURITY;
 
--- SELECT: Anyone can view approved reviews
-CREATE POLICY "platform_reviews_select_approved"
-  ON public.platform_reviews FOR SELECT
-  USING (status = 'approved');
+    -- SELECT: Anyone can view approved reviews
+    CREATE POLICY "platform_reviews_select_approved"
+      ON public.platform_reviews FOR SELECT
+      USING (status = 'approved');
 
--- SELECT: Users can view their own reviews
-CREATE POLICY "platform_reviews_select_own"
-  ON public.platform_reviews FOR SELECT
-  USING (user_id = auth.uid());
+    -- SELECT: Users can view their own reviews
+    CREATE POLICY "platform_reviews_select_own"
+      ON public.platform_reviews FOR SELECT
+      USING (user_id = auth.uid());
 
--- SELECT: Admins can view all reviews
-CREATE POLICY "platform_reviews_select_admin"
-  ON public.platform_reviews FOR SELECT
-  USING (public.is_admin());
+    -- SELECT: Admins can view all reviews
+    CREATE POLICY "platform_reviews_select_admin"
+      ON public.platform_reviews FOR SELECT
+      USING (public.is_admin());
 
--- INSERT: Authenticated users can create reviews
-CREATE POLICY "platform_reviews_insert_auth"
-  ON public.platform_reviews FOR INSERT
-  WITH CHECK (user_id = auth.uid());
+    -- INSERT: Authenticated users can create reviews
+    CREATE POLICY "platform_reviews_insert_auth"
+      ON public.platform_reviews FOR INSERT
+      WITH CHECK (user_id = auth.uid());
 
--- UPDATE: Users can update their own pending reviews
-CREATE POLICY "platform_reviews_update_own"
-  ON public.platform_reviews FOR UPDATE
-  USING (user_id = auth.uid() AND status = 'pending');
+    -- UPDATE: Users can update their own pending reviews
+    CREATE POLICY "platform_reviews_update_own"
+      ON public.platform_reviews FOR UPDATE
+      USING (user_id = auth.uid() AND status = 'pending');
 
--- UPDATE: Admins can moderate reviews
-CREATE POLICY "platform_reviews_update_admin"
-  ON public.platform_reviews FOR UPDATE
-  USING (public.is_admin());
+    -- UPDATE: Admins can moderate reviews
+    CREATE POLICY "platform_reviews_update_admin"
+      ON public.platform_reviews FOR UPDATE
+      USING (public.is_admin());
 
--- DELETE: Users can delete their own reviews
-CREATE POLICY "platform_reviews_delete_own"
-  ON public.platform_reviews FOR DELETE
-  USING (user_id = auth.uid());
+    -- DELETE: Users can delete their own reviews
+    CREATE POLICY "platform_reviews_delete_own"
+      ON public.platform_reviews FOR DELETE
+      USING (user_id = auth.uid());
+  END IF;
+END
+$platform_reviews$;
 
 -- ============================================
 -- USER SESSIONS TABLE RLS
@@ -797,8 +808,14 @@ GRANT INSERT, UPDATE ON public.scam_reports TO authenticated;
 GRANT SELECT ON public.scam_report_comments TO authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.scam_report_comments TO authenticated;
 
-GRANT SELECT ON public.platform_reviews TO authenticated;
-GRANT INSERT, UPDATE, DELETE ON public.platform_reviews TO authenticated;
+DO $platform_reviews_grants$
+BEGIN
+  IF to_regclass('public.platform_reviews') IS NOT NULL THEN
+    GRANT SELECT ON public.platform_reviews TO authenticated;
+    GRANT INSERT, UPDATE, DELETE ON public.platform_reviews TO authenticated;
+  END IF;
+END
+$platform_reviews_grants$;
 
 GRANT SELECT ON public.user_sessions TO authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.user_sessions TO authenticated;

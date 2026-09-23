@@ -29,7 +29,7 @@ function textOf(node: ReactNode): string {
   return Children.toArray(node).map(textOf).join('');
 }
 
-export function slugify(text: string): string {
+function slugify(text: string): string {
   return text
     .toLowerCase()
     .replace(/&/g, ' and ')

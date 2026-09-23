@@ -4,7 +4,7 @@ export const defiRisksGuide: GuideSource = {
   id: 'defi-risks',
   title: 'DeFi Risks Explained: Protecting Yourself in Decentralized Finance',
   seoTitle: 'DeFi Risks Explained: Stay Safe in DeFi',
-  description: 'The main DeFi risks explained: smart-contract bugs, rug pulls, oracle and bridge failures, stablecoin de-pegs, regulation and phishing, and how to protect yourself.',
+  description: 'The main DeFi risks explained: smart-contract bugs, rug pulls, oracle and bridge hacks, stablecoin de-pegs, regulation and phishing, and how to stay safe.',
   summary:
     'DeFi puts your money in smart contracts that nobody can reverse, so a bug, a malicious developer, a broken price oracle or a hacked bridge can wipe out deposits. Billions of dollars are stolen from crypto platforms every year; limit position sizes, prefer long-running audited protocols, revoke old approvals and never sign transactions you do not understand.',
   category: 'DeFi',

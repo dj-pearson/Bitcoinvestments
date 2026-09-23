@@ -58,10 +58,12 @@
     <!--
       Site-wide defaults only. Everything page-specific - title, description,
       canonical, robots, Open Graph and JSON-LD - is set per route by <SEO> and
-      written into each prerendered page at build time. Page-specific tags here
+      written into each prerendered page at build time, replacing everything
+      between the head:start and head:end markers. Page-specific tags here
       would be served on every URL (this file used to ship the homepage's
       canonical, FAQ and a review rating on all of them).
     -->
+    <!--head:start-->
     <title>Bitcoinvestments | Learn Crypto Investing for Beginners</title>
     <meta name="description" content="Learn to invest in Bitcoin and crypto safely: plain-English guides, exchange and wallet comparisons, free calculators and a scam checker." />
     <meta name="author" content="Bitcoinvestments" />
@@ -78,6 +80,7 @@
     <meta name="twitter:title" content="Bitcoinvestments | Learn Crypto Investing for Beginners" />
     <meta name="twitter:description" content="Learn to invest in Bitcoin and crypto safely: plain-English guides, exchange and wallet comparisons, free calculators and a scam checker." />
     <meta name="twitter:image" content="https://bitcoinvestments.net/og-image.png" />
+    <!--head:end-->
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#F7931A" />

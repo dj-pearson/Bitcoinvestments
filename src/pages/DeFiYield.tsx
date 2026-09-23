@@ -1,596 +1,566 @@
 /**
- * DeFi Yield Aggregator Page
+ * /defi-yield — DeFi yields (live from DefiLlama via /api/yields) plus an
+ * inline impermanent-loss calculator and a plain-English explainer.
  *
- * Compare yield farming opportunities across protocols.
- * Show APY, risks, and impermanent loss calculations.
+ * The heading, summary, explainer, calculator and FAQ render from static
+ * content on the first render; only the pool table depends on the fetch.
  */
 
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  TrendingUp,
-  AlertTriangle,
-  ExternalLink,
-  Search,
-  ChevronRight,
-  Check,
-  Calculator,
-  BarChart3,
-  Info,
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import {
-  SUPPORTED_DEFI_CHAINS,
-  DEFI_YIELD_PRICING,
-  getProtocols,
-  getPools,
-  getYieldOpportunities,
-  estimateImpermanentLoss,
-  IL_REFERENCE_TABLE,
-  getRiskColor,
-  formatApy,
-  formatTvl,
-  getPoolTypeLabel,
-  getAffiliateUrl,
-  trackAffiliateClick,
-} from '../services/defiYield';
-import type { DeFiPool, DeFiProtocol, YieldOpportunity, DeFiProtocolType, DeFiRiskLevel } from '../types/premiumFeatures';
-
+import { useEffect, useMemo, useState } from 'react';
+import { Percent, AlertTriangle, RefreshCw, Calculator } from 'lucide-react';
 import { PageSEO } from '../components/PageSEO';
-export default function DeFiYieldPage() {
-  const { user } = useAuth();
-  const [isPremium] = useState(false);
-  const [pools, setPools] = useState<DeFiPool[]>([]);
-  const [opportunities, setOpportunities] = useState<YieldOpportunity[]>([]);
-  const [protocols] = useState(getProtocols());
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedChain, setSelectedChain] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<DeFiProtocolType | null>(null);
-  const [selectedRisk, setSelectedRisk] = useState<DeFiRiskLevel | null>(null);
-  const [minApy] = useState<number>(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showILCalculator, setShowILCalculator] = useState(false);
-  const [selectedPool, setSelectedPool] = useState<DeFiPool | null>(null);
+import {
+  ExternalLink,
+  FaqList,
+  LastReviewed,
+  RelatedLinks,
+  type FaqItem,
+} from '../components/ToolPageParts';
+import { formatIsoDate } from '../lib/isoDate';
+import {
+  fetchYields,
+  calculateImpermanentLoss,
+  estimateImpermanentLoss,
+  formatApy,
+  formatAsOf,
+  formatUsdCompact,
+  IL_REFERENCE_MOVES,
+  PROTOCOL_SITES,
+  YIELD_CATEGORY_LABELS,
+  type YieldCategory,
+  type YieldsResponse,
+} from '../services/defiYield';
+
+const LAST_REVIEWED = '2026-09-23';
+
+const FAQS: FaqItem[] = [
+  {
+    question: 'Where do the yields on this page come from?',
+    answer:
+      'From DefiLlama\'s free yields dataset. Our server fetches it, keeps well-known protocols on major chains with at least $10 million in deposits and major-asset or stablecoin pools, and caches the result for about an hour. The time of the snapshot is shown above the table. We do not edit or estimate any figure.',
+  },
+  {
+    question: 'What is the difference between base APY and reward APY?',
+    answer:
+      'Base APY is paid by the activity itself: interest from borrowers in a lending market, or trading fees in a liquidity pool. Reward APY is extra yield paid in incentive tokens, which can stop at any time and whose value falls if the token price falls. A yield that is mostly rewards is less durable than one that is mostly base.',
+  },
+  {
+    question: 'Why are some DeFi APYs so high?',
+    answer:
+      'High APYs usually come from token emissions (the protocol paying you in its own token), from compensating you for risk such as impermanent loss, depeg or smart-contract risk, or from a short burst of borrowing demand. Very high numbers are rarely sustainable; compare the current APY with the 30-day average in the table.',
+  },
+  {
+    question: 'What is impermanent loss?',
+    answer:
+      'When you provide two assets to a 50/50 liquidity pool and their prices move apart, the pool rebalances so you end up with more of the asset that fell and less of the one that rose. Compared with simply holding the two assets, you are worse off. At a 2x price move the gap is about 5.7%; at 5x it is about 25.5%. Trading fees can offset it, which the calculator on this page lets you test.',
+  },
+  {
+    question: 'Is APY the same as APR?',
+    answer:
+      'No. APR is the simple annual rate; APY assumes the earnings are reinvested (compounded). DefiLlama reports APY. For low rates the difference is small; for high, frequently compounded rates APY can be noticeably larger than APR.',
+  },
+  {
+    question: 'Is DeFi yield safe?',
+    answer:
+      'No yield is risk-free. DeFi adds smart-contract bugs, oracle failures, governance attacks, stablecoin depegs and, for pools, impermanent loss. Deposits are not insured by any government scheme. Large, long-running, audited protocols reduce but do not remove these risks.',
+  },
+];
+
+const CATEGORY_FILTERS: Array<{ id: 'all' | YieldCategory; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'lending', label: 'Lending' },
+  { id: 'liquid-staking', label: 'Liquid staking' },
+  { id: 'savings', label: 'Savings rates' },
+  { id: 'dex', label: 'DEX liquidity' },
+  { id: 'yield', label: 'Yield vaults' },
+];
+
+type SortKey = 'tvl' | 'apy';
+
+function YieldTable() {
+  const [data, setData] = useState<YieldsResponse | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [category, setCategory] = useState<'all' | YieldCategory>('all');
+  const [chain, setChain] = useState('all');
+  const [stableOnly, setStableOnly] = useState(false);
+  const [sort, setSort] = useState<SortKey>('tvl');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    loadData();
-  }, [selectedChain, selectedType, selectedRisk, minApy]);
-
-  async function loadData() {
-    setIsLoading(true);
-    try {
-      const poolData = await getPools({
-        chain: selectedChain || undefined,
-        poolType: selectedType || undefined,
-        maxRisk: selectedRisk || undefined,
-        minApy: minApy > 0 ? minApy : undefined,
-        limit: isPremium ? undefined : 30,
+    const controller = new AbortController();
+    fetchYields(controller.signal)
+      .then((res) => {
+        setData(res);
+        setStatus('ready');
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        if (import.meta.env.DEV) console.debug('Yield fetch failed', err);
+        setStatus('error');
       });
-      setPools(poolData);
+    return () => controller.abort();
+  }, [reloadKey]);
 
-      const opps = await getYieldOpportunities({
-        chain: selectedChain || undefined,
-        riskTolerance: selectedRisk || undefined,
-        limit: 10,
-      });
-      setOpportunities(opps);
-    } catch (err) {
-      console.error('Failed to load DeFi data:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const chains = useMemo(
+    () => (data ? Array.from(new Set(data.pools.map((p) => p.chain))).sort() : []),
+    [data]
+  );
+  const categoriesWithData = useMemo(
+    () => new Set(data ? data.pools.map((p) => p.category) : []),
+    [data]
+  );
 
-  const filteredPools = pools.filter(pool => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
+  const rows = useMemo(() => {
+    if (!data) return [];
+    return data.pools
+      .filter((p) => category === 'all' || p.category === category)
+      .filter((p) => chain === 'all' || p.chain === chain)
+      .filter((p) => !stableOnly || p.stablecoin)
+      .sort((a, b) => (sort === 'tvl' ? b.tvlUsd - a.tvlUsd : b.apy - a.apy))
+      .slice(0, 60);
+  }, [data, category, chain, stableOnly, sort]);
+
+  if (status === 'error') {
     return (
-      pool.pool_name.toLowerCase().includes(query) ||
-      pool.protocol_name.toLowerCase().includes(query) ||
-      pool.token_a_symbol.toLowerCase().includes(query) ||
-      (pool.token_b_symbol && pool.token_b_symbol.toLowerCase().includes(query))
-    );
-  });
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <PageSEO pageKey="defiYield" urlPath="/defi-yield" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="h-8 w-8 text-green-500" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              DeFi Yield Aggregator
-            </h1>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Compare yield farming opportunities across protocols. Find the best APY with risk-adjusted rankings.
-          </p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Protocols Tracked</span>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{protocols.length}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Total Pools</span>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{pools.length}+</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Highest APY</span>
-            <p className="text-2xl font-bold text-green-500">{formatApy(Math.max(...pools.map(p => p.apy_total), 0))}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-            <span className="text-gray-600 dark:text-gray-400 text-sm">Total TVL Tracked</span>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {formatTvl(protocols.reduce((sum, p) => sum + (p.tvl || 0), 0))}
+      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="text-gray-800 dark:text-gray-200 space-y-2">
+            <p className="font-semibold">Live yield data is unavailable right now.</p>
+            <p>
+              Rather than show estimates, we show nothing. You can check current rates directly on{' '}
+              <ExternalLink href="https://defillama.com/yields">DefiLlama Yields</ExternalLink>. As a
+              rough guide from our last review ({formatIsoDate(LAST_REVIEWED)}): ETH liquid-staking yields track
+              Ethereum's staking reward rate and have sat in the low single digits; stablecoin supply
+              rates on the largest lending markets are usually in the low-to-mid single digits in
+              calm markets and jump when borrowing demand spikes; anything far above that is almost
+              always paid in reward tokens or compensates you for extra risk.
             </p>
-          </div>
-        </div>
-
-        {/* Top Opportunities */}
-        {opportunities.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Top Opportunities</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {opportunities.slice(0, 6).map((opp) => (
-                <div
-                  key={opp.pool.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">{opp.pool.pool_name}</p>
-                      <p className="text-sm text-gray-500">{opp.protocol.name}</p>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      opp.pool.risk_level === 'low' ? 'bg-green-100 text-green-700' :
-                      opp.pool.risk_level === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                      opp.pool.risk_level === 'high' ? 'bg-orange-100 text-orange-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {opp.pool.risk_level}
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline gap-2 mb-4">
-                    <span className="text-3xl font-bold text-green-500">{formatApy(opp.pool.apy_total)}</span>
-                    <span className="text-gray-500 text-sm">APY</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    <span className="capitalize">{opp.pool.chain}</span>
-                    <span>•</span>
-                    <span>{getPoolTypeLabel(opp.pool.pool_type)}</span>
-                    <span>•</span>
-                    <span>{formatTvl(opp.pool.tvl)}</span>
-                  </div>
-
-                  {opp.pros.length > 0 && (
-                    <div className="space-y-1 mb-4">
-                      {opp.pros.slice(0, 2).map((pro, j) => (
-                        <p key={j} className="text-xs text-green-600 flex items-center gap-1">
-                          <Check className="h-3 w-3" /> {pro}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-
-                  <a
-                    href={getAffiliateUrl(opp.protocol.id) || opp.protocol.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackAffiliateClick(user?.id || null, opp.protocol.id, opp.pool.id)}
-                    className="flex items-center justify-center gap-2 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-                  >
-                    View on {opp.protocol.name}
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6 shadow-sm">
-          <div className="flex flex-wrap gap-4">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search pools..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-
-            {/* Chain Filter */}
-            <select
-              value={selectedChain || ''}
-              onChange={(e) => setSelectedChain(e.target.value || null)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">All Chains</option>
-              {SUPPORTED_DEFI_CHAINS.map(chain => (
-                <option key={chain.id} value={chain.id}>{chain.name}</option>
-              ))}
-            </select>
-
-            {/* Type Filter */}
-            <select
-              value={selectedType || ''}
-              onChange={(e) => setSelectedType(e.target.value as DeFiProtocolType || null)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">All Types</option>
-              <option value="lending">Lending</option>
-              <option value="amm">Liquidity Pools</option>
-              <option value="liquid_staking">Liquid Staking</option>
-              <option value="vault">Vaults</option>
-              <option value="yield_farm">Yield Farms</option>
-            </select>
-
-            {/* Risk Filter */}
-            <select
-              value={selectedRisk || ''}
-              onChange={(e) => setSelectedRisk(e.target.value as DeFiRiskLevel || null)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">All Risk Levels</option>
-              <option value="low">Low Risk</option>
-              <option value="medium">Medium Risk</option>
-              <option value="high">High Risk</option>
-            </select>
-
-            {/* IL Calculator Button */}
             <button
-              onClick={() => setShowILCalculator(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50"
+              type="button"
+              onClick={() => {
+                setStatus('loading');
+                setReloadKey((k) => k + 1);
+              }}
+              className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
-              <Calculator className="h-5 w-5" />
-              IL Calculator
+              <RefreshCw className="w-4 h-4" aria-hidden="true" /> Try again
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Pools Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">Pool</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">Chain</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">Type</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">APY</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">TVL</th>
-                  <th className="text-center py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">Risk</th>
-                  <th className="text-right py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-400">Action</th>
+  return (
+    <div>
+      <div className="flex flex-wrap items-end gap-4 mb-4">
+        <div role="group" aria-label="Pool type" className="flex flex-wrap gap-2">
+          {CATEGORY_FILTERS.filter((c) => c.id === 'all' || !data || categoriesWithData.has(c.id)).map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              aria-pressed={category === c.id}
+              onClick={() => setCategory(c.id)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                category === c.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <div>
+          <label htmlFor="yield-chain" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+            Chain
+          </label>
+          <select
+            id="yield-chain"
+            value={chain}
+            onChange={(e) => setChain(e.target.value)}
+            className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm"
+          >
+            <option value="all">All chains</option>
+            {chains.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="yield-sort" className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+            Sort by
+          </label>
+          <select
+            id="yield-sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm"
+          >
+            <option value="tvl">Deposits (TVL)</option>
+            <option value="apy">APY</option>
+          </select>
+        </div>
+        <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            checked={stableOnly}
+            onChange={(e) => setStableOnly(e.target.checked)}
+            className="rounded"
+          />
+          Stablecoin pools only
+        </label>
+      </div>
+
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3" aria-live="polite">
+        {status === 'loading' && !data && 'Loading current yields…'}
+        {data && (
+          <>
+            Source:{' '}
+            <ExternalLink href={data.sourceUrl}>{data.source}</ExternalLink>, as of{' '}
+            {formatAsOf(data.asOf)}. Showing {rows.length} of {data.pools.length} curated pools.
+          </>
+        )}
+      </p>
+
+      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <table className="w-full text-sm">
+          <caption className="sr-only">DeFi pool yields from DefiLlama</caption>
+          <thead className="bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+            <tr>
+              <th scope="col" className="text-left p-3 font-medium">Pool</th>
+              <th scope="col" className="text-left p-3 font-medium">Protocol</th>
+              <th scope="col" className="text-left p-3 font-medium">Chain</th>
+              <th scope="col" className="text-right p-3 font-medium">APY</th>
+              <th scope="col" className="text-right p-3 font-medium">Base / reward</th>
+              <th scope="col" className="text-right p-3 font-medium">30-day avg</th>
+              <th scope="col" className="text-right p-3 font-medium">TVL</th>
+              <th scope="col" className="text-center p-3 font-medium">IL risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {status === 'loading' && !data &&
+              Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i} className="border-t border-gray-100 dark:border-gray-700">
+                  <td colSpan={8} className="p-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                  </td>
+                </tr>
+              ))}
+            {data && rows.length === 0 && (
+              <tr>
+                <td colSpan={8} className="p-6 text-center text-gray-600 dark:text-gray-400">
+                  No pools match these filters.
+                </td>
+              </tr>
+            )}
+            {rows.map((p) => (
+              <tr key={p.id} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <td className="p-3">
+                  <ExternalLink href={p.url} className="font-medium text-gray-900 dark:text-white hover:underline">
+                    {p.symbol}
+                  </ExternalLink>
+                  {p.poolMeta && <div className="text-xs text-gray-500 dark:text-gray-400">{p.poolMeta}</div>}
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{YIELD_CATEGORY_LABELS[p.category]}</div>
+                </td>
+                <td className="p-3 text-gray-800 dark:text-gray-200">
+                  {PROTOCOL_SITES[p.project] ? (
+                    <ExternalLink href={PROTOCOL_SITES[p.project]} className="hover:underline">
+                      {p.projectName}
+                    </ExternalLink>
+                  ) : (
+                    p.projectName
+                  )}
+                </td>
+                <td className="p-3 text-gray-800 dark:text-gray-200">{p.chain}</td>
+                <td className="p-3 text-right font-semibold text-green-700 dark:text-green-400">{formatApy(p.apy)}</td>
+                <td className="p-3 text-right text-gray-700 dark:text-gray-300">
+                  {formatApy(p.apyBase)} / {formatApy(p.apyReward)}
+                </td>
+                <td className="p-3 text-right text-gray-700 dark:text-gray-300">{formatApy(p.apyMean30d)}</td>
+                <td className="p-3 text-right text-gray-700 dark:text-gray-300">{formatUsdCompact(p.tvlUsd)}</td>
+                <td className="p-3 text-center text-gray-700 dark:text-gray-300">{p.ilRisk ? 'Yes' : 'No'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        Pool names link to DefiLlama's page for that pool. "IL risk" is DefiLlama's flag for pools exposed to
+        impermanent loss. Rates are variable and change every block; this is not a recommendation.
+      </p>
+    </div>
+  );
+}
+
+function ImpermanentLossCalculator() {
+  const [deposit, setDeposit] = useState(10000);
+  const [priceChange, setPriceChange] = useState(50);
+  const [fees, setFees] = useState(0);
+
+  const result = calculateImpermanentLoss(deposit, priceChange, fees);
+  const usd = (n: number) =>
+    n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 space-y-4">
+        <div>
+          <label htmlFor="il-deposit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Deposit (USD, split 50/50)
+          </label>
+          <input
+            id="il-deposit"
+            type="number"
+            min={0}
+            value={deposit}
+            onChange={(e) => setDeposit(Math.max(0, Number(e.target.value) || 0))}
+            className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+          />
+        </div>
+        <div>
+          <label htmlFor="il-change" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Price change of one asset vs the other: {priceChange > 0 ? '+' : ''}
+            {priceChange}%
+          </label>
+          <input
+            id="il-change"
+            type="range"
+            min={-90}
+            max={500}
+            step={5}
+            value={priceChange}
+            onChange={(e) => setPriceChange(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+        <div>
+          <label htmlFor="il-fees" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Trading fees earned over the period (USD, optional)
+          </label>
+          <input
+            id="il-fees"
+            type="number"
+            min={0}
+            value={fees}
+            onChange={(e) => setFees(Math.max(0, Number(e.target.value) || 0))}
+            className="w-full px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5" aria-live="polite">
+        <dl className="grid grid-cols-2 gap-4">
+          <div>
+            <dt className="text-sm text-gray-600 dark:text-gray-400">Impermanent loss</dt>
+            <dd className="text-2xl font-bold text-red-600 dark:text-red-400">{result.ilPercent.toFixed(2)}%</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-gray-600 dark:text-gray-400">Loss vs holding</dt>
+            <dd className="text-2xl font-bold text-gray-900 dark:text-white">{usd(result.ilUsd)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-gray-600 dark:text-gray-400">If you had just held</dt>
+            <dd className="text-lg font-semibold text-gray-900 dark:text-white">{usd(result.hodlValue)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-gray-600 dark:text-gray-400">Value in the pool</dt>
+            <dd className="text-lg font-semibold text-gray-900 dark:text-white">{usd(result.lpValue)}</dd>
+          </div>
+          <div className="col-span-2">
+            <dt className="text-sm text-gray-600 dark:text-gray-400">Pool + fees vs holding</dt>
+            <dd className={`text-lg font-semibold ${result.netVsHodl >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {result.netVsHodl >= 0 ? '+' : ''}
+              {usd(result.netVsHodl)}
+            </dd>
+          </div>
+        </dl>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
+          To break even with holding, fees need to cover about {result.breakevenFeePercent.toFixed(2)}% of your deposit.
+          Assumes a standard 50/50 constant-product pool (Uniswap V2 style). Concentrated-liquidity positions
+          (Uniswap V3/V4) earn more fees in range but suffer larger impermanent loss.
+        </p>
+      </div>
+
+      <div className="lg:col-span-2 overflow-x-auto">
+        <table className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <caption className="text-left text-sm text-gray-600 dark:text-gray-400 p-3">
+            Impermanent loss by price move (50/50 pool, before fees)
+          </caption>
+          <thead className="bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+            <tr>
+              <th scope="col" className="text-left p-3 font-medium">Price move</th>
+              {IL_REFERENCE_MOVES.map((m) => (
+                <th key={m} scope="col" className="text-right p-3 font-medium">
+                  {m > 0 ? '+' : ''}
+                  {m}%
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t border-gray-100 dark:border-gray-700">
+              <th scope="row" className="text-left p-3 font-medium text-gray-800 dark:text-gray-200">Loss vs holding</th>
+              {IL_REFERENCE_MOVES.map((m) => (
+                <td key={m} className="text-right p-3 text-gray-800 dark:text-gray-200">
+                  {estimateImpermanentLoss(m).toFixed(1)}%
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export default function DeFiYieldPage() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO
+        pageKey="defiYield"
+        urlPath="/defi-yield"
+        isTool
+        toolName="DeFi Yield Explorer and Impermanent Loss Calculator"
+        faqs={FAQS}
+      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <header className="mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <Percent className="h-8 w-8 text-green-600" aria-hidden="true" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              DeFi Yields and Impermanent Loss Calculator
+            </h1>
+          </div>
+          <p className="text-lg text-gray-700 dark:text-gray-300 max-w-4xl mb-3">
+            DeFi yields come from three places: interest paid by borrowers, trading fees paid by swappers, and
+            reward tokens paid by protocols. The table below shows current rates for major assets on
+            well-established protocols, sourced from DefiLlama; the calculator shows how much impermanent loss
+            can eat into liquidity-pool returns.
+          </p>
+          <LastReviewed date={LAST_REVIEWED} />
+        </header>
+
+        <section aria-labelledby="yields-heading" className="mb-12">
+          <h2 id="yields-heading" className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Current yields on major DeFi protocols
+          </h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4 max-w-4xl">
+            Curated to long-running lending markets, liquid-staking tokens, savings rates and DEX pools on
+            Ethereum, the main Ethereum layer 2s, and a few other large chains, with at least $10 million
+            deposited. Pools DefiLlama flags as statistical outliers are excluded.
+          </p>
+          <YieldTable />
+        </section>
+
+        <section aria-labelledby="why-heading" className="mb-12">
+          <h2 id="why-heading" className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Where the yield comes from, and why some APYs are high
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Borrower interest (lending)</h3>
+              <p className="text-gray-700 dark:text-gray-300 text-sm">
+                Lenders earn what borrowers pay, minus a protocol cut. Rates follow a utilization curve: when most
+                of a pool is borrowed, rates rise steeply to attract deposits. That is why stablecoin rates can
+                jump for days during a bull market and fall back afterwards.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Trading fees (liquidity pools)</h3>
+              <p className="text-gray-700 dark:text-gray-300 text-sm">
+                Liquidity providers earn the swap fee on every trade (for example 0.05%, 0.3% or 1% on Uniswap,
+                depending on the pool's fee tier). The fee is income for LPs, not a cost. The catch is impermanent
+                loss when prices move, covered below.
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Reward tokens (incentives)</h3>
+              <p className="text-gray-700 dark:text-gray-300 text-sm">
+                Protocols often pay extra in their own token to attract deposits. This is the "reward APY". It is
+                paid in a volatile token, can be switched off by governance, and is the usual reason a pool shows
+                a double-digit APY.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+              <caption className="text-left text-sm text-gray-600 dark:text-gray-400 p-3">
+                Main risks by strategy (qualitative)
+              </caption>
+              <thead className="bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+                <tr>
+                  <th scope="col" className="text-left p-3 font-medium">Strategy</th>
+                  <th scope="col" className="text-left p-3 font-medium">Main risks</th>
+                  <th scope="col" className="text-left p-3 font-medium">Impermanent loss</th>
                 </tr>
               </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="py-20 text-center">
-                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
-                    </td>
-                  </tr>
-                ) : filteredPools.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-20 text-center text-gray-500">
-                      No pools found matching your criteria
-                    </td>
-                  </tr>
-                ) : (
-                  filteredPools.map(pool => (
-                    <tr
-                      key={pool.id}
-                      className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30"
-                    >
-                      <td className="py-4 px-6">
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">{pool.pool_name}</p>
-                          <p className="text-sm text-gray-500">{pool.protocol_name}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{pool.chain}</span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{getPoolTypeLabel(pool.pool_type)}</span>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <div>
-                          <p className="font-bold text-green-500">{formatApy(pool.apy_total)}</p>
-                          {pool.apy_reward > 0 && (
-                            <p className="text-xs text-gray-500">
-                              {formatApy(pool.apy_base)} base + {formatApy(pool.apy_reward)} rewards
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <span className="text-gray-900 dark:text-white">{formatTvl(pool.tvl)}</span>
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          pool.risk_level === 'low' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          pool.risk_level === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          pool.risk_level === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        }`}>
-                          {pool.risk_level}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          onClick={() => setSelectedPool(pool)}
-                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                        >
-                          Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+              <tbody className="text-gray-800 dark:text-gray-200">
+                <tr className="border-t border-gray-100 dark:border-gray-700">
+                  <td className="p-3">Stablecoin lending</td>
+                  <td className="p-3">Smart-contract bug, stablecoin depeg, bad debt from failed liquidations</td>
+                  <td className="p-3">None</td>
+                </tr>
+                <tr className="border-t border-gray-100 dark:border-gray-700">
+                  <td className="p-3">ETH liquid staking</td>
+                  <td className="p-3">ETH price, validator slashing, token trading below ETH during stress</td>
+                  <td className="p-3">None</td>
+                </tr>
+                <tr className="border-t border-gray-100 dark:border-gray-700">
+                  <td className="p-3">Stablecoin-stablecoin pool</td>
+                  <td className="p-3">Contract risk, one stablecoin depegging (you end up holding it)</td>
+                  <td className="p-3">Low while pegs hold</td>
+                </tr>
+                <tr className="border-t border-gray-100 dark:border-gray-700">
+                  <td className="p-3">Volatile pair pool (e.g. ETH-USDC)</td>
+                  <td className="p-3">Price risk of the volatile asset, contract risk</td>
+                  <td className="p-3">Yes, grows with the price move</td>
+                </tr>
+                <tr className="border-t border-gray-100 dark:border-gray-700">
+                  <td className="p-3">Incentive farms / vaults</td>
+                  <td className="p-3">Reward token price, several stacked contracts, incentives ending</td>
+                  <td className="p-3">Depends on the underlying pool</td>
+                </tr>
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        {/* Premium Upsell */}
-        {!isPremium && (
-          <div className="mt-8 bg-gradient-to-r from-green-600 to-teal-600 rounded-xl p-8 text-white">
-            <div className="flex items-start gap-6">
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-3">Unlock Full DeFi Insights</h2>
-                <p className="text-green-100 mb-4">
-                  Get access to all pools, portfolio tracking, alerts, and advanced analytics.
-                </p>
-                <ul className="grid md:grid-cols-2 gap-2 mb-6">
-                  {DEFI_YIELD_PRICING.premium.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <Check className="h-4 w-4" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/pricing"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-green-700 rounded-lg font-semibold hover:bg-green-50"
-                >
-                  Upgrade for ${DEFI_YIELD_PRICING.premium.price_monthly}/mo
-                  <ChevronRight className="h-5 w-5" />
-                </Link>
-              </div>
-              <BarChart3 className="h-20 w-20 text-white/20 hidden md:block" />
-            </div>
+        <section aria-labelledby="il-heading" className="mb-12">
+          <div className="flex items-center gap-2 mb-2">
+            <Calculator className="w-6 h-6 text-blue-600" aria-hidden="true" />
+            <h2 id="il-heading" className="text-2xl font-bold text-gray-900 dark:text-white">
+              Impermanent loss calculator
+            </h2>
           </div>
-        )}
+          <p className="text-gray-700 dark:text-gray-300 mb-4 max-w-4xl">
+            Impermanent loss is how much less a 50/50 liquidity position is worth than simply holding the same
+            two assets, after their prices move apart. It depends only on the size of the move, not its
+            direction, and becomes permanent when you withdraw.
+          </p>
+          <ImpermanentLossCalculator />
+        </section>
 
-        {/* IL Calculator Modal */}
-        {showILCalculator && (
-          <ImpermanentLossCalculator onClose={() => setShowILCalculator(false)} />
-        )}
+        <FaqList faqs={FAQS} />
 
-        {/* Pool Details Modal */}
-        {selectedPool && (
-          <PoolDetailsModal
-            pool={selectedPool}
-            protocol={protocols.find(p => p.id === selectedPool.protocol_id)!}
-            onClose={() => setSelectedPool(null)}
-            userId={user?.id}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
+        <RelatedLinks
+          links={[
+            { to: '/learn/yield-farming', label: 'Yield farming guide', note: 'How farms and vaults work' },
+            { to: '/learn/defi-risks', label: 'DeFi risks', note: 'What can go wrong and how to limit it' },
+            { to: '/learn/defi-basics', label: 'DeFi basics', note: 'Start here if DeFi is new to you' },
+            { to: '/lending', label: 'Crypto lending rates', note: 'DeFi vs CeFi lending, and what failed in 2022' },
+            { to: '/staking-calculator', label: 'Staking calculator', note: 'Project staking rewards' },
+            { to: '/gas-optimizer', label: 'Gas fee tracker', note: 'What a DeFi transaction costs right now' },
+          ]}
+        />
 
-// Impermanent Loss Calculator Modal
-function ImpermanentLossCalculator({ onClose }: { onClose: () => void }) {
-  const [priceChange, setPriceChange] = useState(50);
-  const il = estimateImpermanentLoss(priceChange);
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-[calc(100vw-1rem)] sm:max-w-lg">
-        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calculator className="h-5 w-5 sm:h-6 sm:w-6 text-purple-500" />
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Impermanent Loss Calculator</h2>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 touch-target-sm">×</button>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Price Change: {priceChange > 0 ? '+' : ''}{priceChange}%
-            </label>
-            <input
-              type="range"
-              min="-90"
-              max="500"
-              value={priceChange}
-              onChange={(e) => setPriceChange(Number(e.target.value))}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>-90%</span>
-              <span>0%</span>
-              <span>+500%</span>
-            </div>
-          </div>
-
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-6 mb-6">
-            <p className="text-center text-gray-600 dark:text-gray-400 mb-2">Impermanent Loss</p>
-            <p className="text-center text-4xl font-bold text-purple-600 dark:text-purple-400">
-              {il.toFixed(2)}%
-            </p>
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-              <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              Impermanent loss occurs when the price ratio of your pooled tokens changes. The greater the divergence, the greater the loss.
-            </p>
-          </div>
-
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-3">IL Reference Table</h4>
-          <div className="grid grid-cols-2 gap-2">
-            {IL_REFERENCE_TABLE.map(({ priceChange: pc, il: ilVal }) => (
-              <div
-                key={pc}
-                className="flex justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded text-sm"
-              >
-                <span className="text-gray-600 dark:text-gray-400">{pc}% change</span>
-                <span className="font-medium text-gray-900 dark:text-white">{ilVal}% IL</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Pool Details Modal
-function PoolDetailsModal({
-  pool,
-  protocol,
-  onClose,
-  userId,
-}: {
-  pool: DeFiPool;
-  protocol: DeFiProtocol;
-  onClose: () => void;
-  userId?: string;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{pool.pool_name}</h2>
-              <p className="text-gray-500">{protocol.name} on {pool.chain}</p>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">×</button>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* APY Breakdown */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total APY</p>
-              <p className="text-2xl font-bold text-green-500">{formatApy(pool.apy_total)}</p>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Base APY</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatApy(pool.apy_base)}</p>
-            </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Reward APY</p>
-              <p className="text-2xl font-bold text-blue-500">{formatApy(pool.apy_reward)}</p>
-            </div>
-          </div>
-
-          {/* Pool Info */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Pool Details</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">TVL</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{formatTvl(pool.tvl)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Type</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{getPoolTypeLabel(pool.pool_type)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Risk Level</span>
-                  <span className={`font-medium capitalize ${getRiskColor(pool.risk_level)}`}>{pool.risk_level}</span>
-                </div>
-                {pool.withdrawal_fee && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Withdrawal Fee</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{pool.withdrawal_fee}%</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Protocol Info</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Security Score</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{protocol.security_score}/100</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Audited</span>
-                  <span className={`font-medium ${protocol.is_audited ? 'text-green-500' : 'text-red-500'}`}>
-                    {protocol.is_audited ? 'Yes' : 'No'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Total Protocol TVL</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{formatTvl(protocol.tvl || 0)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Reward Tokens */}
-          {pool.reward_tokens.length > 0 && (
-            <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Reward Tokens</h4>
-              <div className="flex flex-wrap gap-2">
-                {pool.reward_tokens.map(token => (
-                  <span key={token} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm">
-                    {token}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* IL Risk */}
-          {pool.impermanent_loss_risk !== null && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-yellow-800 dark:text-yellow-200">Impermanent Loss Risk</p>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  This pool has a {pool.impermanent_loss_risk.toFixed(0)}% IL risk score. Consider the potential for impermanent loss before providing liquidity.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* CTA */}
-          <a
-            href={getAffiliateUrl(protocol.id) || protocol.website_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackAffiliateClick(userId || null, protocol.id, pool.id)}
-            className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
-          >
-            Open on {protocol.name}
-            <ExternalLink className="h-5 w-5" />
-          </a>
-        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-10">
+          Educational information only, not financial advice. Links to protocols are plain links; we do not earn a
+          commission from them. Yields are variable and past rates do not predict future ones.
+        </p>
       </div>
     </div>
   );

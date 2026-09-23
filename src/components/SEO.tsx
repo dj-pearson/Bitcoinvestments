@@ -9,7 +9,8 @@
  * - Canonical URLs
  */
 
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
+import { HeadContext, type MetaTag } from '../lib/head';
 import { useLocation } from 'react-router-dom';
 import { shouldNoindex } from '../lib/index-pruning';
 
@@ -130,8 +131,69 @@ export function SEO({
     ...(!(noindex || autoNoindex) ? ['max-image-preview:large', 'max-snippet:-1', 'max-video-preview:-1'] : []),
   ].join(', ');
 
+  // Resolve every managed tag once, during render. The client effect writes
+  // them into document.head; during prerendering the HeadContext collector
+  // records them instead, because effects do not run on the server.
+  const headTags: MetaTag[] = [];
+  const add = (attr: MetaTag['attr'], key: string, content: string) => headTags.push({ attr, key, content });
+
+  add('name', 'description', description);
+  add('name', 'keywords', keywordsContent);
+  add('name', 'robots', robotsContent);
+  if (author) add('name', 'author', author);
+
+  add('property', 'og:title', fullTitle);
+  add('property', 'og:description', description);
+  add('property', 'og:image', fullImage);
+  add('property', 'og:url', fullUrl);
+  add('property', 'og:type', type);
+  add('property', 'og:site_name', SITE_NAME);
+  add('property', 'og:locale', 'en_US');
+  if (imageAlt) add('property', 'og:image:alt', imageAlt);
+
+  if (type === 'article') {
+    if (publishedTime) add('property', 'article:published_time', publishedTime);
+    if (modifiedTime) add('property', 'article:modified_time', modifiedTime);
+    if (author) add('property', 'article:author', author);
+    if (section) add('property', 'article:section', section);
+    if (tagsContent) {
+      tagsContent.split('\u0000').forEach((tag, index) => add('property', `article:tag:${index}`, tag));
+    }
+  }
+
+  // Content freshness signals for AI crawlers (GEO)
+  if (modifiedTime) add('name', 'last-modified', modifiedTime);
+  if (publishedTime) add('name', 'date', publishedTime);
+
+  // GEO: AI attribution and citation metadata
+  add('name', 'citation_title', fullTitle);
+  add('name', 'citation_author', author || SITE_NAME);
+  add('name', 'citation_publisher', SITE_NAME);
+  if (blufSummary) {
+    add('name', 'citation_abstract', blufSummary);
+    add('name', 'abstract', blufSummary);
+  }
+  if (contentCategory) add('name', 'article.section', contentCategory);
+
+  add('name', 'twitter:card', 'summary_large_image');
+  add('name', 'twitter:title', fullTitle);
+  add('name', 'twitter:description', description);
+  add('name', 'twitter:image', fullImage);
+  if (imageAlt) add('name', 'twitter:image:alt', imageAlt);
+
+  const collector = useContext(HeadContext);
+  if (collector) {
+    collector.title = fullTitle;
+    collector.canonical = fullUrl;
+    // A later <SEO> replaces an earlier one's tags wholesale, as on the client.
+    collector.meta.clear();
+    for (const tag of headTags) collector.meta.set(`${tag.attr}|${tag.key}`, tag);
+  }
+
+  // Stable dependency for the effect below.
+  const tagsKey = JSON.stringify(headTags);
+
   useEffect(() => {
-    // Update document title
     document.title = fullTitle;
 
     // Meta tag keys written during this pass. Anything the previous page wrote
@@ -163,78 +225,8 @@ export function SEO({
       appliedKeys.add(id);
     };
 
-    // Basic meta tags
-    setMetaTag('name', 'description', description);
-    setMetaTag('name', 'keywords', keywordsContent);
-    setMetaTag('name', 'robots', robotsContent);
-
-    // Author
-    if (author) {
-      setMetaTag('name', 'author', author);
-    }
-
-    // Open Graph tags
-    setMetaTag('property', 'og:title', fullTitle);
-    setMetaTag('property', 'og:description', description);
-    setMetaTag('property', 'og:image', fullImage);
-    setMetaTag('property', 'og:url', fullUrl);
-    setMetaTag('property', 'og:type', type);
-    setMetaTag('property', 'og:site_name', SITE_NAME);
-    setMetaTag('property', 'og:locale', 'en_US');
-
-    if (imageAlt) {
-      setMetaTag('property', 'og:image:alt', imageAlt);
-    }
-
-    // Article-specific OG tags
-    if (type === 'article') {
-      if (publishedTime) {
-        setMetaTag('property', 'article:published_time', publishedTime);
-      }
-      if (modifiedTime) {
-        setMetaTag('property', 'article:modified_time', modifiedTime);
-      }
-      if (author) {
-        setMetaTag('property', 'article:author', author);
-      }
-      if (section) {
-        setMetaTag('property', 'article:section', section);
-      }
-      if (tagsContent) {
-        tagsContent.split('\u0000').forEach((tag, index) => {
-          setMetaTag('property', `article:tag:${index}`, tag);
-        });
-      }
-    }
-
-    // Content freshness signals for AI crawlers (GEO)
-    if (modifiedTime) {
-      setMetaTag('name', 'last-modified', modifiedTime);
-    }
-    if (publishedTime) {
-      setMetaTag('name', 'date', publishedTime);
-    }
-
-    // GEO: AI attribution and citation metadata
-    setMetaTag('name', 'citation_title', fullTitle);
-    setMetaTag('name', 'citation_author', author || SITE_NAME);
-    setMetaTag('name', 'citation_publisher', SITE_NAME);
-    if (blufSummary) {
-      setMetaTag('name', 'citation_abstract', blufSummary);
-      setMetaTag('name', 'abstract', blufSummary);
-    }
-    if (contentCategory) {
-      setMetaTag('name', 'article.section', contentCategory);
-    }
-
-    // Twitter Card tags
-    setMetaTag('name', 'twitter:card', 'summary_large_image');
-    setMetaTag('name', 'twitter:title', fullTitle);
-    setMetaTag('name', 'twitter:description', description);
-    setMetaTag('name', 'twitter:image', fullImage);
-
-    if (imageAlt) {
-      setMetaTag('name', 'twitter:image:alt', imageAlt);
+    for (const tag of JSON.parse(tagsKey) as MetaTag[]) {
+      setMetaTag(tag.attr, tag.key, tag.content);
     }
 
     // Canonical URL
@@ -283,23 +275,7 @@ export function SEO({
       // Reset to defaults on unmount
       document.title = SITE_NAME;
     };
-  }, [
-    fullTitle,
-    description,
-    keywordsContent,
-    fullImage,
-    imageAlt,
-    fullUrl,
-    type,
-    author,
-    publishedTime,
-    modifiedTime,
-    section,
-    tagsContent,
-    robotsContent,
-    blufSummary,
-    contentCategory,
-  ]);
+  }, [fullTitle, fullUrl, tagsKey]);
 
   // Render JSON-LD schema (supports single schema or array of schemas)
   const renderSchema = () => {

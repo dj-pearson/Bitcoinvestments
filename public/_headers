@@ -126,3 +126,9 @@
 
 /.well-known/*
  Cache-Control: public, max-age=86400
+
+/_shell
+ X-Robots-Tag: noindex
+
+/_shell.html
+ X-Robots-Tag: noindex

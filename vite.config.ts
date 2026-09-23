@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   plugins: [
     react(),
   ],
@@ -28,19 +28,22 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     // Enable source maps for production debugging
     sourcemap: false,
-    // Minification settings
-    minify: 'terser',
-    // **CRITICAL**: COMPLETELY DISABLE modulePreload to prevent ANY preloading
-    // This prevents Vite from adding <link rel="modulepreload"> tags which cause
-    // modules to be fetched and parsed immediately, triggering SIWE before React mounts
-    modulePreload: false,
+    // Minification settings. The SSR bundle (src/entry-server.tsx, used only by
+    // scripts/prerender.mjs at build time) is never shipped, so skip it there.
+    minify: isSsrBuild ? false : 'terser',
+    // modulePreload was disabled while the Web3 stack (SIWE) broke when its
+    // modules were fetched early. That stack is gone, and preloading the
+    // entry's vendor chunks shortens the path to hydrating prerendered pages.
+    modulePreload: { polyfill: false },
     // Common.js options to handle problematic packages
     rollupOptions: {
       onwarn(warning, warn) {
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
         warn(warning);
       },
-      output: {
+      // Chunking and file naming only apply to the browser bundle; the SSR
+      // bundle externalises node_modules, so vendor chunks mean nothing there.
+      output: isSsrBuild ? undefined : {
         // Improved code splitting configuration for better performance
         manualChunks: (id) => {
           // Core React bundle - loaded on every page.
@@ -160,4 +163,4 @@ export default defineConfig({
     // Report compressed size
     reportCompressedSize: true,
   },
-})
+}))

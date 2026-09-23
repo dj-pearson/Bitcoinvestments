@@ -202,7 +202,12 @@ LANGUAGE sql
 STABLE
 SET search_path = public, pg_temp
 AS $$
-  SELECT current_user IN ('anon', 'authenticated') AND NOT public.is_admin();
+  -- CASE, so anon (which may not execute is_admin()) never reaches that call.
+  SELECT CASE
+    WHEN current_user = 'anon' THEN TRUE
+    WHEN current_user = 'authenticated' THEN NOT public.is_admin()
+    ELSE FALSE
+  END;
 $$;
 
 -- ============================================================================

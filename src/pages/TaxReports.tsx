@@ -292,10 +292,14 @@ export default function TaxReports() {
 
   // Premium covers every year; a tax package covers the year it was bought for.
   const hasAccess = isPremiumUser || purchases.length > 0;
-  const packageForYear = purchases.find((p) => p.year === taxYear) ?? null;
+  // If both packages were bought for the same year, show the premium one.
+  const packageForYear =
+    purchases.find((p) => p.year === taxYear && p.type === 'premium') ??
+    purchases.find((p) => p.year === taxYear) ??
+    null;
   const packageType = packageForYear?.type ?? null;
   const yearCovered = isPremiumUser || packageForYear !== null;
-  const purchasedYears = purchases.map((p) => p.year).sort((a, b) => b - a);
+  const purchasedYears = [...new Set(purchases.map((p) => p.year))].sort((a, b) => b - a);
 
   // No access - show purchase option
   if (!hasAccess) {

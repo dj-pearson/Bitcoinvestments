@@ -101,6 +101,9 @@ const RebalancingAlertsPage = lazy(() => import('./pages/RebalancingAlerts'));
 const DCAAutomationPage = lazy(() => import('./pages/DCAAutomation'));
 const SmartAlertBundlesPage = lazy(() => import('./pages/SmartAlertBundles'));
 const Accessibility = lazy(() => import('./pages/Accessibility').then(m => ({ default: m.Accessibility })));
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
+const Disclaimer = lazy(() => import('./pages/Disclaimer').then(m => ({ default: m.Disclaimer })));
+const Unsubscribe = lazy(() => import('./pages/Unsubscribe').then(m => ({ default: m.Unsubscribe })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const ServerError = lazy(() => import('./pages/ServerError'));
 const Forbidden = lazy(() => import('./pages/Forbidden'));
@@ -231,7 +234,9 @@ function App({ location, client }: AppProps = {}) {
                   <Route path="sponsored/:slug" element={withErrorBoundary(<SponsoredArticle />, 'SponsoredArticle')} />
                   <Route path="privacy" element={withErrorBoundary(<Privacy />, 'Privacy')} />
                   <Route path="terms" element={withErrorBoundary(<Terms />, 'Terms')} />
-                  <Route path="disclaimer" element={withErrorBoundary(<Terms />, 'Disclaimer')} />
+                  <Route path="disclaimer" element={withErrorBoundary(<Disclaimer />, 'Disclaimer')} />
+                  <Route path="about" element={withErrorBoundary(<About />, 'About')} />
+                  <Route path="unsubscribe" element={withErrorBoundary(<Unsubscribe />, 'Unsubscribe')} />
                   <Route path="pricing" element={withErrorBoundary(<Pricing />, 'Pricing')} />
                   <Route path="developers/pricing" element={withErrorBoundary(<ApiPricing />, 'ApiPricing')} />
                   <Route path="developers/portal" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<DeveloperPortal />, 'DeveloperPortal')}</ProtectedRoute>)} />
@@ -251,7 +256,7 @@ function App({ location, client }: AppProps = {}) {
                   <Route path="retirement-calculator" element={withErrorBoundary(<RetirementCalculator />, 'RetirementCalculator')} />
 
                   {/* New Premium Monetization Features */}
-                  <Route path="multi-exchange" element={withErrorBoundary(<MultiExchange />, 'MultiExchange')} />
+                  <Route path="multi-exchange" element={staticGuard(withErrorBoundary(<MultiExchange />, 'MultiExchange'))} />
                   <Route path="staking-calculator" element={withErrorBoundary(<StakingCalculator />, 'StakingCalculator')} />
                   <Route path="trading-indicators" element={withErrorBoundary(<TradingIndicators />, 'TradingIndicators')} />
                   <Route path="whale-tracking" element={withErrorBoundary(<WhaleTrackingPage />, 'WhaleTracking')} />

@@ -32,6 +32,9 @@ const NOINDEX_PATHS: string[] = [
   '/maintenance',
   '/accessibility',
   '/developers/portal',
+  '/unsubscribe',
+  // Exchange syncing is not available; the route shows ComingSoon.
+  '/multi-exchange',
 ];
 
 /** Path prefixes that should be noindexed */
@@ -46,7 +49,6 @@ const NOINDEX_PREFIXES: string[] = [
 const CONDITIONAL_INDEX_PATHS: string[] = [
   '/start',
   '/prices',
-  '/disclaimer',
   '/developers/docs',
 ];
 

@@ -103,6 +103,12 @@
 /search
  X-Robots-Tag: noindex, follow
 
+/unsubscribe
+ X-Robots-Tag: noindex, follow
+
+/multi-exchange
+ X-Robots-Tag: noindex, follow
+
 /403
  X-Robots-Tag: noindex, follow
 

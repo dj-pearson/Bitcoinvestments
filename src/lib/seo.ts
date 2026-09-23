@@ -1459,7 +1459,7 @@ export function getRelatedPages(currentPath: string): RelatedLink[] {
     '/charts': [
       { title: 'Market Dashboard', url: '/dashboard', description: 'Real-time market data' },
       { title: 'Trading Indicators', url: '/trading-indicators', description: 'Technical analysis tools' },
-      { title: 'Whale Tracking', url: '/whale-tracking', description: 'Monitor large transactions' },
+      { title: 'Whale Tracking Guide', url: '/whale-tracking', description: 'What large Bitcoin transfers mean' },
     ],
     '/calculators': [
       { title: 'Staking Calculator', url: '/staking-calculator', description: 'Calculate staking rewards' },
@@ -1489,7 +1489,7 @@ export function getRelatedPages(currentPath: string): RelatedLink[] {
     '/defi-yield': [
       { title: 'Staking Calculator', url: '/staking-calculator', description: 'Calculate rewards' },
       { title: 'Gas Optimizer', url: '/gas-optimizer', description: 'Save on fees' },
-      { title: 'On-Chain Analytics', url: '/onchain-analytics', description: 'Analyze protocols' },
+      { title: 'On-Chain Metrics', url: '/onchain-analytics', description: 'Bitcoin network metrics explained' },
     ],
   };
 

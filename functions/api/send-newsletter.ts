@@ -14,11 +14,11 @@
 
 import { isAuthorizedScheduledRequest, unauthorizedResponse } from './_scheduledAuth';
 import { createClient } from '@supabase/supabase-js';
+import { sendMail, type MailerEnv } from '../lib/mailer';
 
-interface Env {
+interface Env extends MailerEnv {
   VITE_SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
-  FROM_EMAIL?: string;
 }
 
 interface NewsletterContent {
@@ -281,59 +281,28 @@ async function generateDefaultContent(): Promise<NewsletterContent> {
 }
 
 /**
- * Send email via MailChannels API
+ * Send one personalised copy through the shared mailer (Resend first; see
+ * functions/lib/mailer.ts - MailChannels' free Workers tier ended in 2024).
  */
 async function sendEmail(
+  env: Env,
   to: string,
   unsubscribeToken: string,
   subject: string,
-  htmlContent: string,
-  fromEmail: string
+  htmlContent: string
 ): Promise<boolean> {
-  try {
-    // Personalize the unsubscribe link. The token comes from
-    // newsletter_subscribers.unsubscribe_token (20260923000400 migration) and
-    // is checked by the unsubscribe_newsletter() database function.
-    const personalizedHtml = htmlContent
-      .replace('{{email}}', encodeURIComponent(to))
-      .replace('{{token}}', encodeURIComponent(unsubscribeToken));
+  // Personalize the unsubscribe link. The token comes from
+  // newsletter_subscribers.unsubscribe_token (20260923000400 migration) and
+  // is checked by the unsubscribe_newsletter() database function.
+  const personalizedHtml = htmlContent
+    .replace('{{email}}', encodeURIComponent(to))
+    .replace('{{token}}', encodeURIComponent(unsubscribeToken));
 
-    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: to }],
-          },
-        ],
-        from: {
-          email: fromEmail.includes('<') ? fromEmail.match(/<(.+)>/)?.[1] || fromEmail : fromEmail,
-          name: fromEmail.includes('<') ? fromEmail.split('<')[0].trim() : 'Bitcoinvestments',
-        },
-        subject,
-        content: [
-          {
-            type: 'text/html',
-            value: personalizedHtml,
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Failed to send to ${to}:`, errorText);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error(`Error sending to ${to}:`, error);
-    return false;
+  const result = await sendMail(env, { to, subject, html: personalizedHtml });
+  if (!result.ok) {
+    console.error(`Failed to send to ${to}: ${result.error}`);
   }
+  return result.ok;
 }
 
 /**
@@ -390,7 +359,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Generate newsletter content
     const content = customContent || await generateDefaultContent();
     const htmlContent = generateNewsletterHTML(content);
-    const fromEmail = env.FROM_EMAIL || 'Bitcoinvestments <noreply@bitcoinvestments.net>';
 
     // Send newsletters
     const result: SendResult = {
@@ -409,7 +377,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
       const results = await Promise.allSettled(
         batch.map(({ email, unsubscribe_token }) =>
-          sendEmail(email, unsubscribe_token, content.subject, htmlContent, fromEmail)
+          sendEmail(env, email, unsubscribe_token, content.subject, htmlContent)
         )
       );
 

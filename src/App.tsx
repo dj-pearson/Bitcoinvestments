@@ -74,6 +74,7 @@ const UserManagement = lazy(() => import('./pages/UserManagement').then(m => ({ 
 const ScamDatabase = lazy(() => import('./pages/ScamDatabase').then(m => ({ default: m.ScamDatabase })));
 const ScamReportDetail = lazy(() => import('./pages/ScamReportDetail').then(m => ({ default: m.ScamReportDetail })));
 const ReportScam = lazy(() => import('./pages/ReportScam').then(m => ({ default: m.ReportScam })));
+const HowToReportScam = lazy(() => import('./pages/HowToReportScam').then(m => ({ default: m.HowToReportScam })));
 const AdminAISettings = lazy(() => import('./pages/AdminAISettings').then(m => ({ default: m.AdminAISettings })));
 const TaxReports = lazy(() => import('./pages/TaxReports'));
 const AdvisorDashboard = lazy(() => import('./pages/AdvisorDashboard').then(m => ({ default: m.AdvisorDashboard })));
@@ -198,7 +199,8 @@ function App({ location, client }: AppProps = {}) {
                   <Route path="compare/:type/:id" element={withErrorBoundary(<Compare />, 'CompareDetail')} />
                   <Route path="scam-database" element={withErrorBoundary(<ScamDatabase />, 'ScamDatabase')} />
                   <Route path="scam/:id" element={withErrorBoundary(<ScamReportDetail />, 'ScamReportDetail')} />
-                  <Route path="report-scam" element={staticGuard(<ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute>)} />
+                  {/* Without accounts, /report-scam is a public guide to reporting a scam to the authorities. */}
+                  <Route path="report-scam" element={STATIC_MODE ? withErrorBoundary(<HowToReportScam />, 'HowToReportScam') : <ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute>} />
                   <Route path="login" element={staticGuard(withErrorBoundary(<Login />, 'Login'))} />
                   <Route path="signup" element={staticGuard(withErrorBoundary(<Signup />, 'Signup'))} />
                   <Route path="forgot-password" element={staticGuard(withErrorBoundary(<ForgotPassword />, 'ForgotPassword'))} />

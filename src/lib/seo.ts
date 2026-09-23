@@ -266,9 +266,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   defiYield: {
-    title: 'DeFi Yield Farming - Compare APY Rates',
+    title: 'DeFi Yields & Impermanent Loss Calculator',
     description:
-      'Compare DeFi yield farming opportunities across protocols. Find the best APY rates for lending, liquidity providing, and staking.',
+      'Current DeFi yields on Aave, Lido, Curve, Uniswap and more from DefiLlama, what drives APY, and a free impermanent loss calculator for liquidity pools.',
     keywords: [
       'DeFi yield',
       'yield farming',
@@ -280,9 +280,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   gasOptimizer: {
-    title: 'Ethereum Gas Optimizer - Save on Transaction Fees',
+    title: 'Gas Fee Tracker: Ethereum, L2s & Bitcoin',
     description:
-      'Optimize your Ethereum transactions and save on gas fees. Real-time gas prices, fee estimates, and optimal timing recommendations.',
+      'Live gas prices for Ethereum, Arbitrum, Base and other chains with the dollar cost of common actions, Bitcoin fee rates, and how EIP-1559 fees work.',
     keywords: [
       'gas optimizer',
       'Ethereum gas',
@@ -360,9 +360,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   lending: {
-    title: 'Crypto Lending Comparison - Compare Interest Rates',
+    title: 'Crypto Lending Rates: CeFi vs DeFi',
     description:
-      'Compare cryptocurrency lending platforms and interest rates. Find the best rates for lending your Bitcoin, Ethereum, and stablecoins.',
+      'Current DeFi lending rates on Aave, Compound, Morpho and Spark, plus what the Celsius, BlockFi and Voyager collapses teach about CeFi lending risk.',
     keywords: [
       'crypto lending',
       'lending rates',

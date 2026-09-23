@@ -39,22 +39,18 @@ export interface PageMeta {
  */
 export const PAGE_METADATA: Record<string, PageMeta> = {
   home: {
-    title: 'Learn Crypto Investing for Beginners',
+    title: 'Learn to Invest in Bitcoin Safely',
     description:
-      'Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators, portfolio tracking, and crypto scam database.',
+      'Free, plain-English guides to buying, storing and investing in Bitcoin safely, plus calculators, exchange comparisons and a crypto scam checker.',
     keywords: [
-      'Bitcoin',
-      'cryptocurrency',
-      'crypto investment',
       'how to invest in Bitcoin',
+      'learn to invest in Bitcoin safely',
+      'Bitcoin for beginners',
       'cryptocurrency for beginners',
+      'crypto scam checker',
       'DCA calculator',
-      'dollar cost averaging',
-      'crypto education',
       'exchange comparison',
-      'wallet comparison',
-      'crypto scam database',
-      'portfolio tracker',
+      'crypto education',
     ],
   },
   dashboard: {
@@ -170,16 +166,13 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   pricing: {
-    title: 'Pricing Plans - Premium Crypto Tools & Features',
+    title: 'Pricing & Plans',
     description:
-      'Unlock premium cryptocurrency tools and features. Compare our free and paid plans for portfolio tracking, alerts, tax reports, and advanced analytics.',
+      'Everything on Bitcoinvestments is free today: guides, calculators, comparisons and the scam database. See what Premium will add and join the waitlist.',
     keywords: [
-      'crypto tools pricing',
-      'premium features',
-      'portfolio tracker subscription',
-      'crypto alerts',
-      'tax reports',
-      'advanced analytics',
+      'Bitcoinvestments pricing',
+      'is Bitcoinvestments free',
+      'crypto education free',
       'premium crypto tools',
     ],
   },
@@ -401,14 +394,25 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
   privacy: {
     title: 'Privacy Policy',
     description:
-      'Bitcoinvestments privacy policy. Learn how we collect, use, and protect your personal information.',
-    keywords: ['privacy policy', 'data protection', 'personal information', 'GDPR'],
+      'What Bitcoinvestments collects, which services see your data (Cloudflare, CoinGecko, Supabase, Google Analytics and more), browser storage and your rights.',
+    keywords: [
+      'privacy policy',
+      'data protection',
+      'GDPR',
+      'CCPA',
+      'cookies',
+    ],
   },
   terms: {
     title: 'Terms of Service',
     description:
-      'Bitcoinvestments terms of service and user agreement. Read our terms and conditions for using our platform.',
-    keywords: ['terms of service', 'user agreement', 'terms and conditions', 'legal'],
+      'The terms for using Bitcoinvestments: educational use, no financial advice, affiliate links, planned paid plans and API, liability and how to contact us.',
+    keywords: [
+      'terms of service',
+      'terms and conditions',
+      'user agreement',
+      'legal',
+    ],
   },
   login: {
     title: 'Login to Your Account',
@@ -458,28 +462,48 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   apiPricing: {
-    title: 'API Pricing - Developer Plans & Access',
+    title: 'Developer API',
     description:
-      'Flexible API pricing plans for cryptocurrency data access. Free tier available with rate-limited access. Premium plans for production use.',
+      'The Bitcoinvestments developer API: the endpoints that exist today, how authentication and rate limits work, and how to join the waitlist for keys.',
     keywords: [
-      'API pricing',
-      'crypto API plans',
-      'data access pricing',
-      'developer plans',
-      'API subscription',
+      'crypto price API',
+      'Bitcoinvestments API',
+      'cryptocurrency API',
+      'developer API',
     ],
   },
   accessibility: {
-    title: 'Accessibility Settings',
+    title: 'Accessibility Statement',
     description:
-      'Customize your Bitcoinvestments experience with accessibility settings. Adjust font size, contrast, animations, and screen reader preferences.',
+      'How accessible Bitcoinvestments is today: our WCAG 2.2 AA target, known issues, the display settings you can change and how to report a barrier.',
     keywords: [
-      'accessibility',
-      'a11y settings',
+      'accessibility statement',
+      'WCAG 2.2',
       'screen reader',
       'high contrast',
-      'font size',
-      'WCAG compliance',
+      'reduced motion',
+    ],
+  },
+  about: {
+    title: 'About Us & Editorial Policy',
+    description:
+      'Who runs Bitcoinvestments, how we research and update our guides, how we make money from affiliate links and sponsorships, and how to report a mistake.',
+    keywords: [
+      'about Bitcoinvestments',
+      'editorial policy',
+      'affiliate disclosure',
+      'corrections policy',
+    ],
+  },
+  disclaimer: {
+    title: 'Disclaimer & Affiliate Disclosure',
+    description:
+      'Bitcoinvestments is educational, not financial advice. Read the risks of crypto investing, how our affiliate links and sponsored content work, and our limits.',
+    keywords: [
+      'not financial advice',
+      'crypto risk disclaimer',
+      'affiliate disclosure',
+      'sponsored content',
     ],
   },
   reportScam: {

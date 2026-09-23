@@ -189,8 +189,16 @@ function PricingLive() {
   const lifetime = calculateLifetimeSavings();
 
   useEffect(() => {
-    setTaxYear(new Date().getFullYear() - 1);
-    setTaxSeasonActive(isTaxSeasonActive());
+    let cancelled = false;
+    // Deferred so the first client render matches a prerendered one.
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setTaxYear(new Date().getFullYear() - 1);
+      setTaxSeasonActive(isTaxSeasonActive());
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const taxPackageOnSale =

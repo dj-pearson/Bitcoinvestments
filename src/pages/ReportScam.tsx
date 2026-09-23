@@ -15,8 +15,23 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { createScamReport, SUPPORTED_BLOCKCHAINS } from '../services/scamDatabase';
 import type { ScamType, ScamSeverity, InsertScamReport } from '../types/admin-database';
+import { SEO } from '../components/SEO';
+import { defangUrl, isHttpUrl, looksLikeAddress, normalizeAddress } from '../lib/scamSafety';
 
-import { PageSEO } from '../components/PageSEO';
+/**
+ * Account-only community report form. The public "how to report a crypto
+ * scam" guide lives in HowToReportScam.tsx; this form only warns other
+ * readers and is not a report to law enforcement.
+ */
+function FormSEO() {
+  return (
+    <SEO
+      title="Submit a Community Scam Report"
+      description="Submit a community report about a crypto scam for moderator review. Reports warn other readers and do not replace a report to the FBI IC3 or FTC."
+      noindex
+    />
+  );
+}
 const SCAM_TYPES: { value: ScamType; label: string; description: string; icon: string }[] = [
   { value: 'phishing', label: 'Phishing', description: 'Fake websites/emails stealing credentials', icon: '🎣' },
   { value: 'ponzi', label: 'Ponzi Scheme', description: 'Fraudulent investment promising high returns', icon: '🔺' },
@@ -56,8 +71,6 @@ export function ReportScam() {
     token_symbol: '',
     contract_address: '',
     wallet_addresses: [],
-    email_addresses: [],
-    phone_numbers: [],
     red_flags: [],
     victims_count: 0,
     estimated_loss_usd: undefined,
@@ -67,32 +80,62 @@ export function ReportScam() {
   const [newWalletAddress, setNewWalletAddress] = useState('');
   const [newRedFlag, setNewRedFlag] = useState('');
   const [newEvidenceLink, setNewEvidenceLink] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
   function updateFormData(updates: Partial<InsertScamReport>) {
     setFormData((prev) => ({ ...prev, ...updates }));
   }
 
-  function addToArray(field: 'wallet_addresses' | 'email_addresses' | 'red_flags' | 'evidence_links', value: string) {
-    if (!value.trim()) return;
-    const current = formData[field] || [];
-    if (!current.includes(value.trim())) {
-      updateFormData({ [field]: [...current, value.trim()] });
+  function addToArray(field: 'wallet_addresses' | 'red_flags' | 'evidence_links', value: string): boolean {
+    let v = value.trim();
+    if (!v) return false;
+    if (field === 'wallet_addresses') {
+      if (!looksLikeAddress(v)) {
+        setFieldError('That does not look like a wallet address. Check it and try again.');
+        return false;
+      }
+      v = normalizeAddress(v);
     }
+    if (field === 'evidence_links' && !isHttpUrl(v)) {
+      setFieldError('Evidence links must start with http:// or https://.');
+      return false;
+    }
+    if (v.length > 500) {
+      setFieldError('That entry is too long.');
+      return false;
+    }
+    setFieldError(null);
+    const current = formData[field] || [];
+    if (current.length >= 25) {
+      setFieldError('You can add up to 25 entries.');
+      return false;
+    }
+    if (!current.includes(v)) {
+      updateFormData({ [field]: [...current, v] });
+    }
+    return true;
   }
 
-  function removeFromArray(field: 'wallet_addresses' | 'email_addresses' | 'red_flags' | 'evidence_links', index: number) {
+  function removeFromArray(field: 'wallet_addresses' | 'red_flags' | 'evidence_links', index: number) {
     const current = formData[field] || [];
     updateFormData({ [field]: current.filter((_, i) => i !== index) });
   }
 
-  function canProceed() {
+  function canProceed(): boolean {
     switch (step) {
       case 1:
         return !!formData.scam_type;
       case 2:
-        return formData.title && formData.title.length >= 10 && formData.description && formData.description.length >= 50;
+        return (
+          (formData.title?.trim().length ?? 0) >= 10 &&
+          (formData.description?.trim().length ?? 0) >= 50 &&
+          (!formData.website_url || isHttpUrl(formData.website_url))
+        );
       case 3:
-        return true; // Optional step
+        return (
+          !formData.contract_address ||
+          looksLikeAddress(formData.contract_address)
+        );
       case 4:
         return true; // Review step
       default:
@@ -121,7 +164,6 @@ export function ReportScam() {
         token_symbol: formData.token_symbol || null,
         contract_address: formData.contract_address || null,
         wallet_addresses: formData.wallet_addresses?.length ? formData.wallet_addresses : null,
-        email_addresses: formData.email_addresses?.length ? formData.email_addresses : null,
         red_flags: formData.red_flags?.length ? formData.red_flags : null,
         victims_count: formData.victims_count || 0,
         estimated_loss_usd: formData.estimated_loss_usd || null,
@@ -145,6 +187,7 @@ export function ReportScam() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+        <FormSEO />
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
             <Shield className="w-16 h-16 text-orange-500 mx-auto mb-4" />
@@ -167,12 +210,13 @@ export function ReportScam() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+        <FormSEO />
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Report Submitted!</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Thank you for helping protect the crypto community. Your report has been submitted and will be reviewed by our team.
+              Thank you. Your report is pending and will only be published after a moderator reviews it. If you lost money, also report it to the FBI at ic3.gov and the FTC at ReportFraud.ftc.gov.
             </p>
             <div className="flex justify-center gap-4">
               <Link
@@ -190,9 +234,15 @@ export function ReportScam() {
                     severity: 'medium',
                     title: '',
                     description: '',
+                    website_url: '',
+                    blockchain: '',
+                    token_name: '',
+                    token_symbol: '',
+                    contract_address: '',
                     wallet_addresses: [],
-                    email_addresses: [],
                     red_flags: [],
+                    victims_count: 0,
+                    estimated_loss_usd: undefined,
                     evidence_links: [],
                   });
                 }}
@@ -209,7 +259,7 @@ export function ReportScam() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <PageSEO pageKey="reportScam" urlPath="/report-scam" />
+      <FormSEO />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <Link
@@ -227,7 +277,17 @@ export function ReportScam() {
               <AlertTriangle className="w-8 h-8" />
               <h1 className="text-2xl font-bold">Report a Scam</h1>
             </div>
-            <p className="text-orange-100">Help protect the crypto community by reporting fraudulent projects</p>
+            <p className="text-orange-100">Warn other readers about a scam. Reports are reviewed before they are published.</p>
+          </div>
+
+          <div className="px-6 pt-4">
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-sm text-blue-900 dark:text-blue-100">
+              This form is not a report to law enforcement. If you lost money, file with the{' '}
+              <a href="https://www.ic3.gov/" target="_blank" rel="noopener noreferrer" className="underline">FBI (ic3.gov)</a>{' '}
+              and the{' '}
+              <a href="https://reportfraud.ftc.gov/" target="_blank" rel="noopener noreferrer" className="underline">FTC</a>, and
+              contact your exchange. Never pay anyone who offers to recover your crypto.
+            </div>
           </div>
 
           {/* Progress Steps */}
@@ -263,8 +323,13 @@ export function ReportScam() {
 
           {/* Form Content */}
           <div className="p-6">
+            {fieldError && (
+              <div role="alert" className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-900 dark:text-amber-100">
+                {fieldError}
+              </div>
+            )}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+              <div role="alert" className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
                 {error}
               </div>
             )}
@@ -277,6 +342,8 @@ export function ReportScam() {
                   {SCAM_TYPES.map((type) => (
                     <button
                       key={type.value}
+                      type="button"
+                      aria-pressed={formData.scam_type === type.value}
                       onClick={() => updateFormData({ scam_type: type.value })}
                       className={`p-4 rounded-lg border-2 text-left transition-all ${
                         formData.scam_type === type.value
@@ -285,7 +352,7 @@ export function ReportScam() {
                       }`}
                     >
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{type.icon}</span>
+                        <span className="text-2xl" aria-hidden="true">{type.icon}</span>
                         <span className="font-medium text-gray-900 dark:text-white">{type.label}</span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{type.description}</p>
@@ -300,6 +367,8 @@ export function ReportScam() {
                     {SEVERITY_OPTIONS.map((sev) => (
                       <button
                         key={sev.value}
+                        type="button"
+                        aria-pressed={formData.severity === sev.value}
                         onClick={() => updateFormData({ severity: sev.value })}
                         className={`p-3 rounded-lg border-2 text-center transition-all ${
                           formData.severity === sev.value
@@ -323,11 +392,12 @@ export function ReportScam() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Describe the scam</h2>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="report-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Title *
                   </label>
                   <input
                     type="text"
+                    id="report-title"
                     value={formData.title}
                     onChange={(e) => updateFormData({ title: e.target.value })}
                     placeholder="e.g., Fake MetaMask website stealing seed phrases"
@@ -339,10 +409,11 @@ export function ReportScam() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="report-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Description *
                   </label>
                   <textarea
+                    id="report-description"
                     value={formData.description}
                     onChange={(e) => updateFormData({ description: e.target.value })}
                     placeholder="Describe how the scam works, what happened, and any other relevant details..."
@@ -356,24 +427,29 @@ export function ReportScam() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      <Globe className="w-4 h-4 inline mr-1" />
+                    <label htmlFor="report-website" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <Globe className="w-4 h-4 inline mr-1" aria-hidden="true" />
                       Website URL
                     </label>
                     <input
+                      id="report-website"
                       type="url"
                       value={formData.website_url ?? ''}
                       onChange={(e) => updateFormData({ website_url: e.target.value })}
                       placeholder="https://scam-website.com"
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
+                    {formData.website_url && !isHttpUrl(formData.website_url) && (
+                      <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">Enter the full address, starting with http:// or https://.</p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="report-chain" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Blockchain
                     </label>
                     <select
+                      id="report-chain"
                       value={formData.blockchain ?? ''}
                       onChange={(e) => updateFormData({ blockchain: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -388,10 +464,11 @@ export function ReportScam() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="report-token-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Token Name
                     </label>
                     <input
+                      id="report-token-name"
                       type="text"
                       value={formData.token_name ?? ''}
                       onChange={(e) => updateFormData({ token_name: e.target.value })}
@@ -401,10 +478,11 @@ export function ReportScam() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="report-token-symbol" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Token Symbol
                     </label>
                     <input
+                      id="report-token-symbol"
                       type="text"
                       value={formData.token_symbol ?? ''}
                       onChange={(e) => updateFormData({ token_symbol: e.target.value.toUpperCase() })}
@@ -424,11 +502,12 @@ export function ReportScam() {
 
                 {/* Contract Address */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <FileCode className="w-4 h-4 inline mr-1" />
+                  <label htmlFor="report-contract" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <FileCode className="w-4 h-4 inline mr-1" aria-hidden="true" />
                     Contract Address
                   </label>
                   <input
+                    id="report-contract"
                     type="text"
                     value={formData.contract_address ?? ''}
                     onChange={(e) => updateFormData({ contract_address: e.target.value })}
@@ -439,12 +518,13 @@ export function ReportScam() {
 
                 {/* Wallet Addresses */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Wallet className="w-4 h-4 inline mr-1" />
-                    Known Scam Wallet Addresses
+                  <label htmlFor="report-wallet" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <Wallet className="w-4 h-4 inline mr-1" aria-hidden="true" />
+                    Wallet addresses you sent funds to
                   </label>
                   <div className="flex gap-2 mb-2">
                     <input
+                      id="report-wallet"
                       type="text"
                       value={newWalletAddress}
                       onChange={(e) => setNewWalletAddress(e.target.value)}
@@ -452,9 +532,10 @@ export function ReportScam() {
                       className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
                     />
                     <button
+                      type="button"
+                      aria-label="Add wallet address"
                       onClick={() => {
-                        addToArray('wallet_addresses', newWalletAddress);
-                        setNewWalletAddress('');
+                        if (addToArray('wallet_addresses', newWalletAddress)) setNewWalletAddress('');
                       }}
                       className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
                     >
@@ -466,7 +547,7 @@ export function ReportScam() {
                       {formData.wallet_addresses.map((addr, index) => (
                         <div key={index} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded">
                           <code className="text-sm flex-1 truncate">{addr}</code>
-                          <button onClick={() => removeFromArray('wallet_addresses', index)} className="text-red-500 hover:text-red-700">
+                          <button type="button" aria-label={`Remove address ${addr}`} onClick={() => removeFromArray('wallet_addresses', index)} className="text-red-500 hover:text-red-700">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
@@ -477,12 +558,13 @@ export function ReportScam() {
 
                 {/* Red Flags */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <AlertTriangle className="w-4 h-4 inline mr-1" />
+                  <label htmlFor="report-red-flag" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <AlertTriangle className="w-4 h-4 inline mr-1" aria-hidden="true" />
                     Red Flags
                   </label>
                   <div className="flex gap-2 mb-2">
                     <input
+                      id="report-red-flag"
                       type="text"
                       value={newRedFlag}
                       onChange={(e) => setNewRedFlag(e.target.value)}
@@ -490,9 +572,10 @@ export function ReportScam() {
                       className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                     <button
+                      type="button"
+                      aria-label="Add red flag"
                       onClick={() => {
-                        addToArray('red_flags', newRedFlag);
-                        setNewRedFlag('');
+                        if (addToArray('red_flags', newRedFlag)) setNewRedFlag('');
                       }}
                       className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
                     >
@@ -504,7 +587,7 @@ export function ReportScam() {
                       {formData.red_flags.map((flag, index) => (
                         <span key={index} className="flex items-center gap-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-3 py-1 rounded-full text-sm">
                           {flag}
-                          <button onClick={() => removeFromArray('red_flags', index)} className="hover:text-red-900">
+                          <button type="button" aria-label={`Remove red flag ${flag}`} onClick={() => removeFromArray('red_flags', index)} className="hover:text-red-900">
                             <X className="w-3 h-3" />
                           </button>
                         </span>
@@ -515,11 +598,12 @@ export function ReportScam() {
 
                 {/* Evidence Links */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Evidence Links
+                  <label htmlFor="report-evidence" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Evidence Links (news articles, regulator warnings, block explorer pages)
                   </label>
                   <div className="flex gap-2 mb-2">
                     <input
+                      id="report-evidence"
                       type="url"
                       value={newEvidenceLink}
                       onChange={(e) => setNewEvidenceLink(e.target.value)}
@@ -527,9 +611,10 @@ export function ReportScam() {
                       className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                     <button
+                      type="button"
+                      aria-label="Add evidence link"
                       onClick={() => {
-                        addToArray('evidence_links', newEvidenceLink);
-                        setNewEvidenceLink('');
+                        if (addToArray('evidence_links', newEvidenceLink)) setNewEvidenceLink('');
                       }}
                       className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
                     >
@@ -540,10 +625,8 @@ export function ReportScam() {
                     <div className="space-y-2">
                       {formData.evidence_links.map((link, index) => (
                         <div key={index} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded">
-                          <a href={link} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline flex-1 truncate text-sm">
-                            {link}
-                          </a>
-                          <button onClick={() => removeFromArray('evidence_links', index)} className="text-red-500 hover:text-red-700">
+                          <span className="flex-1 truncate text-sm font-mono text-gray-700 dark:text-gray-300">{defangUrl(link)}</span>
+                          <button type="button" aria-label="Remove evidence link" onClick={() => removeFromArray('evidence_links', index)} className="text-red-500 hover:text-red-700">
                             <X className="w-4 h-4" />
                           </button>
                         </div>
@@ -555,13 +638,14 @@ export function ReportScam() {
                 {/* Estimated Impact */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="report-victims" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Estimated Victims
                     </label>
                     <input
+                      id="report-victims"
                       type="number"
                       value={formData.victims_count || ''}
-                      onChange={(e) => updateFormData({ victims_count: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => updateFormData({ victims_count: Math.min(10_000_000, Math.max(0, parseInt(e.target.value, 10) || 0)) })}
                       placeholder="0"
                       min="0"
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -569,13 +653,17 @@ export function ReportScam() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="report-loss" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Estimated Loss (USD)
                     </label>
                     <input
+                      id="report-loss"
                       type="number"
                       value={formData.estimated_loss_usd || ''}
-                      onChange={(e) => updateFormData({ estimated_loss_usd: parseInt(e.target.value) || undefined })}
+                      onChange={(e) => {
+                        const n = parseFloat(e.target.value);
+                        updateFormData({ estimated_loss_usd: Number.isFinite(n) && n >= 0 ? Math.min(n, 100_000_000_000) : undefined });
+                      }}
                       placeholder="0"
                       min="0"
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -609,7 +697,7 @@ export function ReportScam() {
                   {formData.website_url && (
                     <div>
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Website</div>
-                      <p className="text-gray-900 dark:text-white">{formData.website_url}</p>
+                      <p className="text-gray-900 dark:text-white font-mono break-all">{defangUrl(formData.website_url)}</p>
                     </div>
                   )}
 
@@ -655,6 +743,7 @@ export function ReportScam() {
             {/* Navigation */}
             <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
+                type="button"
                 onClick={() => setStep(Math.max(1, step - 1))}
                 disabled={step === 1}
                 className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -664,6 +753,7 @@ export function ReportScam() {
 
               {step < 4 ? (
                 <button
+                  type="button"
                   onClick={() => setStep(step + 1)}
                   disabled={!canProceed()}
                   className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium"
@@ -672,6 +762,7 @@ export function ReportScam() {
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-lg font-medium flex items-center gap-2"

@@ -22,7 +22,7 @@ export function slugify(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 }
@@ -56,6 +56,8 @@ const str = (v: unknown, fallback = ''): string => (typeof v === 'string' ? v : 
 const strOrNull = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
 const num = (v: unknown, fallback = 0): number => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 const strArr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+/** Only absolute http(s) URLs are rendered as links or images. */
+const isWebUrl = (v: string): boolean => /^https?:\/\//i.test(v);
 
 export function normalizeAuthor(row: Row | null | undefined): BlogAuthor | null {
   if (!row || typeof row !== 'object' || !row.id || !row.display_name) return null;
@@ -65,8 +67,8 @@ export function normalizeAuthor(row: Row | null | undefined): BlogAuthor | null 
     display_name: str(row.display_name),
     bio: strOrNull(row.bio),
     credentials: strOrNull(row.credentials),
-    avatar_url: strOrNull(row.avatar_url),
-    profile_links: strArr(row.profile_links),
+    avatar_url: ((u) => (u && isWebUrl(u) ? u : null))(strOrNull(row.avatar_url)),
+    profile_links: strArr(row.profile_links).filter(isWebUrl),
   };
 }
 

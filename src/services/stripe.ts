@@ -452,11 +452,7 @@ export async function createLifetimeCheckoutSession(
         userEmail,
         successUrl,
         cancelUrl,
-        mode: 'payment', // One-time payment instead of subscription
-        metadata: {
-          type: 'lifetime',
-          tier: 'lifetime',
-        },
+        // The server derives mode ('payment') and product type from the price ID.
       }),
     });
 

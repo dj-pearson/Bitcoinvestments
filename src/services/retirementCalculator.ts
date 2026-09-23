@@ -1,618 +1,569 @@
 /**
- * Crypto Retirement Calculator Service
+ * Crypto retirement calculator engine.
  *
- * Model crypto allocation in retirement portfolio with:
- * - Monte Carlo projections
- * - Tax implications
- * - Withdrawal strategies
- *
- * Premium at $99/year or bundled with main subscription.
+ * Model (documented on the page under "How this calculator works"):
+ *  - Everything is in TODAY'S dollars. Nominal return assumptions are converted
+ *    to real returns with the inflation input, and spending, Social Security and
+ *    tax brackets stay in today's dollars. That is equivalent to inflating all of
+ *    them every year (Social Security and federal brackets are CPI-indexed), and
+ *    it keeps every figure on the page comparable with today's prices.
+ *  - Two sleeves: non-crypto savings (a stock/bond mix) and crypto. New monthly
+ *    contributions are split between them by the "crypto share" slider.
+ *  - One return model everywhere: each sleeve's annual gross return is
+ *    lognormal with the given average and volatility (it can never fall below
+ *    -100%). The year-by-year table uses the median of that distribution; the
+ *    Monte Carlo draws from it. Accumulation and retirement use the same mix.
+ *  - Retirement withdrawals cover spending minus guaranteed income, grossed up
+ *    for federal + state tax on the withdrawal (current-year brackets, standard
+ *    deduction, 0/15/20% stacking for crypto gains, simplified Social Security
+ *    taxation). Withdrawals come from both sleeves in proportion to their value.
  */
 
-import type {
-  RetirementInputs,
-  RetirementProjection,
-  MonteCarloResult,
-} from '../types/premiumFeatures';
 import {
-  FEDERAL_TAX_BRACKETS_2024,
-  CAPITAL_GAINS_BRACKETS_2024,
-  PREMIUM_FEATURES_PRICING,
-} from '../types/premiumFeatures';
+  DEFAULT_TAX_YEAR,
+  computeFederalTax,
+  getFederalTaxData,
+  type FilingStatus,
+} from '../data/taxBrackets';
+import { estimateStateCapitalGainsTax, stateRateFor, STATE_TAX_BY_CODE } from '../data/stateTaxRates';
 
-// Retirement Calculator Pricing
-export const RETIREMENT_CALCULATOR_PRICING = {
-  free: {
-    id: 'retirement-calc-free',
-    name: 'Retirement Calculator Free',
-    price: 0,
-    features: [
-      'Basic retirement projections',
-      '3 saved scenarios',
-      'Simple crypto allocation',
-      'Basic charts',
-    ],
-    limits: {
-      maxScenarios: 3,
-      hasMonteCarlo: false,
-      hasTaxOptimization: false,
-      hasPdfExport: false,
-      hasAdvisorReview: false,
-    },
-  },
-  premium: {
-    id: 'retirement-calc-premium',
-    name: 'Retirement Planner Pro',
-    price_yearly: PREMIUM_FEATURES_PRICING.retirement_calculator.premium_yearly,
-    features: [
-      'Monte Carlo simulations (10,000 runs)',
-      'Unlimited saved scenarios',
-      'Advanced crypto modeling',
-      'Tax optimization strategies',
-      'Roth conversion analysis',
-      'Withdrawal strategy optimization',
-      'PDF export with charts',
-      'Social Security optimization',
-    ],
-    limits: {
-      maxScenarios: Infinity,
-      hasMonteCarlo: true,
-      hasTaxOptimization: true,
-      hasPdfExport: true,
-      hasAdvisorReview: false,
-    },
-    stripePriceId: import.meta.env.VITE_STRIPE_RETIREMENT_YEARLY || 'price_retirement_yearly',
-  },
-} as const;
+export type NonCryptoAccountType = 'pre_tax' | 'roth' | 'taxable';
 
-// Default inputs for new calculations
-export const DEFAULT_RETIREMENT_INPUTS: RetirementInputs = {
+export interface RetirementPlanInputs {
+  current_age: number;
+  retirement_age: number;
+  life_expectancy: number;
+  /** Non-crypto retirement savings today ($). */
+  current_savings: number;
+  /** Crypto holdings today ($). */
+  current_crypto: number;
+  /** What you paid for the crypto you hold today ($); used to estimate taxable gains. */
+  crypto_cost_basis: number;
+  /** Total monthly saving ($), split by crypto_contribution_percent. */
+  monthly_contribution: number;
+  /** Share of each month's saving that buys crypto (0-100). */
+  crypto_contribution_percent: number;
+  /** Real (after-inflation) yearly growth of contributions, %. */
+  contribution_growth: number;
+  /** Spending needed per year in retirement, today's $. */
+  desired_annual_income: number;
+  /** Social Security per year, today's $. */
+  social_security_income: number;
+  social_security_start_age: number;
+  /** Other inflation-adjusted income per year in retirement (pension etc.), today's $. */
+  other_income: number;
+  account_type: NonCryptoAccountType;
+  filing_status: FilingStatus;
+  state: string;
+  /** Decimal assumptions (nominal, before inflation). */
+  inflation_rate: number;
+  stock_return: number;
+  bond_return: number;
+  /** Share of non-crypto savings in stocks (0-100). */
+  stock_percent: number;
+  crypto_return: number;
+  crypto_volatility: number;
+}
+
+/** Volatilities for the non-crypto sleeve (annual standard deviation). */
+export const STOCK_VOLATILITY = 0.16;
+export const BOND_VOLATILITY = 0.06;
+
+/**
+ * Default assumptions. Sources for the page's assumptions table:
+ *  - Inflation 2.5%: close to the Fed's 2% target plus recent overshoot; CPI
+ *    averaged ~2.5-3% over the last 30 years (BLS CPI-U).
+ *  - Stocks 7% nominal: below the ~10% US large-cap average since 1926
+ *    (S&P 500 total return), in line with lower forward-looking estimates.
+ *  - Bonds 4% nominal: roughly today's intermediate Treasury / aggregate bond yield.
+ *  - Crypto 15% average with 55% volatility: an assumption, not a forecast.
+ *    Bitcoin's realised annual volatility has mostly ranged 40-80%; there is no
+ *    reliable long-run expected return for crypto.
+ */
+export const DEFAULT_RETIREMENT_INPUTS: RetirementPlanInputs = {
   current_age: 35,
   retirement_age: 65,
-  life_expectancy: 90,
-  current_savings_usd: 100000,
-  current_crypto_value_usd: 25000,
-  crypto_allocation_percent: 20,
-  monthly_contribution: 1000,
-  monthly_crypto_contribution: 200,
-  contribution_increase_rate: 3,
-  desired_annual_income: 80000,
+  life_expectancy: 92,
+  current_savings: 100000,
+  current_crypto: 20000,
+  crypto_cost_basis: 15000,
+  monthly_contribution: 1200,
+  crypto_contribution_percent: 10,
+  contribution_growth: 1,
+  desired_annual_income: 70000,
   social_security_income: 24000,
-  pension_income: 0,
+  social_security_start_age: 67,
   other_income: 0,
-  crypto_allocations: [
-    { asset_class: 'crypto', asset_name: 'Bitcoin', symbol: 'BTC', allocation_percent: 60, expected_return: 0.15, volatility: 0.60, correlation_to_stocks: 0.4 },
-    { asset_class: 'crypto', asset_name: 'Ethereum', symbol: 'ETH', allocation_percent: 30, expected_return: 0.20, volatility: 0.70, correlation_to_stocks: 0.45 },
-    { asset_class: 'crypto', asset_name: 'Stablecoins', symbol: 'USDC', allocation_percent: 10, expected_return: 0.05, volatility: 0.02, correlation_to_stocks: 0.1 },
-  ],
-  rebalancing_frequency: 'quarterly',
-  tax_filing_status: 'single',
-  state: 'CA',
-  current_tax_bracket: 0.24,
-  expected_retirement_tax_bracket: 0.22,
-  inflation_rate: 0.03,
+  account_type: 'pre_tax',
+  filing_status: 'single',
+  state: 'TX',
+  inflation_rate: 0.025,
   stock_return: 0.07,
   bond_return: 0.04,
-  crypto_return: 0.12,
-  crypto_volatility: 0.60,
+  stock_percent: 60,
+  crypto_return: 0.15,
+  crypto_volatility: 0.55,
 };
 
-// State tax rates (simplified)
-export const STATE_TAX_RATES: Record<string, number> = {
-  AL: 0.05, AK: 0, AZ: 0.045, AR: 0.055, CA: 0.093, CO: 0.044, CT: 0.0699,
-  DE: 0.066, FL: 0, GA: 0.055, HI: 0.0825, ID: 0.058, IL: 0.0495, IN: 0.0315,
-  IA: 0.06, KS: 0.057, KY: 0.05, LA: 0.0425, ME: 0.0715, MD: 0.0575,
-  MA: 0.05, MI: 0.0425, MN: 0.0785, MS: 0.05, MO: 0.049, MT: 0.0575,
-  NE: 0.0664, NV: 0, NH: 0, NJ: 0.0897, NM: 0.049, NY: 0.0685, NC: 0.0525,
-  ND: 0.029, OH: 0.04, OK: 0.0475, OR: 0.099, PA: 0.0307, RI: 0.0599,
-  SC: 0.065, SD: 0, TN: 0, TX: 0, UT: 0.0485, VT: 0.0875, VA: 0.0575,
-  WA: 0, WV: 0.065, WI: 0.0765, WY: 0,
-};
+export interface YearRow {
+  age: number;
+  contributions: number;
+  crypto_value: number;
+  traditional_value: number;
+  portfolio_value: number;
+  /** Gross withdrawal (spending gap + tax). */
+  withdrawals: number;
+  taxes: number;
+  guaranteed_income: number;
+  spending: number;
+}
 
-/**
- * Calculate retirement projection
- */
-export function calculateRetirementProjection(
-  inputs: RetirementInputs,
-  userId?: string | null
-): RetirementProjection {
-  const yearsToRetirement = inputs.retirement_age - inputs.current_age;
-  const yearsInRetirement = inputs.life_expectancy - inputs.retirement_age;
+export interface RetirementResult {
+  inputs: RetirementPlanInputs;
+  years_to_retirement: number;
+  years_in_retirement: number;
+  /** Portfolio at the start of the retirement year, before the first withdrawal. */
+  projected_savings_at_retirement: number;
+  /** Savings needed at retirement to last to life expectancy (median returns). */
+  total_needed_at_retirement: number;
+  /** projected / needed; Infinity when guaranteed income covers all spending. */
+  funding_ratio: number;
+  funding_gap: number;
+  /** Age the median-path portfolio runs out, or null if it lasts. */
+  depletion_age: number | null;
+  yearly: YearRow[];
+  monte_carlo: MonteCarloSummary;
+  lifetime_taxes: number;
+  lifetime_withdrawals: number;
+  what_if: WhatIf[];
+}
 
-  // Calculate year-by-year projections
-  const yearlyProjections = calculateYearlyProjections(inputs, yearsToRetirement, yearsInRetirement);
+export interface MonteCarloSummary {
+  simulations: number;
+  /** % of simulations that funded spending every year to life expectancy. */
+  success_probability: number;
+  /** Ending balance percentiles (today's $, 0 when depleted). */
+  percentiles: { percentile: number; ending_balance: number }[];
+  /** Median age at which failing runs ran out, or null. */
+  median_depletion_age: number | null;
+}
 
-  // Calculate total needed at retirement
-  const inflationAdjustedIncome = inputs.desired_annual_income * Math.pow(1 + inputs.inflation_rate, yearsToRetirement);
-  const guaranteedIncome = inputs.social_security_income + inputs.pension_income + inputs.other_income;
-  const annualShortfall = inflationAdjustedIncome - guaranteedIncome;
-  const totalNeeded = calculatePresentValue(annualShortfall, inputs.stock_return - inputs.inflation_rate, yearsInRetirement);
+export interface WhatIf {
+  label: string;
+  description: string;
+  success_probability: number;
+  change: number;
+}
 
-  // Get projected savings at retirement
-  const retirementYear = yearlyProjections.find(y => y.age === inputs.retirement_age);
-  const projectedSavings = retirementYear?.portfolio_value || 0;
+export interface ValidationError {
+  field: keyof RetirementPlanInputs;
+  message: string;
+}
 
-  // Funding analysis
-  const fundingGap = totalNeeded - projectedSavings;
-  const fundingRatio = projectedSavings / totalNeeded;
+export function validateInputs(i: RetirementPlanInputs): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const num = (v: number) => Number.isFinite(v);
+  if (!num(i.current_age) || i.current_age < 16 || i.current_age > 100) {
+    errors.push({ field: 'current_age', message: 'Current age must be between 16 and 100.' });
+  }
+  if (!num(i.retirement_age) || i.retirement_age <= i.current_age) {
+    errors.push({ field: 'retirement_age', message: 'Retirement age must be after your current age.' });
+  }
+  if (!num(i.life_expectancy) || i.life_expectancy <= i.retirement_age || i.life_expectancy > 120) {
+    errors.push({ field: 'life_expectancy', message: 'Plan-to age must be after retirement age (max 120).' });
+  }
+  for (const f of ['current_savings', 'current_crypto', 'crypto_cost_basis', 'monthly_contribution', 'desired_annual_income', 'social_security_income', 'other_income'] as const) {
+    if (!num(i[f]) || i[f] < 0) errors.push({ field: f, message: 'Enter an amount of $0 or more.' });
+  }
+  if (i.crypto_volatility < 0 || i.crypto_volatility > 2) {
+    errors.push({ field: 'crypto_volatility', message: 'Volatility should be between 0% and 200%.' });
+  }
+  if (i.inflation_rate <= -0.5 || i.inflation_rate > 0.5) {
+    errors.push({ field: 'inflation_rate', message: 'Inflation should be between -50% and 50%.' });
+  }
+  return errors;
+}
 
-  // Run Monte Carlo simulation
-  const { results: monteCarloResults, successProbability } = runMonteCarloSimulation(inputs, 1000);
+// ---------------------------------------------------------------------------
+// Return model
+// ---------------------------------------------------------------------------
 
-  // Tax analysis
-  const taxAnalysis = analyzeTaxStrategy(inputs, yearlyProjections);
+interface Lognormal {
+  mu: number;
+  sigma: number;
+}
 
-  // Generate recommendations
-  const recommendations = generateRecommendations(inputs, fundingRatio, successProbability);
+/** Lognormal parameters for a gross return with arithmetic mean `m` and s.d. `s`. */
+function lognormal(m: number, s: number): Lognormal {
+  const g = Math.max(1 + m, 0.01);
+  const sigma2 = Math.log(1 + (s * s) / (g * g));
+  return { mu: Math.log(g) - sigma2 / 2, sigma: Math.sqrt(sigma2) };
+}
 
+function toReal(nominal: number, inflation: number): number {
+  return (1 + nominal) / (1 + inflation) - 1;
+}
+
+interface ReturnModel {
+  traditional: Lognormal;
+  crypto: Lognormal;
+}
+
+function buildReturnModel(i: RetirementPlanInputs): ReturnModel {
+  const w = Math.min(100, Math.max(0, i.stock_percent)) / 100;
+  const mean = w * i.stock_return + (1 - w) * i.bond_return;
+  // Stocks and bonds treated as uncorrelated.
+  const sd = Math.sqrt((w * STOCK_VOLATILITY) ** 2 + ((1 - w) * BOND_VOLATILITY) ** 2);
   return {
-    id: `proj_${Date.now()}`,
-    user_id: userId || null,
-    inputs,
-    total_needed_at_retirement: totalNeeded,
-    projected_savings_at_retirement: projectedSavings,
-    funding_gap: fundingGap,
-    funding_ratio: fundingRatio,
-    years_to_retirement: yearsToRetirement,
-    years_in_retirement: yearsInRetirement,
-    yearly_projections: yearlyProjections,
-    monte_carlo_simulations: 1000,
-    success_probability: successProbability,
-    monte_carlo_results: monteCarloResults,
-    tax_analysis: taxAnalysis,
-    recommendations,
-    created_at: new Date().toISOString(),
+    traditional: lognormal(toReal(mean, i.inflation_rate), sd / (1 + i.inflation_rate)),
+    crypto: lognormal(toReal(i.crypto_return, i.inflation_rate), i.crypto_volatility / (1 + i.inflation_rate)),
   };
 }
 
-/**
- * Annual contribution streams for a given year of the accumulation phase.
- *
- * Defined once because the projection and the Monte Carlo used to disagree about
- * what the two inputs mean. The projection treated monthly_contribution as the
- * traditional stream and monthly_crypto_contribution as a separate crypto
- * stream; the Monte Carlo ignored monthly_crypto_contribution entirely and split
- * monthly_contribution by crypto_allocation_percent instead. With the default
- * inputs that is $1,200 a month against $1,000, and a user who puts everything
- * in the crypto field had their entire contribution modelled as zero by the
- * simulation that produces the success probability.
- *
- * The UI presents two separate dollar fields and reports their sum as the
- * annual contribution, so they are two independent streams. crypto_allocation_percent
- * describes the existing portfolio, not the contribution split.
- */
-function contributionsForYear(
-  inputs: RetirementInputs,
-  yearIndex: number
-): { traditional: number; crypto: number; total: number } {
-  const growth = Math.pow(1 + inputs.contribution_increase_rate / 100, yearIndex);
-  const traditional = inputs.monthly_contribution * 12 * growth;
-  const crypto = inputs.monthly_crypto_contribution * 12 * growth;
-  return { traditional, crypto, total: traditional + crypto };
+/** Median gross return factor. */
+const medianFactor = (l: Lognormal) => Math.exp(l.mu);
+
+/** Seeded PRNG (mulberry32) so identical inputs always give identical results. */
+function rng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-/**
- * Inflation multiplier applied to a spending figure quoted in today's dollars.
- *
- * `yearsFromToday` is counted from today, not from the retirement date. The
- * retirement phase used to restart the clock at retirement, so a 30-year
- * accumulation period applied no inflation at all to the first year of spending
- * while total_needed_at_retirement inflated the same figure by those 30 years -
- * the two headline numbers on the page were computed from contradictory
- * assumptions about the same input.
- */
-function inflationMultiplier(inputs: RetirementInputs, yearsFromToday: number): number {
-  return Math.pow(1 + inputs.inflation_rate, yearsFromToday);
+function gaussian(rand: () => number): number {
+  let u = 0;
+  while (u === 0) u = rand();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand());
 }
 
-/**
- * Calculate year-by-year projections
- */
-function calculateYearlyProjections(
-  inputs: RetirementInputs,
-  yearsToRetirement: number,
-  yearsInRetirement: number
-): RetirementProjection['yearly_projections'] {
-  const projections: RetirementProjection['yearly_projections'] = [];
+// ---------------------------------------------------------------------------
+// Taxes on a retirement year (today's dollars)
+// ---------------------------------------------------------------------------
 
-  let portfolioValue = inputs.current_savings_usd;
-  let cryptoValue = inputs.current_crypto_value_usd;
-  let traditionalValue = portfolioValue - cryptoValue;
-
-  const totalYears = yearsToRetirement + yearsInRetirement;
-
-  for (let year = 0; year <= totalYears; year++) {
-    const age = inputs.current_age + year;
-    const isRetired = age >= inputs.retirement_age;
-
-    let contributions = 0;
-    let withdrawals = 0;
-    let taxes = 0;
-
-    if (!isRetired) {
-      // Accumulation phase
-      const yearContributions = contributionsForYear(inputs, year);
-      contributions = yearContributions.total;
-
-      // Traditional growth. The crypto stream used to be SUBTRACTED here while
-      // also being added to the crypto side, so the money was counted out of one
-      // account and into the other instead of being new savings - the portfolio
-      // grew by the traditional amount alone while the page reported the sum of
-      // both as contributed.
-      traditionalValue = traditionalValue * (1 + inputs.stock_return * 0.6 + inputs.bond_return * 0.4);
-      traditionalValue += yearContributions.traditional;
-
-      // Crypto growth at the expected return. This projection is the
-      // deterministic plan the user reads off the table; it used to perturb the
-      // return with Math.random(), so identical inputs produced a different
-      // retirement number on every run and the table never reconciled with the
-      // Monte Carlo beside it. Uncertainty belongs in the simulation, which
-      // models it properly.
-      cryptoValue = cryptoValue * (1 + inputs.crypto_return);
-      cryptoValue += yearContributions.crypto;
-    } else {
-      // Retirement phase - withdrawals. Inflation runs from today, not from the
-      // retirement date, so spending quoted in today's dollars is escalated
-      // across the accumulation years too.
-      const inflationFactor = inflationMultiplier(inputs, year);
-      const neededIncome = inputs.desired_annual_income * inflationFactor;
-      const guaranteedIncome = (inputs.social_security_income + inputs.pension_income + inputs.other_income) * inflationFactor;
-
-      withdrawals = Math.max(0, neededIncome - guaranteedIncome);
-
-      // Calculate taxes on withdrawals
-      taxes = calculateWithdrawalTaxes(withdrawals, inputs, traditionalValue, cryptoValue);
-
-      // Adjust for taxes
-      withdrawals += taxes;
-
-      // Withdraw proportionally
-      const cryptoWithdrawal = withdrawals * (cryptoValue / (cryptoValue + traditionalValue));
-      const traditionalWithdrawal = withdrawals - cryptoWithdrawal;
-
-      cryptoValue = Math.max(0, cryptoValue - cryptoWithdrawal);
-      traditionalValue = Math.max(0, traditionalValue - traditionalWithdrawal);
-
-      // Apply growth to remaining
-      if (cryptoValue > 0) {
-        const cryptoReturn = inputs.crypto_return * 0.5; // More conservative in retirement
-        cryptoValue *= (1 + cryptoReturn);
-      }
-      if (traditionalValue > 0) {
-        traditionalValue *= (1 + inputs.stock_return * 0.4 + inputs.bond_return * 0.6);
-      }
-    }
-
-    portfolioValue = traditionalValue + cryptoValue;
-
-    projections.push({
-      year: new Date().getFullYear() + year,
-      age,
-      contributions,
-      portfolio_value: Math.round(portfolioValue),
-      crypto_value: Math.round(cryptoValue),
-      traditional_value: Math.round(traditionalValue),
-      withdrawals: Math.round(withdrawals),
-      taxes: Math.round(taxes),
-      inflation_adjusted_income: Math.round(inputs.desired_annual_income * Math.pow(1 + inputs.inflation_rate, year)),
-    });
-  }
-
-  return projections;
+/** Taxable part of Social Security (simplified IRC §86 formula, thresholds not indexed). */
+function taxableSocialSecurity(ss: number, otherIncome: number, status: FilingStatus): number {
+  if (ss <= 0) return 0;
+  const [base1, base2] =
+    status === 'married_filing_jointly' ? [32000, 44000] : status === 'married_filing_separately' ? [0, 0] : [25000, 34000];
+  const provisional = otherIncome + ss / 2;
+  if (provisional <= base1) return 0;
+  const tier1 = Math.min(0.5 * (provisional - base1), 0.5 * (base2 - base1));
+  const tier2 = 0.85 * Math.max(0, provisional - base2);
+  return Math.min(0.85 * ss, tier1 + tier2);
 }
 
-/**
- * Calculate present value of annuity
- */
-function calculatePresentValue(annualPayment: number, rate: number, years: number): number {
-  if (rate === 0) return annualPayment * years;
-  return annualPayment * (1 - Math.pow(1 + rate, -years)) / rate;
+interface YearTaxInput {
+  inputs: RetirementPlanInputs;
+  traditionalWithdrawal: number;
+  cryptoGain: number;
+  socialSecurity: number;
+  otherIncome: number;
 }
 
-/**
- * Calculate taxes on retirement withdrawals
- */
-function calculateWithdrawalTaxes(
-  withdrawal: number,
-  inputs: RetirementInputs,
-  traditionalBalance: number,
-  cryptoBalance: number
-): number {
-  const totalBalance = traditionalBalance + cryptoBalance;
-  if (totalBalance === 0) return 0;
-
-  // Portion from traditional (taxed as income)
-  const traditionalPortion = withdrawal * (traditionalBalance / totalBalance);
-  const incomeTax = calculateIncomeTax(traditionalPortion, inputs.tax_filing_status);
-
-  // Portion from crypto (taxed as capital gains - assume long-term)
-  const cryptoPortion = withdrawal * (cryptoBalance / totalBalance);
-  // Assume 50% of crypto is gains
-  const cryptoGains = cryptoPortion * 0.5;
-  const capitalGainsTax = calculateCapitalGainsTax(cryptoGains, inputs.tax_filing_status);
-
-  // State tax
-  const stateRate = STATE_TAX_RATES[inputs.state] || 0;
-  const stateTax = withdrawal * stateRate;
-
-  return incomeTax + capitalGainsTax + stateTax;
-}
-
-/**
- * Calculate federal income tax
- */
-function calculateIncomeTax(income: number, status: 'single' | 'married_filing_jointly' | 'married_filing_separately' | 'head_of_household'): number {
-  const brackets = status === 'married_filing_jointly'
-    ? FEDERAL_TAX_BRACKETS_2024.married_filing_jointly
-    : FEDERAL_TAX_BRACKETS_2024.single;
-
-  let tax = 0;
-  let remainingIncome = income;
-
-  for (const bracket of brackets) {
-    const taxableInBracket = Math.min(remainingIncome, bracket.max - bracket.min);
-    if (taxableInBracket <= 0) break;
-
-    tax += taxableInBracket * bracket.rate;
-    remainingIncome -= taxableInBracket;
-  }
-
-  return tax;
-}
-
-/**
- * Calculate capital gains tax
- */
-function calculateCapitalGainsTax(gains: number, status: 'single' | 'married_filing_jointly' | 'married_filing_separately' | 'head_of_household'): number {
-  const brackets = status === 'married_filing_jointly'
-    ? CAPITAL_GAINS_BRACKETS_2024.married_filing_jointly
-    : CAPITAL_GAINS_BRACKETS_2024.single;
-
-  let tax = 0;
-  let remainingGains = gains;
-
-  for (const bracket of brackets) {
-    const taxableInBracket = Math.min(remainingGains, bracket.max - bracket.min);
-    if (taxableInBracket <= 0) break;
-
-    tax += taxableInBracket * bracket.rate;
-    remainingGains -= taxableInBracket;
-  }
-
-  return tax;
-}
-
-/**
- * Run Monte Carlo simulation
- */
-function runMonteCarloSimulation(
-  inputs: RetirementInputs,
-  simulations: number
-): { results: MonteCarloResult[]; successProbability: number } {
-  const results: number[] = [];
-  let depletedCount = 0;
-  const yearsToRetirement = inputs.retirement_age - inputs.current_age;
-  const yearsInRetirement = inputs.life_expectancy - inputs.retirement_age;
-
-  for (let sim = 0; sim < simulations; sim++) {
-    let portfolioValue = inputs.current_savings_usd;
-    let cryptoValue = inputs.current_crypto_value_usd;
-    let traditionalValue = portfolioValue - cryptoValue;
-    let depleted = false;
-
-    // Accumulation phase with random returns
-    for (let year = 0; year < yearsToRetirement; year++) {
-      // Random returns based on historical volatility
-      const stockReturn = normalRandom(inputs.stock_return, 0.15);
-      const bondReturn = normalRandom(inputs.bond_return, 0.05);
-      const cryptoReturn = normalRandom(inputs.crypto_return, inputs.crypto_volatility);
-
-      // Same two contribution streams the projection uses. This previously split
-      // monthly_contribution by crypto_allocation_percent and ignored
-      // monthly_crypto_contribution altogether, so the simulation behind the
-      // success probability was funding a different plan from the table.
-      const yearContributions = contributionsForYear(inputs, year);
-
-      traditionalValue *= (1 + stockReturn * 0.6 + bondReturn * 0.4);
-      traditionalValue += yearContributions.traditional;
-
-      cryptoValue *= (1 + cryptoReturn);
-      cryptoValue += yearContributions.crypto;
-    }
-
-    // Retirement phase
-    for (let year = 0; year < yearsInRetirement; year++) {
-      // Counted from today, matching the projection and total_needed_at_retirement.
-      const inflationFactor = inflationMultiplier(inputs, yearsToRetirement + year);
-      const neededIncome = inputs.desired_annual_income * inflationFactor;
-      // other_income was omitted here but counted everywhere else.
-      const guaranteedIncome =
-        (inputs.social_security_income + inputs.pension_income + inputs.other_income) * inflationFactor;
-      const withdrawal = Math.max(0, neededIncome - guaranteedIncome);
-
-      portfolioValue = traditionalValue + cryptoValue;
-
-      if (portfolioValue < withdrawal) {
-        // The portfolio could not fund this year's income. That is a failed
-        // retirement, and it has to be recorded as one: the loop leaves behind
-        // whatever was left over, which is positive but smaller than a single
-        // year's withdrawal, and success used to be judged purely on that
-        // remainder being above zero - so running out of money at 70 counted as
-        // a success.
-        depleted = true;
-        break;
-      }
-
-      // Withdraw and apply returns
-      const cryptoPortion = cryptoValue / portfolioValue;
-      cryptoValue -= withdrawal * cryptoPortion;
-      traditionalValue -= withdrawal * (1 - cryptoPortion);
-
-      const stockReturn = normalRandom(inputs.stock_return * 0.6, 0.12);
-      const cryptoReturn = normalRandom(inputs.crypto_return * 0.5, inputs.crypto_volatility * 0.8);
-
-      traditionalValue *= (1 + stockReturn);
-      cryptoValue *= (1 + cryptoReturn);
-    }
-
-    results.push(traditionalValue + cryptoValue);
-    if (depleted) depletedCount++;
-  }
-
-  // Calculate percentile results
-  results.sort((a, b) => a - b);
-
-  const percentiles = [5, 10, 25, 50, 75, 90, 95];
-  const percentileResults = percentiles.map(p => {
-    const index = Math.min(results.length - 1, Math.floor((p / 100) * results.length));
-    const ending = results[index] || 0;
-    const success = ending > 0;
-
-    return {
-      percentile: p,
-      ending_balance: Math.round(ending),
-      probability_of_success: success ? 1 : 0,
-      years_portfolio_lasts: success ? yearsInRetirement : Math.floor(yearsInRetirement * (ending / inputs.desired_annual_income)),
-      annual_withdrawals: [],
-    };
+function yearTax({ inputs, traditionalWithdrawal, cryptoGain, socialSecurity, otherIncome }: YearTaxInput): number {
+  const data = getFederalTaxData(DEFAULT_TAX_YEAR, inputs.filing_status);
+  const ordinaryWithdrawal = inputs.account_type === 'pre_tax' ? traditionalWithdrawal : 0;
+  // Taxable-account withdrawals: treat half as long-term gain (no basis tracking for this sleeve).
+  const taxableGain = inputs.account_type === 'taxable' ? traditionalWithdrawal * 0.5 : 0;
+  const nonSsIncome = ordinaryWithdrawal + otherIncome;
+  const ssTaxable = taxableSocialSecurity(socialSecurity, nonSsIncome + cryptoGain + taxableGain, inputs.filing_status);
+  const fed = computeFederalTax({
+    data,
+    status: inputs.filing_status,
+    ordinaryIncome: nonSsIncome + ssTaxable,
+    shortTermGain: 0,
+    longTermGain: cryptoGain + taxableGain,
   });
-
-  // Share of the simulations that funded retirement in full, as a percentage to
-  // match what the page renders. This is the point of running the simulations,
-  // and it used to be discarded: the old success figure counted how many of the
-  // SEVEN percentile buckets ended above zero, so with 1,000 runs behind it the
-  // answer could still only ever be one of eight values, 14.3% apart.
-  const successProbability = ((simulations - depletedCount) / simulations) * 100;
-
-  return { results: percentileResults, successProbability };
+  const state = STATE_TAX_BY_CODE[inputs.state];
+  let stateTax = 0;
+  if (state) {
+    stateTax += estimateStateCapitalGainsTax(inputs.state, DEFAULT_TAX_YEAR, 0, cryptoGain + taxableGain);
+    // Ordinary retirement income at the state's top rate (simplified; many states exempt some of it).
+    stateTax += nonSsIncome * stateRateFor(inputs.state, DEFAULT_TAX_YEAR);
+  }
+  return fed.total + stateTax;
 }
 
-/**
- * Box-Muller transform for normal distribution
- */
-function normalRandom(mean: number, stdDev: number): number {
-  const u1 = Math.random();
-  const u2 = Math.random();
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return mean + z * stdDev;
+// ---------------------------------------------------------------------------
+// Simulation core (shared by the table and the Monte Carlo)
+// ---------------------------------------------------------------------------
+
+interface SimState {
+  traditional: number;
+  crypto: number;
+  cryptoBasis: number;
 }
 
-/**
- * Analyze tax strategies
- */
-function analyzeTaxStrategy(
-  inputs: RetirementInputs,
-  projections: RetirementProjection['yearly_projections']
-): RetirementProjection['tax_analysis'] {
-  const totalTaxes = projections.reduce((sum, y) => sum + y.taxes, 0);
-  const totalWithdrawals = projections.reduce((sum, y) => sum + y.withdrawals, 0);
-  const effectiveRate = totalWithdrawals > 0 ? totalTaxes / totalWithdrawals : 0;
+interface RetirementYearOutcome {
+  withdrawal: number;
+  tax: number;
+  shortfall: boolean;
+}
 
-  // Roth conversion opportunity (simplified)
-  const yearsToRetirement = inputs.retirement_age - inputs.current_age;
-  const rothOpportunity = inputs.current_tax_bracket < inputs.expected_retirement_tax_bracket
-    ? inputs.current_savings_usd * 0.1 * yearsToRetirement
-    : 0;
+/** Spend one retirement year from `s` (mutates). Returns what was withdrawn. */
+function spendYear(inputs: RetirementPlanInputs, s: SimState, age: number): RetirementYearOutcome & { guaranteed: number; spending: number } {
+  const ss = age >= inputs.social_security_start_age ? inputs.social_security_income : 0;
+  const guaranteed = ss + inputs.other_income;
+  const spending = inputs.desired_annual_income;
+  const need = Math.max(0, spending - guaranteed);
+  const total = s.traditional + s.crypto;
+  if (need === 0) return { withdrawal: 0, tax: 0, shortfall: false, guaranteed, spending };
+  if (total <= 0) return { withdrawal: 0, tax: 0, shortfall: true, guaranteed, spending };
 
-  // Tax loss harvesting opportunity (crypto volatility provides opportunities)
-  const tlhOpportunity = inputs.current_crypto_value_usd * 0.1;
+  const cryptoShare = s.crypto / total;
+  const gainFraction = s.crypto > 0 ? Math.max(0, 1 - s.cryptoBasis / s.crypto) : 0;
 
+  // Gross up: withdrawal W must cover need + tax(W). Three fixed-point passes get within a few dollars.
+  let w = need;
+  let tax = 0;
+  for (let k = 0; k < 3; k++) {
+    tax = yearTax({
+      inputs,
+      traditionalWithdrawal: w * (1 - cryptoShare),
+      cryptoGain: w * cryptoShare * gainFraction,
+      socialSecurity: ss,
+      otherIncome: inputs.other_income,
+    });
+    w = need + tax;
+  }
+
+  const shortfall = w > total;
+  const take = Math.min(w, total);
+  const fromCrypto = take * cryptoShare;
+  if (s.crypto > 0) s.cryptoBasis *= 1 - fromCrypto / s.crypto;
+  s.crypto -= fromCrypto;
+  s.traditional -= take - fromCrypto;
+  return { withdrawal: take, tax: Math.min(tax, take), shortfall, guaranteed, spending };
+}
+
+function contributionForYear(inputs: RetirementPlanInputs, yearIndex: number) {
+  const total = inputs.monthly_contribution * 12 * Math.pow(1 + inputs.contribution_growth / 100, yearIndex);
+  const crypto = total * Math.min(100, Math.max(0, inputs.crypto_contribution_percent)) / 100;
+  return { total, crypto, traditional: total - crypto };
+}
+
+function initialState(inputs: RetirementPlanInputs): SimState {
   return {
-    total_taxes_paid: Math.round(totalTaxes),
-    effective_tax_rate: effectiveRate,
-    roth_conversion_opportunity: Math.round(rothOpportunity),
-    tax_loss_harvesting_opportunity: Math.round(tlhOpportunity),
-    optimal_withdrawal_order: [
-      'Taxable accounts (lowest tax)',
-      'Traditional IRA/401k',
-      'Crypto (long-term gains)',
-      'Roth IRA (tax-free, last)',
-    ],
+    traditional: inputs.current_savings,
+    crypto: inputs.current_crypto,
+    cryptoBasis: inputs.current_crypto > 0 ? inputs.crypto_cost_basis : 0,
+  };
+}
+
+/** Deterministic path at median returns. */
+function medianPath(inputs: RetirementPlanInputs, model: ReturnModel) {
+  const s = initialState(inputs);
+  const rows: YearRow[] = [];
+  const tf = medianFactor(model.traditional);
+  const cf = medianFactor(model.crypto);
+  let savingsAtRetirement = 0;
+  let depletionAge: number | null = null;
+  let lifetimeTaxes = 0;
+  let lifetimeWithdrawals = 0;
+
+  for (let age = inputs.current_age; age < inputs.life_expectancy; age++) {
+    const idx = age - inputs.current_age;
+    if (age < inputs.retirement_age) {
+      const c = contributionForYear(inputs, idx);
+      s.traditional = s.traditional * tf + c.traditional;
+      s.crypto = s.crypto * cf + c.crypto;
+      s.cryptoBasis += c.crypto;
+      rows.push(row(age, c.total, s, 0, 0, 0, 0));
+    } else {
+      if (age === inputs.retirement_age) savingsAtRetirement = s.traditional + s.crypto;
+      const out = spendYear(inputs, s, age);
+      lifetimeTaxes += out.tax;
+      lifetimeWithdrawals += out.withdrawal;
+      if (out.shortfall && depletionAge === null) depletionAge = age;
+      s.traditional = Math.max(0, s.traditional) * tf;
+      s.crypto = Math.max(0, s.crypto) * cf;
+      rows.push(row(age, 0, s, out.withdrawal, out.tax, out.guaranteed, out.spending));
+    }
+  }
+  return { rows, savingsAtRetirement, depletionAge, lifetimeTaxes, lifetimeWithdrawals, stateAtRetirement: s };
+}
+
+function row(age: number, contributions: number, s: SimState, withdrawals: number, taxes: number, guaranteed: number, spending: number): YearRow {
+  return {
+    age,
+    contributions: Math.round(contributions),
+    crypto_value: Math.round(Math.max(0, s.crypto)),
+    traditional_value: Math.round(Math.max(0, s.traditional)),
+    portfolio_value: Math.round(Math.max(0, s.crypto) + Math.max(0, s.traditional)),
+    withdrawals: Math.round(withdrawals),
+    taxes: Math.round(taxes),
+    guaranteed_income: Math.round(guaranteed),
+    spending: Math.round(spending),
   };
 }
 
 /**
- * Generate recommendations
+ * Smallest balance at retirement (same crypto share and basis ratio as the
+ * projected one) that lasts to life expectancy at median returns.
  */
-function generateRecommendations(
-  inputs: RetirementInputs,
-  fundingRatio: number,
-  successProbability: number
-): RetirementProjection['recommendations'] {
-  const recommendations: RetirementProjection['recommendations'] = [];
+function neededAtRetirement(inputs: RetirementPlanInputs, model: ReturnModel, projected: SimState): number {
+  const total = projected.traditional + projected.crypto;
+  const cryptoShare = total > 0 ? projected.crypto / total : inputs.crypto_contribution_percent / 100;
+  const basisRatio = projected.crypto > 0 ? projected.cryptoBasis / projected.crypto : 1;
+  const tf = medianFactor(model.traditional);
+  const cf = medianFactor(model.crypto);
 
-  // Underfunded
-  if (fundingRatio < 0.8) {
-    recommendations.push({
-      type: 'increase_savings',
-      title: 'Increase Monthly Savings',
-      description: `Consider increasing your monthly contribution by $${Math.round(inputs.monthly_contribution * 0.25)} to improve your funding ratio.`,
-      impact_on_success: 8,
-    });
+  const lasts = (start: number): boolean => {
+    const s: SimState = { traditional: start * (1 - cryptoShare), crypto: start * cryptoShare, cryptoBasis: start * cryptoShare * basisRatio };
+    for (let age = inputs.retirement_age; age < inputs.life_expectancy; age++) {
+      const out = spendYear(inputs, s, age);
+      if (out.shortfall) return false;
+      s.traditional *= tf;
+      s.crypto *= cf;
+    }
+    return true;
+  };
+
+  if (lasts(0)) return 0;
+  let lo = 0;
+  let hi = 1_000_000;
+  while (!lasts(hi) && hi < 1e11) hi *= 2;
+  for (let k = 0; k < 40; k++) {
+    const mid = (lo + hi) / 2;
+    if (lasts(mid)) hi = mid; else lo = mid;
   }
-
-  // Low success probability
-  if (successProbability < 70) {
-    recommendations.push({
-      type: 'reduce_expenses',
-      title: 'Reduce Retirement Expenses',
-      description: `Reducing your target retirement income by 15% would significantly improve your success probability.`,
-      impact_on_success: 12,
-    });
-  }
-
-  // High crypto allocation
-  if (inputs.crypto_allocation_percent > 30) {
-    recommendations.push({
-      type: 'reduce_crypto',
-      title: 'Consider Reducing Crypto Allocation',
-      description: `Your ${inputs.crypto_allocation_percent}% crypto allocation adds significant volatility. Consider reducing to 20-25% as you approach retirement.`,
-      impact_on_success: 5,
-    });
-  }
-
-  // Delay retirement option
-  if (fundingRatio < 1 && successProbability < 80) {
-    recommendations.push({
-      type: 'delay_retirement',
-      title: 'Consider Delaying Retirement',
-      description: `Delaying retirement by 2-3 years could add ${Math.round(inputs.monthly_contribution * 36)} to your savings and increase Social Security benefits.`,
-      impact_on_success: 15,
-    });
-  }
-
-  // Rebalancing
-  if (inputs.rebalancing_frequency === 'never') {
-    recommendations.push({
-      type: 'adjust_allocation',
-      title: 'Implement Regular Rebalancing',
-      description: 'Quarterly rebalancing can reduce portfolio volatility and improve risk-adjusted returns.',
-      impact_on_success: 3,
-    });
-  }
-
-  return recommendations;
+  return hi;
 }
 
-/**
- * Format currency for display
- */
+export function runMonteCarlo(inputs: RetirementPlanInputs, simulations = 1000, seed = 20260923): MonteCarloSummary {
+  const model = buildReturnModel(inputs);
+  const rand = rng(seed);
+  const endings: number[] = [];
+  const depletionAges: number[] = [];
+  let failures = 0;
+
+  for (let n = 0; n < simulations; n++) {
+    const s = initialState(inputs);
+    let failedAt: number | null = null;
+    for (let age = inputs.current_age; age < inputs.life_expectancy; age++) {
+      const tr = Math.exp(model.traditional.mu + model.traditional.sigma * gaussian(rand));
+      const cr = Math.exp(model.crypto.mu + model.crypto.sigma * gaussian(rand));
+      if (age < inputs.retirement_age) {
+        const c = contributionForYear(inputs, age - inputs.current_age);
+        s.traditional = s.traditional * tr + c.traditional;
+        s.crypto = s.crypto * cr + c.crypto;
+        s.cryptoBasis += c.crypto;
+      } else {
+        const out = spendYear(inputs, s, age);
+        if (out.shortfall) {
+          failedAt = age;
+          break;
+        }
+        s.traditional *= tr;
+        s.crypto *= cr;
+      }
+    }
+    if (failedAt !== null) {
+      failures++;
+      depletionAges.push(failedAt);
+      endings.push(0);
+    } else {
+      endings.push(Math.max(0, s.traditional) + Math.max(0, s.crypto));
+    }
+  }
+
+  endings.sort((a, b) => a - b);
+  depletionAges.sort((a, b) => a - b);
+  const pct = (p: number) => endings[Math.min(endings.length - 1, Math.floor((p / 100) * endings.length))] ?? 0;
+
+  return {
+    simulations,
+    success_probability: ((simulations - failures) / simulations) * 100,
+    percentiles: [10, 25, 50, 75, 90].map((p) => ({ percentile: p, ending_balance: Math.round(pct(p)) })),
+    median_depletion_age: depletionAges.length ? depletionAges[Math.floor(depletionAges.length / 2)] : null,
+  };
+}
+
+export function calculateRetirement(inputs: RetirementPlanInputs, simulations = 1000): RetirementResult {
+  const model = buildReturnModel(inputs);
+  const path = medianPath(inputs, model);
+
+  // Rebuild the state at the start of retirement for the "needed" search.
+  const atRetirement = initialState(inputs);
+  const tf = medianFactor(model.traditional);
+  const cf = medianFactor(model.crypto);
+  for (let age = inputs.current_age; age < inputs.retirement_age; age++) {
+    const c = contributionForYear(inputs, age - inputs.current_age);
+    atRetirement.traditional = atRetirement.traditional * tf + c.traditional;
+    atRetirement.crypto = atRetirement.crypto * cf + c.crypto;
+    atRetirement.cryptoBasis += c.crypto;
+  }
+
+  const projected = atRetirement.traditional + atRetirement.crypto;
+  const needed = neededAtRetirement(inputs, model, atRetirement);
+  const monte = runMonteCarlo(inputs, simulations);
+
+  const whatIf: WhatIf[] = [];
+  const probe = (label: string, description: string, changed: RetirementPlanInputs) => {
+    const p = runMonteCarlo(changed, Math.min(simulations, 400)).success_probability;
+    whatIf.push({ label, description, success_probability: p, change: p - monte.success_probability });
+  };
+  probe('Save 25% more each month', `Monthly saving of $${Math.round(inputs.monthly_contribution * 1.25).toLocaleString()} instead of $${Math.round(inputs.monthly_contribution).toLocaleString()}.`, {
+    ...inputs,
+    monthly_contribution: inputs.monthly_contribution * 1.25,
+  });
+  probe('Spend 10% less in retirement', `$${Math.round(inputs.desired_annual_income * 0.9).toLocaleString()} a year instead of $${Math.round(inputs.desired_annual_income).toLocaleString()}.`, {
+    ...inputs,
+    desired_annual_income: inputs.desired_annual_income * 0.9,
+  });
+  if (inputs.retirement_age + 2 < inputs.life_expectancy) {
+    probe('Retire 2 years later', `Retire at ${inputs.retirement_age + 2} (Social Security start age unchanged).`, {
+      ...inputs,
+      retirement_age: inputs.retirement_age + 2,
+    });
+  }
+  probe(
+    inputs.crypto_contribution_percent > 0 ? 'No new crypto buys' : 'Put 10% of savings into crypto',
+    inputs.crypto_contribution_percent > 0
+      ? 'Same monthly saving, all into the stock/bond mix.'
+      : '10% of each month’s saving buys crypto.',
+    { ...inputs, crypto_contribution_percent: inputs.crypto_contribution_percent > 0 ? 0 : 10 }
+  );
+
+  const fundingRatio = needed === 0 ? Infinity : projected / needed;
+
+  return {
+    inputs,
+    years_to_retirement: inputs.retirement_age - inputs.current_age,
+    years_in_retirement: inputs.life_expectancy - inputs.retirement_age,
+    projected_savings_at_retirement: Math.round(projected),
+    total_needed_at_retirement: Math.round(needed),
+    funding_ratio: fundingRatio,
+    funding_gap: Math.round(Math.max(0, needed - projected)),
+    depletion_age: path.depletionAge,
+    yearly: path.rows,
+    monte_carlo: monte,
+    lifetime_taxes: Math.round(path.lifetimeTaxes),
+    lifetime_withdrawals: Math.round(path.lifetimeWithdrawals),
+    what_if: whatIf,
+  };
+}
+
+/** Median annual real return used by the table, for display. */
+export function medianRealReturns(inputs: RetirementPlanInputs): { traditional: number; crypto: number } {
+  const m = buildReturnModel(inputs);
+  return { traditional: medianFactor(m.traditional) - 1, crypto: medianFactor(m.crypto) - 1 };
+}
+
 export function formatCurrency(amount: number): string {
-  if (amount >= 1e6) return `$${(amount / 1e6).toFixed(2)}M`;
-  if (amount >= 1e3) return `$${(amount / 1e3).toFixed(0)}K`;
-  return `$${amount.toFixed(0)}`;
+  if (!Number.isFinite(amount)) return '—';
+  const sign = amount < 0 ? '-' : '';
+  const a = Math.abs(amount);
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(2)}M`;
+  if (a >= 1e4) return `${sign}$${(a / 1e3).toFixed(0)}K`;
+  return `${sign}$${a.toFixed(0)}`;
 }
 
-/**
- * Format percentage for display
- */
-export function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-/**
- * Get success probability color
- */
 export function getSuccessColor(probability: number): string {
   if (probability >= 80) return 'text-green-500';
   if (probability >= 60) return 'text-yellow-500';
@@ -620,21 +571,23 @@ export function getSuccessColor(probability: number): string {
   return 'text-red-500';
 }
 
-/**
- * Export projection to PDF data (would use jsPDF in production)
- */
-export function exportProjectionData(projection: RetirementProjection): string {
-  return JSON.stringify({
-    summary: {
-      successProbability: projection.success_probability,
-      fundingRatio: projection.funding_ratio,
-      projectedSavings: projection.projected_savings_at_retirement,
-      totalNeeded: projection.total_needed_at_retirement,
-      fundingGap: projection.funding_gap,
+/** JSON download of inputs and results (not a PDF). */
+export function exportResultJson(result: RetirementResult, generatedOn: string): string {
+  return JSON.stringify(
+    {
+      note: 'Crypto retirement projection from bitcoinvestments.net/retirement-calculator. All amounts in today’s dollars. Estimates only, not financial advice.',
+      generatedOn,
+      summary: {
+        successProbabilityPercent: Math.round(result.monte_carlo.success_probability * 10) / 10,
+        projectedSavingsAtRetirement: result.projected_savings_at_retirement,
+        neededAtRetirement: result.total_needed_at_retirement,
+        fundingGap: result.funding_gap,
+        depletionAgeMedianPath: result.depletion_age,
+      },
+      inputs: result.inputs,
+      yearly: result.yearly,
     },
-    inputs: projection.inputs,
-    projections: projection.yearly_projections,
-    recommendations: projection.recommendations,
-    generatedAt: new Date().toISOString(),
-  }, null, 2);
+    null,
+    2
+  );
 }

@@ -91,9 +91,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   calculators: {
-    title: 'Cryptocurrency Calculators - DCA, Staking, Tax & More',
+    title: 'Crypto Calculators: DCA, Tax & Fees',
     description:
-      'Free cryptocurrency calculators for DCA (Dollar Cost Averaging), staking rewards, trading fees, and tax estimation. Plan your crypto investments with precision.',
+      'Free crypto calculators: DCA backtest on real BTC, ETH and SOL prices, 2025/2026 capital gains tax, exchange fees, staking and a live price converter.',
     keywords: [
       'DCA calculator',
       'crypto calculator',
@@ -184,9 +184,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   backtesting: {
-    title: 'Crypto Backtesting Tool - Test Trading Strategies',
+    title: 'Bitcoin Backtest: Lump Sum vs DCA',
     description:
-      'Backtest your cryptocurrency trading strategies with historical data. Simulate DCA, lump sum, and custom strategies to optimize your investment approach.',
+      'What if you had invested in Bitcoin? Backtest lump sum vs DCA for BTC and ETH since 2014 on weekly price history, with drawdowns and XIRR returns.',
     keywords: [
       'crypto backtesting',
       'trading strategy test',
@@ -198,9 +198,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   stakingCalculator: {
-    title: 'Crypto Staking Calculator - Calculate Staking Rewards',
+    title: 'Crypto Staking Rewards Calculator',
     description:
-      'Calculate your potential cryptocurrency staking rewards. Compare APY rates across coins and platforms to maximize your passive income.',
+      'Estimate staking rewards for ETH, SOL, ADA, DOT and ATOM with dated typical APY ranges, correct compounding, lockup notes and staking tax basics.',
     keywords: [
       'staking calculator',
       'crypto staking rewards',
@@ -212,9 +212,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   retirementCalculator: {
-    title: 'Crypto Retirement Calculator - Plan Your Future',
+    title: 'Crypto Retirement Calculator',
     description:
-      'Plan your retirement with cryptocurrency investments. Calculate how much Bitcoin or crypto you need to retire based on your goals and timeline.',
+      'Model crypto in your retirement plan: Monte Carlo success odds, today\'s-dollar projections, 2026 tax brackets, Social Security and what-if scenarios.',
     keywords: [
       'crypto retirement calculator',
       'Bitcoin retirement',

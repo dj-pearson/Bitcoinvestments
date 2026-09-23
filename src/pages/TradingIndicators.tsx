@@ -405,38 +405,53 @@ function last<T>(xs: T[]): T | undefined {
   return xs[xs.length - 1];
 }
 
+/** Most recent MACD/signal crossover, counted in candles back from the latest. */
+function lastMacdCross(m: IndicatorValue[]): { candlesAgo: number; bullish: boolean } | null {
+  for (let i = m.length - 1; i > 0; i--) {
+    const a = m[i].values.macd - m[i].values.signal;
+    const b = m[i - 1].values.macd - m[i - 1].values.signal;
+    if (a !== 0 && Math.sign(a) !== Math.sign(b)) return { candlesAgo: m.length - 1 - i, bullish: a > 0 };
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
-type LoadState =
-  | { status: 'loading' }
+type LoadResult =
   | { status: 'error'; message: string }
   | { status: 'ready'; candles: ChartData[] };
+type LoadState = { status: 'loading' } | LoadResult;
 
 export default function TradingIndicatorsPage() {
   const [asset, setAsset] = useState<AssetId>('bitcoin');
   const [timeframe, setTimeframe] = useState<ChartTimeframe>('1M');
   const [selected, setSelected] = useState<ChartIndicator[]>(['sma', 'bollinger_bands', 'rsi', 'macd']);
-  const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [reloadKey, setReloadKey] = useState(0);
+  // Each result is tagged with the request that produced it, so changing the
+  // asset or timeframe shows the loading state without a synchronous setState
+  // inside the effect.
+  const requestKey = `${asset}|${timeframe}|${reloadKey}`;
+  const [result, setResult] = useState<{ key: string; value: LoadResult } | null>(null);
+  const state: LoadState = result && result.key === requestKey ? result.value : { status: 'loading' };
 
   const assetInfo = ASSETS.find((a) => a.id === asset) ?? ASSETS[0];
   const candleLabel = CHART_TIMEFRAMES[timeframe].candleLabel;
 
   useEffect(() => {
     let cancelled = false;
-    setState({ status: 'loading' });
+    const key = `${asset}|${timeframe}|${reloadKey}`;
     fetchChartData(asset, timeframe)
       .then((candles) => {
-        if (!cancelled) setState({ status: 'ready', candles });
+        if (!cancelled) setResult({ key, value: { status: 'ready', candles } });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         // Never fall back to synthetic prices: an error is the honest state.
-        setState({
-          status: 'error',
-          message: err instanceof Error && err.message ? err.message : 'Unknown error',
+        setResult({
+          key,
+          value: { status: 'error', message: err instanceof Error && err.message ? err.message : 'Unknown error' },
         });
       });
     return () => {
@@ -444,7 +459,8 @@ export default function TradingIndicatorsPage() {
     };
   }, [asset, timeframe, reloadKey]);
 
-  const candles = useMemo(() => (state.status === 'ready' ? state.candles : []), [state]);
+  const readyCandles = state.status === 'ready' ? state.candles : null;
+  const candles = useMemo(() => readyCandles ?? [], [readyCandles]);
 
   const computed = useMemo(() => {
     const out: Partial<Record<ChartIndicator, IndicatorValue[]>> = {};
@@ -472,15 +488,7 @@ export default function TradingIndicatorsPage() {
   const emaNow = last(computed.ema ?? [])?.values.ema;
   const stochNow = last(computed.stochastic ?? [])?.values;
 
-  const macdCross = useMemo(() => {
-    const m = computed.macd ?? [];
-    for (let i = m.length - 1; i > 0; i--) {
-      const a = m[i].values.macd - m[i].values.signal;
-      const b = m[i - 1].values.macd - m[i - 1].values.signal;
-      if (a !== 0 && Math.sign(a) !== Math.sign(b)) return { candlesAgo: m.length - 1 - i, bullish: a > 0 };
-    }
-    return null;
-  }, [computed.macd]);
+  const macdCross = lastMacdCross(computed.macd ?? []);
 
   const readings: { label: string; value: string; meaning: string }[] = [];
   if (latestClose !== undefined) {

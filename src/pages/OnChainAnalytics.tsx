@@ -145,23 +145,28 @@ function Change({ pct, label }: { pct: number | null; label: string }) {
 // Page
 // ---------------------------------------------------------------------------
 
-type LoadState =
-  | { status: 'loading' }
+type LoadResult =
   | { status: 'error'; message: string }
   | { status: 'ready'; snapshot: OnchainSnapshot };
+type LoadState = { status: 'loading' } | LoadResult;
 
 export default function OnChainAnalytics() {
-  const [state, setState] = useState<LoadState>({ status: 'loading' });
+  // Each result is tagged with the request that produced it, so a retry shows
+  // the loading state without a synchronous setState inside the effect.
   const [reloadKey, setReloadKey] = useState(0);
+  const [result, setResult] = useState<{ key: number; value: LoadResult } | null>(null);
+  const state: LoadState = result && result.key === reloadKey ? result.value : { status: 'loading' };
 
   useEffect(() => {
     const controller = new AbortController();
-    setState({ status: 'loading' });
     fetchOnchainSnapshot(controller.signal)
-      .then((snapshot) => setState({ status: 'ready', snapshot }))
+      .then((snapshot) => setResult({ key: reloadKey, value: { status: 'ready', snapshot } }))
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
-        setState({ status: 'error', message: err instanceof Error ? err.message : 'Unknown error' });
+        setResult({
+          key: reloadKey,
+          value: { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' },
+        });
       });
     return () => controller.abort();
   }, [reloadKey]);

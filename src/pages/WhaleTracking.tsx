@@ -1,381 +1,352 @@
 /**
- * Whale Wallet Tracking Page
+ * /whale-tracking
  *
- * Track and get alerts on major wallet movements (whales).
- * Free users: 24h delayed data, 3 alerts, top 10 whales
- * Premium: real-time, unlimited alerts, custom tracking
+ * Honest educational page: what crypto "whale tracking" is, how to do it
+ * yourself with free tools, and what large transfers do and do not signal.
+ * Includes a live list of the largest transactions in the most recent Bitcoin
+ * blocks, read from mempool.space through /api/onchain/large-transactions.
+ *
+ * No transaction, wallet, balance or entity name on this page is invented.
+ * We do not label addresses with owners: attribution is guesswork that needs
+ * sources we cannot verify.
  */
 
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Fish,
-  Bell,
-  Check,
-  ChevronRight,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-  ExternalLink,
-  Plus,
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, RefreshCw, Waves } from 'lucide-react';
 import { PageSEO } from '../components/PageSEO';
-import { RelatedPages } from '../components/InternalLinks';
 import {
-  hasWhaleTrackingPremium,
-  WHALE_TRACKING_PRICING,
-} from '../services/subscriptionLimits';
+  ExternalLink,
+  FaqSection,
+  LastUpdated,
+  NotAdviceNote,
+  RelatedLinks,
+  Section,
+  type FaqItem,
+} from '../components/analytics/PageParts';
 import {
-  getWhaleWallets,
-  getWhaleTransactions,
-  getWhaleActivity,
-  getUserWhaleAlerts,
-} from '../services/whaleTracking';
-import type {
-  WhaleWallet,
-  WhaleTransaction,
-  WhaleActivity,
-  WhaleAlert,
-} from '../types/premiumFeatures';
+  fetchLargeTransactions,
+  formatDateTime,
+  satsToBtc,
+  type LargeTransactionsSnapshot,
+} from '../services/onchainPublic';
+
+const LAST_UPDATED = '2026-09-23';
+
+const FAQS: FaqItem[] = [
+  {
+    question: 'What is a crypto whale?',
+    answer:
+      'A whale is an address or entity holding enough of a coin to move its market. There is no official threshold; for Bitcoin, 1,000 BTC or more is a common rule of thumb. Many of the largest Bitcoin addresses belong to exchanges, custodians and funds holding coins for many customers, not to single individuals.',
+  },
+  {
+    question: 'How can I track Bitcoin whales for free?',
+    answer:
+      'Use a block explorer such as mempool.space to look up large transactions and addresses, since all Bitcoin transactions are public. Free services like Whale Alert post large transfers, and analytics sites such as Arkham attach entity labels to addresses. Treat any label as a claim by that provider rather than a fact.',
+  },
+  {
+    question: 'Does a whale sending Bitcoin to an exchange mean they will sell?',
+    answer:
+      'Not necessarily. Moving coins to an exchange makes selling possible, but it is also used for collateral, market making, OTC settlement, custody changes and internal wallet reshuffles. Many "exchange inflow" alerts turn out to be the exchange moving its own coins.',
+  },
+  {
+    question: 'Why is the "largest transaction" amount not the amount that changed hands?',
+    answer:
+      'A Bitcoin transaction spends whole coins and sends the leftover back as change, often to a new address controlled by the sender. The total output value therefore includes that change. The amount that actually moved between different owners is usually smaller and cannot be known for certain from the chain alone.',
+  },
+  {
+    question: 'Can whale tracking predict the price?',
+    answer:
+      'There is no reliable evidence that it can. Large transfers are visible to everyone at the same time, their purpose is usually unknown, and much whale activity happens off-chain inside exchanges or through OTC desks. It is useful context, not a trading signal.',
+  },
+  {
+    question: 'Does this page offer whale alerts?',
+    answer:
+      'No. We show the largest transactions in the latest blocks and explain how to read them. We do not send alerts or label who owns an address.',
+  },
+];
+
+const SIGNALS: { move: string; oftenRead: string; caveat: string }[] = [
+  {
+    move: 'Large transfer into an exchange wallet',
+    oftenRead: 'Whale preparing to sell',
+    caveat: 'Could be collateral, market-making inventory, OTC settlement, or the exchange moving its own funds between wallets.',
+  },
+  {
+    move: 'Large transfer out of an exchange',
+    oftenRead: 'Whale moving to long-term self-custody (bullish)',
+    caveat: 'Could be a custodian, ETF or fund settling, or an exchange rotating cold wallets. It does not tell you anyone bought.',
+  },
+  {
+    move: 'Very old coins moving for the first time in years',
+    oftenRead: 'Early holder cashing out',
+    caveat: 'Often a security upgrade (moving to a new wallet type), an estate or inheritance transfer, or consolidation, with no sale at all.',
+  },
+  {
+    move: 'Huge transaction between unknown addresses',
+    oftenRead: 'Something big is happening',
+    caveat: 'Usually wallet maintenance: consolidating many small outputs, or a custodian batching withdrawals. Most of the amount may be change.',
+  },
+  {
+    move: 'A known entity\'s address balance changes',
+    oftenRead: 'That company or fund bought or sold',
+    caveat: 'Entity labels come from heuristics and are sometimes wrong; public companies disclose holdings in filings, which are the authoritative source.',
+  },
+];
+
+function shortTxid(txid: string): string {
+  return `${txid.slice(0, 8)}…${txid.slice(-6)}`;
+}
+
+type LoadResult =
+  | { status: 'error'; message: string }
+  | { status: 'ready'; snapshot: LargeTransactionsSnapshot };
+type LoadState = { status: 'loading' } | LoadResult;
 
 export default function WhaleTrackingPage() {
-  const { user, profile } = useAuth();
-  const [wallets, setWallets] = useState<WhaleWallet[]>([]);
-  const [transactions, setTransactions] = useState<WhaleTransaction[]>([]);
-  const [activity, setActivity] = useState<WhaleActivity | null>(null);
-  const [alerts, setAlerts] = useState<WhaleAlert[]>([]);
-  const [selectedChain, setSelectedChain] = useState('ethereum');
-  const [isLoading, setIsLoading] = useState(true);
-
-  const hasAccess = hasWhaleTrackingPremium(
-    undefined,
-    profile?.subscription_status,
-    profile?.subscription_expires_at
-  );
+  // Each result is tagged with the request that produced it, so a retry shows
+  // the loading state without a synchronous setState inside the effect.
+  const [reloadKey, setReloadKey] = useState(0);
+  const [result, setResult] = useState<{ key: number; value: LoadResult } | null>(null);
+  const state: LoadState = result && result.key === reloadKey ? result.value : { status: 'loading' };
 
   useEffect(() => {
-    loadData();
-  }, [hasAccess, selectedChain]);
+    const controller = new AbortController();
+    fetchLargeTransactions(controller.signal)
+      .then((snapshot) => setResult({ key: reloadKey, value: { status: 'ready', snapshot } }))
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        setResult({
+          key: reloadKey,
+          value: { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' },
+        });
+      });
+    return () => controller.abort();
+  }, [reloadKey]);
 
-  async function loadData() {
-    setIsLoading(true);
-    try {
-      const [walletData, txData, activityData, alertData] = await Promise.all([
-        getWhaleWallets(hasAccess, { chain: selectedChain }),
-        getWhaleTransactions(hasAccess, { chain: selectedChain }),
-        getWhaleActivity(selectedChain, hasAccess),
-        user?.id ? getUserWhaleAlerts(user.id, hasAccess) : Promise.resolve([]),
-      ]);
-      setWallets(walletData);
-      setTransactions(txData);
-      setActivity(activityData);
-      setAlerts(alertData);
-    } catch (err) {
-      console.error('Failed to load whale data:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function formatAddress(address: string) {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  }
-
-  function formatAmount(amount: number) {
-    if (amount >= 1000000000) return `$${(amount / 1000000000).toFixed(1)}B`;
-    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
-    return `$${amount.toFixed(0)}`;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  const txResult = state.status === 'ready' ? state.snapshot.result : null;
+  const errorMessage = state.status === 'error' ? state.message : txResult && !txResult.ok ? txResult.error : null;
 
   return (
-    <>
-      <PageSEO
-        pageKey="whaleTracking"
-        isTool
-        toolName="Cryptocurrency Whale Tracker"
-        urlPath="/whale-tracking"
-        faqs={[
-          {
-            question: 'What is a crypto whale?',
-            answer: 'A crypto whale is an individual or entity that holds a large amount of cryptocurrency. Whale movements can significantly impact market prices.',
-          },
-          {
-            question: 'Why should I track whale wallets?',
-            answer: 'Tracking whale wallets can provide insights into market sentiment and potential price movements. Large inflows to exchanges often signal selling pressure.',
-          },
-        ]}
-      />
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="whaleTracking" urlPath="/whale-tracking" faqs={FAQS} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Fish className="h-8 w-8 text-blue-500" />
+        <header className="mb-8 max-w-3xl">
+          <div className="flex items-center gap-3 mb-3">
+            <Waves className="h-8 w-8 text-blue-500 flex-shrink-0" aria-hidden="true" />
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Whale Tracker
+              Bitcoin Whale Tracking: How It Works and What It Signals
             </h1>
-            <span className="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-full">
-              {hasAccess ? 'PREMIUM' : 'LIMITED'}
-            </span>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Track major wallet movements and follow the smart money.
-            {!hasAccess && ' Data is 24 hours delayed for free users.'}
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            Whale tracking means watching the blockchain for very large transfers, which anyone can do because every
+            Bitcoin transaction is public. It is useful context but a weak trading signal: most big transfers are
+            exchanges, custodians and funds moving their own coins, and the purpose of a transfer is almost never
+            visible on-chain. Below are the largest transactions in the latest blocks and a guide to reading them.
           </p>
-        </div>
-
-        {/* Chain Selector */}
-        <div className="flex gap-2 mb-6">
-          {['ethereum', 'bitcoin'].map(chain => (
-            <button
-              key={chain}
-              onClick={() => setSelectedChain(chain)}
-              className={`px-4 py-2 rounded-lg font-medium capitalize ${
-                selectedChain === chain
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {chain}
-            </button>
-          ))}
-        </div>
-
-        {/* Activity Summary */}
-        {activity && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">24h Volume</span>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {formatAmount(activity.total_volume_24h)}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">Net Exchange Flow</span>
-              <p className={`text-2xl font-bold ${activity.net_exchange_flow >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                {activity.net_exchange_flow >= 0 ? '+' : ''}{formatAmount(activity.net_exchange_flow)}
-              </p>
-              <p className="text-xs text-gray-500">
-                {activity.net_exchange_flow >= 0 ? 'Inflow (bearish)' : 'Outflow (bullish)'}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">Large Transactions</span>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {activity.large_transactions_count}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-              <span className="text-gray-600 dark:text-gray-400 text-sm">Market Sentiment</span>
-              <p className={`text-2xl font-bold capitalize ${
-                activity.sentiment === 'bullish' ? 'text-green-500' :
-                activity.sentiment === 'bearish' ? 'text-red-500' : 'text-gray-500'
-              }`}>
-                {activity.sentiment}
-              </p>
-              <p className="text-xs text-gray-500">Score: {activity.sentiment_score}</p>
-            </div>
+          <div className="mt-3">
+            <LastUpdated date={LAST_UPDATED} label="Guide last reviewed" />
           </div>
-        )}
+        </header>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Recent Transactions */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Recent Whale Transactions
-                  </h2>
-                  {!hasAccess && (
-                    <span className="flex items-center gap-1 text-sm text-yellow-600">
-                      <Clock className="h-4 w-4" />
-                      24h delayed
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {transactions.map(tx => (
-                  <div key={tx.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {tx.transaction_type.includes('deposit') ? (
-                          <ArrowUpRight className="h-5 w-5 text-red-500" />
-                        ) : tx.transaction_type.includes('withdrawal') ? (
-                          <ArrowDownRight className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <ArrowUpRight className="h-5 w-5 text-blue-500" />
-                        )}
-                        <span className="font-medium text-gray-900 dark:text-white capitalize">
-                          {tx.transaction_type.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">
-                        {formatAmount(tx.amount_usd)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="text-gray-500">
-                        <span>{tx.from_label || formatAddress(tx.from_address)}</span>
-                        <span className="mx-2">→</span>
-                        <span>{tx.to_label || formatAddress(tx.to_address)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500">
-                          {new Date(tx.timestamp).toLocaleTimeString()}
-                        </span>
-                        <a
-                          href={`https://etherscan.io/tx/${tx.tx_hash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:text-blue-600"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        tx.from_category === 'exchange' ? 'bg-blue-100 text-blue-700' :
-                        tx.from_category === 'whale' ? 'bg-purple-100 text-purple-700' :
-                        tx.from_category === 'institution' ? 'bg-green-100 text-green-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {tx.from_category}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {tx.amount.toLocaleString()} {tx.asset_symbol}
-                      </span>
-                    </div>
-                  </div>
+        <section aria-labelledby="live-heading" aria-busy={state.status === 'loading'}>
+          <h2 id="live-heading" className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Largest transactions in the latest Bitcoin blocks
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-3xl">
+            Ranked by total output value, which <strong>includes change sent back to the sender</strong>, so the amount
+            that changed owners is usually smaller. We do not label who sent or received these coins.
+          </p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            {state.status === 'loading' && (
+              <div className="p-6 space-y-3 animate-pulse" role="status">
+                <span className="sr-only">Loading recent transactions</span>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-5 bg-gray-100 dark:bg-gray-700 rounded" />
                 ))}
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Top Whales & Alerts */}
-          <div className="space-y-6">
-            {/* User Alerts */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Your Alerts
-                </h3>
-                <button
-                  disabled={!hasAccess && alerts.length >= 3}
-                  className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-50"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-              {alerts.length === 0 ? (
-                <p className="text-sm text-gray-500">No alerts configured</p>
-              ) : (
-                <div className="space-y-2">
-                  {alerts.map(alert => (
-                    <div key={alert.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {alert.alert_type.join(', ').replace(/_/g, ' ')}
-                        </span>
-                        <span className={`w-2 h-2 rounded-full ${alert.is_active ? 'bg-green-500' : 'bg-gray-400'}`} />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Min: {formatAmount(alert.min_amount_usd)} | Triggered: {alert.triggered_count}x
-                      </p>
-                    </div>
-                  ))}
+            {errorMessage && (
+              <div role="alert" className="p-6 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Live transactions are unavailable right now.</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {errorMessage} You can browse recent blocks directly on{' '}
+                    <ExternalLink href="https://mempool.space/blocks">mempool.space</ExternalLink>.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setReloadKey((k) => k + 1)}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+                  >
+                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                    Retry
+                  </button>
                 </div>
-              )}
-              {!hasAccess && (
-                <p className="text-xs text-gray-500 mt-2">Free tier: 3 alerts max</p>
-              )}
-            </div>
-
-            {/* Top Wallets */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Top Whale Wallets</h3>
-              <div className="space-y-3">
-                {wallets.slice(0, 5).map((wallet, i) => (
-                  <div key={wallet.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 flex items-center justify-center text-sm font-bold bg-gray-100 dark:bg-gray-700 rounded">
-                        {i + 1}
-                      </span>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white text-sm">
-                          {wallet.label || formatAddress(wallet.address)}
-                        </p>
-                        <p className="text-xs text-gray-500 capitalize">{wallet.category}</p>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {formatAmount(wallet.balance_usd)}
-                    </span>
-                  </div>
-                ))}
               </div>
-              {!hasAccess && (
-                <p className="text-xs text-gray-500 mt-4">Free tier: Top 10 wallets only</p>
-              )}
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Premium Upsell */}
-        {!hasAccess && (
-          <div className="mt-8 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-8 text-white">
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Unlock Real-Time Whale Tracking</h2>
-                <p className="text-blue-100 mb-6">
-                  Get instant alerts when whales move. Premium subscribers get real-time data and unlimited tracking.
+            {txResult?.ok && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">
+                    Largest Bitcoin transactions by total output value in blocks{' '}
+                    {txResult.data.blocksScanned.join(', ')}
+                  </caption>
+                  <thead className="bg-gray-50 dark:bg-gray-900 text-left text-gray-600 dark:text-gray-400">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-medium">Transaction</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-right">Total output</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-right">Fee</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Block</th>
+                      <th scope="col" className="px-4 py-3 font-medium">Mined</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+                    {txResult.data.transactions.map((tx) => (
+                      <tr key={tx.txid}>
+                        <td className="px-4 py-3 font-mono">
+                          <ExternalLink href={`https://mempool.space/tx/${tx.txid}`}>{shortTxid(tx.txid)}</ExternalLink>
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap font-semibold">
+                          {satsToBtc(tx.outputValueSats).toLocaleString('en-US', { maximumFractionDigits: 2 })} BTC
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          {tx.feeSats.toLocaleString('en-US')} sats
+                        </td>
+                        <td className="px-4 py-3">{tx.blockHeight.toLocaleString('en-US')}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(tx.blockTime)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700">
+                  Blocks {txResult.data.blocksScanned.map((h) => h.toLocaleString('en-US')).join(', ')} &middot; as of{' '}
+                  {formatDateTime(txResult.asOf)} &middot; Source:{' '}
+                  <ExternalLink href={txResult.sourceUrl}>{txResult.source}</ExternalLink>. Click a transaction to see its
+                  inputs and outputs.
                 </p>
-                <ul className="space-y-3 mb-6">
-                  {WHALE_TRACKING_PRICING.features.premium.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <Check className="h-5 w-5 text-green-300" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-4xl font-bold">${WHALE_TRACKING_PRICING.price_monthly}</span>
-                  <span className="text-blue-200">/month</span>
-                </div>
-                <Link
-                  to="/pricing"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50"
-                >
-                  Subscribe Now
-                  <ChevronRight className="h-5 w-5" />
-                </Link>
               </div>
-              <div className="hidden md:flex items-center justify-center">
-                <Fish className="h-32 w-32 text-white/30" />
-              </div>
-            </div>
+            )}
           </div>
-        )}
+        </section>
 
-        {/* Related Content */}
-        <div className="mt-8">
-          <RelatedPages currentPath="/whale-tracking" title="More Analytics" variant="list" />
+        <div className="max-w-3xl">
+          <Section id="what-heading" title="What is a whale?">
+            <p>
+              &quot;Whale&quot; is informal slang for a holder big enough to move the market. There is no official
+              cut-off. For Bitcoin, 1,000 BTC or more is a common rule of thumb; some analysts use 100 BTC or 10,000
+              BTC instead.
+            </p>
+            <p>
+              Addresses are not people. The addresses with the biggest balances mostly belong to exchanges, custodians
+              and funds that hold coins for thousands of customers. A single individual, meanwhile, can spread coins
+              across hundreds of addresses. That is why &quot;number of whale addresses&quot; statistics need care.
+            </p>
+          </Section>
+
+          <Section id="howto-heading" title="How to track whales yourself (free)">
+            <ol className="list-decimal pl-5 space-y-3">
+              <li>
+                <strong>Use a block explorer.</strong>{' '}
+                <ExternalLink href="https://mempool.space">mempool.space</ExternalLink> shows every Bitcoin block,
+                transaction and address. Open a large transaction to see its inputs (where the coins came from) and
+                outputs (where they went, including change). For Ethereum, use{' '}
+                <ExternalLink href="https://etherscan.io">Etherscan</ExternalLink>.
+              </li>
+              <li>
+                <strong>Watch an address.</strong> Paste an address into the explorer to see its balance and history.
+                Some explorers and wallets let you subscribe to an address and get notified when it moves.
+              </li>
+              <li>
+                <strong>Use labelled analytics carefully.</strong> Services such as{' '}
+                <ExternalLink href="https://intel.arkm.com">Arkham</ExternalLink> attach entity names to addresses, and{' '}
+                <ExternalLink href="https://whale-alert.io">Whale Alert</ExternalLink> publishes large transfers as they
+                happen. Their labels come from their own heuristics and can be wrong or out of date.
+              </li>
+              <li>
+                <strong>Go to primary disclosures for companies and funds.</strong> Public companies report Bitcoin
+                holdings in their filings (search{' '}
+                <ExternalLink href="https://www.sec.gov/edgar/search/">SEC EDGAR</ExternalLink>), and spot Bitcoin ETF
+                issuers publish their holdings on their own websites. These are more reliable than address guesses.
+              </li>
+            </ol>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              We have no affiliation with the services named above and are not paid to mention them.
+            </p>
+          </Section>
+
+          <Section id="signals-heading" title="What whale moves do and do not signal">
+            <p>
+              Large transfers are public the moment they confirm, so everyone sees them at once, and the reason behind
+              them is almost never visible. Here is how common moves are read, and why that reading is often wrong.
+            </p>
+          </Section>
+        </div>
+
+        <div className="mt-4 overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+          <table className="w-full text-sm">
+            <caption className="sr-only">Common whale moves, how they are often interpreted, and caveats</caption>
+            <thead className="bg-gray-50 dark:bg-gray-900 text-left text-gray-600 dark:text-gray-400">
+              <tr>
+                <th scope="col" className="px-4 py-3 font-medium">On-chain move</th>
+                <th scope="col" className="px-4 py-3 font-medium">Often read as</th>
+                <th scope="col" className="px-4 py-3 font-medium">What it might actually be</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-gray-800 dark:text-gray-200 align-top">
+              {SIGNALS.map((s) => (
+                <tr key={s.move}>
+                  <th scope="row" className="px-4 py-3 font-medium text-left">{s.move}</th>
+                  <td className="px-4 py-3">{s.oftenRead}</td>
+                  <td className="px-4 py-3">{s.caveat}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="max-w-3xl">
+          <Section id="limits-heading" title="Blind spots">
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <strong>Off-chain trading.</strong> Trades inside an exchange or through OTC desks change who owns coins
+                without any on-chain transaction.
+              </li>
+              <li>
+                <strong>Change outputs.</strong> A &quot;10,000 BTC transaction&quot; may move only a small fraction to
+                someone else.
+              </li>
+              <li>
+                <strong>Privacy techniques.</strong> CoinJoin and similar methods deliberately break the link between
+                inputs and outputs.
+              </li>
+              <li>
+                <strong>Timing.</strong> By the time a transfer is on social media, it is already public; any edge is
+                gone.
+              </li>
+            </ul>
+          </Section>
+
+          <div className="mt-8">
+            <NotAdviceNote />
+          </div>
+
+          <FaqSection faqs={FAQS} />
+
+          <RelatedLinks
+            links={[
+              { to: '/onchain-analytics', title: 'Bitcoin on-chain metrics', description: 'Hashrate, fees, mempool and activity, explained.' },
+              { to: '/scam-database', title: 'Scam database', description: 'Fake "whale signal" groups are a common scam.' },
+              { to: '/trading-indicators', title: 'Trading indicators', description: 'RSI, MACD and Bollinger Bands on live prices.' },
+              { to: '/learn/crypto-wallets-explained', title: 'Crypto wallets explained', description: 'Addresses, keys and change outputs.' },
+              { to: '/learn/risk-management', title: 'Risk management', description: 'Why no single signal should drive a trade.' },
+              { to: '/glossary', title: 'Crypto glossary', description: 'Plain-English definitions.' },
+            ]}
+          />
         </div>
       </div>
     </div>
-    </>
   );
 }

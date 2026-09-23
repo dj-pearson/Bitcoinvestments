@@ -18,6 +18,14 @@ alter table "public"."video_tutorials" drop constraint "video_tutorials_instruct
 
 alter table "public"."portfolios" drop constraint "portfolios_user_id_fkey";
 
+-- Replay fix (2026-09-23): the trigger depends on the function, so it has to go
+-- first. This file originally dropped the trigger only at the very end, which
+-- makes `supabase db reset` fail here with "other objects depend on it". The
+-- end state is unchanged (both are dropped by this file either way), and the
+-- live database already recorded this version as applied, so it does not re-run
+-- there. 20260923000300_reconcile_schema.sql recreates both.
+drop trigger if exists "on_auth_user_created" on "auth"."users";
+
 drop function if exists "public"."handle_new_user"();
 
 drop index if exists "public"."idx_users_id";

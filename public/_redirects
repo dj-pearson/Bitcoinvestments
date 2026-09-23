@@ -1,21 +1,35 @@
-# Cloudflare Pages Redirects
-# Static files should be served directly (not through SPA)
+# Cloudflare Pages redirects
 # https://developers.cloudflare.com/pages/configuration/redirects/
+#
+# Static files are served before these rules are consulted, so sitemap.xml,
+# robots.txt and friends need no entries here.
 
-# Serve static SEO files directly (200 = serve as-is)
-/sitemap.xml        /sitemap.xml        200
-/sitemap-articles.xml /sitemap-articles.xml 200
-/robots.txt         /robots.txt         200
-/llms.txt           /llms.txt           200
-/ai.txt             /ai.txt             200
-/humans.txt         /humans.txt         200
-/manifest.json      /manifest.json      200
-/favicon.svg        /favicon.svg        200
-/sw.js              /sw.js              200
+# Duplicate routes: one URL per page
+/prices                 /dashboard            301
+/start                  /learn                301
+/developers/docs        /developers/pricing   301
 
-# Well-known directory
-/.well-known/*      /.well-known/:splat 200
+# /article/* was a second URL for the same posts as /blog/*. The guide slugs
+# it was linked with are static guides under /learn; first match wins.
+/article/what-is-bitcoin            /learn/what-is-bitcoin            301
+/article/how-to-buy-crypto          /learn/how-to-buy-crypto          301
+/article/crypto-wallets-explained   /learn/crypto-wallets-explained   301
+/article/defi-basics                /learn/defi-basics                301
+/article/dca-strategies             /learn/dca-strategies             301
+/article/common-crypto-mistakes     /learn/common-crypto-mistakes     301
+/article/portfolio-rebalancing      /learn/portfolio-rebalancing      301
+/article/yield-farming              /learn/yield-farming              301
+/article/defi-risks                 /learn/defi-risks                 301
+/article/risk-management            /learn/risk-management            301
+/article/:slug                      /blog/:slug                       301
 
-# SPA fallback - Cloudflare Pages handles this natively
-# The /* /index.html 200 rule causes an infinite loop warning and is ignored
-# Cloudflare Pages automatically serves index.html for routes that don't match a file
+# Guide slugs that were published in llms.txt, ai.txt and the old article
+# sitemap but never existed
+/learn/buying-first-bitcoin   /learn/how-to-buy-crypto          301
+/learn/wallet-security        /learn/crypto-wallets-explained   301
+/learn/dca-strategy           /learn/dca-strategies             301
+/learn/choosing-exchange      /compare                          301
+/learn/understanding-fees     /learn/how-to-buy-crypto          301
+/learn/crypto-taxes           /learn/crypto-taxes-basics        301
+/learn/avoiding-scams         /scam-database                    301
+/learn/defi                   /learn/defi-basics                301

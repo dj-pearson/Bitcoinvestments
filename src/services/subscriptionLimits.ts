@@ -529,15 +529,18 @@ export function getLimitDescription(
  * Tax Season Package configuration
  * One-time purchase available January through April
  */
+/** Tax returns filed this year cover last calendar year. */
+const CURRENT_TAX_YEAR = new Date().getFullYear() - 1;
+
 export const TAX_PACKAGE = {
-  id: 'tax-season-2025',
+  id: `tax-season-${CURRENT_TAX_YEAR + 1}`,
   name: 'Tax Season Report Package',
-  description: 'Generate comprehensive crypto tax reports for the 2024 tax year',
+  description: `Generate crypto tax reports for the ${CURRENT_TAX_YEAR} tax year`,
   price: 29.99, // Base price
-  premiumPrice: 49.99, // Enhanced version with CPA review
+  premiumPrice: 49.99, // NEEDS-OWNER: confirm what the premium tier adds (the old copy promised a CPA review)
   currency: 'USD',
   availableMonths: [1, 2, 3, 4], // January - April
-  taxYear: 2024,
+  taxYear: CURRENT_TAX_YEAR,
   features: {
     basic: [
       'Complete transaction history export',
@@ -545,11 +548,11 @@ export const TAX_PACKAGE = {
       'Cost basis calculations (FIFO, LIFO, HIFO)',
       'IRS Form 8949 compatible format',
       'CSV and PDF export',
-      'Support for 50+ exchanges',
+      'Import from exchange CSV exports',
     ],
     premium: [
       'Everything in Basic, plus:',
-      'TurboTax/H&R Block integration',
+      'TurboTax-compatible TXF export',
       'Staking rewards breakdown',
       'DeFi transaction categorization',
       'NFT transaction support',

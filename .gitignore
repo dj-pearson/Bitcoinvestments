@@ -32,3 +32,6 @@ dist-ssr
 dkim-dns-records.csv
 supabase_backup.dump
 supabase_full_backup.dump
+
+# Agent worktrees
+.claude/worktrees/

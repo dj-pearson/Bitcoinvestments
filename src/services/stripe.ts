@@ -41,6 +41,11 @@ export function isStripeConfigured(): boolean {
 
 /**
  * Subscription tiers configuration
+ *
+ * Feature lists name only things the code actually gates for paid tiers
+ * (see TIER_LIMITS in subscriptionLimits.ts and the pages that read it). Do
+ * not add features here until they exist - these strings are shown to buyers.
+ * NEEDS-OWNER: confirm the final Premium feature list and prices before launch.
  */
 export const SUBSCRIPTION_TIERS = {
   free: {
@@ -51,17 +56,12 @@ export const SUBSCRIPTION_TIERS = {
     stripePriceId: null,
     tier: 'free' as const,
     features: [
-      'Access to all educational content',
-      'Basic calculators (DCA, Tax, Fees, Staking)',
-      'Live crypto prices and news',
-      'Portfolio tracker (local storage)',
-      'Platform comparisons',
-      'Community access',
-    ],
-    limitations: [
-      'Ads displayed',
-      'Basic portfolio features',
-      'No priority support',
+      'All guides, the beginner course and the glossary',
+      'All calculators (DCA, fees, tax, staking, retirement, backtesting)',
+      'Exchange and wallet comparisons',
+      'Scam database search',
+      'Market dashboard with current prices',
+      'Portfolio tracker saved in your browser',
     ],
   },
   monthly: {
@@ -72,15 +72,10 @@ export const SUBSCRIPTION_TIERS = {
     stripePriceId: import.meta.env.VITE_STRIPE_PRICE_MONTHLY || 'price_monthly_placeholder',
     tier: 'premium' as const,
     features: [
-      '✨ Everything in Free, plus:',
-      '🚫 Ad-free experience',
-      '💾 Cloud portfolio sync',
-      '🔔 Email price alerts',
-      '📊 Advanced analytics',
-      '📈 Premium market insights',
-      '⚡ Priority support',
-      '🎁 Exclusive deals from partners',
-      '📚 Premium research reports',
+      'Portfolio saved to your account',
+      'Unlimited portfolio assets (free accounts: 10)',
+      'Unlimited price alerts (free accounts: 3)',
+      'Tax report exports',
     ],
     popular: false,
   },
@@ -91,15 +86,10 @@ export const SUBSCRIPTION_TIERS = {
     interval: 'year',
     stripePriceId: import.meta.env.VITE_STRIPE_PRICE_ANNUAL || 'price_annual_placeholder',
     tier: 'premium' as const,
-    savings: '17% off',
     monthlyEquivalent: 8.33,
     features: [
-      '✨ Everything in Premium Monthly, plus:',
-      '💰 Save $20/year (17% off)',
-      '🎓 Exclusive annual webinars',
-      '📖 Year-end crypto tax guide',
-      '🏆 VIP community badge',
-      '🎯 Personalized portfolio review',
+      'Everything in Premium Monthly',
+      'Billed once a year for a lower effective monthly price',
     ],
     popular: true,
   },
@@ -110,16 +100,10 @@ export const SUBSCRIPTION_TIERS = {
     interval: 'month',
     stripePriceId: import.meta.env.VITE_STRIPE_PRICE_ADVISOR || 'price_advisor_placeholder',
     tier: 'advisor' as const,
-    targetAudience: 'Financial advisors & small teams',
+    targetAudience: 'Financial advisers',
     features: [
-      '✨ Everything in Premium, plus:',
-      '👥 Up to 10 client portfolios',
-      '📄 White-label PDF reports',
-      '📊 Client dashboard',
-      '🔐 Compliance-ready exports',
-      '📧 Client email reports',
-      '🎨 Custom branding (basic)',
-      '📞 Priority phone support',
+      'Everything in Premium',
+      'Advisor dashboard with up to 10 client portfolios',
     ],
     popular: false,
   },
@@ -130,51 +114,37 @@ export const SUBSCRIPTION_TIERS = {
     interval: 'month',
     stripePriceId: import.meta.env.VITE_STRIPE_PRICE_ENTERPRISE || 'price_enterprise_placeholder',
     tier: 'enterprise' as const,
-    targetAudience: 'Wealth managers & institutions',
+    targetAudience: 'Firms managing many clients',
     features: [
-      '✨ Everything in Advisor, plus:',
-      '👥 Unlimited client portfolios',
-      '🏢 Multi-user team access',
-      '📄 Fully custom white-label reports',
-      '📊 Advanced compliance features',
-      '🔗 API access',
-      '🎨 Full custom branding',
-      '👤 Dedicated account manager',
-      '📈 Bulk import/export',
-      '🔒 Enhanced security (SSO)',
+      'Everything in Advisor',
+      'Unlimited client portfolios',
     ],
-    popular: true,
+    popular: false,
   },
   lifetime: {
     id: 'lifetime',
     name: 'Lifetime Premium',
     price: 299,
-    originalPrice: 499,
     interval: 'lifetime',
     stripePriceId: import.meta.env.VITE_STRIPE_PRICE_LIFETIME || 'price_lifetime_placeholder',
     tier: 'lifetime' as const,
     isOneTime: true,
-    limitedOffer: true,
-    maxPurchases: 500,
-    savings: '40% off',
     features: [
-      '⭐ Lifetime access to ALL Premium features',
-      '💰 One-time payment - never pay again',
-      '🚫 Ad-free experience forever',
-      '💾 Unlimited cloud portfolio sync',
-      '📊 Unlimited watchlist items',
-      '📈 Premium research reports',
-      '📄 All export formats (PDF, Excel, Tax)',
-      '🔔 Unlimited price alerts',
-      '📧 Monthly performance reports',
-      '🧮 Advanced calculator features',
-      '⚡ Priority support',
-      '🎁 All future premium features included',
+      'Everything in Premium Monthly',
+      'One payment instead of a subscription',
     ],
     popular: false,
-    badge: 'Best Value',
   },
 } as const;
+
+/**
+ * A plan can be sold only when its Stripe price ID is configured for this
+ * build. Placeholder IDs mean "not set up" and must never reach checkout.
+ */
+export function isPlanPurchasable(tierId: SubscriptionTierId): boolean {
+  const priceId = SUBSCRIPTION_TIERS[tierId].stripePriceId;
+  return Boolean(priceId) && !String(priceId).endsWith('_placeholder');
+}
 
 export type SubscriptionTierId = keyof typeof SUBSCRIPTION_TIERS;
 
@@ -386,37 +356,18 @@ export function calculateAnnualSavings(): {
 }
 
 /**
- * Calculate lifetime deal savings
+ * Lifetime price compared with the annual plan.
  */
 export function calculateLifetimeSavings(): {
   lifetimePrice: number;
-  originalPrice: number;
-  savings: number;
-  savingsPercentage: number;
   yearsToBreakEven: number;
-  monthlyEquivalentCost: number;
 } {
   const lifetimePrice = SUBSCRIPTION_TIERS.lifetime.price;
-  const originalPrice = SUBSCRIPTION_TIERS.lifetime.originalPrice;
   const annualPrice = SUBSCRIPTION_TIERS.annual.price;
-
-  // Calculate break-even compared to annual subscription
-  const yearsToBreakEven = lifetimePrice / annualPrice;
-
-  // If user stays for 5 years, what's the monthly equivalent cost
-  const monthlyEquivalentCost = lifetimePrice / (5 * 12);
-
-  // Savings vs original price
-  const savings = originalPrice - lifetimePrice;
-  const savingsPercentage = (savings / originalPrice) * 100;
 
   return {
     lifetimePrice,
-    originalPrice,
-    savings,
-    savingsPercentage,
-    yearsToBreakEven: Math.round(yearsToBreakEven * 10) / 10,
-    monthlyEquivalentCost: Math.round(monthlyEquivalentCost * 100) / 100,
+    yearsToBreakEven: Math.round((lifetimePrice / annualPrice) * 10) / 10,
   };
 }
 
@@ -452,11 +403,7 @@ export async function createLifetimeCheckoutSession(
         userEmail,
         successUrl,
         cancelUrl,
-        mode: 'payment', // One-time payment instead of subscription
-        metadata: {
-          type: 'lifetime',
-          tier: 'lifetime',
-        },
+        // The server derives mode ('payment') and product type from the price ID.
       }),
     });
 

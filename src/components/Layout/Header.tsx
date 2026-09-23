@@ -41,10 +41,10 @@ import { STATIC_MODE } from '../../config/staticMode';
 // Navigation items with icons for better visual hierarchy
 const navItems = [
     {
-        label: 'Dashboard',
+        label: 'Prices',
         href: '/dashboard',
         icon: LayoutDashboard,
-        description: 'Your portfolio overview',
+        description: 'Live crypto prices',
     },
     {
         label: 'Charts',
@@ -83,19 +83,19 @@ const navItems = [
         description: 'Advanced trading tools',
         children: STATIC_MODE
             ? [
-                { label: 'Backtesting', href: '/backtesting', icon: RefreshCw, description: 'Test trading strategies' },
-                { label: 'Multi-Exchange', href: '/multi-exchange', icon: Layers, description: 'Manage multiple exchanges' },
-                { label: 'Rebalancing Alerts', href: '/rebalancing-alerts', icon: Bell, description: 'Portfolio rebalancing' },
-                { label: 'Smart Alert Bundles', href: '/alert-bundles', icon: Bell, description: 'Custom alert packages' },
+                { label: 'Backtesting', href: '/backtesting', icon: RefreshCw, description: 'Lump sum vs DCA, historically' },
+                { label: 'Rebalancing Calculator', href: '/rebalancing-alerts', icon: Bell, description: 'Trades to restore your targets' },
+                { label: 'DCA Planner', href: '/dca-automation', icon: TrendingUp, description: 'Schedule and reminders' },
+                { label: 'Price Alerts', href: '/alert-bundles', icon: Bell, description: 'Browser alerts, no account' },
             ]
             : [
                 { label: 'Portfolio Analysis', href: '/portfolio-analysis', icon: BarChart3, description: 'Analyze your holdings' },
                 { label: 'Backtesting', href: '/backtesting', icon: RefreshCw, description: 'Test trading strategies' },
                 { label: 'Tax Reports', href: '/tax-reports', icon: Receipt, description: 'Generate tax reports' },
                 { label: 'Multi-Exchange', href: '/multi-exchange', icon: Layers, description: 'Manage multiple exchanges' },
-                { label: 'DCA Automation', href: '/dca-automation', icon: TrendingUp, description: 'Automate DCA purchases' },
-                { label: 'Rebalancing Alerts', href: '/rebalancing-alerts', icon: Bell, description: 'Portfolio rebalancing' },
-                { label: 'Smart Alert Bundles', href: '/alert-bundles', icon: Bell, description: 'Custom alert packages' },
+                { label: 'DCA Planner', href: '/dca-automation', icon: TrendingUp, description: 'Schedule and reminders' },
+                { label: 'Rebalancing Calculator', href: '/rebalancing-alerts', icon: Bell, description: 'Trades to restore your targets' },
+                { label: 'Price Alerts', href: '/alert-bundles', icon: Bell, description: 'Browser alerts, no account' },
             ],
     },
     {
@@ -104,11 +104,12 @@ const navItems = [
         icon: Search,
         description: 'Market research & data',
         children: [
-            { label: 'On-Chain Analytics', href: '/onchain-analytics', icon: Activity, description: 'Blockchain data insights' },
-            { label: 'Whale Tracking', href: '/whale-tracking', icon: Fish, description: 'Track large holders' },
-            { label: 'Trading Indicators', href: '/trading-indicators', icon: BarChart3, description: 'Technical indicators' },
-            { label: 'Social Trading', href: '/social-trading', icon: Users, description: 'Follow top traders' },
-            { label: 'Scam Database', href: '/scam-database', icon: AlertTriangle, description: 'Avoid crypto scams' },
+            { label: 'On-Chain Metrics', href: '/onchain-analytics', icon: Activity, description: 'Bitcoin network data explained' },
+            { label: 'Whale Tracking Guide', href: '/whale-tracking', icon: Fish, description: 'What large transfers mean' },
+            { label: 'Trading Indicators', href: '/trading-indicators', icon: BarChart3, description: 'RSI, MACD and more, explained' },
+            { label: 'Copy Trading Explained', href: '/social-trading', icon: Users, description: 'How it works and the risks' },
+            { label: 'Scam Checker', href: '/scam-database', icon: AlertTriangle, description: 'Scam types and red flags' },
+            { label: 'Vet an Influencer', href: '/influencer-verification', icon: Users, description: 'Check before you trust' },
         ],
     },
     {
@@ -117,8 +118,8 @@ const navItems = [
         icon: Coins,
         description: 'DeFi opportunities',
         children: [
-            { label: 'DeFi Yield', href: '/defi-yield', icon: Percent, description: 'Find the best yields' },
-            { label: 'Gas Optimizer', href: '/gas-optimizer', icon: Fuel, description: 'Optimize gas costs' },
+            { label: 'DeFi Yields', href: '/defi-yield', icon: Percent, description: 'Current DeFi yields' },
+            { label: 'Gas Fee Tracker', href: '/gas-optimizer', icon: Fuel, description: 'Live gas & Bitcoin fees' },
             { label: 'Hardware Wallet Guide', href: '/hardware-wallet', icon: HardDrive, description: 'Secure your crypto' },
         ],
     },
@@ -243,6 +244,9 @@ export const Header = memo(function Header() {
                                         onKeyDown={(e) => handleDropdownKeyDown(e, item)}
                                         aria-expanded={item.children ? openDropdown === item.label : undefined}
                                         aria-haspopup={item.children ? 'menu' : undefined}
+                                        // Below xl the label is hidden and only the icon shows.
+                                        aria-label={item.label}
+                                        title={item.label}
                                     >
                                         <Icon className={cn(
                                             'w-4 h-4 transition-colors',
@@ -298,10 +302,10 @@ export const Header = memo(function Header() {
                         {/* Auth Section */}
                         {STATIC_MODE ? (
                             <Link
-                                to="/pricing"
+                                to="/learn"
                                 className="px-6 py-2.5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-medium text-sm transition-all hover:shadow-[0_0_20px_-5px_rgba(139,92,246,0.5)]"
                             >
-                                View Plans
+                                Start Learning
                             </Link>
                         ) : user ? (
                             <div
@@ -509,7 +513,10 @@ export const Header = memo(function Header() {
                                                 id={`mobile-section-${item.label}`}
                                                 className={cn(
                                                     'overflow-hidden transition-all duration-200',
-                                                    isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                                                    // `invisible` (visibility: hidden) takes collapsed links out
+                                                    // of the tab order and the accessibility tree; max-h/opacity
+                                                    // alone only hid them visually.
+                                                    isExpanded ? 'max-h-[500px] opacity-100 visible' : 'max-h-0 opacity-0 invisible'
                                                 )}
                                             >
                                                 <div className="ml-4 pl-4 border-l-2 border-white/10 py-2 space-y-1">
@@ -560,11 +567,11 @@ export const Header = memo(function Header() {
                             {STATIC_MODE ? (
                                 <div className="space-y-2">
                                     <Link
-                                        to="/pricing"
+                                        to="/learn"
                                         className="block w-full text-center px-6 py-3 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white font-medium"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
-                                        View Plans
+                                        Start Learning
                                     </Link>
                                 </div>
                             ) : user ? (

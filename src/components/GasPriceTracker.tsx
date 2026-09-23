@@ -10,12 +10,13 @@ import {
   Repeat,
   ImagePlus,
 } from 'lucide-react';
-import type { ChainGasInfo, SupportedChain } from '../types';
+import type { SupportedChain } from '../types';
 import {
   getAllGasPrices,
   getGasPriceForChain,
   formatGasPrice,
   getChainStyle,
+  type ChainGasStatus,
 } from '../services/gasPrice';
 import { cn } from '../lib/utils';
 
@@ -23,6 +24,7 @@ interface GasPriceTrackerProps {
   className?: string;
   variant?: 'full' | 'compact' | 'minimal';
   chains?: SupportedChain[];
+  /** Polling interval in ms. The server refreshes its snapshot every ~15 s. */
   refreshInterval?: number;
 }
 
@@ -37,47 +39,53 @@ const CHAIN_ICONS: Record<SupportedChain, string> = {
   base: 'https://raw.githubusercontent.com/base-org/brand-kit/main/logo/symbol/Base_Symbol_Blue.svg',
 };
 
+function formatTime(ms: number | null): string {
+  if (!ms) return '';
+  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatUsd(value: number): string {
+  if (value > 0 && value < 0.01) return '<$0.01';
+  return `$${value.toFixed(2)}`;
+}
+
 export function GasPriceTracker({
   className,
   variant = 'full',
   chains,
-  refreshInterval = 30000,
+  refreshInterval = 60000,
 }: GasPriceTrackerProps) {
-  const [gasPrices, setGasPrices] = useState<ChainGasInfo[]>([]);
+  const [gasPrices, setGasPrices] = useState<ChainGasStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastChecked, setLastChecked] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedChain, setSelectedChain] = useState<SupportedChain>('ethereum');
+  const chainKey = chains?.join(',') ?? '';
 
-  const fetchGasPrices = useCallback(async (showRefreshing = false) => {
+  const fetchGasPrices = useCallback(async (force = false) => {
+    if (force) setIsRefreshing(true);
     try {
-      if (showRefreshing) setIsRefreshing(true);
-      setError(null);
-
-      let data: ChainGasInfo[];
-      if (chains && chains.length > 0) {
-        data = await Promise.all(chains.map(chain => getGasPriceForChain(chain)));
-      } else {
-        data = await getAllGasPrices();
-      }
-
-      setGasPrices(data);
-      setLastUpdated(new Date());
-    } catch (err) {
-      setError('Failed to fetch gas prices');
-      console.error(err);
+      const list = chainKey
+        ? await Promise.all((chainKey.split(',') as SupportedChain[]).map((c) => getGasPriceForChain(c, { force })))
+        : await getAllGasPrices({ force });
+      setGasPrices(list);
+      setLastChecked(Date.now());
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [chains]);
+  }, [chainKey]);
 
   useEffect(() => {
     fetchGasPrices();
-    const interval = setInterval(() => fetchGasPrices(), refreshInterval);
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      fetchGasPrices();
+    }, refreshInterval);
     return () => clearInterval(interval);
   }, [fetchGasPrices, refreshInterval]);
+
+  const anyAvailable = gasPrices.some((g) => g.available);
 
   if (variant === 'minimal') {
     return (
@@ -98,13 +106,14 @@ export function GasPriceTracker({
         loading={loading}
         onRefresh={() => fetchGasPrices(true)}
         isRefreshing={isRefreshing}
+        anyAvailable={anyAvailable}
       />
     );
   }
 
   if (loading) {
     return (
-      <div className={cn('glass-card p-6 animate-pulse', className)}>
+      <div className={cn('glass-card p-6 animate-pulse', className)} aria-busy="true">
         <div className="h-6 bg-white/10 rounded w-1/3 mb-4" />
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
@@ -115,27 +124,7 @@ export function GasPriceTracker({
     );
   }
 
-  if (error) {
-    return (
-      <div className={cn('glass-card p-6', className)}>
-        <div className="flex items-center gap-2 text-red-400">
-          <AlertCircle className="w-5 h-5" />
-          <span>{error}</span>
-        </div>
-        <button
-          onClick={() => fetchGasPrices(true)}
-          className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  const selectedGas = gasPrices.find(
-    g => g.chainName.toLowerCase().includes(selectedChain) ||
-         g.chainId === getChainId(selectedChain)
-  );
+  const selectedGas = gasPrices.find(g => g.chain === selectedChain) ?? gasPrices[0];
 
   return (
     <div className={cn('glass-card p-6', className)}>
@@ -143,36 +132,41 @@ export function GasPriceTracker({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-orange-500/20 rounded-xl">
-            <Fuel className="w-5 h-5 text-orange-400" />
+            <Fuel className="w-5 h-5 text-orange-400" aria-hidden="true" />
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">Gas Tracker</h3>
-            <p className="text-xs text-gray-400">Real-time gas prices across EVM chains</p>
+            <p className="text-xs text-gray-400">Current network fees on EVM chains, refreshed about once a minute</p>
           </div>
         </div>
         <button
           onClick={() => fetchGasPrices(true)}
           disabled={isRefreshing}
-          className={cn(
-            'p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors',
-            isRefreshing && 'animate-spin'
-          )}
+          aria-label="Refresh gas prices"
+          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
         >
-          <RefreshCw className="w-4 h-4 text-gray-400" />
+          <RefreshCw className={cn('w-4 h-4 text-gray-400', isRefreshing && 'animate-spin')} aria-hidden="true" />
         </button>
       </div>
 
+      {!anyAvailable && (
+        <div className="flex items-start gap-2 text-sm text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4" role="status">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+          <span>Gas data is unavailable right now. We show nothing rather than a guessed number.</span>
+        </div>
+      )}
+
       {/* Chain Selector Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide" role="group" aria-label="Select chain">
         {gasPrices.map(gas => {
-          const chainKey = getChainKey(gas.chainName);
-          const style = getChainStyle(chainKey);
-          const isSelected = selectedChain === chainKey;
+          const style = getChainStyle(gas.chain);
+          const isSelected = selectedGas?.chain === gas.chain;
 
           return (
             <button
               key={gas.chainId}
-              onClick={() => setSelectedChain(chainKey)}
+              onClick={() => setSelectedChain(gas.chain)}
+              aria-pressed={isSelected}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all',
                 isSelected
@@ -182,8 +176,8 @@ export function GasPriceTracker({
               style={isSelected ? { borderColor: style.color + '40' } : undefined}
             >
               <img
-                src={CHAIN_ICONS[chainKey]}
-                alt={gas.chainName}
+                src={CHAIN_ICONS[gas.chain]}
+                alt=""
                 className="w-5 h-5"
                 onError={e => {
                   (e.target as HTMLImageElement).style.display = 'none';
@@ -194,7 +188,7 @@ export function GasPriceTracker({
                 className="text-xs font-mono px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: style.bgColor, color: style.color }}
               >
-                {formatGasPrice(gas.gasPrice.average)} gwei
+                {gas.available ? `${formatGasPrice(gas.gasPrice.average)} gwei` : 'unavailable'}
               </span>
             </button>
           );
@@ -202,15 +196,26 @@ export function GasPriceTracker({
       </div>
 
       {/* Selected Chain Details */}
-      {selectedGas && (
+      {selectedGas && !selectedGas.available && (
+        <p className="text-sm text-gray-400 bg-white/5 rounded-xl p-4">
+          {selectedGas.chainName} gas data is unavailable right now.
+        </p>
+      )}
+
+      {selectedGas && selectedGas.available && (
         <div className="space-y-6">
+          {selectedGas.stale && (
+            <p className="text-xs text-amber-300">
+              Showing the last reading from {formatTime(selectedGas.fetchedAt)}; the latest refresh failed.
+            </p>
+          )}
           {/* Gas Price Tiers */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <GasTierCard
               label="Low"
               price={selectedGas.gasPrice.low}
               waitTime="~10 min"
-              icon={<Clock className="w-4 h-4" />}
+              icon={<Clock className="w-4 h-4" aria-hidden="true" />}
               color="text-blue-400"
               bgColor="bg-blue-500/10"
             />
@@ -218,7 +223,7 @@ export function GasPriceTracker({
               label="Average"
               price={selectedGas.gasPrice.average}
               waitTime="~3 min"
-              icon={<Zap className="w-4 h-4" />}
+              icon={<Zap className="w-4 h-4" aria-hidden="true" />}
               color="text-green-400"
               bgColor="bg-green-500/10"
               highlighted
@@ -227,7 +232,7 @@ export function GasPriceTracker({
               label="High"
               price={selectedGas.gasPrice.high}
               waitTime="~30 sec"
-              icon={<Zap className="w-4 h-4" />}
+              icon={<Zap className="w-4 h-4" aria-hidden="true" />}
               color="text-orange-400"
               bgColor="bg-orange-500/10"
             />
@@ -235,14 +240,14 @@ export function GasPriceTracker({
               label="Instant"
               price={selectedGas.gasPrice.instant || selectedGas.gasPrice.high * 1.5}
               waitTime="Next block"
-              icon={<ArrowRight className="w-4 h-4" />}
+              icon={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
               color="text-red-400"
               bgColor="bg-red-500/10"
             />
           </div>
 
           {/* Base Fee Display (for EIP-1559 chains) */}
-          {selectedGas.gasPrice.baseFee && (
+          {selectedGas.gasPrice.baseFee !== undefined && (
             <div className="flex items-center gap-2 text-sm text-gray-400 bg-white/5 px-4 py-2 rounded-xl">
               <span>Base Fee:</span>
               <span className="font-mono text-white">
@@ -253,31 +258,43 @@ export function GasPriceTracker({
 
           {/* Estimated Costs */}
           <div>
-            <h4 className="text-sm font-medium text-gray-300 mb-3">Estimated Transaction Costs</h4>
-            <div className="grid grid-cols-3 gap-3">
-              <CostCard
-                label="Transfer"
-                icon={<Send className="w-4 h-4" />}
-                cost={selectedGas.estimatedCosts.transfer}
-                symbol={selectedGas.symbol}
-              />
-              <CostCard
-                label="DEX Swap"
-                icon={<Repeat className="w-4 h-4" />}
-                cost={selectedGas.estimatedCosts.swap}
-                symbol={selectedGas.symbol}
-              />
-              <CostCard
-                label="NFT Mint"
-                icon={<ImagePlus className="w-4 h-4" />}
-                cost={selectedGas.estimatedCosts.nftMint}
-                symbol={selectedGas.symbol}
-              />
-            </div>
+            <h4 className="text-sm font-medium text-gray-300 mb-3">Estimated Transaction Costs (average tier)</h4>
+            {selectedGas.costsAvailable ? (
+              <div className="grid grid-cols-3 gap-3">
+                <CostCard
+                  label="Transfer"
+                  icon={<Send className="w-4 h-4" aria-hidden="true" />}
+                  cost={selectedGas.estimatedCosts.transfer}
+                  symbol={selectedGas.symbol}
+                />
+                <CostCard
+                  label="DEX Swap"
+                  icon={<Repeat className="w-4 h-4" aria-hidden="true" />}
+                  cost={selectedGas.estimatedCosts.swap}
+                  symbol={selectedGas.symbol}
+                />
+                <CostCard
+                  label="NFT Mint"
+                  icon={<ImagePlus className="w-4 h-4" aria-hidden="true" />}
+                  cost={selectedGas.estimatedCosts.nftMint}
+                  symbol={selectedGas.symbol}
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">
+                USD estimates are unavailable because the {selectedGas.symbol} price could not be loaded.
+              </p>
+            )}
+            {selectedGas.excludesL1DataFee && (
+              <p className="text-xs text-gray-500 mt-2">
+                {selectedGas.chainName} is a rollup: these figures cover L2 execution gas only. Each transaction also
+                pays an L1 data fee that depends on its size and on Ethereum fees, and it is often the larger part.
+              </p>
+            )}
           </div>
 
           {/* Token Price Info */}
-          {selectedGas.nativeTokenPrice && (
+          {selectedGas.nativeTokenPrice !== undefined && (
             <div className="flex items-center justify-between text-sm text-gray-400 pt-4 border-t border-white/10">
               <span>{selectedGas.symbol} Price</span>
               <span className="font-mono text-white">
@@ -291,12 +308,10 @@ export function GasPriceTracker({
         </div>
       )}
 
-      {/* Last Updated */}
-      {lastUpdated && (
-        <div className="mt-4 text-xs text-gray-500 text-right">
-          Last updated: {lastUpdated.toLocaleTimeString()}
-        </div>
-      )}
+      <p className="mt-4 text-xs text-gray-500 text-right">
+        Source: public RPC nodes (eth_gasPrice, eth_feeHistory); prices from CoinGecko.
+        {lastChecked && ` Checked ${formatTime(lastChecked)}.`}
+      </p>
     </div>
   );
 }
@@ -359,9 +374,9 @@ function CostCard({
         <span className="text-xs">{label}</span>
       </div>
       <div className="text-lg font-bold text-white font-mono">
-        ${cost.toFixed(2)}
+        {formatUsd(cost)}
       </div>
-      <div className="text-xs text-gray-500">{symbol}</div>
+      <div className="text-xs text-gray-500">paid in {symbol}</div>
     </div>
   );
 }
@@ -375,16 +390,18 @@ function GasPriceCompact({
   loading,
   onRefresh,
   isRefreshing,
+  anyAvailable,
 }: {
   className?: string;
-  gasPrices: ChainGasInfo[];
+  gasPrices: ChainGasStatus[];
   loading: boolean;
   onRefresh: () => void;
   isRefreshing: boolean;
+  anyAvailable: boolean;
 }) {
   if (loading) {
     return (
-      <div className={cn('glass-card p-4 animate-pulse', className)}>
+      <div className={cn('glass-card p-4 animate-pulse', className)} aria-busy="true">
         <div className="h-5 bg-white/10 rounded w-1/2 mb-3" />
         <div className="space-y-2">
           {[1, 2, 3].map(i => (
@@ -395,56 +412,72 @@ function GasPriceCompact({
     );
   }
 
+  const newest = gasPrices.reduce<number | null>(
+    (max, g) => (g.available && g.fetchedAt && (!max || g.fetchedAt > max) ? g.fetchedAt : max),
+    null
+  );
+  const anyStale = gasPrices.some((g) => g.available && g.stale);
+
   return (
     <div className={cn('glass-card p-4', className)}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Fuel className="w-4 h-4 text-orange-400" />
-          <span className="text-sm font-semibold text-white">Gas Prices</span>
+          <Fuel className="w-4 h-4 text-orange-400" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-white">Gas Prices</h2>
         </div>
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className={cn(
-            'p-1.5 rounded-lg hover:bg-white/10 transition-colors',
-            isRefreshing && 'animate-spin'
-          )}
+          aria-label="Refresh gas prices"
+          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
         >
-          <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
+          <RefreshCw className={cn('w-3.5 h-3.5 text-gray-400', isRefreshing && 'animate-spin')} aria-hidden="true" />
         </button>
       </div>
 
-      <div className="space-y-2">
-        {gasPrices.slice(0, 5).map(gas => {
-          const chainKey = getChainKey(gas.chainName);
-          const style = getChainStyle(chainKey);
+      {!anyAvailable ? (
+        <p className="text-sm text-gray-400" role="status">
+          Gas data is unavailable right now. Try refreshing in a minute.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {gasPrices.map(gas => {
+            const style = getChainStyle(gas.chain);
 
-          return (
-            <div
-              key={gas.chainId}
-              className="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <img
-                  src={CHAIN_ICONS[chainKey]}
-                  alt={gas.chainName}
-                  className="w-4 h-4"
-                  onError={e => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-                <span className="text-sm text-white">{gas.chainName}</span>
-              </div>
-              <span
-                className="text-xs font-mono px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: style.bgColor, color: style.color }}
+            return (
+              <li
+                key={gas.chainId}
+                className="flex items-center justify-between p-2 rounded-lg bg-white/5"
               >
-                {formatGasPrice(gas.gasPrice.average)} gwei
-              </span>
-            </div>
-          );
-        })}
-      </div>
+                <div className="flex items-center gap-2">
+                  <img
+                    src={CHAIN_ICONS[gas.chain]}
+                    alt=""
+                    className="w-4 h-4"
+                    onError={e => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <span className="text-sm text-white">{gas.chainName}</span>
+                </div>
+                <span
+                  className="text-xs font-mono px-2 py-0.5 rounded-full"
+                  style={gas.available ? { backgroundColor: style.bgColor, color: style.color } : undefined}
+                >
+                  {gas.available ? `${formatGasPrice(gas.gasPrice.average)} gwei` : 'unavailable'}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {anyAvailable && (
+        <p className="text-xs text-gray-500 mt-3">
+          {anyStale ? 'Some values are from an earlier reading. ' : ''}
+          {newest ? `As of ${formatTime(newest)}. ` : ''}Average tier, in gwei.
+        </p>
+      )}
     </div>
   );
 }
@@ -459,7 +492,7 @@ function GasPriceMinimal({
   onRefresh,
 }: {
   className?: string;
-  gasPrices: ChainGasInfo[];
+  gasPrices: ChainGasStatus[];
   loading: boolean;
   onRefresh: () => void;
 }) {
@@ -472,56 +505,27 @@ function GasPriceMinimal({
     );
   }
 
-  const ethGas = gasPrices.find(g => g.chainName === 'Ethereum');
+  const ethGas = gasPrices.find(g => g.chain === 'ethereum');
 
   if (!ethGas) return null;
 
   return (
     <button
       onClick={onRefresh}
+      aria-label="Refresh Ethereum gas price"
       className={cn(
         'flex items-center gap-2 px-3 py-2 glass rounded-xl hover:bg-white/10 transition-colors group',
         className
       )}
     >
-      <Fuel className="w-4 h-4 text-orange-400" />
+      <Fuel className="w-4 h-4 text-orange-400" aria-hidden="true" />
       <span className="text-xs text-gray-400">ETH Gas:</span>
       <span className="text-sm font-mono font-medium text-white">
-        {formatGasPrice(ethGas.gasPrice.average)} gwei
+        {ethGas.available ? `${formatGasPrice(ethGas.gasPrice.average)} gwei` : 'unavailable'}
       </span>
-      <RefreshCw className="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <RefreshCw className="w-3 h-3 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
     </button>
   );
-}
-
-// Helper functions
-function getChainKey(chainName: string): SupportedChain {
-  const nameMap: Record<string, SupportedChain> = {
-    'ethereum': 'ethereum',
-    'polygon': 'polygon',
-    'arbitrum one': 'arbitrum',
-    'arbitrum': 'arbitrum',
-    'optimism': 'optimism',
-    'bnb smart chain': 'bsc',
-    'bsc': 'bsc',
-    'avalanche c-chain': 'avalanche',
-    'avalanche': 'avalanche',
-    'base': 'base',
-  };
-  return nameMap[chainName.toLowerCase()] || 'ethereum';
-}
-
-function getChainId(chain: SupportedChain): number {
-  const chainIds: Record<SupportedChain, number> = {
-    ethereum: 1,
-    polygon: 137,
-    arbitrum: 42161,
-    optimism: 10,
-    bsc: 56,
-    avalanche: 43114,
-    base: 8453,
-  };
-  return chainIds[chain];
 }
 
 export default GasPriceTracker;

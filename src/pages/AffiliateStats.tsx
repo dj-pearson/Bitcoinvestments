@@ -78,7 +78,10 @@ export function AffiliateStats() {
       clicksQuery = clicksQuery.gte('clicked_at', startDate);
     }
 
-    const { data: clicks } = await clicksQuery;
+    const { data: clicks, error: clicksError } = await clicksQuery;
+    if (clicksError) {
+      console.error('Error loading affiliate clicks:', clicksError);
+    }
 
     if (clicks) {
       setRecentClicks(clicks);
@@ -362,15 +365,6 @@ export function AffiliateStats() {
               >
                 View Platforms
               </Link>
-              <a
-                href="https://github.com/yourusername/bitcoin-investments#affiliate-setup"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
-              >
-                Setup Guide
-                <ExternalLink className="w-4 h-4" />
-              </a>
             </div>
           </div>
         </div>

@@ -20,13 +20,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: sitemap lastmod comes from each page's last commit.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Vite reads VITE_* from the build environment, not wrangler.toml [vars]
+      # (those only reach Pages Functions at runtime). Without these the bundle
+      # ships with Supabase unconfigured and the blog export has nothing to
+      # read. Set them as repository variables.
       - run: pnpm run build
+        env:
+          PRERENDER_STRICT: '1'
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
       - uses: actions/upload-artifact@v4
         with:
           name: dist

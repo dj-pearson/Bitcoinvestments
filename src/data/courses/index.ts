@@ -1,17 +1,32 @@
+export interface CourseQA {
+  question: string;
+  answer: string;
+}
+
 export interface CourseModule {
   id: string;
   moduleNumber: number;
   title: string;
   description: string;
+  /** 140-160 char meta description. */
+  metaDescription: string;
+  /** Answer-first summary (1-3 sentences) shown at the top of the module. */
+  summary: string;
   duration: number; // minutes
   objectives: string[];
+  /** "Check your understanding" questions with answers (rendered visibly). */
+  quiz: CourseQA[];
   content: string; // Markdown content
 }
 
 export interface Course {
   id: string;
   title: string;
+  /** Short title for <title> (<= 41 chars). */
+  seoTitle: string;
   description: string;
+  /** 140-160 char meta description. */
+  metaDescription: string;
   longDescription: string;
   icon: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
@@ -20,12 +35,19 @@ export interface Course {
   modules: CourseModule[];
   prerequisites?: string[];
   outcomes: string[];
+  /** ISO dates (YYYY-MM-DD). */
+  datePublished: string;
+  dateModified: string;
+  faqs: CourseQA[];
 }
 
 export const beginnerCompleteCourse: Course = {
   id: 'beginner-complete-course',
   title: "Beginner's Complete Course",
-  description: 'From zero to confident crypto investor in 6 comprehensive modules',
+  seoTitle: 'Free Crypto Course for Beginners',
+  description: 'From zero to confident crypto investor in 6 short modules',
+  metaDescription:
+    'A free six-module crypto course for beginners: how Bitcoin works, buying safely, wallets and seed phrases, market cycles, DCA and taxes, and avoiding scams.',
   longDescription: `This comprehensive course takes you from complete beginner to confident cryptocurrency investor.
 
 You'll learn everything from the basics of what cryptocurrency is, to making your first purchase, securing your assets, and developing a long-term investment strategy. Each module builds on the previous one, ensuring you have a solid foundation before moving forward.`,
@@ -34,6 +56,27 @@ You'll learn everything from the basics of what cryptocurrency is, to making you
   totalDuration: 180,
   moduleCount: 6,
   prerequisites: [],
+  // NEEDS-OWNER: named author/reviewer for the course.
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  faqs: [
+    {
+      question: 'Is this crypto course really free?',
+      answer: 'Yes. All six modules are free to read with no account or payment. Your progress is saved in your own browser.',
+    },
+    {
+      question: 'How long does the course take?',
+      answer: 'About three hours in total: six modules of 25 to 35 minutes each. You can take them one at a time over a week or two.',
+    },
+    {
+      question: 'Do I need to buy crypto to take the course?',
+      answer: 'No. You can complete every module without buying anything. Module 2 explains how to buy safely if and when you decide to.',
+    },
+    {
+      question: 'Is this financial advice?',
+      answer: 'No. The course is general education. Example allocations are illustrations, not recommendations for your situation.',
+    },
+  ],
   outcomes: [
     'Understand how Bitcoin and cryptocurrencies work',
     'Safely buy and store your first cryptocurrency',
@@ -48,6 +91,17 @@ You'll learn everything from the basics of what cryptocurrency is, to making you
       moduleNumber: 1,
       title: 'Cryptocurrency Fundamentals',
       description: 'Understanding Bitcoin, blockchain, and why crypto matters',
+      metaDescription:
+        "Module 1 of our free crypto course: what cryptocurrency is, how Bitcoin and blockchains work, and the main types of coins, including stablecoins.",
+      summary:
+        "Cryptocurrency is digital money secured by cryptography and recorded on a shared public ledger called a blockchain, with no bank in the middle. Bitcoin, launched in 2009, was the first; today there are thousands of coins, from Ethereum to dollar-pegged stablecoins.",
+      quiz: [
+        { question: "What makes cryptocurrency different from traditional money?", answer: "It is issued and recorded by a decentralized network following public rules, rather than by a central bank or a commercial bank ledger, and anyone can verify transactions." },
+        { question: "Who created Bitcoin, and when?", answer: "Someone using the name Satoshi Nakamoto published the whitepaper in October 2008 and launched the network in January 2009." },
+        { question: "What is the maximum number of bitcoins that will ever exist?", answer: "21 million. More than 20 million had been mined by March 2026." },
+        { question: "What is a blockchain?", answer: "A shared ledger made of blocks of transactions, each linked to the previous one by a cryptographic hash, and copied across many computers." },
+        { question: "Name three types of cryptocurrency besides Bitcoin.", answer: "For example Ethereum (a smart-contract platform), stablecoins such as USDC, and other altcoins such as Solana." },
+      ],
       duration: 25,
       objectives: [
         'Define what cryptocurrency is and how it differs from traditional money',
@@ -74,12 +128,12 @@ Cryptocurrency is digital or virtual money that uses cryptography for security. 
 
 ## The Story of Bitcoin
 
-In 2008, during the global financial crisis, an anonymous person (or group) using the name **Satoshi Nakamoto** published a whitepaper titled "Bitcoin: A Peer-to-Peer Electronic Cash System."
+In October 2008, during the global financial crisis, an anonymous person (or group) using the name **Satoshi Nakamoto** published a whitepaper titled "Bitcoin: A Peer-to-Peer Electronic Cash System." The Bitcoin network itself went live in January 2009.
 
 ### Why Bitcoin Was Created
 
 - **Remove intermediaries**: Send money directly to anyone, anywhere
-- **Prevent inflation**: Fixed supply of 21 million coins
+- **Predictable supply**: No more than 21 million coins, issued on a fixed schedule that halves roughly every four years (most recently in April 2024)
 - **Financial freedom**: No government or bank can freeze your funds
 - **Transparency**: Anyone can verify transactions
 
@@ -110,16 +164,18 @@ Blockchain is the technology that powers Bitcoin and most cryptocurrencies. Thin
 While Bitcoin was the first, there are now thousands of cryptocurrencies. Here are the main categories:
 
 ### 1. Bitcoin (BTC)
-The original cryptocurrency and largest by market cap. Often called "digital gold."
+The original cryptocurrency and largest by market cap. Often called "digital gold." Read more in [What is Bitcoin?](/learn/what-is-bitcoin)
 
 ### 2. Ethereum (ETH)
 A platform for building decentralized applications (dApps) and smart contracts.
 
 ### 3. Stablecoins
-Cryptocurrencies pegged to stable assets like the US dollar:
+Cryptocurrencies designed to track a stable asset, usually the US dollar:
 - USDT (Tether)
 - USDC (USD Coin)
-- DAI
+- DAI / USDS (issued by Sky, formerly MakerDAO)
+
+In the US, the GENIUS Act (July 2025) set federal reserve and disclosure rules for payment stablecoins. A stablecoin is still not a bank deposit and is not FDIC-insured.
 
 ### 4. Altcoins
 All other cryptocurrencies besides Bitcoin:
@@ -148,15 +204,7 @@ Understanding these fundamentals helps you:
 | **Node** | A computer that maintains a copy of the blockchain |
 | **Mining** | The process of validating transactions and creating new coins |
 
-## Module 1 Quiz
-
-Test your understanding:
-
-1. What makes cryptocurrency different from traditional money?
-2. Who created Bitcoin and when?
-3. What is the maximum number of Bitcoins that will ever exist?
-4. What is a blockchain?
-5. Name three types of cryptocurrencies besides Bitcoin.
+More definitions are in the [crypto glossary](/glossary).
 
 ## Next Steps
 
@@ -168,7 +216,7 @@ In **Module 2**, we'll explore how to actually buy your first cryptocurrency saf
 
 **Key Takeaways:**
 - Cryptocurrency is decentralized digital money secured by cryptography
-- Bitcoin was created in 2008 to provide financial freedom from banks and governments
+- Bitcoin was described in a 2008 whitepaper and launched in 2009 as money that works without banks or governments
 - Blockchain technology ensures security and transparency
 - There are thousands of cryptocurrencies with different purposes
 `
@@ -178,6 +226,16 @@ In **Module 2**, we'll explore how to actually buy your first cryptocurrency saf
       moduleNumber: 2,
       title: 'Buying Your First Cryptocurrency',
       description: 'Choosing an exchange, verification, and making your first purchase',
+      metaDescription:
+        "Module 2: how to buy your first crypto safely: exchange vs app vs spot ETF, account verification, 2FA, funding, market vs limit orders, and fees.",
+      summary:
+        "To buy your first crypto, choose a reputable regulated platform (or a spot Bitcoin ETF through a brokerage), verify your identity, secure the account with app-based 2FA, fund it by bank transfer and start with a small purchase. Check the total cost, including the spread, before you confirm.",
+      quiz: [
+        { question: "Why is a bank transfer usually better than a card for buying crypto?", answer: "Card purchases typically cost several percent in fees and credit cards may be treated as cash advances; bank transfers are usually free or cheap." },
+        { question: "What is the difference between a market order and a limit order?", answer: "A market order buys immediately at the best available price; a limit order only buys at your chosen price or better, and may not fill." },
+        { question: "Why avoid SMS-based two-factor authentication?", answer: "Attackers can hijack your phone number through a SIM swap and receive your codes. Authenticator apps, passkeys or security keys are safer." },
+        { question: "What does a spot Bitcoin ETF give you?", answer: "Shares in a fund that holds bitcoin, bought through a normal brokerage or IRA, with no keys to manage but an annual fee and no way to withdraw the coins." },
+      ],
       duration: 30,
       objectives: [
         'Compare different cryptocurrency exchanges',
@@ -216,12 +274,22 @@ Most beginner-friendly option. Companies that act as intermediaries.
 - **Gemini** - Regulated, great security features
 
 #### Decentralized Exchanges (DEX)
-For more advanced users who want full control.
+For more advanced users who already hold crypto in their own wallet. You can't buy with dollars from your bank on most DEXs, and mistakes can't be reversed.
 
-**Popular Options:**
-- Uniswap
-- SushiSwap
-- dYdX
+**Example:** Uniswap (Ethereum and its Layer 2 networks). We cover DEXs in [DeFi Explained](/learn/defi-basics); they are not a good place to make your first purchase.
+
+#### Spot Bitcoin and Ether ETFs
+Since January 2024 (Bitcoin) and July 2024 (Ether), US investors can buy exchange-traded funds that hold the actual coins, through any ordinary brokerage account or IRA.
+
+| | Crypto exchange | Spot ETF in a brokerage |
+|---|---|---|
+| What you own | The coins (in your account, withdrawable) | Fund shares |
+| Keys to manage | Optional (if you withdraw to a wallet) | None |
+| Trading hours | 24/7 | Stock-market hours |
+| Ongoing cost | None to hold | Annual expense ratio |
+| Retirement accounts | Specialist providers only | Any IRA that allows ETFs |
+
+An ETF is often the simplest route for retirement savings. An exchange lets you hold and move the coins themselves. This module walks through the exchange route; for a side-by-side comparison of providers, see our [exchange comparison](/compare).
 
 ### How to Choose Your First Exchange
 
@@ -229,7 +297,7 @@ Consider these factors:
 
 | Factor | What to Look For |
 |--------|-----------------|
-| **Security** | 2FA, insurance, cold storage |
+| **Security** | 2FA or passkeys, cold storage, proof of reserves, track record (crypto balances are not FDIC-insured) |
 | **Fees** | Trading fees, withdrawal fees, deposit fees |
 | **Supported Coins** | Does it have what you want to buy? |
 | **Payment Methods** | Bank transfer, debit card, wire |
@@ -268,7 +336,7 @@ KYC (Know Your Customer) is required by law for most exchanges.
 **Essential Security Measures:**
 
 1. **Enable Two-Factor Authentication (2FA)**
-   - Use an authenticator app (Google Authenticator, Authy)
+   - Use an authenticator app (Google Authenticator, Microsoft Authenticator, 2FAS) or a passkey/security key
    - Avoid SMS-based 2FA if possible
 
 2. **Use a Strong Password**
@@ -285,7 +353,7 @@ KYC (Know Your Customer) is required by law for most exchanges.
 
 | Method | Speed | Fees | Limits |
 |--------|-------|------|--------|
-| **Bank Transfer (ACH)** | 3-5 days | Low/Free | High |
+| **Bank Transfer (ACH)** | 1-5 business days to settle (many platforms let you buy right away) | Low/Free | High |
 | **Wire Transfer** | 1-2 days | Medium | Very High |
 | **Debit Card** | Instant | High (3-5%) | Medium |
 | **Credit Card** | Instant | Very High | Medium |
@@ -345,10 +413,10 @@ KYC (Know Your Customer) is required by law for most exchanges.
 ### How to Minimize Fees
 
 - Use bank transfers instead of cards
-- Use "Pro" or "Advanced" trading interfaces
-- Trade during low-volume periods
+- Use "Pro" or "Advanced" trading interfaces, which usually charge a small percentage instead of a spread plus fee
+- Use limit orders where available (often a lower "maker" fee, and no slippage)
 - Withdraw less frequently (batch withdrawals)
-- Compare fees across exchanges
+- Compare fees across exchanges with our [exchange comparison](/compare)
 
 ## Common First-Timer Mistakes
 
@@ -357,6 +425,7 @@ KYC (Know Your Customer) is required by law for most exchanges.
 3. **Panic Selling** - Price drops are normal; don't sell in fear
 4. **Going All-In** - Never invest more than you can afford to lose
 5. **Leaving Crypto on Exchange** - We'll cover proper storage in Module 3
+6. **Forgetting Records** - Save every purchase confirmation. US platforms report your sales to the IRS on Form 1099-DA, and you'll need your cost basis (what you paid) when you sell
 
 ## Practice Exercise
 
@@ -394,6 +463,16 @@ You now know how to:
       moduleNumber: 3,
       title: 'Securing Your Cryptocurrency',
       description: 'Wallets, private keys, and protecting your investment',
+      metaDescription:
+        "Module 3: securing your crypto with the right wallet, backing up a seed phrase safely, setting up a hardware wallet, and avoiding phishing and SIM swaps.",
+      summary:
+        "Whoever controls the private keys controls the crypto. Keep small amounts where convenient, move significant holdings to a hardware wallet, and protect the seed phrase on paper or metal in more than one place, because nobody can recover it for you.",
+      quiz: [
+        { question: "What does \"not your keys, not your coins\" mean?", answer: "If a company holds the private keys, you depend on it staying solvent and honest; only with your own keys do you fully control the coins." },
+        { question: "Where should you never store a seed phrase?", answer: "Anywhere digital: photos, cloud drives, email, notes apps or password fields on websites." },
+        { question: "Why send a small test transaction first?", answer: "To confirm the address and network are correct before risking the full amount, because crypto transfers cannot be reversed." },
+        { question: "Why is an HTTPS padlock not proof a site is genuine?", answer: "Phishing sites can get HTTPS certificates too. Check the exact domain and use bookmarks instead." },
+      ],
       duration: 35,
       objectives: [
         'Understand different types of crypto wallets',
@@ -417,8 +496,8 @@ When you buy crypto on an exchange, the exchange controls it. If the exchange:
 **You could lose everything.**
 
 Famous examples:
-- **Mt. Gox (2014)**: 850,000 BTC stolen, users lost everything
-- **FTX (2022)**: Billions lost when exchange collapsed
+- **Mt. Gox (2014)**: About 850,000 BTC lost; customers waited roughly ten years for partial repayment
+- **FTX (2022)**: Customer funds frozen when the exchange collapsed; repayments began in 2025, valued at 2022 prices
 - **QuadrigaCX (2019)**: CEO died with only access to cold wallets
 
 ## Understanding Crypto Wallets
@@ -462,15 +541,17 @@ Physical devices that store keys offline.
 
 | Pros | Cons |
 |------|------|
-| Most secure | Costs $60-$200 |
+| Most secure | Costs roughly $60-$400 |
 | Keys never online | Less convenient |
 | Immune to malware | Can be lost/damaged |
 | Built-in screens | Learning curve |
 
 **Popular Options:**
-- **Ledger Nano X** - Bluetooth, wide coin support
-- **Trezor Model T** - Touchscreen, open source
-- **Coldcard** - Bitcoin-only, maximum security
+- **Ledger** (Nano S Plus, Nano X, Nano Gen5, Flex, Stax) - wide coin support; Bluetooth on most models
+- **Trezor** (Safe 3, Safe 5, Safe 7) - open-source firmware; the older Model T is discontinued
+- **Coldcard** - Bitcoin-only, aimed at advanced users
+
+Lineups checked September 2026. Compare current models in our [wallet comparison](/compare?tab=wallets) and [hardware wallet guide](/hardware-wallet).
 
 **Best for:** Significant amounts for long-term holding
 
@@ -489,7 +570,7 @@ Private keys printed on paper.
 
 When you create a wallet, you'll receive a **seed phrase** (also called recovery phrase or mnemonic). This is usually 12 or 24 words.
 
-### Example Seed Phrase
+### Example Seed Phrase (made up; never use a phrase you've seen anywhere)
 \`\`\`
 apple banana cherry diamond elephant flower
 garden horizon igloo jungle kingdom lemon
@@ -571,9 +652,9 @@ After setup, you should:
    - Send test transactions first
 
 2. **Be paranoid about phishing**
-   - Never click links in emails
-   - Type URLs directly
-   - Verify SSL certificates
+   - Never click links in emails or search ads
+   - Type URLs directly or use bookmarks
+   - Check the exact domain (phishing sites use HTTPS padlocks too, so the padlock proves nothing)
 
 3. **Keep software updated**
    - Wallet firmware
@@ -603,7 +684,7 @@ After setup, you should:
 | Using SMS 2FA | SIM swap attacks | Use authenticator apps |
 | Clicking phishing links | Account compromise | Type URLs directly |
 | Reusing passwords | Multi-account breach | Password manager |
-| Public WiFi transactions | Man-in-middle attacks | Use VPN or mobile data |
+| Logging in on shared computers | Keyloggers, saved sessions | Use your own updated device |
 
 ## Security Checklist
 
@@ -632,6 +713,8 @@ Security is your responsibility in crypto. The good news is that proper security
 - Never store seed phrases digitally
 - Follow security best practices consistently
 
+For more detail, read [Crypto Wallets Explained](/learn/crypto-wallets-explained).
+
 **Next Module:** Understanding the Market - learn to interpret prices, trends, and make informed decisions.
 `
     },
@@ -640,6 +723,16 @@ Security is your responsibility in crypto. The good news is that proper security
       moduleNumber: 4,
       title: 'Understanding the Crypto Market',
       description: 'Reading charts, understanding volatility, and market cycles',
+      metaDescription:
+        "Module 4: reading crypto price charts, supply and demand, the four-year halving cycle, market cap and Fear & Greed, and how to cope with volatility.",
+      summary:
+        "Crypto prices are set by supply and demand in a market that never closes and swings far more than stocks. Candlestick charts, market cap and sentiment gauges help you understand what is happening, but none of them predicts prices, so plan for 50-80% drawdowns.",
+      quiz: [
+        { question: "What four prices does a candlestick show?", answer: "The open, close, high and low for that period." },
+        { question: "What happened at the April 2024 halving?", answer: "The number of new bitcoins paid per block fell from 6.25 to 3.125 BTC." },
+        { question: "Does a low Fear & Greed score mean crypto is undervalued?", answer: "No. It measures sentiment, not value. Prices can keep falling while fear is high." },
+        { question: "How is market capitalisation calculated?", answer: "Current price multiplied by circulating supply." },
+      ],
       duration: 30,
       objectives: [
         'Read and interpret basic price charts',
@@ -673,7 +766,7 @@ Like any market, crypto prices are determined by **supply and demand**:
 ### Unique Crypto Market Characteristics
 
 1. **24/7 Trading**: Never closes, no holidays
-2. **High Volatility**: 10-20% daily moves are normal
+2. **High Volatility**: Daily moves of a few percent are routine for Bitcoin and Ethereum, 10-20% weekly swings are common, and 50-80% drawdowns have happened in bear markets
 3. **Global**: Trades simultaneously worldwide
 4. **Correlation**: Most cryptos move together with Bitcoin
 5. **Retail Driven**: More individual investors than stocks
@@ -761,7 +854,9 @@ Every ~4 years, Bitcoin's mining reward is cut in half. Historically, this has p
 | 1st | Nov 2012 | $12 | $1,100 (2013) |
 | 2nd | Jul 2016 | $650 | $20,000 (2017) |
 | 3rd | May 2020 | $8,700 | $69,000 (2021) |
-| 4th | Apr 2024 | $64,000 | TBD |
+| 4th | Apr 2024 | $64,000 | about $126,000 (Oct 2025) |
+
+Prices are approximate. Each peak has been a smaller multiple of the halving price than the one before (roughly 90x, 30x, 8x, then 2x), and many analysts think ETF demand and institutional buying now matter more than the halving itself.
 
 > Past performance doesn't guarantee future results, but understanding cycles helps set realistic expectations.
 
@@ -787,13 +882,15 @@ Bitcoin's percentage of total crypto market cap.
 ### 4. Fear & Greed Index
 Measures market sentiment from 0 (Extreme Fear) to 100 (Extreme Greed).
 
-| Score | Sentiment | Consideration |
+| Score | Sentiment | What it tells you |
 |-------|-----------|---------------|
-| 0-25 | Extreme Fear | Potential buying opportunity |
-| 25-45 | Fear | Market undervalued |
-| 45-55 | Neutral | Wait for direction |
-| 55-75 | Greed | Market overvalued |
-| 75-100 | Extreme Greed | Potential selling opportunity |
+| 0-24 | Extreme Fear | Sentiment is very negative; contrarians see this as a time to keep buying, not sell in panic |
+| 25-44 | Fear | Sentiment is negative |
+| 45-55 | Neutral | No strong mood either way |
+| 56-75 | Greed | Sentiment is positive |
+| 76-100 | Extreme Greed | Euphoria; a time to be careful about chasing prices |
+
+The index measures **mood, not value**. A fearful market can keep falling and a greedy one can keep rising for months. Use it as a check on your own emotions, not as a price signal.
 
 > "Be fearful when others are greedy, and greedy when others are fearful." - Warren Buffett
 
@@ -866,8 +963,10 @@ Understanding the market helps you make rational decisions and avoid emotional m
 - Price is determined by supply and demand
 - Learn to read basic candlestick charts
 - Crypto moves in cycles - understand where we are
-- Use indicators like Fear & Greed Index as guides
+- Use indicators like the Fear & Greed Index as a check on emotion, not a price signal
 - Expect volatility and plan for it
+
+Check live prices on the [market dashboard](/dashboard).
 - Never make emotional decisions
 
 **Next Module:** Building Your Investment Strategy - create a personalized approach to crypto investing.
@@ -878,6 +977,16 @@ Understanding the market helps you make rational decisions and avoid emotional m
       moduleNumber: 5,
       title: 'Building Your Investment Strategy',
       description: 'Portfolio allocation, DCA, and developing your personal approach',
+      metaDescription:
+        "Module 5: build a crypto investment plan: time horizon, risk tolerance, allocation examples, dollar-cost averaging with a worked table, exits, and US taxes.",
+      summary:
+        "A written plan beats reacting to headlines: decide your time horizon, keep crypto to a share of your investments you could see fall 80%, choose how to buy (usually a regular DCA schedule), and set exit and rebalancing rules in advance. Keep records from day one for taxes.",
+      quiz: [
+        { question: "What does dollar-cost averaging actually do?", answer: "Investing a fixed amount on a schedule buys more coins when prices are low and fewer when high, so your average cost is below the simple average of the prices you paid. It does not guarantee a profit." },
+        { question: "Why fund an emergency account before buying crypto?", answer: "So you are never forced to sell crypto during a crash to cover a bill." },
+        { question: "Is swapping one crypto for another taxable in the US?", answer: "Yes. It is treated as selling the first coin, so any gain is taxable." },
+        { question: "What is rebalancing?", answer: "Trading back to your target allocation after prices move, for example selling some bitcoin after it grows from 60% to 75% of your crypto holdings." },
+      ],
       duration: 35,
       objectives: [
         'Determine your risk tolerance and investment goals',
@@ -905,20 +1014,22 @@ Before investing, answer these questions:
 
 ### 2. What's Your Risk Tolerance?
 
+The percentages below are common illustrations, not recommendations for you. Many financial planners suggest keeping crypto to a small share of total investments.
+
 **Conservative:**
 - Can't stomach 50%+ drawdowns
 - Need money in <3 years
-- Crypto is <5% of portfolio
+- Crypto is 0-2% of total investments (or none)
 
 **Moderate:**
 - Uncomfortable but can handle volatility
 - 3-5 year horizon
-- Crypto is 5-15% of portfolio
+- Crypto is roughly 2-5% of total investments
 
 **Aggressive:**
 - High risk tolerance
 - 5+ year horizon
-- Crypto is 15-30% of portfolio
+- Crypto is roughly 5-10% of total investments; going higher means accepting that an 80% crash would seriously dent your net worth
 
 ### 3. What Are Your Goals?
 
@@ -933,7 +1044,9 @@ Before investing, answer these questions:
 
 > Never invest more than you can afford to lose completely.
 
-### Suggested Allocations by Risk Profile
+### Example Allocations Within Your Crypto Holdings
+
+These split the crypto portion only. They are examples to show the idea, not advice.
 
 **Conservative Portfolio:**
 - 80% Bitcoin
@@ -991,12 +1104,14 @@ DCA is the strategy of investing a fixed amount at regular intervals, regardless
 | Month | BTC Price | Amount Bought | Total BTC | Avg Cost |
 |-------|-----------|---------------|-----------|----------|
 | Jan | $40,000 | 0.0125 | 0.0125 | $40,000 |
-| Feb | $35,000 | 0.0143 | 0.0268 | $37,313 |
-| Mar | $45,000 | 0.0111 | 0.0379 | $39,577 |
-| Apr | $30,000 | 0.0167 | 0.0546 | $36,630 |
-| May | $50,000 | 0.0100 | 0.0646 | $38,700 |
+| Feb | $35,000 | 0.0143 | 0.0268 | $37,333 |
+| Mar | $45,000 | 0.0111 | 0.0379 | $39,581 |
+| Apr | $30,000 | 0.0167 | 0.0546 | $36,655 |
+| May | $50,000 | 0.0100 | 0.0646 | $38,722 |
 
-Even with volatile prices, you end up with an average cost below the highest price.
+(Illustrative prices; amounts rounded to four decimals, averages calculated from exact amounts.)
+
+The simple average of the five prices is $40,000, but your average cost is about $38,722. That's the real effect of DCA: a fixed dollar amount buys more coins when the price is low and fewer when it's high. It doesn't guarantee a profit; if the price keeps falling, so does the value of what you hold. Try your own numbers in the [DCA calculator](/calculators).
 
 ### DCA Best Practices
 
@@ -1028,8 +1143,8 @@ Even with volatile prices, you end up with an average cost below the highest pri
 
 **2. Lump Sum**
 - Invest entire amount at once
-- Statistically beats DCA (if you have the nerve)
-- Higher risk if market drops immediately
+- In Vanguard's 2012 study of stock and bond portfolios, investing a lump sum right away beat spreading it over 12 months about two-thirds of the time, because markets rise more often than they fall. Crypto wasn't studied and is far more volatile
+- Higher regret (and risk) if the market drops right after you buy
 
 **3. Value Averaging**
 - Adjust buy amount based on performance
@@ -1048,7 +1163,7 @@ Even with volatile prices, you end up with an average cost below the highest pri
 
 **3. Rebalancing**
 - Sell to maintain allocation percentages
-- Example: Crypto grew to 30%, sell to return to 20%
+- Example: Crypto grew from 5% to 9% of your investments, sell back to 5%
 
 **4. Scaled Exit**
 - Sell in portions, not all at once
@@ -1074,7 +1189,7 @@ Never put too much into a single asset:
 
 ### The 1% Rule
 
-Never risk more than 1% of your total portfolio on a single trade (for active traders).
+Active traders often limit the loss they'll accept on any single trade to about 1% of their portfolio. As a long-term investor you mainly control risk through the size of your total crypto allocation.
 
 ### Emergency Fund First
 
@@ -1132,6 +1247,16 @@ A good strategy keeps you disciplined through market chaos.
 - Manage risk through position sizing and diversification
 - Write down your plan and stick to it
 
+### Taxes (US)
+
+In the US, crypto is property for tax purposes:
+- **Buying and holding** is not taxable
+- **Selling, swapping one coin for another, or spending** crypto is a taxable disposal; your gain is the sale value minus your **cost basis** (what you paid, including fees)
+- Held **more than a year** means long-term rates (0%, 15% or 20%); a year or less means your ordinary income rate
+- US platforms report your sales on **Form 1099-DA**: gross proceeds for 2025, and cost basis too for coins bought from January 1, 2026
+
+Keep every purchase record from day one. Full details: [Crypto Taxes: What You Need to Know](/learn/crypto-taxes-basics).
+
 **Next Module:** Avoiding Common Mistakes and Scams - protect yourself from the biggest risks in crypto.
 `
     },
@@ -1140,6 +1265,16 @@ A good strategy keeps you disciplined through market chaos.
       moduleNumber: 6,
       title: 'Avoiding Mistakes and Scams',
       description: 'Common pitfalls, scam identification, and staying safe',
+      metaDescription:
+        "Module 6: the most common beginner crypto mistakes and scams (phishing, rug pulls, pump-and-dumps, fake giveaways, romance scams) and how to protect yourself.",
+      summary:
+        "Most crypto losses come from avoidable mistakes such as FOMO buying, panic selling, leverage and weak security, or from scams that promise guaranteed or doubled returns. A written plan, healthy scepticism and checking before you send money prevent nearly all of them.",
+      quiz: [
+        { question: "What is a rug pull?", answer: "A scam where a project's developers attract deposits or token buyers and then drain the liquidity and disappear." },
+        { question: "Will a legitimate exchange or wallet ever ask for your seed phrase?", answer: "Never. Anyone asking for it is trying to steal your funds." },
+        { question: "What is the warning sign of a \"pig butchering\" scam?", answer: "An online friend or partner introduces a trading platform that shows big gains but demands \"taxes\" or \"fees\" before you can withdraw." },
+        { question: "Why is leverage risky for beginners?", answer: "It amplifies losses as well as gains and can liquidate your entire position in a sudden price move." },
+      ],
       duration: 25,
       objectives: [
         'Recognize and avoid common beginner mistakes',
@@ -1325,7 +1460,7 @@ Congratulations on reaching the final module! This lesson will help you avoid th
 - Too good to be true
 
 **Protection:**
-- No one gives away free crypto
+- Unsolicited "send crypto, get double back" giveaways are always scams
 - Never send crypto to "verify" your wallet
 - Verify accounts through official channels
 
@@ -1345,6 +1480,7 @@ Congratulations on reaching the final module! This lesson will help you avoid th
 - Never invest based on romantic partner's advice
 - Verify independently
 - Be skeptical of online relationships
+- If a platform lets you withdraw small amounts but asks for "taxes" or "fees" before a large withdrawal, it's a scam (often called "pig butchering")
 
 ### 6. Fake Exchanges/Wallets
 
@@ -1375,6 +1511,7 @@ Before investing in anything, verify:
 - [ ] Is there real community discussion (not just hype)?
 - [ ] Can you find negative reviews/criticism?
 - [ ] Would you still invest if a friend didn't recommend it?
+- [ ] Have you searched our [scam database](/scam-database)?
 
 ## Healthy Investing Habits
 
@@ -1406,9 +1543,9 @@ Before investing in anything, verify:
 - CoinGecko/CoinMarketCap - Price data and research
 
 **Books:**
-- "The Bitcoin Standard" by Saifedean Ammous
-- "Mastering Bitcoin" by Andreas Antonopoulos
-- "The Infinite Machine" by Camila Russo
+- "Mastering Bitcoin" by Andreas Antonopoulos (technical, free online)
+- "The Infinite Machine" by Camila Russo (history of Ethereum)
+- "The Bitcoin Standard" by Saifedean Ammous (an opinionated pro-Bitcoin argument; read critics too)
 
 **Podcasts:**
 - What Bitcoin Did
@@ -1480,13 +1617,13 @@ You've completed the Beginner's Complete Course. You're now equipped with the kn
 - Protect yourself from scams and mistakes
 
 **Your next steps:**
-1. Make your first (small) investment
-2. Set up your DCA schedule
+1. Make your first (small) investment, following [How to Buy Your First Cryptocurrency](/learn/how-to-buy-crypto)
+2. Set up your DCA schedule (plan it with the [DCA calculator](/calculators))
 3. Secure your holdings properly
-4. Join our community for ongoing support
-5. Explore our advanced guides when ready
+4. Keep the [glossary](/glossary) handy
+5. Explore our [guides on DCA, rebalancing, risk and DeFi](/learn) when ready
 
-Welcome to the world of crypto investing. Stay safe, stay curious, and happy investing!
+Welcome to the world of crypto investing. Stay safe and stay curious.
 `
     }
   ]
@@ -1497,7 +1634,7 @@ export const courses: Record<string, Course> = {
 };
 
 export function getCourse(id: string): Course | undefined {
-  return courses[id];
+  return Object.prototype.hasOwnProperty.call(courses, id) ? courses[id] : undefined;
 }
 
 export function getAllCourses(): Course[] {
@@ -1508,4 +1645,12 @@ export function getCourseModule(courseId: string, moduleId: string): CourseModul
   const course = getCourse(courseId);
   if (!course) return undefined;
   return course.modules.find(m => m.id === moduleId);
+}
+
+/**
+ * Module markdown without its leading "# Module N: ..." line: the page renders
+ * the module title as its single <h1>.
+ */
+export function getModuleBody(module: CourseModule): string {
+  return module.content.replace(/^\s*# [^\n]*\n/, '');
 }

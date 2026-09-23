@@ -9,32 +9,28 @@
  * - 2.4.4 Link Purpose (Level A)
  */
 
-import { useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, ArrowLeft, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, ArrowLeft, AlertTriangle, BookOpen, TrendingUp, ShieldCheck, Calculator, BarChart3 } from 'lucide-react';
 import { SEO } from '../components/SEO';
 
 export function NotFound() {
     const location = useLocation();
 
-    useEffect(() => {
-        // Announce the error to screen readers
-        const announcement = document.createElement('div');
-        announcement.setAttribute('role', 'alert');
-        announcement.setAttribute('aria-live', 'assertive');
-        announcement.className = 'sr-only';
-        announcement.textContent = 'Error: Page not found. The requested page does not exist.';
-        document.body.appendChild(announcement);
-
-        return () => {
-            document.body.removeChild(announcement);
-        };
-    }, []);
+    // The layout's RouteAnnouncer already announces the new page title, so no
+    // extra live region here.
+    const navigate = useNavigate();
+    const goBack = () => {
+        // A direct landing has no history to go back to; send people home instead.
+        if (window.history.length > 1) navigate(-1);
+        else navigate('/');
+    };
 
     const suggestedLinks = [
-        { to: '/', label: 'Home Page', icon: Home, description: 'Start from the homepage' },
-        { to: '/dashboard', label: 'Dashboard', icon: Search, description: 'View your portfolio' },
-        { to: '/learn', label: 'Learn', icon: HelpCircle, description: 'Educational resources' },
+        { to: '/learn', label: 'Learn', icon: BookOpen, description: 'Beginner guides and the crypto course' },
+        { to: '/scam-database', label: 'Scam database', icon: ShieldCheck, description: 'Check a website or wallet address' },
+        { to: '/calculators', label: 'Calculators', icon: Calculator, description: 'DCA, fee, tax and staking calculators' },
+        { to: '/compare', label: 'Compare', icon: BarChart3, description: 'Exchanges and wallets side by side' },
+        { to: '/dashboard', label: 'Dashboard', icon: TrendingUp, description: 'Current crypto prices' },
     ];
 
     return (
@@ -62,11 +58,11 @@ export function NotFound() {
 
                 {/* Error Message */}
                 <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                    404
+                    <span className="sr-only">Error </span>404
                 </h1>
-                <h2 className="text-xl md:text-2xl font-semibold text-gray-300 mb-4">
+                <p className="text-xl md:text-2xl font-semibold text-gray-300 mb-4">
                     Page Not Found
-                </h2>
+                </p>
 
                 {/* Description */}
                 <p className="text-gray-400 mb-2">
@@ -89,7 +85,8 @@ export function NotFound() {
                         Go to Homepage
                     </Link>
                     <button
-                        onClick={() => window.history.back()}
+                        type="button"
+                        onClick={goBack}
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-medium rounded-lg transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" aria-hidden="true" />
@@ -99,9 +96,9 @@ export function NotFound() {
 
                 {/* Suggested Links */}
                 <nav aria-label="Suggested pages">
-                    <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
+                    <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4">
                         You might be looking for
-                    </h3>
+                    </h2>
                     <ul className="grid gap-3">
                         {suggestedLinks.map((link) => {
                             const Icon = link.icon;

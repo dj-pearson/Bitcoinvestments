@@ -1,12 +1,52 @@
-export const cryptoWalletsExplainedGuide = {
+import type { GuideSource } from './index';
+
+export const cryptoWalletsExplainedGuide: GuideSource = {
   id: 'crypto-wallets-explained',
   title: 'Crypto Wallets Explained',
-  description: 'Understanding hot wallets, cold wallets, and how to keep your crypto secure.',
+  seoTitle: 'Crypto Wallets Explained: Hot vs Cold',
+  description:
+    'Hot vs cold crypto wallets explained: how wallets and seed phrases work, current hardware wallet options, how to back up safely, and the threats to watch for.',
+  summary:
+    'A crypto wallet does not hold coins; it holds the private keys that let you move coins recorded on the blockchain. Hot (internet-connected) wallets are convenient for small amounts, cold wallets such as hardware devices are safer for savings, and whichever you use, the seed phrase backup is what really protects your funds.',
   category: 'Security',
-  readTime: 12,
   icon: '🔐',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['how-to-buy-crypto', 'understanding-blockchain', 'common-crypto-mistakes'],
+  relatedTools: [
+    { label: 'Compare wallets', url: '/compare?tab=wallets', description: 'Software and hardware wallets side by side' },
+    { label: 'Hardware wallet guide', url: '/hardware-wallet', description: 'Choosing and setting up a device' },
+    { label: 'Scam database', url: '/scam-database', description: 'Known fake wallets and phishing sites' },
+  ],
+  faqs: [
+    {
+      question: 'Can I use more than one wallet?',
+      answer:
+        'Yes, and many people do: a hot wallet with a small spending balance and a hardware wallet for savings. Each wallet has its own seed phrase to back up.',
+    },
+    {
+      question: 'What happens if my hardware wallet breaks or is lost?',
+      answer:
+        'Your coins are not on the device. Buy a new one (it can be a different brand that supports the same standard) and restore it with your seed phrase. Without the seed phrase, the funds cannot be recovered.',
+    },
+    {
+      question: 'Can someone steal my crypto with just my address?',
+      answer:
+        'No. A receiving address is safe to share. Be aware that scammers can send tiny "dust" transactions from look-alike addresses so you copy the wrong one later (address poisoning), so always copy addresses from your wallet, not your history.',
+    },
+    {
+      question: 'Should I keep crypto on an exchange or in my own wallet?',
+      answer:
+        'An exchange is simpler and fine for small amounts or active trading, but you rely on the company staying solvent and honest. A wallet you control removes that risk but makes you responsible for backups.',
+    },
+    {
+      question: 'How do I know a wallet app is legitimate?',
+      answer:
+        'Get it from the developer\'s official website or verified app-store listing, check that it is widely used and ideally open source and audited, and be wary of wallets promoted through ads or direct messages.',
+    },
+  ],
   content: `
-# Crypto Wallets Explained: Complete Security Guide
+# Crypto Wallets Explained
 
 A cryptocurrency wallet is your gateway to the blockchain - it stores your private keys and allows you to send, receive, and manage your digital assets. Understanding wallet types and security is crucial for protecting your investment.
 
@@ -65,7 +105,7 @@ If you don't control the private keys, you don't truly own your cryptocurrency. 
 **Popular Options:**
 - **Electrum**: Bitcoin, advanced features
 - **Exodus**: Multi-currency, elegant interface
-- **Wasabi**: Bitcoin, enhanced privacy
+- **Sparrow**: Bitcoin, strong coin-control features
 
 **Pros:**
 - More control than mobile
@@ -85,7 +125,7 @@ If you don't control the private keys, you don't truly own your cryptocurrency. 
 **Popular Options:**
 - **MetaMask**: Most popular, Ethereum-focused
 - **Phantom**: Solana ecosystem
-- **Coinbase Wallet**: Multi-chain support
+- **Rabby**: Multi-chain, shows transaction previews
 
 **Pros:**
 - Easy DApp interaction
@@ -105,21 +145,16 @@ If you don't control the private keys, you don't truly own your cryptocurrency. 
 
 **Popular Options:**
 
-##### Ledger Nano X ($149)
-- **Capacity**: 100+ apps
-- **Features**: Bluetooth, mobile compatible
-- **Supports**: 5,500+ coins
-- **Best for**: Most users
+Current lineups (list prices checked September 2026; they change often):
 
-##### Trezor Model T ($219)
-- **Features**: Touchscreen, open-source
-- **Supports**: 1,600+ coins
-- **Best for**: Security enthusiasts
+| Brand | Models | Approx. price range | Notes |
+|---|---|---|---|
+| **Ledger** | Nano S Plus, Nano X, Nano Gen5, Flex, Stax | ~$79–$399 | Secure element; closed-source firmware; Bluetooth on most models |
+| **Trezor** | Safe 3, Safe 5, Safe 7 | ~$79–$249 | Open-source firmware with secure element; the older Model One and Model T have been discontinued |
+| **BitBox** | BitBox02 (multi-coin or Bitcoin-only) | ~$150 | Swiss-made, open source |
+| **Coldcard** | Mk4, Q | ~$150–$250 | Bitcoin-only, aimed at advanced users |
 
-##### BitBox02 ($149)
-- **Features**: Swiss-made, simple
-- **Supports**: Bitcoin, Ethereum, others
-- **Best for**: Bitcoin holders
+For a side-by-side view, see our [wallet comparison](/compare?tab=wallets) and [hardware wallet guide](/hardware-wallet).
 
 **Pros:**
 - Maximum security
@@ -128,14 +163,14 @@ If you don't control the private keys, you don't truly own your cryptocurrency. 
 - Physical device control
 
 **Cons:**
-- Costs $50-$250
+- Costs roughly $60–$400
 - Can be lost or damaged
 - Learning curve
 - Need computer for setup
 
-#### Paper Wallets
+#### Paper Wallets (not recommended today)
 
-**Best for**: Long-term storage, tech-savvy users
+A paper wallet is a single private key printed on paper. They were popular before hardware wallets existed; most security guidance now discourages them.
 
 **What is it:**
 - Private keys printed on paper
@@ -144,15 +179,13 @@ If you don't control the private keys, you don't truly own your cryptocurrency. 
 
 **Pros:**
 - Free
-- Immune to hacking
-- No device needed
-- Cold storage
+- Offline until used
 
 **Cons:**
-- Easily damaged or lost
-- Hard to use for transactions
-- No recovery if destroyed
-- Printing risks (keyloggers)
+- Generating the key safely is hard (malicious generator sites, printer and computer malware)
+- Spending usually means "sweeping" the whole balance into a hot wallet; partial spends can send the change to an address you don't control
+- Easily damaged or lost, with no recovery
+- A hardware wallet plus a written seed phrase gives the same offline protection with far fewer pitfalls
 
 ## Choosing the Right Wallet
 
@@ -180,8 +213,8 @@ If you don't control the private keys, you don't truly own your cryptocurrency. 
 | Exchange | Medium | High | Free | Trading |
 | Mobile | Medium | High | Free | Daily use |
 | Desktop | Medium-High | Medium | Free | Home use |
-| Hardware | Very High | Medium | $50-$250 | Holding |
-| Paper | High | Low | Free | Long-term |
+| Hardware | Very High | Medium | ~$60–$400 | Holding |
+| Paper | Medium (error-prone) | Very low | Free | Not recommended |
 
 ## Setting Up Your First Wallet
 
@@ -190,10 +223,10 @@ If you don't control the private keys, you don't truly own your cryptocurrency. 
 ⚠️ **Critical**: Only download from official websites or app stores
 
 **Verify:**
-- Check URL carefully (watch for typos)
-- Look for HTTPS and certificate
-- Read reviews
-- Check developer reputation
+- Type the address yourself or use a bookmark; check the exact domain for typos (phishing sites use HTTPS too, so the padlock proves nothing)
+- Don't install from search ads or links in messages
+- Check the developer and download count in the app store
+- For hardware wallets, buy only from the maker or an authorised reseller
 
 ### Step 2: Create New Wallet
 
@@ -258,15 +291,16 @@ Require multiple private keys to authorize transactions:
 - Perfect for businesses or large holdings
 
 **Recommended:**
-- **Gnosis Safe** (Ethereum)
-- **Electrum Multi-sig** (Bitcoin)
+- **Safe** (formerly Gnosis Safe) for Ethereum and EVM chains
+- **Sparrow** or **Electrum** multisig for Bitcoin (or collaborative-custody services such as Unchained or Casa)
 
 ### Passphrase (25th Word)
 
 Add extra word to seed phrase:
 - Not part of standard 12-24 words
-- Creates entirely different wallet
-- Ultimate security layer
+- Creates an entirely different wallet
+- Protects you if someone finds your written seed phrase
+- **If you forget the passphrase, the funds are gone**, so back it up separately from the seed
 
 **Use case:**
 - Under duress, give up standard wallet (with small amount)
@@ -362,9 +396,9 @@ If you still have device access:
 3. **Back up properly this time**
 
 If you lost both device and seed phrase:
-- Your crypto is gone forever
-- This happens more than hacks
-- No recovery possible
+- Your crypto is gone for good
+- No company or service can recover it
+- Chainalysis and others estimate that millions of bitcoin are already permanently lost this way
 
 ### Inheritance Planning
 
@@ -398,7 +432,7 @@ Make sure loved ones can access your crypto:
 
 ✓ Test wallet recovery (with small amount)
 ✓ Review security practices
-✓ Update passwords
+✓ Check your password manager for reused or breached passwords (unique passwords matter more than rotating them)
 ✓ Check backup locations
 
 ### Yearly
@@ -407,36 +441,6 @@ Make sure loved ones can access your crypto:
 ✓ Redistribute holdings if needed
 ✓ Update inheritance documentation
 ✓ Review and improve security setup
-
-## Frequently Asked Questions
-
-### Can I use multiple wallets?
-
-Yes! In fact, it's recommended. Use different wallets for:
-- Daily spending (hot wallet, small amounts)
-- Savings (hardware wallet, large amounts)
-- Different cryptocurrencies
-
-### What if my hardware wallet breaks?
-
-Buy a new one and restore using your seed phrase. Your crypto is safe as long as you have the seed phrase.
-
-### Can someone steal my crypto with just my address?
-
-No. Your public address is safe to share. Think of it like your email address - people need it to send you things, but they can't access your account with just that.
-
-### Should I use a wallet or keep crypto on an exchange?
-
-- **Exchanges**: Good for active trading, small amounts
-- **Wallets**: Essential for larger holdings, long-term storage
-
-### How do I know if a wallet is legitimate?
-
-- Check official website
-- Read reviews from multiple sources
-- Verify it's open-source (if possible)
-- Look for security audits
-- Check community reputation
 
 ## Key Takeaways
 
@@ -468,9 +472,10 @@ No. Your public address is safe to share. Think of it like your email address - 
 4. **Start with a small amount** to get comfortable
 5. **Learn about** [buying crypto](/learn/how-to-buy-crypto)
 6. **Understand** [common mistakes](/learn/common-crypto-mistakes)
+7. **Go deeper** on [how blockchains work](/learn/understanding-blockchain)
 
 ---
 
-**Remember**: In crypto, you are your own bank. With great power comes great responsibility. Take security seriously, and your investment will be safe.
+**Remember**: In crypto, you are your own bank. With great power comes great responsibility. Good security habits remove most of the ways people lose crypto, though no setup removes price risk.
 `,
 };

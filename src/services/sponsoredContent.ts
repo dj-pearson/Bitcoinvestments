@@ -78,6 +78,9 @@ export interface SponsoredArticle {
   shareCount: number;
   createdAt: string;
   updatedAt: string;
+  /** Public sponsor name for the "Paid for by" disclosure. */
+  sponsorName?: string;
+  sponsorWebsiteUrl?: string;
   sponsor?: Sponsor;
 }
 
@@ -112,102 +115,111 @@ export interface CampaignAnalytics {
   byDay: { date: string; impressions: number; clicks: number }[];
 }
 
-// Demo data
-const demoSponsor: Sponsor = {
-  id: 'demo-sponsor-1',
-  name: 'CryptoExchange Pro',
-  slug: 'cryptoexchange-pro',
-  logoUrl: 'https://placehold.co/100x100/1a1a1a/f0f0f0?text=CEP',
-  websiteUrl: 'https://example.com',
-  description: 'Leading cryptocurrency exchange with competitive fees',
-  contactEmail: 'ads@example.com',
-  contactName: 'Marketing Team',
-  industry: 'Cryptocurrency Exchange',
-  status: 'approved',
-  totalSpent: 15000,
-  createdAt: '2024-01-01T00:00:00Z',
-  updatedAt: new Date().toISOString(),
+// ---------------------------------------------------------------------------
+// Row mappers
+//
+// PostgREST returns snake_case columns. These used to be cast straight to the
+// camelCase types, so `ctaUrl`, `publishedAt`, `featuredImage`, `seoTitle` and
+// friends were always undefined. There is deliberately no demo/fallback
+// content: a reader must never see an invented paid placement.
+// ---------------------------------------------------------------------------
+
+type Row = Record<string, unknown>;
+const optStr = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined);
+/** Advertiser-supplied URLs are only used when they are absolute http(s). */
+const webUrl = (v: unknown): string | undefined => {
+  const u = optStr(v);
+  return u && /^https?:\/\//i.test(u) ? u : undefined;
+};
+const toNum = (v: unknown): number => {
+  const x = typeof v === 'string' ? Number(v) : v;
+  return typeof x === 'number' && Number.isFinite(x) ? x : 0;
 };
 
-const demoNativeAds: NativeAd[] = [
-  {
-    id: 'demo-ad-1',
-    campaignId: 'demo-campaign-1',
-    sponsorId: 'demo-sponsor-1',
-    headline: 'Trade Bitcoin with 0% fees',
-    description: 'Join millions of traders on the world\'s most trusted exchange',
-    imageUrl: 'https://placehold.co/400x300/1a1a2e/f0f0f0?text=Trade+BTC',
-    destinationUrl: 'https://example.com/trade',
-    displayUrl: 'cryptoexchange.pro',
-    ctaText: 'Start Trading',
-    placement: 'article_feed',
-    status: 'active',
-    impressions: 45230,
-    clicks: 1247,
-    createdAt: '2024-11-01T00:00:00Z',
-    updatedAt: new Date().toISOString(),
-    sponsor: demoSponsor,
-  },
-  {
-    id: 'demo-ad-2',
-    campaignId: 'demo-campaign-1',
-    sponsorId: 'demo-sponsor-1',
-    headline: 'Earn up to 12% APY on crypto',
-    description: 'Stake your assets and earn passive income',
-    imageUrl: 'https://placehold.co/400x300/1a1a2e/f0f0f0?text=Earn+APY',
-    destinationUrl: 'https://example.com/earn',
-    displayUrl: 'cryptoexchange.pro/earn',
-    ctaText: 'Learn More',
-    placement: 'sidebar',
-    status: 'active',
-    impressions: 28450,
-    clicks: 892,
-    createdAt: '2024-11-15T00:00:00Z',
-    updatedAt: new Date().toISOString(),
-    sponsor: demoSponsor,
-  },
-];
+function mapSponsor(row: unknown): Sponsor | undefined {
+  if (!row || typeof row !== 'object') return undefined;
+  const r = row as Row;
+  return {
+    id: String(r.id ?? ''),
+    userId: optStr(r.user_id),
+    name: String(r.name ?? ''),
+    slug: String(r.slug ?? ''),
+    logoUrl: optStr(r.logo_url),
+    websiteUrl: optStr(r.website_url),
+    description: optStr(r.description),
+    contactEmail: String(r.contact_email ?? ''),
+    contactName: optStr(r.contact_name),
+    industry: optStr(r.industry),
+    status: (optStr(r.status) as Sponsor['status']) || 'pending',
+    totalSpent: toNum(r.total_spent),
+    createdAt: String(r.created_at ?? ''),
+    updatedAt: String(r.updated_at ?? ''),
+  };
+}
 
-const demoSponsoredArticles: SponsoredArticle[] = [
-  {
-    id: 'demo-article-1',
-    campaignId: 'demo-campaign-1',
-    sponsorId: 'demo-sponsor-1',
-    title: '5 Strategies for Building a Diversified Crypto Portfolio',
-    slug: 'diversified-crypto-portfolio-strategies',
-    excerpt: 'Learn how professional traders build balanced cryptocurrency portfolios that weather market volatility.',
-    content: `
-# 5 Strategies for Building a Diversified Crypto Portfolio
+export function mapSponsoredArticle(row: Row): SponsoredArticle {
+  const embedded = mapSponsor(row.sponsor);
+  // `sponsor_name` / `sponsor_website_url` are copied onto the article by a
+  // trigger (migration 20260923000200) because readers cannot select from
+  // `sponsors`. Prefer them; fall back to the embed for the sponsor's own view.
+  return {
+    id: String(row.id ?? ''),
+    campaignId: String(row.campaign_id ?? ''),
+    sponsorId: String(row.sponsor_id ?? ''),
+    title: String(row.title ?? ''),
+    slug: String(row.slug ?? ''),
+    excerpt: optStr(row.excerpt),
+    content: String(row.content ?? ''),
+    featuredImage: webUrl(row.featured_image),
+    authorName: optStr(row.author_name),
+    authorAvatar: optStr(row.author_avatar),
+    category: optStr(row.category),
+    tags: Array.isArray(row.tags)
+      ? (row.tags as unknown[]).filter((t): t is string => typeof t === 'string')
+      : [],
+    ctaText: optStr(row.cta_text),
+    ctaUrl: webUrl(row.cta_url),
+    status: (optStr(row.status) as SponsoredArticle['status']) || 'draft',
+    seoTitle: optStr(row.seo_title),
+    seoDescription: optStr(row.seo_description),
+    readTimeMinutes: toNum(row.read_time_minutes),
+    publishedAt: optStr(row.published_at),
+    expiresAt: optStr(row.expires_at),
+    viewCount: toNum(row.view_count),
+    clickCount: toNum(row.click_count),
+    shareCount: toNum(row.share_count),
+    createdAt: String(row.created_at ?? ''),
+    updatedAt: String(row.updated_at ?? ''),
+    sponsorName: optStr(row.sponsor_name) || embedded?.name || undefined,
+    sponsorWebsiteUrl: webUrl(row.sponsor_website_url) || webUrl(embedded?.websiteUrl),
+    sponsor: embedded,
+  };
+}
 
-Building a diversified cryptocurrency portfolio is essential for managing risk while maximizing potential returns...
-
-## Strategy 1: The 60/30/10 Rule
-
-Allocate 60% to established cryptocurrencies like Bitcoin and Ethereum, 30% to mid-cap altcoins, and 10% to emerging projects...
-
-## Strategy 2: Sector Diversification
-
-Spread your investments across different crypto sectors: DeFi, NFTs, Layer 2 solutions, and gaming...
-    `,
-    featuredImage: 'https://placehold.co/800x400/1a1a2e/f0f0f0?text=Portfolio+Guide',
-    authorName: 'CryptoExchange Research Team',
-    category: 'guides',
-    tags: ['portfolio', 'diversification', 'investment'],
-    ctaText: 'Start Building Your Portfolio',
-    ctaUrl: 'https://example.com/portfolio-tools',
-    status: 'published',
-    seoTitle: 'Crypto Portfolio Diversification Guide | CryptoExchange',
-    seoDescription: 'Learn 5 proven strategies for building a diversified cryptocurrency portfolio that can weather market volatility.',
-    readTimeMinutes: 8,
-    publishedAt: '2024-12-01T00:00:00Z',
-    viewCount: 12450,
-    clickCount: 892,
-    shareCount: 234,
-    createdAt: '2024-11-20T00:00:00Z',
-    updatedAt: new Date().toISOString(),
-    sponsor: demoSponsor,
-  },
-];
+function mapNativeAd(row: Row): NativeAd {
+  return {
+    id: String(row.id ?? ''),
+    campaignId: String(row.campaign_id ?? row.campaignId ?? ''),
+    sponsorId: String(row.sponsor_id ?? row.sponsorId ?? ''),
+    headline: String(row.headline ?? ''),
+    description: optStr(row.description),
+    imageUrl: optStr(row.image_url ?? row.imageUrl),
+    destinationUrl: String(row.destination_url ?? row.destinationUrl ?? ''),
+    displayUrl: optStr(row.display_url ?? row.displayUrl),
+    ctaText: optStr(row.cta_text ?? row.ctaText) || 'Learn More',
+    placement: (optStr(row.placement) as AdPlacement) || 'article_feed',
+    status: (optStr(row.status) as NativeAd['status']) || 'active',
+    impressions: toNum(row.impressions),
+    clicks: toNum(row.clicks),
+    createdAt: String(row.created_at ?? row.createdAt ?? ''),
+    updatedAt: String(row.updated_at ?? row.updatedAt ?? ''),
+    sponsor:
+      mapSponsor(row.sponsor) ||
+      (optStr(row.sponsor_name)
+        ? mapSponsor({ id: row.sponsor_id, name: row.sponsor_name, slug: '' })
+        : undefined),
+  };
+}
 
 // Sponsored Articles Functions
 export async function getSponsoredArticles(options: {
@@ -216,6 +228,7 @@ export async function getSponsoredArticles(options: {
   status?: string;
 }): Promise<SponsoredArticle[]> {
   const { category, limit = 10, status = 'published' } = options;
+  if (!isSupabaseConfigured()) return [];
 
   try {
     let query = db
@@ -235,60 +248,56 @@ export async function getSponsoredArticles(options: {
     const { data, error } = await query;
 
     if (error) throw error;
-    return (data as SponsoredArticle[]) || demoSponsoredArticles;
+    return ((data || []) as Row[]).map(mapSponsoredArticle);
   } catch (error) {
     console.error('Error fetching sponsored articles:', error);
-    return demoSponsoredArticles;
+    return [];
   }
 }
 
+/**
+ * One published sponsored article. Resolves null when it does not exist or
+ * has expired; rejects when it could not be loaded. Never returns placeholder
+ * content.
+ */
 export async function getSponsoredArticleBySlug(slug: string): Promise<SponsoredArticle | null> {
   // Without a configured backend the query cannot succeed, and firing it anyway
-  // leaves the caller awaiting a request that may never settle — which stranded
-  // the article page on its loading skeleton. Fall straight through to the demo
-  // set, matching how the blog service guards every query.
-  if (!isSupabaseConfigured()) {
-    return demoSponsoredArticles.find((a) => a.slug === slug) || null;
-  }
+  // leaves the caller awaiting a request that may never settle.
+  if (!isSupabaseConfigured()) return null;
 
-  try {
-    const { data, error } = await db
-      .from('sponsored_articles')
-      .select(`
-        *,
-        sponsor:sponsors(id, name, slug, logo_url, website_url)
-      `)
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single();
+  const { data, error } = await db
+    .from('sponsored_articles')
+    .select(`
+      *,
+      sponsor:sponsors(id, name, slug, logo_url, website_url)
+    `)
+    .eq('slug', slug)
+    .eq('status', 'published')
+    .maybeSingle();
 
-    if (error) throw error;
-    return data as SponsoredArticle;
-  } catch (error) {
-    console.error('Error fetching sponsored article:', error);
-    const demo = demoSponsoredArticles.find(a => a.slug === slug);
-    return demo || null;
-  }
+  if (error) throw new Error(error.message);
+  return data ? mapSponsoredArticle(data as Row) : null;
 }
 
 // Native Ads Functions
 export async function getNativeAds(placement: AdPlacement, limit: number = 3): Promise<NativeAd[]> {
+  if (!isSupabaseConfigured()) return [];
   try {
-    const { data, error } = await db
-      .rpc('get_active_native_ads', {
-        p_placement: placement,
-        p_limit: limit,
-      });
+    const { data, error } = await db.rpc('get_active_native_ads', {
+      p_placement: placement,
+      p_limit: limit,
+    });
 
     if (error) throw error;
-    return (data as NativeAd[]) || demoNativeAds.filter(ad => ad.placement === placement);
+    return ((data || []) as Row[]).map(mapNativeAd);
   } catch (error) {
     console.error('Error fetching native ads:', error);
-    return demoNativeAds.filter(ad => ad.placement === placement).slice(0, limit);
+    return [];
   }
 }
 
 export async function getAllNativeAds(sponsorId?: string): Promise<NativeAd[]> {
+  if (!isSupabaseConfigured()) return [];
   try {
     let query = db
       .from('native_ads')
@@ -305,10 +314,10 @@ export async function getAllNativeAds(sponsorId?: string): Promise<NativeAd[]> {
     const { data, error } = await query;
 
     if (error) throw error;
-    return (data as NativeAd[]) || demoNativeAds;
+    return ((data || []) as Row[]).map(mapNativeAd);
   } catch (error) {
     console.error('Error fetching native ads:', error);
-    return demoNativeAds;
+    return [];
   }
 }
 
@@ -317,8 +326,9 @@ export async function trackSponsoredContentEvent(
   contentType: ContentType,
   contentId: string,
   eventType: 'impression' | 'view' | 'click' | 'cta_click' | 'share' | 'conversion',
-  metadata: Record<string, any> = {}
+  metadata: Record<string, unknown> = {}
 ): Promise<void> {
+  if (!isSupabaseConfigured()) return;
   try {
     const sessionId = getOrCreateSessionId();
 
@@ -339,7 +349,7 @@ export async function getCampaignAnalytics(
   campaignId: string,
   startDate?: string,
   endDate?: string
-): Promise<CampaignAnalytics> {
+): Promise<CampaignAnalytics | null> {
   try {
     const { data, error } = await db.rpc('get_campaign_analytics', {
       p_campaign_id: campaignId,
@@ -351,21 +361,8 @@ export async function getCampaignAnalytics(
     return data as CampaignAnalytics;
   } catch (error) {
     console.error('Error fetching campaign analytics:', error);
-    return {
-      impressions: 45230,
-      views: 12450,
-      clicks: 1247,
-      shares: 234,
-      conversions: 89,
-      ctr: 2.76,
-      uniqueUsers: 8750,
-      byDevice: { desktop: 65, mobile: 30, tablet: 5 },
-      byDay: Array.from({ length: 30 }, (_, i) => ({
-        date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        impressions: Math.floor(Math.random() * 2000) + 1000,
-        clicks: Math.floor(Math.random() * 100) + 20,
-      })),
-    };
+    // No invented numbers: the dashboard shows nothing rather than fake stats.
+    return null;
   }
 }
 
@@ -463,14 +460,17 @@ export async function createNativeAd(
 // Utility Functions
 function getOrCreateSessionId(): string {
   const storageKey = 'bv_session_id';
-  let sessionId = sessionStorage.getItem(storageKey);
-
-  if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessionStorage.setItem(storageKey, sessionId);
+  try {
+    let sessionId = sessionStorage.getItem(storageKey);
+    if (!sessionId) {
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+      sessionStorage.setItem(storageKey, sessionId);
+    }
+    return sessionId;
+  } catch {
+    // Storage blocked (private mode, sandboxed iframe): use a per-page id.
+    return `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
-
-  return sessionId;
 }
 
 // Check if content should show "Sponsored" label

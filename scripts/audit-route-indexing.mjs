@@ -7,125 +7,60 @@
  *
  *   1. src/App.tsx            - the routes that actually exist
  *   2. src/lib/index-pruning  - which of them emit noindex
- *   3. public/sitemap.xml     - which of them we ask Google to crawl
+ *   3. public/llms.txt, ai.txt - which of them we point AI crawlers at
  *
- * Reports three classes of mismatch:
+ * Reports two classes of mismatch:
  *
  *   - Gated but indexable: a <ProtectedRoute> page telling crawlers to index it.
  *     Googlebot only ever reaches the auth redirect, so the URL lands in the
  *     index as thin or soft-404 content, which is exactly what index pruning
  *     exists to avoid.
- *   - Indexable but unlisted: a public page we never submit for crawling.
- *   - Listed but noindexed / missing: a sitemap URL that contradicts the meta
- *     robots tag, or points at no route at all. Both draw Search Console errors.
+ *   - AI-file drift: a URL in llms.txt or ai.txt that is noindexed or matches
+ *     no route.
+ *
+ * sitemap.xml is not checked here: scripts/prerender.mjs generates it from
+ * the pages it rendered as indexable.
  *
  * Exits non-zero when anything is found, so it can gate a build.
  *
  * Usage: node scripts/audit-route-indexing.mjs
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
-
-const SITE_URL = 'https://bitcoinvestments.net';
+import { read, extractRoutes, extractContentUrls, extractCompareUrls } from './lib/routes.mjs';
 
 /**
  * Route path prefixes whose children come from a CMS or database, so their
  * validity cannot be checked from the repo.
  */
-const DYNAMIC_PREFIXES = ['/learn/', '/course/', '/blog/', '/article/', '/coin/', '/scam/', '/sponsored/'];
+const DYNAMIC_PREFIXES = ['/blog/', '/article/', '/coin/', '/scam/', '/sponsored/'];
+
+
 
 /**
- * Comparison detail URLs are data-driven but the data lives in the repo, so
- * they can be checked exactly. Compare.tsx matches the SINGULAR type segment
- * ('/compare/exchange/:id'); anything plural falls through to its
- * "Platform Not Found" branch.
+ * Site-relative URLs published for AI crawlers in llms.txt and ai.txt. These
+ * files were hand-written and listed eleven guide and course URLs that never
+ * existed, so they are held to the same rules as the sitemap.
  */
-function extractCompareUrls() {
-  const ids = (file) =>
-    [...read(file).matchAll(/^\s*id: '([a-z0-9-]+)'/gm)].map((m) => m[1]);
-
-  return new Set([
-    ...ids('src/data/exchanges.ts').map((id) => `/compare/exchange/${id}`),
-    ...ids('src/data/wallets.ts').map((id) => `/compare/wallet/${id}`),
-  ]);
-}
-
-/** Site-relative URLs hardcoded in the /api/sitemap Pages Function. */
-function extractFunctionSitemap() {
-  const src = read('functions/api/sitemap.ts');
-  const urls = new Set([...src.matchAll(/loc: '([^']+)'/g)].map((m) => m[1]));
-
-  // The function appends data-driven entries via template literals. Each URL
-  // prefix draws from exactly one data file - pairing them the wrong way round
-  // would invent URLs like /compare/exchange/metamask.
-  const idsFor = {
-    '/compare/exchange': 'src/data/exchanges.ts',
-    '/compare/wallet': 'src/data/wallets.ts',
-  };
-
-  const unknownPrefixes = [];
-
-  for (const [, prefix] of src.matchAll(/loc: `(\/[a-z/-]+)\/\$\{id\}`/g)) {
-    const dataFile = idsFor[prefix];
-    if (!dataFile) {
-      // CMS-backed prefixes cannot be checked from the repo, but anything else
-      // is a typo. Skipping quietly is how the plural '/compare/exchanges/:id'
-      // form hid here, generating eighteen URLs that every one of which
-      // rendered Compare.tsx's "Platform Not Found" branch.
-      if (!DYNAMIC_PREFIXES.includes(`${prefix}/`)) {
-        unknownPrefixes.push(prefix);
-      }
-      continue;
+function extractAiFileUrls() {
+  const urls = new Map();
+  for (const file of ['public/llms.txt', 'public/ai.txt']) {
+    const src = read(file);
+    for (const [, url] of src.matchAll(/https:\/\/bitcoinvestments\.net(\/[a-z0-9/_-]*)(?![a-z0-9/_.-])/g)) {
+      urls.set(url.replace(/\/$/, '') || '/', file);
     }
-    for (const [, id] of read(dataFile).matchAll(/^\s*id: '([a-z0-9-]+)'/gm)) {
-      urls.add(`${prefix}/${id}`);
+    for (const [, url] of src.matchAll(/\]\((\/[a-z0-9/_-]*)\)/g)) {
+      urls.set(url.replace(/\/$/, '') || '/', file);
+    }
+    // ai.txt lists paths as YAML-ish "- /path" items. Only the ones offered
+    // for citation count; restricted-paths is a deny list.
+    const offered = src.split(/^restricted-paths:/m)[0];
+    for (const [, url] of offered.matchAll(/^\s*-\s+(\/[a-z0-9/_-]+)\s*$/gm)) {
+      urls.set(url, file);
     }
   }
-
-  return { urls, unknownPrefixes };
+  return urls;
 }
 
-/**
- * Extract every statically addressable route from App.tsx, resolving the paths
- * of nested <Route> children against their parent.
- */
-function extractRoutes() {
-  const lines = read('src/App.tsx').split('\n');
-  const parents = [];
-  const routes = [];
-
-  for (const line of lines) {
-    const match = line.match(/path="([^"]*)"/);
-
-    if (match) {
-      const segment = match[1];
-      const base = parents.join('/');
-      const joined = segment === '/' ? base || '/' : `${base}/${segment}`;
-      const full = joined === '/' ? '/' : `/${joined}`.replace(/\/+/g, '/').replace(/\/$/, '');
-
-      // ':' marks a route param and '*' the catch-all; neither is a fixed URL.
-      if (!full.includes(':') && !full.includes('*')) {
-        routes.push({ path: full, gated: line.includes('<ProtectedRoute>') });
-      }
-
-      // A <Route> that is not self-closing wraps the routes that follow.
-      if (!line.trimEnd().endsWith('/>')) {
-        parents.push(segment === '/' ? '' : segment.replace(/^\/|\/$/g, ''));
-      }
-    }
-
-    if (line.includes('</Route>') && parents.length > 0) {
-      parents.pop();
-    }
-  }
-
-  return routes;
-}
 
 /** Read the noindex path lists straight from index-pruning.ts. */
 function extractNoindexRules() {
@@ -143,22 +78,16 @@ function extractNoindexRules() {
     exact.has(routePath) || prefixes.some((prefix) => routePath.startsWith(prefix));
 }
 
-/** Read the submitted URLs out of the sitemap as site-relative paths. */
-function extractSitemap() {
-  const xml = read('public/sitemap.xml');
-  return new Set(
-    [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1].replace(SITE_URL, '') || '/')
-  );
-}
-
 const routes = extractRoutes();
 const isNoindexed = extractNoindexRules();
-const sitemap = extractSitemap();
 const declaredPaths = new Set(routes.map((r) => r.path));
-const validCompareUrls = extractCompareUrls();
+const validCompareUrls = new Set([...extractCompareUrls(), ...extractContentUrls()]);
 
 const problems = [];
 
+// sitemap.xml is generated by scripts/prerender.mjs from the pages it actually
+// rendered as indexable, so it cannot drift from the routes; what can drift is
+// the noindex list, the gated routes and the hand-written AI files.
 for (const route of routes) {
   if (route.gated && !isNoindexed(route.path)) {
     problems.push(
@@ -166,62 +95,21 @@ for (const route of routes) {
         `Add it to NOINDEX_PATHS in src/lib/index-pruning.ts.`
     );
   }
-
-  if (!route.gated && !isNoindexed(route.path) && !sitemap.has(route.path)) {
-    problems.push(
-      `Indexable but unlisted: ${route.path} is public and indexable but is not in public/sitemap.xml.`
-    );
-  }
 }
 
-for (const entry of sitemap) {
-  if (isNoindexed(entry)) {
-    problems.push(
-      `Listed but noindexed: ${entry} is in public/sitemap.xml but emits "noindex". ` +
-        `Search Console reports these as "Submitted URL marked noindex".`
-    );
-  }
-
-  const isDynamic = DYNAMIC_PREFIXES.some((prefix) => entry.startsWith(prefix));
-  if (!isDynamic && !declaredPaths.has(entry) && !validCompareUrls.has(entry)) {
-    problems.push(`Listed but routeless: ${entry} is in public/sitemap.xml but matches no route.`);
-  }
-}
-
-// The comparison detail pages are real content with their own review schema and
-// canonical URLs, so an omission here means those pages are never submitted.
-for (const url of validCompareUrls) {
-  if (!sitemap.has(url)) {
-    problems.push(`Indexable but unlisted: ${url} is a comparison detail page missing from public/sitemap.xml.`);
-  }
-}
-
-// /api/sitemap is a second, hardcoded sitemap source. It is not advertised in
-// robots.txt today, but it drifted out of sync with the routes while nothing
-// checked it, so hold it to the same rules.
-const functionSitemap = extractFunctionSitemap();
-
-for (const prefix of functionSitemap.unknownPrefixes) {
-  problems.push(
-    `functions/api/sitemap.ts builds URLs under "${prefix}/", which matches no route ` +
-      `and no known CMS prefix. Note that Compare.tsx matches the SINGULAR type ` +
-      `segment: /compare/exchange/:id and /compare/wallet/:id.`
-  );
-}
-
-for (const url of functionSitemap.urls) {
+for (const [url, file] of extractAiFileUrls()) {
   const isDynamic = DYNAMIC_PREFIXES.some((prefix) => url.startsWith(prefix));
   if (isNoindexed(url)) {
-    problems.push(`functions/api/sitemap.ts lists ${url}, which emits "noindex".`);
+    problems.push(`${file} lists ${url}, which emits "noindex".`);
   } else if (!isDynamic && !declaredPaths.has(url) && !validCompareUrls.has(url)) {
-    problems.push(`functions/api/sitemap.ts lists ${url}, which matches no route.`);
+    problems.push(`${file} lists ${url}, which matches no route.`);
   }
 }
 
 if (problems.length === 0) {
   console.log(
-    `Route indexing OK - ${routes.length} routes, ${sitemap.size} sitemap URLs, ` +
-      `${validCompareUrls.size} comparison pages, no mismatches.`
+    `Route indexing OK - ${routes.length} routes, ${validCompareUrls.size} data-driven ` +
+      `detail pages, llms.txt and ai.txt consistent.`
   );
   process.exit(0);
 }

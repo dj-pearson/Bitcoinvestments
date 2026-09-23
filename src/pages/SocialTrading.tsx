@@ -1,395 +1,366 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import {
-  DEMO_PUBLISHED_PORTFOLIOS,
-  SOCIAL_TRADING_CONFIG,
-} from '../services/socialTrading';
-import type { PublishedPortfolio } from '../types/monetization';
+/**
+ * /social-trading
+ *
+ * "Copy trading explained": an educational guide to how crypto copy trading
+ * works, where it is offered, what it costs and why leaderboards mislead.
+ *
+ * This page previously showed invented traders, returns and platform stats
+ * to sell a subscription that did not exist. It now contains no traders, no
+ * performance figures and no upsell. Platform availability facts carry a
+ * visible "last verified" date and link to the platform's own pages.
+ */
 
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import { PageSEO } from '../components/PageSEO';
-const SocialTrading: React.FC = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'discover' | 'following' | 'my-portfolios'>('discover');
-  const [sortBy, setSortBy] = useState<'copiers' | 'returns' | 'followers'>('copiers');
-  const [riskFilter, setRiskFilter] = useState<string>('all');
-  const [portfolios] = useState<Partial<PublishedPortfolio>[]>(DEMO_PUBLISHED_PORTFOLIOS);
-  const [selectedPortfolio, setSelectedPortfolio] = useState<Partial<PublishedPortfolio> | null>(null);
+import {
+  ExternalLink,
+  FaqSection,
+  LastUpdated,
+  NotAdviceNote,
+  RelatedLinks,
+  Section,
+  type FaqItem,
+} from '../components/analytics/PageParts';
 
-  const getRiskLevelColor = (risk: string | null) => {
-    switch (risk) {
-      case 'conservative': return 'bg-green-500/20 text-green-400 border-green-500/50';
-      case 'moderate': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50';
-      case 'aggressive': return 'bg-orange-500/20 text-orange-400 border-orange-500/50';
-      case 'degen': return 'bg-red-500/20 text-red-400 border-red-500/50';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/50';
-    }
-  };
+const LAST_UPDATED = '2026-09-23';
+const PLATFORMS_LAST_VERIFIED = '2026-09-23';
 
-  const getTradingStyleIcon = (style: string | null) => {
-    switch (style) {
-      case 'hodl': return '💎';
-      case 'day_trading': return '⚡';
-      case 'swing_trading': return '📈';
-      case 'dca': return '🔄';
-      case 'yield_farming': return '🌾';
-      default: return '📊';
-    }
-  };
+const FAQS: FaqItem[] = [
+  {
+    question: 'What is crypto copy trading?',
+    answer:
+      'Copy trading lets you link part of your account to another trader so their trades are automatically repeated in your account, scaled to the amount you allocate. You keep ownership of your funds on the platform, but you give up control over individual trades, and you take the same losses the trader takes.',
+  },
+  {
+    question: 'Is copy trading legal in the US?',
+    answer:
+      'It can be, when it is offered by a platform licensed to serve US customers. eToro began rolling out its CopyTrader feature to US users in October 2025, in eligible states only. Most large offshore exchanges that offer crypto copy trading, such as Bybit and Bitget, do not accept US residents, and using a VPN to get around that breaks their terms and puts your funds at risk.',
+  },
+  {
+    question: 'Is copy trading profitable?',
+    answer:
+      'For some people, some of the time. Leaderboards show the traders who happened to do well recently, not those who will do well next, and your results will usually lag the trader\'s because of fees, slippage and joining after their best run. Many copiers lose money, especially when the strategies use leverage.',
+  },
+  {
+    question: 'What fees does copy trading have?',
+    answer:
+      'Common costs are trading fees or spreads on every copied trade, a profit share paid to the trader on some platforms, funding fees on leveraged positions, and slippage because your orders fill after the trader\'s. Check the fee page of the specific platform before you start.',
+  },
+  {
+    question: 'How do I choose a trader to copy?',
+    answer:
+      'Look for a long track record (years, not weeks) that includes a bear market, a maximum drawdown you could live through, low or no leverage, a strategy you understand, and a trader who has personal money at stake. Be wary of very high recent returns, which usually mean very high risk.',
+  },
+  {
+    question: 'Does Bitcoinvestments offer copy trading?',
+    answer:
+      'No. We do not offer copy trading, signals or a trader marketplace, and we do not recommend any individual trader. This page is an independent guide.',
+  },
+];
 
-  const getReturnColor = (returnPercent: number | null) => {
-    if (!returnPercent) return 'text-gray-400';
-    if (returnPercent >= 100) return 'text-green-400';
-    if (returnPercent >= 50) return 'text-emerald-400';
-    if (returnPercent >= 0) return 'text-yellow-400';
-    return 'text-red-400';
-  };
+const PLATFORMS: { name: string; offering: string; us: string; link: { href: string; label: string } }[] = [
+  {
+    name: 'eToro',
+    offering: 'CopyTrader: copy other users\' portfolios across stocks, ETFs and crypto.',
+    us: 'Rolling out to US users since October 2025, in eligible states only; US users can copy other US users. eToro says its crypto service (eToro USA LLC) is not available in NY, NV, HI, Puerto Rico or the US Virgin Islands.',
+    link: { href: 'https://www.etoro.com/en-us/copytrader/', label: 'eToro US CopyTrader page' },
+  },
+  {
+    name: 'Offshore crypto exchanges (for example Bybit, Bitget, and the global Binance and OKX platforms)',
+    offering: 'Exchange-native copy trading, often of leveraged futures strategies, with profit sharing for lead traders.',
+    us: 'Their terms exclude US residents. Accessing them through a VPN breaches those terms and can lead to frozen accounts, with no US regulator to turn to.',
+    link: { href: 'https://www.coindesk.com/business/2024/11/19/bybit-bitget-okx-vpn-geofencing-kyc-binance', label: 'CoinDesk on offshore exchange geofencing' },
+  },
+  {
+    name: 'US-licensed crypto exchanges (for example Coinbase, Kraken, Binance.US, OKX US)',
+    offering: 'Spot buying and selling, sometimes recurring buys.',
+    us: 'State availability varies for some of them. These are primarily spot platforms; check each platform\'s current product list before assuming a copy feature exists.',
+    link: { href: '/compare', label: 'Compare exchanges' },
+  },
+];
 
-  const filteredPortfolios = portfolios.filter((p) => {
-    if (riskFilter !== 'all' && p.risk_level !== riskFilter) return false;
-    return true;
-  }).sort((a, b) => {
-    switch (sortBy) {
-      case 'copiers': return (b.copiers_count || 0) - (a.copiers_count || 0);
-      case 'returns': return (b.total_return_percent || 0) - (a.total_return_percent || 0);
-      case 'followers': return (b.followers_count || 0) - (a.followers_count || 0);
-      default: return 0;
-    }
-  });
+const RISKS: { title: string; body: string }[] = [
+  {
+    title: 'Survivorship bias',
+    body: 'Leaderboards rank the traders who survived and did well recently. The ones who blew up have disappeared from the list, so the list makes trading look easier than it is.',
+  },
+  {
+    title: 'Leverage and liquidation',
+    body: 'Many crypto copy-trading strategies use futures with leverage. A move of a few percent against a 20x position can wipe out the whole allocation, and you inherit that risk automatically.',
+  },
+  {
+    title: 'Drawdowns you cannot sit through',
+    body: 'A trader with +200% over a year may have been down 60% along the way. Many copiers stop copying near the bottom, locking in the loss and missing the recovery.',
+  },
+  {
+    title: 'Execution lag and slippage',
+    body: 'Your order fills after the trader\'s, often at a worse price. For fast strategies and small coins, that gap can erase the edge completely.',
+  },
+  {
+    title: 'Strategy drift',
+    body: 'The trader can change style, add leverage or start trading coins they never traded before, and your money follows them.',
+  },
+  {
+    title: 'Incentives',
+    body: 'Lead traders are often paid a share of copiers\' profits or rewarded for attracting followers. That encourages short bursts of high returns, not durable risk management.',
+  },
+  {
+    title: 'Platform and counterparty risk',
+    body: 'Your funds sit on the platform. If it fails, freezes withdrawals or is offshore and unregulated, you may not get them back.',
+  },
+  {
+    title: 'Scams dressed as copy trading',
+    body: 'Telegram "signal" groups, fake trading apps and romance scams often use copy trading as the hook. If someone you met online shows you screenshots of profits and a platform you have not heard of, walk away.',
+  },
+];
 
+const CHECKLIST = [
+  'How long is the track record, and does it include a crash or a bear market?',
+  'What was the largest peak-to-trough loss (maximum drawdown)? Could I stay invested through twice that?',
+  'Does the trader use leverage? How much, and on what?',
+  'How many trades a week? High frequency means more fees and more slippage for me.',
+  'Is the record verified by the platform from real account data, or self-reported?',
+  'How is the trader paid, and does that reward risk-taking?',
+  'What does the platform charge me, in total, per trade and per year?',
+  'Which legal entity am I dealing with, and is it registered where I live?',
+  'Can I set a stop-loss on the whole copy allocation?',
+  'Is this money I can afford to lose entirely?',
+];
+
+function SurvivorshipDemo() {
+  const [traders, setTraders] = useState(1000);
+  const [rounds, setRounds] = useState(5);
+  const expected = traders / 2 ** rounds;
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <PageSEO pageKey="socialTrading" urlPath="/social-trading" />
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Social Trading</h1>
-          <p className="text-gray-400">
-            Follow top traders and copy their portfolio allocations
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-5 sm:p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Worked example: luck on a leaderboard</h3>
+      <p className="text-gray-700 dark:text-gray-300 mb-4">
+        Imagine traders with no skill at all, each with a 50/50 chance of a winning month. How many will show a
+        perfect winning streak purely by chance?
+      </p>
+      <div className="grid sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label htmlFor="st-traders" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Number of traders
+          </label>
+          <input
+            id="st-traders"
+            type="number"
+            min={1}
+            max={1000000}
+            value={traders}
+            onChange={(e) => setTraders(Math.max(1, Math.min(1000000, Number(e.target.value) || 1)))}
+            className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"
+          />
+        </div>
+        <div>
+          <label htmlFor="st-rounds" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Winning months in a row
+          </label>
+          <input
+            id="st-rounds"
+            type="number"
+            min={1}
+            max={24}
+            value={rounds}
+            onChange={(e) => setRounds(Math.max(1, Math.min(24, Number(e.target.value) || 1)))}
+            className="mt-1 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-gray-900 dark:text-white"
+          />
+        </div>
+      </div>
+      <p className="text-gray-900 dark:text-white" aria-live="polite">
+        Expected number with a perfect {rounds}-month streak by luck alone:{' '}
+        <strong>{expected >= 10 ? Math.round(expected).toLocaleString('en-US') : expected.toFixed(2)}</strong>{' '}
+        (that is {traders.toLocaleString('en-US')} &divide; 2<sup>{rounds}</sup>).
+      </p>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+        With 1,000 traders and 5 months, about 31 have a flawless record without any skill. A platform with tens of
+        thousands of lead traders will always have an impressive-looking top 10.
+      </p>
+    </div>
+  );
+}
+
+export default function SocialTrading() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <PageSEO pageKey="socialTrading" urlPath="/social-trading" faqs={FAQS} />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <header className="mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <Users className="h-8 w-8 text-purple-500 flex-shrink-0" aria-hidden="true" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Copy Trading Crypto, Explained: How It Works and the Real Risks
+            </h1>
+          </div>
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            Copy trading automatically repeats another trader&apos;s trades in your account, in proportion to the money
+            you allocate. It is legal in the US only through platforms licensed to offer it, and it does not remove
+            risk: you inherit the trader&apos;s losses and leverage, pay extra fees, and usually choose from
+            leaderboards that reward luck. This guide explains how it works, where it is offered, what it costs and
+            what to check first.
           </p>
-        </div>
-
-        {/* Hero Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gray-800 rounded-lg p-6 text-center">
-            <div className="text-3xl font-bold text-blue-400">1,250+</div>
-            <div className="text-gray-400 text-sm mt-1">Published Portfolios</div>
+          <div className="mt-3">
+            <LastUpdated date={LAST_UPDATED} />
           </div>
-          <div className="bg-gray-800 rounded-lg p-6 text-center">
-            <div className="text-3xl font-bold text-green-400">$2.5M+</div>
-            <div className="text-gray-400 text-sm mt-1">Assets Under Copy</div>
-          </div>
-          <div className="bg-gray-800 rounded-lg p-6 text-center">
-            <div className="text-3xl font-bold text-purple-400">8,500+</div>
-            <div className="text-gray-400 text-sm mt-1">Active Copiers</div>
-          </div>
-          <div className="bg-gray-800 rounded-lg p-6 text-center">
-            <div className="text-3xl font-bold text-yellow-400">145%</div>
-            <div className="text-gray-400 text-sm mt-1">Avg Top 10 Return</div>
-          </div>
-        </div>
+        </header>
 
-        {/* How It Works */}
-        <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-bold mb-4">How Copy Trading Works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold flex-shrink-0">1</div>
-              <div>
-                <h3 className="font-semibold mb-1">Find a Trader</h3>
-                <p className="text-gray-400 text-sm">Browse portfolios by performance, risk level, and trading style</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center font-bold flex-shrink-0">2</div>
-              <div>
-                <h3 className="font-semibold mb-1">Subscribe to Copy</h3>
-                <p className="text-gray-400 text-sm">Pay ${SOCIAL_TRADING_CONFIG.default_subscription_price}/month to mirror their allocations</p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-4">
-              <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center font-bold flex-shrink-0">3</div>
-              <div>
-                <h3 className="font-semibold mb-1">Auto-Copy Trades</h3>
-                <p className="text-gray-400 text-sm">When they trade, you trade. Same allocations, same strategy.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <NotAdviceNote>
+          Bitcoinvestments does not offer copy trading or signals and does not recommend any trader or platform. This
+          guide is educational, not financial advice.
+        </NotAdviceNote>
 
-        {/* Tabs */}
-        <div className="flex space-x-4 mb-6 border-b border-gray-700">
-          <button
-            onClick={() => setActiveTab('discover')}
-            className={`pb-4 px-4 font-medium transition ${
-              activeTab === 'discover'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Discover
-          </button>
-          <button
-            onClick={() => setActiveTab('following')}
-            className={`pb-4 px-4 font-medium transition ${
-              activeTab === 'following'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            Following
-          </button>
-          {user && (
-            <button
-              onClick={() => setActiveTab('my-portfolios')}
-              className={`pb-4 px-4 font-medium transition ${
-                activeTab === 'my-portfolios'
-                  ? 'text-blue-400 border-b-2 border-blue-400'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              My Portfolios
-            </button>
-          )}
-        </div>
+        <Section id="how-heading" title="How copy trading works">
+          <ol className="list-decimal pl-5 space-y-2">
+            <li>You open an account with a platform that offers copy trading and deposit funds.</li>
+            <li>
+              You browse a list of &quot;lead traders&quot; with their past returns, risk scores and number of copiers.
+            </li>
+            <li>
+              You allocate an amount to one trader. When they open or close a position, the platform places the same
+              trade for you, scaled to your allocation. If they put 10% of their account into a trade, 10% of your
+              allocation goes in too.
+            </li>
+            <li>
+              You can usually stop copying at any time and set a stop-loss on the whole allocation. Open positions may
+              be closed at market price when you stop.
+            </li>
+          </ol>
+          <p>
+            <strong>Social trading</strong> is the broader idea: sharing trades and portfolios publicly so others can
+            follow along. <strong>Copy trading</strong> is the automated version. Related but different are
+            paid &quot;signal&quot; groups (someone tells you what to trade and you place the order yourself) and
+            copying on-chain &quot;smart money&quot; wallets, both of which carry extra scam and execution risk.
+          </p>
+        </Section>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <div className="flex items-center space-x-2 bg-gray-800 rounded-lg p-1">
-            <button
-              onClick={() => setSortBy('copiers')}
-              className={`px-4 py-2 rounded-md transition text-sm ${
-                sortBy === 'copiers'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
-            >
-              Most Copied
-            </button>
-            <button
-              onClick={() => setSortBy('returns')}
-              className={`px-4 py-2 rounded-md transition text-sm ${
-                sortBy === 'returns'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
-            >
-              Best Returns
-            </button>
-            <button
-              onClick={() => setSortBy('followers')}
-              className={`px-4 py-2 rounded-md transition text-sm ${
-                sortBy === 'followers'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
-            >
-              Most Popular
-            </button>
-          </div>
-
-          <select
-            value={riskFilter}
-            onChange={(e) => setRiskFilter(e.target.value)}
-            className="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700"
-          >
-            <option value="all">All Risk Levels</option>
-            <option value="conservative">Conservative</option>
-            <option value="moderate">Moderate</option>
-            <option value="aggressive">Aggressive</option>
-            <option value="degen">Degen</option>
-          </select>
-        </div>
-
-        {/* Portfolio Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {filteredPortfolios.map((portfolio) => (
-            <div
-              key={portfolio.id}
-              onClick={() => setSelectedPortfolio(portfolio)}
-              className="bg-gray-800 rounded-lg p-6 cursor-pointer hover:bg-gray-750 transition border border-gray-700 hover:border-blue-500"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl">
-                    {getTradingStyleIcon(portfolio.trading_style || null)}
+        <Section id="where-heading" title="Where copy trading is offered, and US availability">
+          <p className="text-sm">
+            Availability changes often. Last verified: <time dateTime={PLATFORMS_LAST_VERIFIED}>September 23, 2026</time>.
+            Always confirm on the platform&apos;s own site for your state.
+          </p>
+          <div className="space-y-4">
+            {PLATFORMS.map((p) => (
+              <article key={p.name} className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm">
+                <h3 className="font-semibold text-gray-900 dark:text-white">{p.name}</h3>
+                <dl className="mt-2 space-y-2 text-sm">
+                  <div>
+                    <dt className="font-medium text-gray-900 dark:text-white">What they offer</dt>
+                    <dd>{p.offering}</dd>
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-semibold">{portfolio.name}</h3>
-                      {portfolio.is_verified && (
-                        <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${getRiskLevelColor(portfolio.risk_level || null)}`}>
-                        {portfolio.risk_level?.toUpperCase()}
-                      </span>
-                      <span className="text-xs text-gray-500">{portfolio.specialization}</span>
-                    </div>
+                    <dt className="font-medium text-gray-900 dark:text-white">For US residents</dt>
+                    <dd>{p.us}</dd>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-2xl font-bold ${getReturnColor(portfolio.total_return_percent || null)}`}>
-                    +{portfolio.total_return_percent}%
-                  </div>
-                  <div className="text-xs text-gray-500">All-time return</div>
-                </div>
-              </div>
-
-              <p className="text-gray-400 text-sm mb-4 line-clamp-2">{portfolio.description}</p>
-
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="bg-gray-900 rounded p-3 text-center">
-                  <div className="text-lg font-semibold">{portfolio.copiers_count}</div>
-                  <div className="text-xs text-gray-500">Copiers</div>
-                </div>
-                <div className="bg-gray-900 rounded p-3 text-center">
-                  <div className="text-lg font-semibold">{portfolio.win_rate}%</div>
-                  <div className="text-xs text-gray-500">Win Rate</div>
-                </div>
-                <div className="bg-gray-900 rounded p-3 text-center">
-                  <div className="text-lg font-semibold text-red-400">-{portfolio.max_drawdown_percent}%</div>
-                  <div className="text-xs text-gray-500">Max DD</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-gray-700">
-                <div className="flex items-center space-x-4 text-sm text-gray-400">
-                  <span>{portfolio.followers_count?.toLocaleString()} followers</span>
-                  <span>{portfolio.views_count?.toLocaleString()} views</span>
-                </div>
-                <div className="text-right">
-                  {portfolio.is_free ? (
-                    <span className="text-green-400 font-medium">Free</span>
+                </dl>
+                <p className="mt-2 text-sm">
+                  {p.link.href.startsWith('/') ? (
+                    <Link to={p.link.href} className="text-blue-600 dark:text-blue-400 underline">
+                      {p.link.label}
+                    </Link>
                   ) : (
-                    <span className="text-white font-medium">${portfolio.subscription_price}/mo</span>
+                    <ExternalLink href={p.link.href}>{p.link.label}</ExternalLink>
                   )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Become a Creator */}
-        <div className="bg-gray-800 rounded-lg p-8 text-center">
-          <h2 className="text-2xl font-bold mb-4">Share Your Portfolio & Earn</h2>
-          <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
-            Publish your portfolio and earn {SOCIAL_TRADING_CONFIG.creator_share_percent}% of every subscription.
-            Build your following and turn your trading skills into passive income.
+                </p>
+              </article>
+            ))}
+          </div>
+          <p>
+            <strong>Who regulates it?</strong> There is no US law specific to &quot;copy trading&quot;. Which rules
+            apply depends on what is being copied (stocks, spot crypto or crypto derivatives) and how the lead trader
+            is paid. Before you deposit, find the legal entity named in the platform&apos;s terms and look it up:{' '}
+            <ExternalLink href="https://brokercheck.finra.org">FINRA BrokerCheck</ExternalLink> for broker-dealers,{' '}
+            <ExternalLink href="https://www.nfa.futures.org/BasicNet/">NFA BASIC</ExternalLink> for futures firms, and
+            your state&apos;s financial regulator for money-transmitter licences. The CFTC has also warned the public
+            about{' '}
+            <ExternalLink href="https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/CustomerAdvisory_SocialMedia_Metals.html">
+              trading on social-media hype
+            </ExternalLink>
+            .
           </p>
-          <div className="flex items-center justify-center space-x-4">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition">
-              Publish My Portfolio
-            </button>
-            <button className="border border-gray-600 hover:border-gray-500 text-white px-8 py-3 rounded-lg font-semibold transition">
-              Learn More
-            </button>
-          </div>
-          <div className="mt-6 text-sm text-gray-500">
-            You earn ${(SOCIAL_TRADING_CONFIG.default_subscription_price * SOCIAL_TRADING_CONFIG.creator_share_percent / 100).toFixed(2)} per subscriber per month
-          </div>
+        </Section>
+
+        <Section id="cost-heading" title="What it really costs">
+          <ul className="list-disc pl-5 space-y-2">
+            <li>
+              <strong>Trading fees or spreads</strong> on every copied trade. An active trader making 50 trades a
+              month multiplies those costs.
+            </li>
+            <li>
+              <strong>Profit share.</strong> On many exchange copy-trading products the lead trader takes a percentage
+              of your profits. The rate varies by platform and by trader, so check the exact figure first.
+            </li>
+            <li>
+              <strong>Funding fees</strong> on leveraged perpetual futures, charged every few hours while positions
+              are open.
+            </li>
+            <li>
+              <strong>Slippage</strong>, because your orders fill after the trader&apos;s.
+            </li>
+            <li>
+              <strong>Taxes.</strong> In the US every copied crypto sale can be a taxable event, so an active strategy
+              can create hundreds of short-term gains and losses to report. See our{' '}
+              <Link to="/learn/crypto-taxes-basics" className="text-blue-600 dark:text-blue-400 underline">
+                crypto tax basics
+              </Link>
+              .
+            </li>
+          </ul>
+        </Section>
+
+        <Section id="risk-heading" title="The risks, plainly">
+          <dl className="grid sm:grid-cols-2 gap-4">
+            {RISKS.map((r) => (
+              <div key={r.title} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+                <dt className="font-semibold text-gray-900 dark:text-white">{r.title}</dt>
+                <dd className="mt-1 text-sm">{r.body}</dd>
+              </div>
+            ))}
+          </dl>
+        </Section>
+
+        <div className="mt-8">
+          <SurvivorshipDemo />
         </div>
 
-        {/* Selected Portfolio Modal */}
-        {selectedPortfolio && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-gray-800 rounded-lg w-full max-w-[calc(100vw-1rem)] sm:max-w-xl md:max-w-3xl max-h-[calc(100vh-1rem)] sm:max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6 border-b border-gray-700 flex items-center justify-between">
-                <div className="flex items-center space-x-3 sm:space-x-4">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-2xl sm:text-3xl">
-                    {getTradingStyleIcon(selectedPortfolio.trading_style || null)}
-                  </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h2 className="text-lg sm:text-xl font-bold">{selectedPortfolio.name}</h2>
-                      {selectedPortfolio.is_verified && (
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="flex items-center flex-wrap gap-1 sm:space-x-2 mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded border ${getRiskLevelColor(selectedPortfolio.risk_level || null)}`}>
-                        {selectedPortfolio.risk_level?.toUpperCase()}
-                      </span>
-                      <span className="text-gray-400 text-sm">{selectedPortfolio.trading_style}</span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedPortfolio(null)}
-                  className="text-gray-400 hover:text-white text-2xl p-2 touch-target-sm"
-                >
-                  &times;
-                </button>
-              </div>
+        <Section id="checklist-heading" title="Questions to ask before copying anyone">
+          <ol className="list-decimal pl-5 space-y-2">
+            {CHECKLIST.map((q) => (
+              <li key={q}>{q}</li>
+            ))}
+          </ol>
+        </Section>
 
-              <div className="p-4 sm:p-6">
-                <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">{selectedPortfolio.description}</p>
+        <Section id="alt-heading" title="Alternatives worth considering">
+          <p>
+            If the appeal of copy trading is &quot;I do not have time to research&quot;, simpler approaches often fit
+            better: buying a fixed amount on a schedule (
+            <Link to="/learn/dca-strategies" className="text-blue-600 dark:text-blue-400 underline">
+              dollar-cost averaging
+            </Link>
+            ), holding a small allocation you rebalance once or twice a year (
+            <Link to="/learn/portfolio-rebalancing" className="text-blue-600 dark:text-blue-400 underline">
+              rebalancing guide
+            </Link>
+            ), or learning enough to make your own decisions.
+          </p>
+        </Section>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
-                    <div className={`text-lg sm:text-2xl font-bold ${getReturnColor(selectedPortfolio.total_return_percent || null)}`}>
-                      +{selectedPortfolio.total_return_percent}%
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">Total Return</div>
-                  </div>
-                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
-                    <div className="text-lg sm:text-2xl font-bold text-blue-400">{selectedPortfolio.win_rate}%</div>
-                    <div className="text-xs text-gray-500 mt-1">Win Rate</div>
-                  </div>
-                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
-                    <div className="text-lg sm:text-2xl font-bold text-yellow-400">{selectedPortfolio.sharpe_ratio}</div>
-                    <div className="text-xs text-gray-500 mt-1">Sharpe Ratio</div>
-                  </div>
-                  <div className="bg-gray-900 rounded-lg p-3 sm:p-4 text-center">
-                    <div className="text-lg sm:text-2xl font-bold text-red-400">-{selectedPortfolio.max_drawdown_percent}%</div>
-                    <div className="text-xs text-gray-500 mt-1">Max Drawdown</div>
-                  </div>
-                </div>
+        <FaqSection faqs={FAQS} />
 
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <h3 className="font-semibold mb-3">Performance Chart</h3>
-                    <div className="bg-gray-900 rounded-lg h-48 flex items-center justify-center text-gray-500">
-                      [Performance Chart Placeholder]
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-3">Current Allocation</h3>
-                    <div className="bg-gray-900 rounded-lg h-48 flex items-center justify-center text-gray-500">
-                      [Pie Chart Placeholder]
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-900 rounded-lg">
-                  <div>
-                    <div className="text-sm text-gray-400">Subscription Price</div>
-                    <div className="text-2xl font-bold">
-                      {selectedPortfolio.is_free ? 'Free' : `$${selectedPortfolio.subscription_price}/month`}
-                    </div>
-                  </div>
-                  <div className="flex space-x-3">
-                    <button className="border border-gray-600 hover:border-gray-500 text-white px-6 py-3 rounded-lg font-medium transition">
-                      Follow
-                    </button>
-                    {!selectedPortfolio.is_free && (
-                      <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
-                        Subscribe & Copy
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <RelatedLinks
+          links={[
+            { to: '/learn/risk-management', title: 'Risk management', description: 'Position sizing and drawdowns.' },
+            { to: '/scam-database', title: 'Scam database', description: 'Fake trading platforms and signal groups.' },
+            { to: '/compare', title: 'Compare exchanges', description: 'US-available platforms side by side.' },
+            { to: '/backtesting', title: 'Backtesting tool', description: 'See how a simple strategy held up.' },
+            { to: '/trading-indicators', title: 'Trading indicators', description: 'What RSI and MACD actually measure.' },
+            { to: '/learn/common-crypto-mistakes', title: 'Common crypto mistakes', description: 'Chasing returns and other traps.' },
+          ]}
+        />
       </div>
     </div>
   );
-};
-
-export default SocialTrading;
+}

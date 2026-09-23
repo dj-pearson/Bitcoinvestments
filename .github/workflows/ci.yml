@@ -43,13 +43,21 @@ jobs:
     needs: [lint, typecheck]
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: sitemap lastmod comes from each page's last commit.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Every public page must prerender with exactly one <h1>, a
+      # self-referencing canonical and title/description within limits.
       - run: pnpm run build
+        env:
+          PRERENDER_STRICT: '1'
+      - run: pnpm run audit:routes
       - uses: actions/upload-artifact@v4
         with:
           name: dist

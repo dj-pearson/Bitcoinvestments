@@ -1,10 +1,22 @@
-export const portfolioRebalancingGuide = {
+import type { GuideSource } from './index';
+
+export const portfolioRebalancingGuide: GuideSource = {
   id: 'portfolio-rebalancing',
   title: 'Crypto Portfolio Rebalancing: Strategies for Optimal Allocation',
-  description: 'Learn when and how to rebalance your crypto portfolio, including threshold-based, calendar-based, and tactical approaches.',
+  seoTitle: 'Crypto Portfolio Rebalancing Guide',
+  description: 'When and how to rebalance a crypto portfolio: calendar vs threshold rules, a worked example, the maths of each trade, and how to keep fees and taxes down.',
+  summary:
+    'Rebalancing means trading back to your target allocation after prices move, so one asset does not quietly take over your risk. Most people do well with a simple rule, such as checking quarterly or rebalancing when an asset drifts more than 10 percentage points, and using new contributions instead of sales to limit taxes.',
   category: 'Trading',
-  readTime: 14,
   icon: '⚖️',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['risk-management', 'dca-strategies', 'crypto-taxes-basics'],
+  relatedTools: [
+    { label: 'Rebalancing calculator', url: '/rebalancing-alerts', description: 'Work out the trades to get back to target' },
+    { label: 'Crypto tax calculator', url: '/calculators?type=tax', description: 'Estimate the tax on a rebalance' },
+    { label: 'Strategy backtester', url: '/backtesting', description: 'Compare approaches on historical prices' },
+  ],
   content: `
 # Crypto Portfolio Rebalancing: Strategies for Optimal Allocation
 
@@ -101,23 +113,26 @@ Rebalance on a fixed schedule regardless of market conditions.
 
 ### Strategy 2: Threshold-Based Rebalancing
 
-Rebalance when any asset drifts beyond a set threshold from target.
+Rebalance when any asset drifts beyond a set threshold from target. Decide up front whether your threshold is in **percentage points** (absolute: 60% ± 10 points = 50–70%) or **relative** (60% ± 10% of 60 = 54–66%). This guide uses percentage points.
 
 **Common Thresholds:**
-- 5% deviation: Tight tracking, frequent rebalancing
-- 10% deviation: Balanced approach
-- 15-20% deviation: Less frequent, lower costs
+- 5 points: Tight tracking, frequent rebalancing
+- 10 points: Balanced approach
+- 15–20 points: Less frequent, lower costs
 
-**Example - 10% Threshold:**
+**Example - 10-point threshold (band 50–70%):**
 
 Target: 60% BTC, 40% ETH
 
 | Scenario | BTC Actual | Trigger? | Action |
 |----------|------------|----------|--------|
-| Normal | 58% | No (within 10%) | None |
-| Drifted | 52% | Yes (>10% from 60%) | Rebalance |
-| Drifted | 68% | No (within 10%) | None |
-| Very Drifted | 72% | Yes (>10% from 60%) | Rebalance |
+| Normal | 58% | No (inside 50–70%) | None |
+| Drifted | 52% | No (inside 50–70%) | None |
+| Drifted | 68% | No (inside 50–70%) | None |
+| Very Drifted | 72% | Yes (above 70%) | Rebalance |
+| Very Drifted | 47% | Yes (below 50%) | Rebalance |
+
+With a relative 10% threshold (54–66%), the 52% and 68% rows would both trigger.
 
 **Best for**: Active investors who monitor portfolios regularly
 
@@ -140,8 +155,8 @@ Adjusts targets based on market conditions rather than just maintaining static a
 
 | Market Condition | Adjustment |
 |------------------|------------|
-| Bear market (BTC -50%+) | Increase BTC target by 10% |
-| Bull market (BTC +100%+) | Decrease BTC target by 10% |
+| Bear market (BTC -50%+) | Increase BTC target by 10 points |
+| Bull market (BTC +100%+) | Decrease BTC target by 10 points |
 | Altcoin season | Reduce altcoin targets |
 | High Fear & Greed | More conservative allocation |
 
@@ -212,13 +227,15 @@ Sell losers to offset gains from rebalancing.
 **Example:**
 - Need to sell $1,000 ETH (gain: $300)
 - Sell $1,000 SOL (loss: $400)
-- Net: $100 loss (no tax owed)
+- Net: $100 loss (no tax owed on this pair, and the $100 can offset other gains)
+
+As of September 2026 the US wash-sale rule does not apply to crypto held directly, so you could rebuy SOL straight away. It **does** apply to spot crypto ETFs, and bills to extend it to crypto have been proposed. See [Crypto Taxes](/learn/crypto-taxes-basics).
 
 ### 3. Rebalance in Tax-Advantaged Accounts
 
-If using a crypto IRA or similar:
-- No taxes on rebalancing trades
-- Rebalance more frequently without penalty
+If you hold crypto exposure in an IRA or 401(k), either through a crypto IRA provider or through spot Bitcoin/Ether ETFs in an ordinary IRA:
+- No tax on rebalancing trades inside the account
+- Rebalance more frequently without a tax cost (trading fees still apply)
 
 ### 4. Wait for Long-Term Rates
 
@@ -243,17 +260,11 @@ Create a tracking spreadsheet with:
 
 ### Portfolio Tracking Apps
 
-Many apps calculate rebalancing for you:
-- CoinGecko Portfolio
-- Delta
-- CoinStats
-- Blockfolio/FTX (check current status)
+Portfolio trackers such as CoinGecko's portfolio and CoinStats show your current allocation, and our [rebalancing calculator](/rebalancing-alerts) works out the trades needed to reach your target.
 
-### Exchange Tools
+### Automated Rebalancing
 
-Some exchanges offer rebalancing features:
-- Binance Portfolio Rebalancing
-- Shrimpy (automated rebalancing)
+Some platforms offer automatic rebalancing or index-style baskets. Availability differs by country (several are not offered to US users), and fees vary widely, so check both before signing up. Avoid services that need exchange API keys with withdrawal permission.
 
 ## Common Rebalancing Mistakes
 
@@ -306,7 +317,7 @@ Write down your target allocation and reasoning.
 
 Pick one:
 - Calendar (quarterly recommended)
-- Threshold (10% recommended)
+- Threshold (10 percentage points is a common starting point)
 - Hybrid (best of both)
 
 ### Step 3: Set Up Tracking
@@ -348,7 +359,7 @@ Use this for each rebalancing session:
 
 - Rebalancing maintains your intended risk level
 - Choose a strategy and stick to it
-- Quarterly or 10% threshold is a good starting point
+- Quarterly or a 10-point threshold is a good starting point
 - Use new contributions to rebalance when possible
 - Track everything for tax purposes
 - Don't over-rebalance (fees and taxes add up)
@@ -360,6 +371,7 @@ Use this for each rebalancing session:
 3. Set up your tracking system
 4. Schedule your first review date
 5. Commit to following your system
+6. Read [Crypto Risk Management](/learn/risk-management) to set the overall size of your crypto allocation
 
 Remember: The goal is maintaining your strategy, not maximizing every trade. Consistency beats optimization.
 `

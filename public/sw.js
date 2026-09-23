@@ -8,10 +8,10 @@
  * - Push notification handling
  */
 
-const CACHE_NAME = 'bitcoinvestments-v3';
-const STATIC_CACHE = 'static-v3';
-const DYNAMIC_CACHE = 'dynamic-v3';
-const API_CACHE = 'api-v3';
+const CACHE_NAME = 'bitcoinvestments-v4';
+const STATIC_CACHE = 'static-v4';
+const DYNAMIC_CACHE = 'dynamic-v4';
+const API_CACHE = 'api-v4';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [

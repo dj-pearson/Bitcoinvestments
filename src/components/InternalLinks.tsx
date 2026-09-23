@@ -226,16 +226,16 @@ const CONTENT_HUBS: Record<ContentHubProps['category'], RelatedLink[]> = {
   ],
   education: [
     { title: 'Getting Started', url: '/learn', description: 'Beginner guides' },
-    { title: 'Glossary', url: '/glossary', description: '300+ terms explained' },
-    { title: 'What is Bitcoin', url: '/article/what-is-bitcoin', description: 'Bitcoin basics' },
-    { title: 'DeFi Basics', url: '/article/defi-basics', description: 'DeFi explained' },
-    { title: 'Crypto Wallets', url: '/article/crypto-wallets-explained', description: 'Wallet guide' },
+    { title: 'Glossary', url: '/glossary', description: 'Crypto terms explained in plain English' },
+    { title: 'What is Bitcoin', url: '/learn/what-is-bitcoin', description: 'Bitcoin basics' },
+    { title: 'DeFi Basics', url: '/learn/defi-basics', description: 'DeFi explained' },
+    { title: 'Crypto Wallets', url: '/learn/crypto-wallets-explained', description: 'Wallet guide' },
   ],
   comparison: [
     { title: 'Exchange Comparison', url: '/compare', description: 'Compare exchanges' },
     { title: 'Best for Beginners', url: '/compare?filter=beginners', description: 'Beginner-friendly' },
     { title: 'Lowest Fees', url: '/compare?filter=fees', description: 'Fee comparison' },
-    { title: 'Wallet Comparison', url: '/compare?type=wallets', description: 'Compare wallets' },
+    { title: 'Wallet Comparison', url: '/compare?tab=wallets', description: 'Compare wallets' },
   ],
   security: [
     { title: 'Scam Database', url: '/scam-database', description: 'Check for scams' },
@@ -246,7 +246,7 @@ const CONTENT_HUBS: Record<ContentHubProps['category'], RelatedLink[]> = {
   defi: [
     { title: 'Yield Farming', url: '/defi-yield', description: 'Compare yields' },
     { title: 'Staking', url: '/staking-calculator', description: 'Staking rewards' },
-    { title: 'On-Chain Analytics', url: '/onchain-analytics', description: 'Blockchain data' },
+    { title: 'On-Chain Metrics', url: '/onchain-analytics', description: 'Bitcoin network metrics explained' },
     { title: 'Gas Tracker', url: '/gas-optimizer', description: 'Monitor gas prices' },
   ],
 };
@@ -315,7 +315,7 @@ export function SEOFooterLinks({ className = '' }: SEOFooterLinksProps) {
       title: 'Compare',
       links: [
         { title: 'Best Exchanges', url: '/compare' },
-        { title: 'Best Wallets', url: '/compare?type=wallets' },
+        { title: 'Best Wallets', url: '/compare?tab=wallets' },
         { title: 'Hardware Wallets', url: '/hardware-wallet' },
         { title: 'Lending Platforms', url: '/lending' },
       ],

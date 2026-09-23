@@ -1,721 +1,751 @@
 /**
- * Crypto Retirement Calculator Page
+ * Crypto Retirement Calculator page (/retirement-calculator).
  *
- * Model crypto allocation in retirement portfolio with Monte Carlo projections,
- * tax implications, and withdrawal strategies.
- * Premium at $99/year or bundled with main subscription.
+ * Free, runs entirely in the browser. Engine and assumptions are documented in
+ * src/services/retirementCalculator.ts. Scenarios are saved to this browser's
+ * localStorage only (no account needed); inputs are mirrored into the URL so a
+ * result can be shared.
  */
 
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  PiggyBank,
-  Calculator,
-  TrendingUp,
-  DollarSign,
-  AlertCircle,
-  Check,
-  ChevronRight,
-  Download,
-  Info,
-  RefreshCw,
-  Lightbulb,
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import {
-  RETIREMENT_CALCULATOR_PRICING,
-  DEFAULT_RETIREMENT_INPUTS,
-  calculateRetirementProjection,
-  formatCurrency,
-  formatPercent,
-  getSuccessColor,
-  exportProjectionData,
-  STATE_TAX_RATES,
-} from '../services/retirementCalculator';
-import type { RetirementInputs, RetirementProjection, RetirementScenario } from '../types/premiumFeatures';
-
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { PiggyBank, Calculator, AlertCircle, Download, Info, RefreshCw, Save, Trash2, Link2 } from 'lucide-react';
 import { PageSEO } from '../components/PageSEO';
-import { todayLocalISODate } from '../lib/utils';
-export default function RetirementCalculatorPage() {
-  const { user } = useAuth();
-  const [isPremium] = useState(false);
-  const [inputs, setInputs] = useState<RetirementInputs>(DEFAULT_RETIREMENT_INPUTS);
-  const [projection, setProjection] = useState<RetirementProjection | null>(null);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'inputs' | 'results' | 'tax'>('inputs');
-  const [_scenario] = useState<RetirementScenario>('moderate');
+import { FaqSection, HowItWorks, LastUpdated, RelatedLinks } from '../components/calculators/CalculatorContent';
+import {
+  breadcrumbSchema,
+  howToSchema,
+  webApplicationSchema,
+  type FaqItem,
+  type HowToStep,
+} from '../components/calculators/calculatorSchema';
+import {
+  DEFAULT_RETIREMENT_INPUTS,
+  calculateRetirement,
+  exportResultJson,
+  formatCurrency,
+  getSuccessColor,
+  medianRealReturns,
+  validateInputs,
+  STOCK_VOLATILITY,
+  BOND_VOLATILITY,
+  type RetirementPlanInputs,
+  type RetirementResult,
+  type NonCryptoAccountType,
+} from '../services/retirementCalculator';
+import { FILING_STATUSES, FILING_STATUS_LABELS, TAX_DATA_META, DEFAULT_TAX_YEAR, isFilingStatus } from '../data/taxBrackets';
+import { STATE_TAX_TABLE, STATE_TAX_BY_CODE } from '../data/stateTaxRates';
+import { cn } from '../lib/utils';
 
-  const updateInput = <K extends keyof RetirementInputs>(key: K, value: RetirementInputs[K]) => {
-    setInputs(prev => ({ ...prev, [key]: value }));
+const PAGE_UPDATED = '2026-09-23';
+const STORAGE_KEY = 'bitcoinvestments.retirementScenarios.v1';
+
+const inputClass =
+  'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-brand-primary';
+const labelClass = 'block text-sm font-medium text-gray-300 mb-1';
+
+// Short URL keys for every numeric input (percent-style inputs are stored as whole percents).
+const NUM_PARAMS: { key: string; field: keyof RetirementPlanInputs; pct?: boolean }[] = [
+  { key: 'age', field: 'current_age' },
+  { key: 'retire', field: 'retirement_age' },
+  { key: 'to', field: 'life_expectancy' },
+  { key: 'sav', field: 'current_savings' },
+  { key: 'cr', field: 'current_crypto' },
+  { key: 'crb', field: 'crypto_cost_basis' },
+  { key: 'mo', field: 'monthly_contribution' },
+  { key: 'crp', field: 'crypto_contribution_percent' },
+  { key: 'cg', field: 'contribution_growth' },
+  { key: 'inc', field: 'desired_annual_income' },
+  { key: 'ss', field: 'social_security_income' },
+  { key: 'ssa', field: 'social_security_start_age' },
+  { key: 'oth', field: 'other_income' },
+  { key: 'inf', field: 'inflation_rate', pct: true },
+  { key: 'stk', field: 'stock_return', pct: true },
+  { key: 'bnd', field: 'bond_return', pct: true },
+  { key: 'stp', field: 'stock_percent' },
+  { key: 'crr', field: 'crypto_return', pct: true },
+  { key: 'crv', field: 'crypto_volatility', pct: true },
+];
+
+function inputsFromParams(params: URLSearchParams): RetirementPlanInputs {
+  const next: RetirementPlanInputs = { ...DEFAULT_RETIREMENT_INPUTS };
+  for (const { key, field, pct } of NUM_PARAMS) {
+    const raw = params.get(key);
+    if (raw === null || raw.trim() === '') continue;
+    const n = Number(raw);
+    if (Number.isFinite(n)) (next[field] as number) = pct ? n / 100 : n;
+  }
+  const fs = params.get('fs');
+  if (isFilingStatus(fs)) next.filing_status = fs;
+  const st = params.get('st');
+  if (st && STATE_TAX_BY_CODE[st]) next.state = st;
+  const acct = params.get('acct');
+  if (acct === 'pre_tax' || acct === 'roth' || acct === 'taxable') next.account_type = acct;
+  return next;
+}
+
+function inputsToParams(inputs: RetirementPlanInputs): URLSearchParams {
+  const p = new URLSearchParams();
+  for (const { key, field, pct } of NUM_PARAMS) {
+    const v = inputs[field] as number;
+    p.set(key, String(pct ? Math.round(v * 10000) / 100 : v));
+  }
+  p.set('fs', inputs.filing_status);
+  p.set('st', inputs.state);
+  p.set('acct', inputs.account_type);
+  return p;
+}
+
+interface SavedScenario {
+  name: string;
+  savedOn: string;
+  inputs: RetirementPlanInputs;
+}
+
+const FAQS: FaqItem[] = [
+  {
+    question: 'How much crypto should I hold for retirement?',
+    answer:
+      'There is no standard answer. Advisers who include crypto commonly suggest a small share of a retirement portfolio, such as 1-5%, because a 70-80% fall has happened several times. Use the "crypto share of monthly saving" slider and the what-if results to see how different amounts change your odds.',
+  },
+  {
+    question: 'What does "chance of success" mean?',
+    answer:
+      'It is the share of 1,000 simulated futures in which your savings paid for your planned spending every year until your plan-to age. Each simulation draws random yearly returns for stocks/bonds and for crypto from lognormal distributions built from your average-return and volatility assumptions.',
+  },
+  {
+    question: 'Why is the crypto line in the table growing slowly when I entered a high return?',
+    answer:
+      'The year-by-year table uses the median (typical) outcome, which for a volatile asset is well below the average. With a 15% average and 55% volatility the median yearly growth is only about 4% before inflation (about 1% after 2.5% inflation), because big losses need even bigger gains to recover (volatility drag). The Monte Carlo includes the rare very good outcomes that pull the average up.',
+  },
+  {
+    question: 'Are the results in today’s dollars?',
+    answer:
+      'Yes. Every amount is in today’s purchasing power. Returns you enter are converted to after-inflation returns, and spending, Social Security and tax brackets stay in today’s dollars, which matches how Social Security and federal brackets are indexed to inflation.',
+  },
+  {
+    question: 'How are taxes in retirement estimated?',
+    answer: `Withdrawals are grossed up for federal tax using the ${DEFAULT_TAX_YEAR} brackets and standard deduction for your filing status, with crypto gains taxed at the 0/15/20% long-term rates stacked on other income, up to 85% of Social Security taxable, and a simplified state tax at your state’s top rate. Pre-tax (traditional) savings are taxed as ordinary income; Roth withdrawals are tax-free.`,
+  },
+  {
+    question: 'Is this financial advice?',
+    answer:
+      'No. It is an educational model with simplified assumptions. It does not know your full tax situation, required minimum distributions, healthcare costs or how your crypto is held. Talk to a fee-only fiduciary adviser before making retirement decisions.',
+  },
+];
+
+const HOW_STEPS: HowToStep[] = [
+  { name: 'Enter your ages and savings', text: 'Current age, planned retirement age, the age to plan to, what you have saved outside crypto and what your crypto is worth today (plus what you paid for it).' },
+  { name: 'Enter what you save each month', text: 'Your total monthly saving and the share of it that buys crypto. The rest goes into a stock/bond mix you choose.' },
+  { name: 'Enter retirement spending and income', text: 'Yearly spending in today’s dollars, expected Social Security and the age it starts, and any other inflation-adjusted income.' },
+  { name: 'Check the assumptions', text: 'Inflation, stock and bond returns, and crypto’s average return and volatility. The defaults are documented in the assumptions table.' },
+  { name: 'Calculate and compare', text: 'Read the chance of success, the savings you are projected to have versus what you need, and the what-if scenarios. Save or share the scenario.' },
+];
+
+export default function RetirementCalculatorPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [inputs, setInputs] = useState<RetirementPlanInputs>(() => inputsFromParams(searchParams));
+  const [result, setResult] = useState<RetirementResult | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [saved, setSaved] = useState<SavedScenario[]>([]);
+  const [scenarioName, setScenarioName] = useState('');
+  const [storageNote, setStorageNote] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const errors = useMemo(() => validateInputs(inputs), [inputs]);
+  const errorFor = (field: keyof RetirementPlanInputs) => errors.find((e) => e.field === field)?.message;
+
+  const update = <K extends keyof RetirementPlanInputs>(key: K, value: RetirementPlanInputs[K]) =>
+    setInputs((prev) => ({ ...prev, [key]: value }));
+
+  const runCalculation = useCallback(
+    (next: RetirementPlanInputs) => {
+      if (validateInputs(next).length > 0) return;
+      setIsCalculating(true);
+      // Yield a frame so the button state paints before the ~200 ms simulation.
+      setTimeout(() => {
+        setResult(calculateRetirement(next));
+        setIsCalculating(false);
+      }, 0);
+    },
+    []
+  );
+
+  // First result with the (URL or default) inputs, and load saved scenarios.
+  // Deferred to a timer so the page (H1, form, content) paints first.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (validateInputs(inputs).length === 0) setResult(calculateRetirement(inputs));
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as SavedScenario[];
+          if (Array.isArray(parsed)) setSaved(parsed);
+        }
+      } catch {
+        setStorageNote('Saved scenarios are unavailable in this browser (storage is blocked).');
+      }
+    }, 0);
+    return () => clearTimeout(id);
+    // Only on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const persist = (list: SavedScenario[]) => {
+    setSaved(list);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      setStorageNote(null);
+    } catch {
+      setStorageNote('Could not save: this browser is blocking local storage.');
+    }
   };
 
-  async function handleCalculate() {
-    setIsCalculating(true);
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (errors.length > 0) return;
+    setSearchParams(inputsToParams(inputs), { replace: true });
+    runCalculation(inputs);
+  }
+
+  function handleSave() {
+    const name = scenarioName.trim() || `Scenario ${saved.length + 1}`;
+    const savedOn = new Date().toISOString().slice(0, 10);
+    persist([{ name, savedOn, inputs }, ...saved.filter((s) => s.name !== name)].slice(0, 20));
+    setScenarioName('');
+  }
+
+  function handleLoad(s: SavedScenario) {
+    const merged = { ...DEFAULT_RETIREMENT_INPUTS, ...s.inputs };
+    setInputs(merged);
+    setSearchParams(inputsToParams(merged), { replace: true });
+    runCalculation(merged);
+  }
+
+  async function handleCopyLink() {
+    setSearchParams(inputsToParams(inputs), { replace: true });
     try {
-      // Simulate calculation time for UX
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const result = calculateRetirementProjection(inputs, user?.id);
-      setProjection(result);
-      setActiveTab('results');
-    } catch (err) {
-      console.error('Calculation failed:', err);
-    } finally {
-      setIsCalculating(false);
+      const url = `${window.location.origin}${window.location.pathname}?${inputsToParams(inputs).toString()}`;
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
     }
   }
 
   function handleExport() {
-    if (!projection) return;
-    const data = exportProjectionData(projection);
-    const blob = new Blob([data], { type: 'application/json' });
+    if (!result) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([exportResultJson(result, today)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `retirement_projection_${todayLocalISODate()}.json`;
+    a.download = `retirement-projection-${today}.json`;
     a.click();
+    URL.revokeObjectURL(url);
   }
 
-  const fundingStatus = useMemo(() => {
-    if (!projection) return null;
-    if (projection.funding_ratio >= 1) return { status: 'on-track', color: 'green', label: 'On Track' };
-    if (projection.funding_ratio >= 0.8) return { status: 'close', color: 'yellow', label: 'Close' };
-    return { status: 'behind', color: 'red', label: 'Needs Attention' };
-  }, [projection]);
+  const medians = useMemo(() => medianRealReturns(inputs), [inputs]);
+  const stateInfo = STATE_TAX_BY_CODE[inputs.state];
+
+  const description =
+    'Model crypto in your retirement plan: Monte Carlo success odds, today’s-dollar projections, 2026 tax brackets, Social Security and what-if scenarios.';
+
+  const numberField = (
+    field: keyof RetirementPlanInputs,
+    label: string,
+    opts: { pct?: boolean; step?: string; min?: number; max?: number; hint?: string } = {}
+  ) => {
+    const id = `ret-${field}`;
+    const raw = inputs[field] as number;
+    const value = opts.pct ? Math.round(raw * 10000) / 100 : raw;
+    const err = errorFor(field);
+    return (
+      <div>
+        <label htmlFor={id} className={labelClass}>{label}</label>
+        <input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          step={opts.step ?? 'any'}
+          min={opts.min}
+          max={opts.max}
+          value={Number.isFinite(value) ? value : ''}
+          onChange={(e) => {
+            const n = e.target.value === '' ? NaN : Number(e.target.value);
+            update(field, (opts.pct ? n / 100 : n) as RetirementPlanInputs[typeof field]);
+          }}
+          aria-invalid={err ? true : undefined}
+          aria-describedby={err ? `${id}-err` : opts.hint ? `${id}-hint` : undefined}
+          className={cn(inputClass, err && 'border-red-500/60')}
+        />
+        {err ? (
+          <p id={`${id}-err`} className="text-xs text-red-400 mt-1">{err}</p>
+        ) : opts.hint ? (
+          <p id={`${id}-hint`} className="text-xs text-gray-500 mt-1">{opts.hint}</p>
+        ) : null}
+      </div>
+    );
+  };
+
+  const fundingLabel = !result
+    ? null
+    : !Number.isFinite(result.funding_ratio)
+      ? { text: 'Covered by guaranteed income', color: 'text-green-400' }
+      : result.funding_ratio >= 1
+        ? { text: 'On track', color: 'text-green-400' }
+        : result.funding_ratio >= 0.8
+          ? { text: 'Close', color: 'text-yellow-400' }
+          : { text: 'Needs attention', color: 'text-red-400' };
+
+  const summarySentence = result
+    ? result.total_needed_at_retirement === 0
+      ? `Your Social Security and other income cover almost all of your planned spending, so very little savings are needed. You are projected to have ${formatCurrency(result.projected_savings_at_retirement)} (today’s dollars) at ${inputs.retirement_age}.`
+      : `At median returns you are projected to have ${formatCurrency(result.projected_savings_at_retirement)} (today’s dollars) at ${inputs.retirement_age}, against about ${formatCurrency(result.total_needed_at_retirement)} needed to fund ${formatCurrency(inputs.desired_annual_income)} a year to age ${inputs.life_expectancy}. In ${result.monte_carlo.success_probability.toFixed(0)}% of 1,000 simulated markets the money lasted${result.depletion_age ? `; on the median path it runs out at ${result.depletion_age}` : ''}.`
+    : null;
+
+  const maxValue = result ? Math.max(1, ...result.yearly.map((y) => y.portfolio_value)) : 1;
+  const chartRows = result ? result.yearly.filter((_, i) => i % 3 === 0) : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <PageSEO pageKey="retirementCalculator" urlPath="/retirement-calculator" isTool toolName="Crypto Retirement Calculator" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <PiggyBank className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Crypto Retirement Calculator
-            </h1>
-            <span className="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full">
-              PREMIUM
-            </span>
+    <>
+      <PageSEO
+        pageKey="retirementCalculator"
+        urlPath="/retirement-calculator"
+        faqs={FAQS}
+        customSchema={[
+          webApplicationSchema({
+            name: 'Crypto Retirement Calculator',
+            description,
+            path: '/retirement-calculator',
+            dateModified: PAGE_UPDATED,
+            featureList: ['Monte Carlo simulation (1,000 runs)', 'Today’s-dollar projections', `${DEFAULT_TAX_YEAR} federal brackets and state tax`, 'What-if scenarios', 'Shareable links and browser-saved scenarios'],
+          }),
+          howToSchema('How to estimate whether crypto fits your retirement plan', description, HOW_STEPS),
+          breadcrumbSchema('Retirement Calculator', '/retirement-calculator'),
+        ]}
+      />
+      <div className="container mx-auto px-4 py-10 space-y-8">
+        <header className="max-w-3xl">
+          <div className="flex items-center gap-3 mb-3">
+            <PiggyBank className="h-8 w-8 text-brand-primary" aria-hidden="true" />
+            <h1 className="text-3xl md:text-4xl font-bold text-white">Crypto Retirement Calculator</h1>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Model your crypto allocation for retirement with Monte Carlo projections and tax optimization.
+          <p className="text-lg text-gray-300 leading-relaxed">
+            Enter your savings, monthly contributions and planned spending to see how likely your money is to last,
+            with and without crypto. The calculator runs 1,000 simulated markets, works in today’s dollars and
+            applies {DEFAULT_TAX_YEAR} tax brackets. It is free and runs in your browser.
           </p>
-        </div>
+          <div className="mt-3">
+            <LastUpdated date={PAGE_UPDATED}>
+              {' '}· Tax rates verified {TAX_DATA_META.lastVerified}
+            </LastUpdated>
+          </div>
+        </header>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-          {[
-            { id: 'inputs', label: 'Inputs', icon: Calculator },
-            { id: 'results', label: 'Projections', icon: TrendingUp },
-            { id: 'tax', label: 'Tax Analysis', icon: DollarSign },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              <tab.icon className="h-5 w-5" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <div className="grid lg:grid-cols-5 gap-8">
+          {/* Inputs */}
+          <section aria-labelledby="inputs-heading" className="lg:col-span-2">
+            <form onSubmit={handleSubmit} className="glass-card p-6 space-y-6" noValidate>
+              <h2 id="inputs-heading" className="text-xl font-bold text-white">Your plan</h2>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {activeTab === 'inputs' && (
-              <div className="space-y-6">
-                {/* Personal Information */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h3>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Current Age
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.current_age}
-                        onChange={(e) => updateInput('current_age', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Retirement Age
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.retirement_age}
-                        onChange={(e) => updateInput('retirement_age', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Life Expectancy
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.life_expectancy}
-                        onChange={(e) => updateInput('life_expectancy', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-semibold text-brand-primary mb-2">Ages</legend>
+                <div className="grid grid-cols-3 gap-3">
+                  {numberField('current_age', 'Current age', { step: '1', min: 16 })}
+                  {numberField('retirement_age', 'Retire at', { step: '1' })}
+                  {numberField('life_expectancy', 'Plan to age', { step: '1' })}
                 </div>
+              </fieldset>
 
-                {/* Current Savings */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Savings</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Total Savings ($)
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.current_savings_usd}
-                        onChange={(e) => updateInput('current_savings_usd', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Crypto Holdings ($)
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.current_crypto_value_usd}
-                        onChange={(e) => updateInput('current_crypto_value_usd', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Crypto Allocation: {inputs.crypto_allocation_percent}%
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={inputs.crypto_allocation_percent}
-                        onChange={(e) => updateInput('crypto_allocation_percent', Number(e.target.value))}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>0% (Conservative)</span>
-                        <span>50%</span>
-                        <span>100% (Aggressive)</span>
-                      </div>
-                    </div>
-                  </div>
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-semibold text-brand-primary mb-2">Savings today</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  {numberField('current_savings', 'Non-crypto savings ($)', { min: 0 })}
+                  {numberField('current_crypto', 'Crypto value ($)', { min: 0 })}
                 </div>
-
-                {/* Contributions */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Monthly Contributions</h3>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Total Contribution ($)
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.monthly_contribution}
-                        onChange={(e) => updateInput('monthly_contribution', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Crypto Contribution ($)
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.monthly_crypto_contribution}
-                        onChange={(e) => updateInput('monthly_crypto_contribution', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Annual Increase (%)
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.contribution_increase_rate}
-                        onChange={(e) => updateInput('contribution_increase_rate', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
+                {numberField('crypto_cost_basis', 'What you paid for that crypto ($)', { min: 0, hint: 'Used to estimate the taxable gain when you sell in retirement.' })}
+                <div>
+                  <label htmlFor="ret-account_type" className={labelClass}>Non-crypto savings are mostly</label>
+                  <select
+                    id="ret-account_type"
+                    value={inputs.account_type}
+                    onChange={(e) => update('account_type', e.target.value as NonCryptoAccountType)}
+                    className={inputClass}
+                  >
+                    <option value="pre_tax">Pre-tax (traditional 401(k)/IRA)</option>
+                    <option value="roth">Roth (tax-free withdrawals)</option>
+                    <option value="taxable">Taxable brokerage account</option>
+                  </select>
                 </div>
+              </fieldset>
 
-                {/* Retirement Income */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Retirement Income Needs</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Desired Annual Income ($)
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.desired_annual_income}
-                        onChange={(e) => updateInput('desired_annual_income', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Social Security ($)
-                      </label>
-                      <input
-                        type="number"
-                        value={inputs.social_security_income}
-                        onChange={(e) => updateInput('social_security_income', Number(e.target.value))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-semibold text-brand-primary mb-2">Saving each month</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  {numberField('monthly_contribution', 'Total monthly saving ($)', { min: 0 })}
+                  {numberField('contribution_growth', 'Raise it each year by (%)', { hint: 'After inflation.' })}
                 </div>
-
-                {/* Tax Settings */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tax Settings</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Filing Status
-                      </label>
-                      <select
-                        value={inputs.tax_filing_status}
-                        onChange={(e) => updateInput('tax_filing_status', e.target.value as typeof inputs.tax_filing_status)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="single">Single</option>
-                        <option value="married_filing_jointly">Married Filing Jointly</option>
-                        <option value="married_filing_separately">Married Filing Separately</option>
-                        <option value="head_of_household">Head of Household</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        State
-                      </label>
-                      <select
-                        value={inputs.state}
-                        onChange={(e) => updateInput('state', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        {Object.keys(STATE_TAX_RATES).map(state => (
-                          <option key={state} value={state}>{state}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Assumptions */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Market Assumptions</h3>
-                  <div className="grid md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Inflation Rate (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={inputs.inflation_rate * 100}
-                        onChange={(e) => updateInput('inflation_rate', Number(e.target.value) / 100)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Stock Return (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={inputs.stock_return * 100}
-                        onChange={(e) => updateInput('stock_return', Number(e.target.value) / 100)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Crypto Return (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={inputs.crypto_return * 100}
-                        onChange={(e) => updateInput('crypto_return', Number(e.target.value) / 100)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Crypto Volatility (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={inputs.crypto_volatility * 100}
-                        onChange={(e) => updateInput('crypto_volatility', Number(e.target.value) / 100)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Calculate Button */}
-                <button
-                  onClick={handleCalculate}
-                  disabled={isCalculating}
-                  className="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {isCalculating ? (
-                    <>
-                      <RefreshCw className="h-5 w-5 animate-spin" />
-                      Calculating...
-                    </>
-                  ) : (
-                    <>
-                      <Calculator className="h-5 w-5" />
-                      Calculate Retirement Projection
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {activeTab === 'results' && projection && (
-              <div className="space-y-6">
-                {/* Success Probability */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Success Probability</h3>
-                  <div className="flex items-center justify-center">
-                    <div className="relative">
-                      <svg className="w-48 h-48 transform -rotate-90">
-                        <circle
-                          cx="96"
-                          cy="96"
-                          r="88"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="12"
-                          className="text-gray-200 dark:text-gray-700"
-                        />
-                        <circle
-                          cx="96"
-                          cy="96"
-                          r="88"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="12"
-                          strokeDasharray={`${projection.success_probability * 5.53} 553`}
-                          className={getSuccessColor(projection.success_probability)}
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <p className={`text-4xl font-bold ${getSuccessColor(projection.success_probability)}`}>
-                            {projection.success_probability.toFixed(0)}%
-                          </p>
-                          <p className="text-sm text-gray-500">Chance of Success</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
-                    Based on {projection.monte_carlo_simulations.toLocaleString()} Monte Carlo simulations
-                    {!isPremium && (
-                      <span className="block text-sm text-blue-600">
-                        Upgrade to Premium for 10,000+ simulations
-                      </span>
-                    )}
+                <div>
+                  <label htmlFor="ret-crypto-share" className={labelClass}>
+                    Crypto share of monthly saving: {inputs.crypto_contribution_percent}%
+                  </label>
+                  <input
+                    id="ret-crypto-share"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={inputs.crypto_contribution_percent}
+                    onChange={(e) => update('crypto_contribution_percent', Number(e.target.value))}
+                    className="w-full accent-orange-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    ${Math.round((inputs.monthly_contribution * inputs.crypto_contribution_percent) / 100).toLocaleString()} a month to crypto,
+                    ${Math.round(inputs.monthly_contribution * (1 - inputs.crypto_contribution_percent / 100)).toLocaleString()} to stocks/bonds.
                   </p>
                 </div>
+              </fieldset>
 
-                {/* Key Metrics */}
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Needed at Retirement</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {formatCurrency(projection.total_needed_at_retirement)}
-                    </p>
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-semibold text-brand-primary mb-2">Retirement (today’s dollars)</legend>
+                {numberField('desired_annual_income', 'Yearly spending in retirement ($)', { min: 0 })}
+                <div className="grid grid-cols-2 gap-3">
+                  {numberField('social_security_income', 'Social Security per year ($)', { min: 0, hint: 'Your estimate at ssa.gov/myaccount.' })}
+                  {numberField('social_security_start_age', 'Starts at age', { step: '1', min: 62, max: 70 })}
+                </div>
+                {numberField('other_income', 'Other inflation-adjusted income per year ($)', { min: 0 })}
+              </fieldset>
+
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-semibold text-brand-primary mb-2">Taxes</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="ret-fs" className={labelClass}>Filing status</label>
+                    <select id="ret-fs" value={inputs.filing_status} onChange={(e) => update('filing_status', e.target.value as RetirementPlanInputs['filing_status'])} className={inputClass}>
+                      {FILING_STATUSES.map((s) => (
+                        <option key={s} value={s}>{FILING_STATUS_LABELS[s]}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Projected Savings</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {formatCurrency(projection.projected_savings_at_retirement)}
-                    </p>
-                  </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Funding Ratio</p>
-                    <p className={`text-2xl font-bold ${
-                      projection.funding_ratio >= 1 ? 'text-green-500' :
-                      projection.funding_ratio >= 0.8 ? 'text-yellow-500' : 'text-red-500'
-                    }`}>
-                      {(projection.funding_ratio * 100).toFixed(0)}%
-                    </p>
+                  <div>
+                    <label htmlFor="ret-state" className={labelClass}>State</label>
+                    <select id="ret-state" value={inputs.state} onChange={(e) => update('state', e.target.value)} className={inputClass}>
+                      {STATE_TAX_TABLE.map((s) => (
+                        <option key={s.code} value={s.code}>{s.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+                {stateInfo?.note && <p className="text-xs text-gray-500">{stateInfo.note}</p>}
+              </fieldset>
 
-                {/* Funding Gap */}
-                {projection.funding_gap > 0 && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="h-6 w-6 text-yellow-600 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-semibold text-yellow-800 dark:text-yellow-200">Funding Gap Detected</h4>
-                        <p className="text-yellow-700 dark:text-yellow-300">
-                          You are projected to be short by <strong>{formatCurrency(projection.funding_gap)}</strong> at retirement.
-                          Consider increasing contributions or adjusting your retirement goals.
-                        </p>
-                      </div>
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-semibold text-brand-primary mb-2">Assumptions (yearly, before inflation)</legend>
+                <div className="grid grid-cols-2 gap-3">
+                  {numberField('inflation_rate', 'Inflation (%)', { pct: true, step: '0.1' })}
+                  {numberField('stock_percent', 'Stocks in non-crypto mix (%)', { step: '1', min: 0, max: 100 })}
+                  {numberField('stock_return', 'Stock return (%)', { pct: true, step: '0.1' })}
+                  {numberField('bond_return', 'Bond return (%)', { pct: true, step: '0.1' })}
+                  {numberField('crypto_return', 'Crypto average return (%)', { pct: true, step: '0.5' })}
+                  {numberField('crypto_volatility', 'Crypto volatility (%)', { pct: true, step: '1' })}
+                </div>
+                <p className="text-xs text-gray-500">
+                  Median yearly growth after inflation implied by these: {(medians.traditional * 100).toFixed(1)}% for the
+                  stock/bond mix, {(medians.crypto * 100).toFixed(1)}% for crypto.
+                </p>
+              </fieldset>
+
+              <button
+                type="submit"
+                disabled={isCalculating || errors.length > 0}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 disabled:opacity-50"
+              >
+                {isCalculating ? <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" /> : <Calculator className="h-5 w-5" aria-hidden="true" />}
+                {isCalculating ? 'Calculating…' : 'Calculate'}
+              </button>
+              {errors.length > 0 && (
+                <p className="text-sm text-red-400" role="alert">Fix the highlighted fields to calculate.</p>
+              )}
+            </form>
+          </section>
+
+          {/* Results */}
+          <section aria-labelledby="results-heading" aria-live="polite" className="lg:col-span-3 space-y-6">
+            <h2 id="results-heading" className="text-2xl font-bold text-white">Your projection</h2>
+            {!result ? (
+              <div className="glass-card p-8 space-y-3" aria-busy="true">
+                <div className="h-6 bg-white/5 rounded animate-pulse" />
+                <div className="h-24 bg-white/5 rounded animate-pulse" />
+                <div className="h-40 bg-white/5 rounded animate-pulse" />
+              </div>
+            ) : (
+              <>
+                <div className="glass-card p-6">
+                  <p className="text-gray-200 leading-relaxed">{summarySentence}</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="glass-card p-6 text-center">
+                    <p className="text-sm text-gray-400">Chance of success</p>
+                    <p className={cn('text-5xl font-bold my-2', getSuccessColor(result.monte_carlo.success_probability))}>
+                      {result.monte_carlo.success_probability.toFixed(0)}%
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Share of {result.monte_carlo.simulations.toLocaleString()} simulations where savings covered spending to age {inputs.life_expectancy}.
+                      {result.monte_carlo.median_depletion_age && ` When they fell short, the median age money ran out was ${result.monte_carlo.median_depletion_age}.`}
+                    </p>
+                  </div>
+                  <dl className="glass-card p-6 space-y-3">
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-400">Projected at {inputs.retirement_age}</dt>
+                      <dd className="font-bold text-white">{formatCurrency(result.projected_savings_at_retirement)}</dd>
                     </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-400">Needed at {inputs.retirement_age}</dt>
+                      <dd className="font-bold text-white">{formatCurrency(result.total_needed_at_retirement)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-400">Funding ratio</dt>
+                      <dd className={cn('font-bold', fundingLabel?.color)}>
+                        {Number.isFinite(result.funding_ratio) ? `${(result.funding_ratio * 100).toFixed(0)}%` : '—'}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-gray-400">Status</dt>
+                      <dd className={cn('font-medium', fundingLabel?.color)}>{fundingLabel?.text}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {result.funding_gap > 0 && (
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex gap-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <p className="text-sm text-yellow-100">
+                      On the median path you are about <strong>{formatCurrency(result.funding_gap)}</strong> short at retirement.
+                      The what-if results below show which changes help most.
+                    </p>
                   </div>
                 )}
 
-                {/* Year by Year Projection Chart */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Portfolio Growth Over Time</h3>
-                  <div className="h-64 flex items-end justify-between gap-1">
-                    {projection.yearly_projections.filter((_, i) => i % 5 === 0).map((year, i) => {
-                      const maxValue = Math.max(...projection.yearly_projections.map(y => y.portfolio_value));
-                      const height = (year.portfolio_value / maxValue) * 100;
-                      const cryptoHeight = (year.crypto_value / maxValue) * 100;
-                      const isRetired = year.age >= inputs.retirement_age;
-
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Portfolio by age (median path, today’s dollars)</h3>
+                  <div className="h-56 flex items-end gap-1" aria-hidden="true">
+                    {chartRows.map((y) => {
+                      const h = (y.portfolio_value / maxValue) * 100;
+                      const cryptoPart = y.portfolio_value > 0 ? (y.crypto_value / y.portfolio_value) * 100 : 0;
                       return (
-                        <div key={i} className="flex-1 flex flex-col items-center">
-                          <div className="w-full relative" style={{ height: '200px' }}>
-                            <div
-                              className={`absolute bottom-0 w-full ${isRetired ? 'bg-purple-500' : 'bg-blue-500'} rounded-t`}
-                              style={{ height: `${height}%` }}
-                            >
-                              <div
-                                className="absolute bottom-0 w-full bg-orange-400 rounded-t"
-                                style={{ height: `${(cryptoHeight / height) * 100}%` }}
-                              />
-                            </div>
+                        <div key={y.age} className="flex-1 flex flex-col items-center justify-end h-full">
+                          <div
+                            className={cn('w-full rounded-t relative', y.age >= inputs.retirement_age ? 'bg-purple-500' : 'bg-blue-500')}
+                            style={{ height: `${h}%` }}
+                            title={`Age ${y.age}: ${formatCurrency(y.portfolio_value)}`}
+                          >
+                            <div className="absolute bottom-0 w-full bg-orange-400 rounded-t" style={{ height: `${cryptoPart}%` }} />
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">{year.age}</p>
+                          <span className="text-[10px] text-gray-500 mt-1">{y.age}</span>
                         </div>
                       );
                     })}
                   </div>
-                  <div className="flex justify-center gap-6 mt-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Accumulation</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-purple-500 rounded" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Retirement</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-orange-400 rounded" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Crypto</span>
-                    </div>
+                  <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm text-gray-400">
+                    <span className="flex items-center gap-2"><span className="w-3 h-3 bg-blue-500 rounded" />Saving years</span>
+                    <span className="flex items-center gap-2"><span className="w-3 h-3 bg-purple-500 rounded" />Retirement</span>
+                    <span className="flex items-center gap-2"><span className="w-3 h-3 bg-orange-400 rounded" />Crypto part</span>
                   </div>
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-sm text-brand-primary">Show the year-by-year table</summary>
+                    <div className="overflow-x-auto mt-3 max-h-96">
+                      <table className="w-full text-sm">
+                        <caption className="sr-only">Year-by-year projection in today’s dollars</caption>
+                        <thead>
+                          <tr className="text-gray-400 border-b border-white/10">
+                            <th scope="col" className="text-left py-2 px-2">Age</th>
+                            <th scope="col" className="text-right py-2 px-2">Saved</th>
+                            <th scope="col" className="text-right py-2 px-2">Withdrawn</th>
+                            <th scope="col" className="text-right py-2 px-2">Of which tax</th>
+                            <th scope="col" className="text-right py-2 px-2">Crypto</th>
+                            <th scope="col" className="text-right py-2 px-2">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.yearly.map((y) => (
+                            <tr key={y.age} className="border-b border-white/5 text-gray-300">
+                              <td className="py-1 px-2">{y.age}</td>
+                              <td className="py-1 px-2 text-right">{y.contributions ? formatCurrency(y.contributions) : '—'}</td>
+                              <td className="py-1 px-2 text-right">{y.withdrawals ? formatCurrency(y.withdrawals) : '—'}</td>
+                              <td className="py-1 px-2 text-right">{y.taxes ? formatCurrency(y.taxes) : '—'}</td>
+                              <td className="py-1 px-2 text-right">{formatCurrency(y.crypto_value)}</td>
+                              <td className="py-1 px-2 text-right text-white">{formatCurrency(y.portfolio_value)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
                 </div>
 
-                {/* Recommendations */}
-                {projection.recommendations.length > 0 && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Lightbulb className="h-5 w-5 text-yellow-500" />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recommendations</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {projection.recommendations.map((rec, i) => (
-                        <div
-                          key={i}
-                          className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                        >
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <span className="text-blue-600 dark:text-blue-400 font-semibold text-sm">+{rec.impact_on_success}%</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">{rec.title}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{rec.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Export Button */}
-                {isPremium && (
-                  <button
-                    onClick={handleExport}
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    <Download className="h-5 w-5" />
-                    Export Report
-                  </button>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'tax' && projection && (
-              <div className="space-y-6">
-                {/* Tax Summary */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tax Analysis</h3>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Taxes Over Retirement</p>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {formatCurrency(projection.tax_analysis.total_taxes_paid)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Effective Tax Rate</p>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {formatPercent(projection.tax_analysis.effective_tax_rate)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tax Optimization Opportunities */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Optimization Opportunities</h3>
-                  <div className="space-y-4">
-                    {projection.tax_analysis.roth_conversion_opportunity > 0 && (
-                      <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-white mb-1">What if you changed one thing?</h3>
+                  <p className="text-sm text-gray-400 mb-4">Each line re-runs the simulation with a single change.</p>
+                  <ul className="space-y-3">
+                    {result.what_if.map((w) => (
+                      <li key={w.label} className="flex items-start justify-between gap-4 p-3 rounded-lg bg-white/5">
                         <div>
-                          <p className="font-medium text-green-800 dark:text-green-200">Roth Conversion Opportunity</p>
-                          <p className="text-sm text-green-700 dark:text-green-300">
-                            Consider converting {formatCurrency(projection.tax_analysis.roth_conversion_opportunity)} to Roth before retirement to reduce future taxes.
-                          </p>
+                          <p className="font-medium text-white">{w.label}</p>
+                          <p className="text-sm text-gray-400">{w.description}</p>
                         </div>
-                      </div>
-                    )}
-                    {projection.tax_analysis.tax_loss_harvesting_opportunity > 0 && (
-                      <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <Check className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-blue-800 dark:text-blue-200">Tax-Loss Harvesting</p>
-                          <p className="text-sm text-blue-700 dark:text-blue-300">
-                            Crypto volatility provides {formatCurrency(projection.tax_analysis.tax_loss_harvesting_opportunity)} in potential tax-loss harvesting opportunities annually.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Optimal Withdrawal Order */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recommended Withdrawal Order</h3>
-                  <div className="space-y-3">
-                    {projection.tax_analysis.optimal_withdrawal_order.map((step, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold">{i + 1}</span>
-                        </div>
-                        <p className="text-gray-700 dark:text-gray-300">{step}</p>
-                      </div>
+                        <p className={cn('font-bold whitespace-nowrap', w.change >= 0 ? 'text-green-400' : 'text-red-400')}>
+                          {w.success_probability.toFixed(0)}% ({w.change >= 0 ? '+' : ''}{w.change.toFixed(0)} pts)
+                        </p>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
-              </div>
-            )}
 
-            {activeTab === 'results' && !projection && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center">
-                <Calculator className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Projection Yet</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Fill in your information and click Calculate to see your retirement projection.
-                </p>
-                <button
-                  onClick={() => setActiveTab('inputs')}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Go to Inputs
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Summary */}
-            {projection && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Years to Retirement</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{projection.years_to_retirement}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Years in Retirement</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{projection.years_in_retirement}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Status</span>
-                    <span className={`font-medium ${
-                      fundingStatus?.color === 'green' ? 'text-green-500' :
-                      fundingStatus?.color === 'yellow' ? 'text-yellow-500' : 'text-red-500'
-                    }`}>
-                      {fundingStatus?.label}
-                    </span>
-                  </div>
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">Taxes in retirement</h3>
+                  <dl className="grid sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <dt className="text-sm text-gray-400">Estimated taxes, retirement years</dt>
+                      <dd className="text-2xl font-bold text-white">{formatCurrency(result.lifetime_taxes)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm text-gray-400">Average tax on withdrawals</dt>
+                      <dd className="text-2xl font-bold text-white">
+                        {result.lifetime_withdrawals > 0 ? `${((result.lifetime_taxes / result.lifetime_withdrawals) * 100).toFixed(1)}%` : '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="text-sm text-gray-400">
+                    General education, not advice: many planners draw from taxable accounts first, then pre-tax accounts, and
+                    leave Roth money for last, while filling low tax brackets in early retirement (for example with Roth
+                    conversions). Selling crypto held over a year is taxed at 0/15/20% long-term rates. Whether any of this fits
+                    you depends on details this calculator does not model.
+                  </p>
                 </div>
-              </div>
-            )}
 
-            {/* Premium Upsell */}
-            {!isPremium && (
-              <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl p-6 text-white">
-                <h3 className="text-lg font-bold mb-3">Unlock Full Analysis</h3>
-                <ul className="space-y-2 mb-4 text-sm">
-                  {RETIREMENT_CALCULATOR_PRICING.premium.features.slice(0, 5).map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <Check className="h-4 w-4" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/pricing"
-                  className="flex items-center justify-center gap-2 w-full py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50"
-                >
-                  ${RETIREMENT_CALCULATOR_PRICING.premium.price_yearly}/year
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
+                <div className="glass-card p-6 space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Save or share this scenario</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <label htmlFor="ret-scenario-name" className="sr-only">Scenario name</label>
+                    <input
+                      id="ret-scenario-name"
+                      type="text"
+                      placeholder="Scenario name"
+                      value={scenarioName}
+                      onChange={(e) => setScenarioName(e.target.value)}
+                      className={cn(inputClass, 'flex-1 min-w-[10rem]')}
+                      maxLength={60}
+                    />
+                    <button type="button" onClick={handleSave} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+                      <Save className="h-4 w-4" aria-hidden="true" /> Save in this browser
+                    </button>
+                    <button type="button" onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+                      <Link2 className="h-4 w-4" aria-hidden="true" /> {copied ? 'Link copied' : 'Copy share link'}
+                    </button>
+                    <button type="button" onClick={handleExport} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white">
+                      <Download className="h-4 w-4" aria-hidden="true" /> Download results (JSON)
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500">Scenarios are stored only in this browser. Clearing site data removes them.</p>
+                  {storageNote && <p className="text-xs text-yellow-400">{storageNote}</p>}
+                  {saved.length > 0 && (
+                    <ul className="divide-y divide-white/10">
+                      {saved.map((s) => (
+                        <li key={s.name} className="flex items-center justify-between py-2 gap-3">
+                          <button type="button" onClick={() => handleLoad(s)} className="text-left text-white hover:text-brand-primary">
+                            {s.name} <span className="text-xs text-gray-500">saved {s.savedOn}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => persist(saved.filter((x) => x.name !== s.name))}
+                            className="p-2 text-gray-400 hover:text-red-400"
+                            aria-label={`Delete scenario ${s.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </>
             )}
+          </section>
+        </div>
 
-            {/* Disclaimer */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  This calculator provides estimates for educational purposes only. It is not financial advice.
-                  Cryptocurrency investments are highly volatile. Consult a financial advisor for personalized guidance.
-                </p>
-              </div>
-            </div>
+        <HowItWorks
+          title="How this calculator works"
+          intro={
+            <p>
+              The calculator follows your savings year by year until retirement, then withdraws what your spending needs
+              after Social Security and other income, plus the tax on that withdrawal. All figures are in today’s dollars.
+            </p>
+          }
+          steps={HOW_STEPS}
+        >
+          <p>
+            <strong className="text-white">Returns.</strong> Each year the stock/bond mix and crypto grow by a random return drawn
+            from a lognormal distribution with the average and volatility you set (stocks {STOCK_VOLATILITY * 100}% and bonds{' '}
+            {BOND_VOLATILITY * 100}% volatility, treated as uncorrelated). Lognormal returns can never lose more than 100%, which
+            matters for a 50%+ volatility asset. The table and chart use the median return; the chance of success comes from
+            1,000 random paths (the same seed each time, so identical inputs give identical results).
+          </p>
+          <p>
+            <strong className="text-white">Needed at retirement</strong> is the smallest balance, with the same crypto share, that
+            lasts to your plan-to age at median returns. <strong className="text-white">Funding ratio</strong> is projected ÷ needed.
+          </p>
+          <p>
+            <strong className="text-white">Taxes</strong> use the {DEFAULT_TAX_YEAR} federal brackets and standard deduction for your
+            filing status (verified {TAX_DATA_META.lastVerified}), long-term rates for crypto gains stacked on other income, the
+            Social Security taxation formula, and your state’s top rate as a simplification. Required minimum distributions,
+            Medicare premiums (IRMAA) and healthcare costs are not modelled.
+          </p>
+        </HowItWorks>
+
+        <section aria-labelledby="assumptions-heading" className="glass-card p-6 md:p-8">
+          <h2 id="assumptions-heading" className="text-2xl font-bold text-white mb-4">Default assumptions and where they come from</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-400 border-b border-white/10">
+                  <th scope="col" className="text-left py-2 pr-4">Assumption</th>
+                  <th scope="col" className="text-left py-2 pr-4">Default</th>
+                  <th scope="col" className="text-left py-2">Basis</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-300">
+                <tr className="border-b border-white/5"><td className="py-2 pr-4">Inflation</td><td className="py-2 pr-4">2.5%</td><td className="py-2">US CPI-U averaged roughly 2.5% a year over the last 30 years (Bureau of Labor Statistics); the Fed targets 2%.</td></tr>
+                <tr className="border-b border-white/5"><td className="py-2 pr-4">Stocks</td><td className="py-2 pr-4">7%, 16% volatility</td><td className="py-2">Deliberately below the ~10% average US large-cap total return since 1926, in line with lower long-run forecasts from large asset managers.</td></tr>
+                <tr className="border-b border-white/5"><td className="py-2 pr-4">Bonds</td><td className="py-2 pr-4">4%, 6% volatility</td><td className="py-2">Close to current yields on intermediate US Treasury and investment-grade bond funds.</td></tr>
+                <tr className="border-b border-white/5"><td className="py-2 pr-4">Crypto</td><td className="py-2 pr-4">15% average, 55% volatility</td><td className="py-2">An assumption, not a forecast. Bitcoin’s realised yearly volatility has mostly been 40-80%; there is no reliable long-run expected return, so test lower numbers too.</td></tr>
+                <tr><td className="py-2 pr-4">Social Security</td><td className="py-2 pr-4">$24,000 from 67</td><td className="py-2">Near the average retired-worker benefit; get your own estimate from your SSA account.</td></tr>
+              </tbody>
+            </table>
           </div>
+        </section>
+
+        <FaqSection faqs={FAQS} />
+
+        <RelatedLinks
+          links={[
+            { to: '/backtesting', label: 'Bitcoin backtest: lump sum vs DCA', description: 'See how buying BTC or ETH on a schedule actually played out.' },
+            { to: '/calculators?type=tax', label: 'Crypto capital gains tax calculator', description: '2025/2026 brackets, NIIT and state tax on one sale.' },
+            { to: '/learn/risk-management', label: 'Risk management guide', description: 'Position sizing and why crypto allocations are usually small.' },
+            { to: '/learn/crypto-taxes-basics', label: 'Crypto taxes basics', description: 'How crypto sales, swaps and income are taxed in the US.' },
+          ]}
+        />
+
+        <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-start gap-2">
+          <Info className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <p className="text-xs text-gray-400">
+            Educational estimates only, not financial or tax advice. Crypto is highly volatile and can lose most of its value.
+            Past returns do not predict future returns. Consult a qualified adviser for decisions about your retirement.
+          </p>
         </div>
       </div>
-    </div>
+    </>
   );
 }

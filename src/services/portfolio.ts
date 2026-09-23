@@ -3,13 +3,14 @@ import type {
   PortfolioHolding,
   Transaction,
 } from '../types';
-import { getSimplePrices } from './coingecko';
+import { fetchSimplePrices } from './coingecko';
 import { getCurrentUser, getUserProfile } from './auth';
 import {
   getUserPortfolios,
   createDbPortfolio,
   getPortfolioHoldings,
   upsertHolding,
+  deleteHolding as deleteDbHolding,
 } from './database';
 import { canAddAsset } from './subscriptionLimits';
 import { todayLocalISODate } from '../lib/utils';
@@ -527,41 +528,137 @@ export function addStakingReward(
   return portfolio;
 }
 
+/** Outcome of a price refresh, so the UI never presents a failed refresh as "updated". */
+export interface PriceRefreshResult {
+  portfolio: Portfolio;
+  /** Holdings whose price was set from market data in this refresh. */
+  pricedIds: string[];
+  /** Holdings with no market price (unknown id or fetch failure). */
+  missingIds: string[];
+  /** When the prices were fetched (epoch ms), or null if none were. */
+  fetchedAt: number | null;
+  /** True when prices came from a last-known-good cache after a failed refresh. */
+  stale: boolean;
+  /** Set when the price request failed outright. */
+  error?: string;
+}
+
 /**
- * Update portfolio with current prices
+ * Refresh holding prices from CoinGecko and report exactly what happened.
+ * `updated_at` is only bumped (and the local copy only saved) when at least
+ * one price was applied.
  */
-export async function updatePortfolioPrices(
-  portfolio: Portfolio
-): Promise<Portfolio> {
+export async function refreshPortfolioPrices(portfolio: Portfolio): Promise<PriceRefreshResult> {
   if (portfolio.holdings.length === 0) {
-    return portfolio;
+    return { portfolio, pricedIds: [], missingIds: [], fetchedAt: null, stale: false };
   }
 
   const cryptoIds = portfolio.holdings.map(h => h.cryptocurrency_id);
 
   try {
-    const prices = await getSimplePrices(cryptoIds, ['usd'], false, true);
+    const result = await fetchSimplePrices(cryptoIds, ['usd'], false, true);
+    const prices = result.data;
+    const pricedIds: string[] = [];
+    const missingIds: string[] = [];
 
     for (const holding of portfolio.holdings) {
-      const priceData = prices[holding.cryptocurrency_id];
-      if (priceData) {
-        holding.current_price = priceData.usd;
+      const usd = prices[holding.cryptocurrency_id]?.usd;
+      if (typeof usd === 'number' && Number.isFinite(usd)) {
+        holding.current_price = usd;
         holding.current_value = holding.amount * holding.current_price;
         holding.profit_loss = holding.current_value - holding.cost_basis;
         holding.profit_loss_percentage = holding.cost_basis > 0
           ? (holding.profit_loss / holding.cost_basis) * 100
           : 0;
+        pricedIds.push(holding.cryptocurrency_id);
+      } else {
+        missingIds.push(holding.cryptocurrency_id);
       }
     }
 
-    recalculatePortfolioTotals(portfolio);
-    portfolio.updated_at = new Date().toISOString();
-    saveLocalPortfolio(portfolio);
+    if (pricedIds.length > 0) {
+      recalculatePortfolioTotals(portfolio);
+      portfolio.updated_at = new Date(result.fetchedAt).toISOString();
+      if (portfolio.user_id === 'local') saveLocalPortfolio(portfolio);
+    }
+
+    return {
+      portfolio,
+      pricedIds,
+      missingIds,
+      fetchedAt: pricedIds.length > 0 ? result.fetchedAt : null,
+      stale: result.stale,
+    };
   } catch (error) {
-    console.error('Error updating portfolio prices:', error);
+    return {
+      portfolio,
+      pricedIds: [],
+      missingIds: cryptoIds,
+      fetchedAt: null,
+      stale: false,
+      error: error instanceof Error ? error.message : 'Price refresh failed',
+    };
+  }
+}
+
+/**
+ * Update portfolio with current prices (legacy signature).
+ * Prefer refreshPortfolioPrices, which reports failures.
+ */
+export async function updatePortfolioPrices(
+  portfolio: Portfolio
+): Promise<Portfolio> {
+  return (await refreshPortfolioPrices(portfolio)).portfolio;
+}
+
+/**
+ * Remove one holding (and its transactions) from a portfolio.
+ */
+export async function removeHolding(portfolio: Portfolio, holdingId: string): Promise<Portfolio> {
+  const index = portfolio.holdings.findIndex(h => h.id === holdingId);
+  if (index < 0) return portfolio;
+
+  if (portfolio.user_id !== 'local') {
+    const ok = await deleteDbHolding(holdingId);
+    if (!ok) throw new Error('Could not delete the holding. Please try again.');
   }
 
+  portfolio.holdings.splice(index, 1);
+  recalculatePortfolioTotals(portfolio);
+  portfolio.updated_at = new Date().toISOString();
+  if (portfolio.user_id === 'local') saveLocalPortfolio(portfolio);
   return portfolio;
+}
+
+/**
+ * Cumulative net amount invested over time, from the transaction ledger
+ * (buys and transfers in add their cost; sells and transfers out subtract).
+ * This is NOT a market-value history: we do not store past prices.
+ */
+export function getInvestmentHistory(portfolio: Portfolio): { date: string; invested: number }[] {
+  const transactions = portfolio.holdings
+    .flatMap(h => h.transactions)
+    .filter(t => t.date)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const out: { date: string; invested: number }[] = [];
+  let running = 0;
+  for (const tx of transactions) {
+    if (tx.type === 'buy' || tx.type === 'transfer_in') {
+      running += tx.total_value;
+    } else if (tx.type === 'sell' || tx.type === 'transfer_out') {
+      running -= tx.total_value;
+    } else {
+      continue; // staking rewards cost nothing
+    }
+    const day = tx.date.slice(0, 10);
+    if (out.length > 0 && out[out.length - 1].date === day) {
+      out[out.length - 1].invested = running;
+    } else {
+      out.push({ date: day, invested: running });
+    }
+  }
+  return out;
 }
 
 /**

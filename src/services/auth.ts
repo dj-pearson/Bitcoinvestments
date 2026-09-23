@@ -5,8 +5,9 @@ import { verifyTOTP, redeemRecoveryCode } from './twoFactor';
 
 export interface AuthUser {
   id: string;
-  email: string | null; // Made optional for wallet-only accounts
-  wallet_address?: string | null; // Ethereum wallet address
+  email: string | null;
+  /** Legacy column from the removed wallet login; always null for email accounts. */
+  wallet_address?: string | null;
   created_at: string;
   role: UserRole;
   is_suspended: boolean;
@@ -181,25 +182,11 @@ export async function signUp(
   }
 
   if (data.user) {
-    // Create user profile in our users table
-    await supabase.from('users').insert({
-      id: data.user.id,
-      email: data.user.email!,
-      subscription_status: 'free',
-      preferences: {
-        experience_level: 'beginner',
-        risk_tolerance: 'medium',
-        favorite_cryptocurrencies: [],
-        notification_settings: {
-          price_alerts: true,
-          news_alerts: true,
-          weekly_summary: true,
-          marketing_emails: false,
-        },
-        theme: 'dark',
-      },
-    });
-
+    // The public.users profile row (role, plan, default preferences) is created
+    // by the on_auth_user_created trigger in the database
+    // (supabase/migrations/20260923000300_reconcile_schema.sql). The browser
+    // cannot do it: with email confirmation on there is no session yet, and
+    // RLS only lets admins insert into public.users.
     return {
       user: {
         id: data.user.id,

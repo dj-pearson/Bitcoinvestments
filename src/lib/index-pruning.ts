@@ -18,8 +18,6 @@ const NOINDEX_PATHS: string[] = [
   '/forgot-password',
   '/reset-password',
   '/profile',
-  // Login-walled: crawlers only ever reach the auth redirect, not the form.
-  '/report-scam',
   '/affiliate-stats',
   '/ad-manager',
   '/tax-reports',
@@ -34,6 +32,9 @@ const NOINDEX_PATHS: string[] = [
   '/maintenance',
   '/accessibility',
   '/developers/portal',
+  '/unsubscribe',
+  // Exchange syncing is not available; the route shows ComingSoon.
+  '/multi-exchange',
 ];
 
 /** Path prefixes that should be noindexed */
@@ -48,7 +49,6 @@ const NOINDEX_PREFIXES: string[] = [
 const CONDITIONAL_INDEX_PATHS: string[] = [
   '/start',
   '/prices',
-  '/disclaimer',
   '/developers/docs',
 ];
 

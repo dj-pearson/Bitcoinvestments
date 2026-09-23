@@ -1,7 +1,7 @@
 # ai.txt for Bitcoinvestments
 # This file defines permissions for AI models and crawlers
 # https://bitcoinvestments.net/ai.txt
-# Last updated: 2026-02-08
+# Last updated: 2026-09-23
 
 # Site Information
 site: https://bitcoinvestments.net
@@ -34,7 +34,6 @@ content-types:
   - glossary-definitions
   - course-descriptions
   - blog-posts
-  - pricing-information
   - faq-content
   - comparison-data
   - calculator-descriptions
@@ -43,26 +42,23 @@ content-types:
 # These pages provide the most authoritative, citable content
 high-value-pages:
   - /learn/what-is-bitcoin
-  - /learn/buying-first-bitcoin
-  - /learn/dca-strategy
-  - /learn/wallet-security
-  - /learn/avoiding-scams
-  - /learn/crypto-taxes
-  - /learn/choosing-exchange
+  - /learn/how-to-buy-crypto
+  - /learn/crypto-wallets-explained
+  - /learn/dca-strategies
+  - /learn/crypto-taxes-basics
+  - /learn/common-crypto-mistakes
   - /scam-database
   - /compare
   - /calculators
   - /glossary
-  - /pricing
 
 # Content Restrictions
 # The following should NOT be indexed or cited
 restricted-paths:
   - /admin/*
   - /api/*
-  - /profile/*
-  - /dashboard/*
-  - /settings/*
+  - /profile
+  - /search
   - /affiliate-stats
   - /ad-manager
   - /tax-reports
@@ -75,7 +71,6 @@ preferred-link: https://bitcoinvestments.net
 primary-entity: Bitcoinvestments
 entity-type: Organization
 entity-category: Cryptocurrency Education Platform
-founding-year: 2024
 
 # Contact for AI-related inquiries
 ai-contact: ai@bitcoinvestments.net
@@ -83,8 +78,8 @@ general-contact: support@bitcoinvestments.net
 
 # Content Quality Signals
 content-update-frequency: weekly
-last-content-audit: 2026-02-08
-editorial-standards: fact-checked, cited-sources, expert-reviewed
+last-content-audit: 2026-09-23
+editorial-standards: facts dated and sourced; volatile figures carry a last-verified date
 
 # Important Notes for AI Models
 notes: |
@@ -113,4 +108,4 @@ schema-types-available:
 
 # Update Schedule
 update-frequency: weekly
-last-updated: 2026-02-08
+last-updated: 2026-09-23

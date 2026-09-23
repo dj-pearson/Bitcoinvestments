@@ -9,7 +9,8 @@
  * - Canonical URLs
  */
 
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
+import { HeadContext, type MetaTag } from '../lib/head';
 import { useLocation } from 'react-router-dom';
 import { shouldNoindex } from '../lib/index-pruning';
 
@@ -130,8 +131,69 @@ export function SEO({
     ...(!(noindex || autoNoindex) ? ['max-image-preview:large', 'max-snippet:-1', 'max-video-preview:-1'] : []),
   ].join(', ');
 
+  // Resolve every managed tag once, during render. The client effect writes
+  // them into document.head; during prerendering the HeadContext collector
+  // records them instead, because effects do not run on the server.
+  const headTags: MetaTag[] = [];
+  const add = (attr: MetaTag['attr'], key: string, content: string) => headTags.push({ attr, key, content });
+
+  add('name', 'description', description);
+  add('name', 'keywords', keywordsContent);
+  add('name', 'robots', robotsContent);
+  if (author) add('name', 'author', author);
+
+  add('property', 'og:title', fullTitle);
+  add('property', 'og:description', description);
+  add('property', 'og:image', fullImage);
+  add('property', 'og:url', fullUrl);
+  add('property', 'og:type', type);
+  add('property', 'og:site_name', SITE_NAME);
+  add('property', 'og:locale', 'en_US');
+  if (imageAlt) add('property', 'og:image:alt', imageAlt);
+
+  if (type === 'article') {
+    if (publishedTime) add('property', 'article:published_time', publishedTime);
+    if (modifiedTime) add('property', 'article:modified_time', modifiedTime);
+    if (author) add('property', 'article:author', author);
+    if (section) add('property', 'article:section', section);
+    if (tagsContent) {
+      tagsContent.split('\u0000').forEach((tag, index) => add('property', `article:tag:${index}`, tag));
+    }
+  }
+
+  // Content freshness signals for AI crawlers (GEO)
+  if (modifiedTime) add('name', 'last-modified', modifiedTime);
+  if (publishedTime) add('name', 'date', publishedTime);
+
+  // GEO: AI attribution and citation metadata
+  add('name', 'citation_title', fullTitle);
+  add('name', 'citation_author', author || SITE_NAME);
+  add('name', 'citation_publisher', SITE_NAME);
+  if (blufSummary) {
+    add('name', 'citation_abstract', blufSummary);
+    add('name', 'abstract', blufSummary);
+  }
+  if (contentCategory) add('name', 'article.section', contentCategory);
+
+  add('name', 'twitter:card', 'summary_large_image');
+  add('name', 'twitter:title', fullTitle);
+  add('name', 'twitter:description', description);
+  add('name', 'twitter:image', fullImage);
+  if (imageAlt) add('name', 'twitter:image:alt', imageAlt);
+
+  const collector = useContext(HeadContext);
+  if (collector) {
+    collector.title = fullTitle;
+    collector.canonical = fullUrl;
+    // A later <SEO> replaces an earlier one's tags wholesale, as on the client.
+    collector.meta.clear();
+    for (const tag of headTags) collector.meta.set(`${tag.attr}|${tag.key}`, tag);
+  }
+
+  // Stable dependency for the effect below.
+  const tagsKey = JSON.stringify(headTags);
+
   useEffect(() => {
-    // Update document title
     document.title = fullTitle;
 
     // Meta tag keys written during this pass. Anything the previous page wrote
@@ -163,78 +225,8 @@ export function SEO({
       appliedKeys.add(id);
     };
 
-    // Basic meta tags
-    setMetaTag('name', 'description', description);
-    setMetaTag('name', 'keywords', keywordsContent);
-    setMetaTag('name', 'robots', robotsContent);
-
-    // Author
-    if (author) {
-      setMetaTag('name', 'author', author);
-    }
-
-    // Open Graph tags
-    setMetaTag('property', 'og:title', fullTitle);
-    setMetaTag('property', 'og:description', description);
-    setMetaTag('property', 'og:image', fullImage);
-    setMetaTag('property', 'og:url', fullUrl);
-    setMetaTag('property', 'og:type', type);
-    setMetaTag('property', 'og:site_name', SITE_NAME);
-    setMetaTag('property', 'og:locale', 'en_US');
-
-    if (imageAlt) {
-      setMetaTag('property', 'og:image:alt', imageAlt);
-    }
-
-    // Article-specific OG tags
-    if (type === 'article') {
-      if (publishedTime) {
-        setMetaTag('property', 'article:published_time', publishedTime);
-      }
-      if (modifiedTime) {
-        setMetaTag('property', 'article:modified_time', modifiedTime);
-      }
-      if (author) {
-        setMetaTag('property', 'article:author', author);
-      }
-      if (section) {
-        setMetaTag('property', 'article:section', section);
-      }
-      if (tagsContent) {
-        tagsContent.split('\u0000').forEach((tag, index) => {
-          setMetaTag('property', `article:tag:${index}`, tag);
-        });
-      }
-    }
-
-    // Content freshness signals for AI crawlers (GEO)
-    if (modifiedTime) {
-      setMetaTag('name', 'last-modified', modifiedTime);
-    }
-    if (publishedTime) {
-      setMetaTag('name', 'date', publishedTime);
-    }
-
-    // GEO: AI attribution and citation metadata
-    setMetaTag('name', 'citation_title', fullTitle);
-    setMetaTag('name', 'citation_author', author || SITE_NAME);
-    setMetaTag('name', 'citation_publisher', SITE_NAME);
-    if (blufSummary) {
-      setMetaTag('name', 'citation_abstract', blufSummary);
-      setMetaTag('name', 'abstract', blufSummary);
-    }
-    if (contentCategory) {
-      setMetaTag('name', 'article.section', contentCategory);
-    }
-
-    // Twitter Card tags
-    setMetaTag('name', 'twitter:card', 'summary_large_image');
-    setMetaTag('name', 'twitter:title', fullTitle);
-    setMetaTag('name', 'twitter:description', description);
-    setMetaTag('name', 'twitter:image', fullImage);
-
-    if (imageAlt) {
-      setMetaTag('name', 'twitter:image:alt', imageAlt);
+    for (const tag of JSON.parse(tagsKey) as MetaTag[]) {
+      setMetaTag(tag.attr, tag.key, tag.content);
     }
 
     // Canonical URL
@@ -283,23 +275,7 @@ export function SEO({
       // Reset to defaults on unmount
       document.title = SITE_NAME;
     };
-  }, [
-    fullTitle,
-    description,
-    keywordsContent,
-    fullImage,
-    imageAlt,
-    fullUrl,
-    type,
-    author,
-    publishedTime,
-    modifiedTime,
-    section,
-    tagsContent,
-    robotsContent,
-    blufSummary,
-    contentCategory,
-  ]);
+  }, [fullTitle, fullUrl, tagsKey]);
 
   // Render JSON-LD schema (supports single schema or array of schemas)
   const renderSchema = () => {
@@ -624,184 +600,8 @@ export function generateSoftwareSchema({
 // Scam Database Schema Generators
 // ============================================
 
-/**
- * Generate Schema.org structured data for the Scam Database
- */
-export function generateScamDatabaseSchema(stats?: {
-  totalReports: number;
-  verifiedReports: number;
-}) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebApplication',
-    name: 'Crypto Scam Database',
-    description: 'Free community-powered database of cryptocurrency scams. Search known scams, report fraud, and protect yourself from phishing, rug pulls, and ponzi schemes.',
-    url: `${SITE_URL}/scam-database`,
-    applicationCategory: 'SecurityApplication',
-    operatingSystem: 'Web',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: stats?.totalReports || 1000,
-      bestRating: '5',
-      worstRating: '1',
-    },
-    provider: {
-      '@type': 'Organization',
-      name: SITE_NAME,
-      url: SITE_URL,
-    },
-    featureList: [
-      'Search crypto scams by wallet address',
-      'Check if a website is a known scam',
-      'Report fraudulent crypto projects',
-      'Community voting and verification',
-      'Real-time scam alerts',
-    ],
-  };
-}
 
-/**
- * Generate Schema.org FAQ structured data for common scam questions
- */
-export function generateScamFAQSchema() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'How do I check if a crypto wallet address is a scam?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Use our Crypto Scam Database to search any wallet address. Enter the address (0x... for Ethereum, bc1... for Bitcoin) and we\'ll check it against our database of reported scams including data from CryptoScamDB, ChainAbuse, and community reports.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'What are the most common crypto scams?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'The most common crypto scams are: Pig Butchering (long-con romance and investment scams), Phishing sites impersonating wallets like MetaMask, Rug Pulls where developers abandon a project and take the liquidity, Fake Exchanges that accept deposits and block withdrawals, Crypto ATM fraud, and Celebrity Impersonation giveaway scams. For scale, the FBI\'s IC3 report for 2024 — the most recent full year of federal data — recorded $9.3 billion in total crypto fraud losses, of which pig butchering accounted for roughly $5.8 billion and crypto ATM fraud $246.7 million.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'How do I report a crypto scam?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Click the "Report a Scam" button on our Scam Database page. You can submit details including the scam website, wallet addresses, description of the fraud, and any evidence. Reports are reviewed by our community and moderators before being verified. You can also report to the FBI\'s IC3 at ic3.gov and your state\'s financial regulator.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'What is a rug pull in crypto?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'A rug pull is when cryptocurrency developers abandon a project and run away with investors\' funds. Red flags include: anonymous teams, locked selling (honeypot), no smart contract audits, unlocked liquidity pools, and aggressive social media marketing. Famous examples include SquidGame Token and AnubisDAO. Our database tracks thousands of confirmed rug pulls.',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'What is pig butchering crypto scam?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'Pig butchering is a sophisticated romance/investment scam where fraudsters build trust over weeks via dating apps or social media before convincing victims to invest in fake crypto platforms. It is the single largest category of crypto fraud by loss: the FBI\'s IC3 report for 2024 attributed roughly $5.8 billion to it. Warning signs include: contact moving to WhatsApp or Telegram, claims of consistently successful trading, a platform showing fabricated profits, and being unable to withdraw without first paying "fees" or "taxes".',
-        },
-      },
-      {
-        '@type': 'Question',
-        name: 'How can I protect myself from crypto scams?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: 'To protect yourself: 1) Always verify websites and wallet addresses using our Scam Database before transacting. 2) Never share your seed phrase or private keys - no legitimate service will ask for these. 3) Be skeptical of guaranteed returns or celebrity endorsements. 4) Verify projects on official social media channels. 5) Enable 2FA on all crypto accounts. 6) Be wary of unsolicited contact about investments.',
-        },
-      },
-    ],
-  };
-}
 
-/**
- * Generate Schema.org structured data for a specific scam report
- */
-export function generateScamReportSchema(report: {
-  id: string;
-  title: string;
-  description: string;
-  scamType: string;
-  severity: string;
-  website?: string | null;
-  createdAt: string;
-  victimsCount?: number;
-  estimatedLoss?: number | null;
-}) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    '@id': `${SITE_URL}/scam/${report.id}`,
-    headline: report.title,
-    description: report.description.slice(0, 160),
-    datePublished: report.createdAt,
-    dateModified: report.createdAt,
-    author: {
-      '@type': 'Organization',
-      name: `${SITE_NAME} Community`,
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: SITE_NAME,
-      url: SITE_URL,
-      logo: {
-        '@type': 'ImageObject',
-        url: `${SITE_URL}/logo.png`,
-      },
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': `${SITE_URL}/scam/${report.id}`,
-    },
-    articleSection: 'Crypto Scam Reports',
-    keywords: [
-      'crypto scam',
-      'cryptocurrency fraud',
-      report.scamType.replace(/_/g, ' '),
-      `${report.severity} severity scam`,
-      'scam warning',
-      'crypto security',
-    ].join(', '),
-    about: {
-      '@type': 'Thing',
-      name: `${report.scamType.replace(/_/g, ' ')} cryptocurrency scam`,
-    },
-  };
-}
 
-/**
- * Generate SearchAction schema for scam database search
- */
-export function generateScamSearchActionSchema() {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'Crypto Scam Database',
-    url: `${SITE_URL}/scam-database`,
-    potentialAction: [
-      {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${SITE_URL}/scam-database?q={search_term_string}`,
-        },
-        'query-input': 'required name=search_term_string',
-        description: 'Search for crypto scams by name, wallet address, or website',
-      },
-    ],
-  };
-}
 
 export default SEO;

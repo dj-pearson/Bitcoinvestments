@@ -1,30 +1,45 @@
 # Cloudflare Worker for Scheduled Price Alerts
-# This worker runs on a schedule to check price alerts
+# Calls /api/check-price-alerts on the Pages deployment on a schedule.
+#
+# ---------------------------------------------------------------------------
+# PAUSE WHILE STATIC_MODE IS ON
+# ---------------------------------------------------------------------------
+# While src/config/staticMode.ts has STATIC_MODE = true there are no accounts,
+# so there are no price_alerts rows and every run is wasted work. To pause:
+#   - comment out the `crons = [...]` line below (an empty [triggers] block
+#     removes the schedule on the next deploy), or
+#   - skip `pnpm run deploy:cron` / the cron step in .github/workflows/deploy.yml.
+# Re-enable it when STATIC_MODE is turned off, after running the migration
+# supabase/migrations/20260923000000_price_alerts_coingecko_ids_and_backoff.sql.
+# ---------------------------------------------------------------------------
 
 name = "price-alerts-cron"
 main = "workers/price-alerts-cron.ts"
 compatibility_date = "2024-11-20"
 
-# Run every 5 minutes
-# Adjust the schedule as needed:
+# Top-level vars apply to a plain `wrangler deploy --config wrangler-cron.toml`
+# (which is what CI runs, with no --env flag). The [env.*] sections below only
+# apply when deploying with --env staging / --env production.
+[vars]
+PAGES_URL = "https://bitcoinvestments.net"
+
+# Schedule. Examples:
 # - "*/5 * * * *" = Every 5 minutes
 # - "*/15 * * * *" = Every 15 minutes
 # - "0 * * * *" = Every hour
-# - "0 */6 * * *" = Every 6 hours
 [triggers]
-crons = ["*/5 * * * *"]
+# PAUSED: there is no database (the Supabase project was deleted), so every
+# run would fail. An empty list removes the schedule on the next deploy.
+# Restore the schedule once a new project is set up (rebuild/REBUILD_GUIDE.md).
+crons = []
+# crons = ["*/5 * * * *"]
 
-# Environment variables
-# Set these in Cloudflare Dashboard for security
 [env.production]
 vars = { PAGES_URL = "https://bitcoinvestments.net" }
 
 [env.staging]
 vars = { PAGES_URL = "https://staging.bitcoinvestments.net" }
 
-# Required secrets (set in Cloudflare Dashboard):
-# - SUPABASE_SERVICE_ROLE_KEY
-# - RESEND_API_KEY (inherited from Pages environment)
-# - FROM_EMAIL (inherited from Pages environment)
-
-
+# Required secret (set with `wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler-cron.toml`):
+# - SUPABASE_SERVICE_ROLE_KEY  (must match the Pages project's value; it is the bearer token)
+# RESEND_API_KEY / FROM_EMAIL / COINGECKO_API_KEY are read by the Pages Function, not this worker.

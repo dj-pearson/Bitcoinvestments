@@ -42,11 +42,6 @@
  Cache-Control: public, max-age=3600
  X-Robots-Tag: noindex
 
-/sitemap-articles.xml
- Content-Type: application/xml; charset=utf-8
- Cache-Control: public, max-age=3600
- X-Robots-Tag: noindex
-
 /robots.txt
  Content-Type: text/plain; charset=utf-8
  Cache-Control: public, max-age=86400
@@ -63,10 +58,83 @@
  Content-Type: text/plain; charset=utf-8
  Cache-Control: public, max-age=86400
 
-# AI crawler optimization - allow indexing signals
-/llms-full.txt
- Content-Type: text/plain; charset=utf-8
- Cache-Control: public, max-age=86400
+# Pages that must stay out of search results. The same list lives in
+# src/lib/index-pruning.ts (meta robots); the header also covers crawlers that
+# never run JavaScript.
+/login
+ X-Robots-Tag: noindex, follow
+
+/signup
+ X-Robots-Tag: noindex, follow
+
+/forgot-password
+ X-Robots-Tag: noindex, follow
+
+/reset-password
+ X-Robots-Tag: noindex, follow
+
+/profile
+ X-Robots-Tag: noindex, follow
+
+/affiliate-stats
+ X-Robots-Tag: noindex, follow
+
+/ad-manager
+ X-Robots-Tag: noindex, follow
+
+/tax-reports
+ X-Robots-Tag: noindex, follow
+
+/advisor
+ X-Robots-Tag: noindex, follow
+
+/affiliate
+ X-Robots-Tag: noindex, follow
+
+/portfolio-analysis
+ X-Robots-Tag: noindex, follow
+
+/advertiser
+ X-Robots-Tag: noindex, follow
+
+/developers/portal
+ X-Robots-Tag: noindex, follow
+
+/search
+ X-Robots-Tag: noindex, follow
+
+/unsubscribe
+ X-Robots-Tag: noindex, follow
+
+/multi-exchange
+ X-Robots-Tag: noindex, follow
+
+/403
+ X-Robots-Tag: noindex, follow
+
+/404
+ X-Robots-Tag: noindex, follow
+
+/500
+ X-Robots-Tag: noindex, follow
+
+/maintenance
+ X-Robots-Tag: noindex, follow
+
+/admin
+ X-Robots-Tag: noindex, follow
+
+/admin/*
+ X-Robots-Tag: noindex, follow
+
+/sponsored/*
+ X-Robots-Tag: noindex, follow
 
 /.well-known/*
  Cache-Control: public, max-age=86400
+
+/_shell
+ X-Robots-Tag: noindex
+
+/_shell.html
+ X-Robots-Tag: noindex

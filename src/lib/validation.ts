@@ -727,6 +727,22 @@ function ensureEmbedHook(): void {
 export function sanitizeArticleHtml(html: string): string {
   if (!html || typeof html !== 'string') return '';
 
+  // DOMPurify needs a DOM. During build-time prerendering (Node) it is not
+  // supported and would return its input untouched, so emit the article as
+  // escaped plain-text paragraphs instead: crawlers still get the words, and
+  // the browser replaces them with the sanitised HTML on hydration.
+  if (!DOMPurify.isSupported) {
+    return html
+      .replace(/<(script|style|iframe)[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<\/(p|h[1-6]|li|blockquote|div)>/gi, '\n\n')
+      .replace(/<[^>]*>/g, ' ')
+      .split(/\n{2,}/)
+      .map((block) => block.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .map((block) => `<p>${block.replace(/&(?!(?:[a-z]+|#\d+);)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
+      .join('');
+  }
+
   ensureEmbedHook();
 
   return DOMPurify.sanitize(html, {

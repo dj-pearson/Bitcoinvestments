@@ -9,6 +9,32 @@ import { handleError } from '../lib/apiError';
 import type { UserRole } from '../types/admin-database';
 
 import { PageSEO } from '../components/PageSEO';
+
+/** Paths that must never be the post-login destination. */
+const NO_RETURN_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password'];
+
+/**
+ * Reduce a caller-supplied return target to a path on this site, or null.
+ * Accepts "/pricing?plan=annual#faq"; rejects "https://evil.example",
+ * "//evil.example", "/\\evil.example" and "javascript:..." because each of those
+ * resolves to another origin (or no origin) against a fixed base.
+ */
+function toSafeRedirectPath(raw: string | null | undefined): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const value = raw.trim();
+  if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return null;
+  const base = 'https://return-path.invalid';
+  let url: URL;
+  try {
+    url = new URL(value, base);
+  } catch {
+    return null;
+  }
+  if (url.origin !== base) return null;
+  if (NO_RETURN_PATHS.includes(url.pathname.replace(/\/$/, ''))) return null;
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 interface LocationState {
   from?: string | { pathname: string };
   isAdmin?: boolean;
@@ -32,12 +58,16 @@ export function Login() {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
 
-  // Get the redirect location from state (if coming from a protected route)
+  // Where to go after signing in: router state from a protected route first,
+  // then a ?redirect= query (Pricing, ApiPricing, ScamReportDetail and the
+  // course enrollment prompt link here that way). Both are reduced to a
+  // same-origin path so the parameter cannot bounce users to another site.
   const locationState = location.state as LocationState | null;
-  // Handle both string and Location object from different route types
-  const fromPath = typeof locationState?.from === 'string' 
-    ? locationState.from 
+  const stateFrom = typeof locationState?.from === 'string'
+    ? locationState.from
     : locationState?.from?.pathname;
+  const queryFrom = new URLSearchParams(location.search).get('redirect');
+  const fromPath = toSafeRedirectPath(stateFrom) ?? toSafeRedirectPath(queryFrom);
   const wasAdminRedirect = locationState?.isAdmin;
 
   /**
@@ -54,8 +84,8 @@ export function Login() {
       return '/admin';
     }
 
-    // If user came from another protected route, send them back
-    if (fromPath && fromPath !== '/login') {
+    // If user came from another page, send them back
+    if (fromPath) {
       return fromPath;
     }
 

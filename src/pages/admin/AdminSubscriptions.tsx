@@ -1,423 +1,225 @@
-import { useState, useEffect } from 'react';
-import {
-  CreditCard,
-  Search,
-  Download,
-  RefreshCw,
-  User,
-  DollarSign,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  MoreVertical,
-  Mail,
-  Ban,
-} from 'lucide-react';
-
-import { DemoDataBanner } from '../../components/DemoDataBanner';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertCircle, RefreshCw, Search, User } from 'lucide-react';
+import { db, isSupabaseConfigured } from '../../lib/supabase';
 import { usePageTitle } from '../../hooks/usePageTitle';
-interface Subscription {
+
+/**
+ * Paying members, read from public.users (the Stripe webhook keeps
+ * subscription_status / subscription_tier / expiry in step with Stripe).
+ *
+ * This page used to render hard-coded subscribers and made-up MRR, subscriber
+ * and churn figures behind a "demo data" banner. Revenue is not stored in the
+ * database, so it is not shown here; see the Stripe dashboard for money.
+ */
+
+interface MemberRow {
   id: string;
-  user_email: string;
-  user_id: string;
-  plan: 'monthly' | 'annual';
-  status: 'active' | 'cancelled' | 'past_due' | 'trialing';
-  amount: number;
-  started_at: string;
-  current_period_end: string;
-  cancel_at_period_end: boolean;
+  email: string | null;
+  subscription_status: string;
+  subscription_tier: string | null;
+  subscription_expires_at: string | null;
+  stripe_customer_id: string | null;
+  payment_failed_at: string | null;
+  created_at: string;
 }
 
-const statusColors: Record<string, string> = {
-  active: 'bg-emerald-500/10 text-emerald-400',
-  cancelled: 'bg-slate-500/10 text-slate-400',
-  past_due: 'bg-red-500/10 text-red-400',
-  trialing: 'bg-blue-500/10 text-blue-400',
+const STATUS_LABEL: Record<string, string> = {
+  premium: 'Premium',
+  advisor: 'Advisor',
+  enterprise: 'Enterprise',
+  lifetime: 'Lifetime',
+  api: 'API',
 };
 
-const statusIcons: Record<string, React.ElementType> = {
-  active: CheckCircle,
-  cancelled: XCircle,
-  past_due: AlertCircle,
-  trialing: Clock,
-};
+const PAGE_SIZE = 50;
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US', { dateStyle: 'medium' });
+}
 
 export function AdminSubscriptions() {
   usePageTitle('Subscriptions | Admin');
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [planFilter, setPlanFilter] = useState<string>('all');
-  const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  // Counted when the rows load (not during render, which must stay pure).
+  const [lapsed, setLapsed] = useState(0);
 
-  async function loadSubscriptions() {
+  const load = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setError('Supabase is not configured in this build.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    // Mock data
-    const mockSubscriptions: Subscription[] = [
-      {
-        id: 'sub_1',
-        user_email: 'john@example.com',
-        user_id: 'user_1',
-        plan: 'annual',
-        status: 'active',
-        amount: 99.99,
-        started_at: '2024-01-15T00:00:00Z',
-        current_period_end: '2025-01-15T00:00:00Z',
-        cancel_at_period_end: false,
-      },
-      {
-        id: 'sub_2',
-        user_email: 'sarah@example.com',
-        user_id: 'user_2',
-        plan: 'monthly',
-        status: 'active',
-        amount: 9.99,
-        started_at: '2024-11-01T00:00:00Z',
-        current_period_end: '2024-12-01T00:00:00Z',
-        cancel_at_period_end: false,
-      },
-      {
-        id: 'sub_3',
-        user_email: 'mike@example.com',
-        user_id: 'user_3',
-        plan: 'monthly',
-        status: 'past_due',
-        amount: 9.99,
-        started_at: '2024-08-15T00:00:00Z',
-        current_period_end: '2024-11-15T00:00:00Z',
-        cancel_at_period_end: false,
-      },
-      {
-        id: 'sub_4',
-        user_email: 'emma@example.com',
-        user_id: 'user_4',
-        plan: 'annual',
-        status: 'cancelled',
-        amount: 99.99,
-        started_at: '2024-03-01T00:00:00Z',
-        current_period_end: '2025-03-01T00:00:00Z',
-        cancel_at_period_end: true,
-      },
-      {
-        id: 'sub_5',
-        user_email: 'alex@example.com',
-        user_id: 'user_5',
-        plan: 'monthly',
-        status: 'trialing',
-        amount: 0,
-        started_at: '2024-12-01T00:00:00Z',
-        current_period_end: '2024-12-15T00:00:00Z',
-        cancel_at_period_end: false,
-      },
-    ];
-
-    setSubscriptions(mockSubscriptions);
+    setError(null);
+    let query = db
+      .from('users')
+      .select(
+        'id, email, subscription_status, subscription_tier, subscription_expires_at, stripe_customer_id, payment_failed_at, created_at',
+        { count: 'exact' }
+      )
+      .neq('subscription_status', 'free')
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE);
+    if (statusFilter !== 'all') query = query.eq('subscription_status', statusFilter);
+    const { data, error: loadError, count } = await query;
+    if (loadError) {
+      console.error('Error loading subscribers:', loadError);
+      setError(loadError.message);
+      setMembers([]);
+      setTotal(0);
+    } else {
+      const rows = (data as MemberRow[]) ?? [];
+      const now = Date.now();
+      setMembers(rows);
+      setTotal(count ?? 0);
+      setLapsed(
+        rows.filter(
+          (m) => m.subscription_status !== 'lifetime' && m.subscription_expires_at && Date.parse(m.subscription_expires_at) < now
+        ).length
+      );
+    }
     setLoading(false);
-  }
+  }, [statusFilter]);
 
   useEffect(() => {
-    loadSubscriptions();
-     
-  }, [statusFilter, planFilter, page]);
+    void load();
+  }, [load]);
 
-  const stats = [
-    {
-      label: 'Total MRR',
-      value: '$4,892',
-      change: '+12.3%',
-      trend: 'up',
-      icon: DollarSign,
-      color: 'text-emerald-400',
-    },
-    {
-      label: 'Active Subscribers',
-      value: '234',
-      change: '+8.1%',
-      trend: 'up',
-      icon: User,
-      color: 'text-blue-400',
-    },
-    {
-      label: 'Churn Rate',
-      value: '2.4%',
-      change: '-0.3%',
-      trend: 'down',
-      icon: TrendingUp,
-      color: 'text-violet-400',
-    },
-    {
-      label: 'Past Due',
-      value: '12',
-      change: '+3',
-      trend: 'up',
-      icon: AlertCircle,
-      color: 'text-amber-400',
-    },
-  ];
+  const visible = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return term ? members.filter((m) => (m.email ?? '').toLowerCase().includes(term)) : members;
+  }, [members, search]);
 
-  const filteredSubscriptions = subscriptions.filter((sub) => {
-    if (statusFilter !== 'all' && sub.status !== statusFilter) return false;
-    if (planFilter !== 'all' && sub.plan !== planFilter) return false;
-    if (searchTerm) {
-      return sub.user_email.toLowerCase().includes(searchTerm.toLowerCase());
-    }
-    return true;
-  });
+  const failing = members.filter((m) => m.payment_failed_at).length;
 
   return (
     <div className="space-y-6">
-      <DemoDataBanner source="Stripe billing" />
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Subscriptions</h1>
-          <p className="text-slate-400 mt-1">Manage subscriber accounts and billing</p>
+          <p className="text-slate-400 mt-1">
+            Members on a paid plan, as recorded by the Stripe webhook. Revenue and invoices are in the Stripe dashboard.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadSubscriptions}
-            disabled={loading}
-            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <button className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => void load()}
+          disabled={loading}
+          aria-label="Reload"
+          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+        >
+          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl border border-white/5 p-5"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="p-2 rounded-lg bg-white/5">
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-                <span
-                  className={`text-sm ${
-                    stat.trend === 'up' && stat.label !== 'Past Due'
-                      ? 'text-emerald-400'
-                      : stat.trend === 'down' && stat.label === 'Churn Rate'
-                      ? 'text-emerald-400'
-                      : 'text-red-400'
-                  }`}
-                >
-                  {stat.change}
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-              <p className="text-sm text-slate-400 mt-1">{stat.label}</p>
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: statusFilter === 'all' ? 'Paid members' : `${STATUS_LABEL[statusFilter] ?? statusFilter} members`, value: total },
+          { label: 'Last payment failed (this page)', value: failing },
+          { label: 'Past expiry date (this page)', value: lapsed },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl border border-white/5 p-5">
+            <p className="text-sm text-slate-400">{stat.label}</p>
+            <p className="text-2xl font-bold text-white mt-1">{loading ? '…' : stat.value.toLocaleString('en-US')}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl border border-white/5 p-5">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search by email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50"
-              />
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-orange-500/50"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="past_due">Past Due</option>
-            <option value="trialing">Trialing</option>
-          </select>
-
-          {/* Plan Filter */}
-          <select
-            value={planFilter}
-            onChange={(e) => setPlanFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-orange-500/50"
-          >
-            <option value="all">All Plans</option>
-            <option value="monthly">Monthly</option>
-            <option value="annual">Annual</option>
-          </select>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <label htmlFor="sub-search" className="sr-only">Search by email</label>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" />
+          <input
+            id="sub-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by email"
+            className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-orange-500/50"
+          />
         </div>
+        <label htmlFor="sub-status" className="sr-only">Plan</label>
+        <select
+          id="sub-status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none"
+        >
+          <option value="all">All paid plans</option>
+          {Object.entries(STATUS_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Subscriptions Table */}
-      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl border border-white/5 overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center">
-            <div className="w-10 h-10 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-400">Loading subscriptions...</p>
-          </div>
-        ) : filteredSubscriptions.length === 0 ? (
-          <div className="p-12 text-center">
-            <CreditCard className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400">No subscriptions found</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-white/5 border-b border-white/5">
-                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Subscriber
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Plan
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Started
-                  </th>
-                  <th className="px-5 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Next Billing
-                  </th>
-                  <th className="px-5 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredSubscriptions.map((sub) => {
-                  const StatusIcon = statusIcons[sub.status];
-                  return (
-                    <tr key={sub.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                            <span className="text-xs font-semibold text-white">
-                              {sub.user_email.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <span className="text-sm text-white">{sub.user_email}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                            sub.plan === 'annual'
-                              ? 'bg-violet-500/10 text-violet-400'
-                              : 'bg-blue-500/10 text-blue-400'
-                          }`}
-                        >
-                          {sub.plan}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
-                            statusColors[sub.status]
-                          }`}
-                        >
-                          <StatusIcon className="w-3.5 h-3.5" />
-                          {sub.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm text-white font-medium">
-                          ${sub.amount.toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm text-slate-400">
-                          {new Date(sub.started_at).toLocaleDateString()}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div>
-                          <span className="text-sm text-slate-400">
-                            {new Date(sub.current_period_end).toLocaleDateString()}
-                          </span>
-                          {sub.cancel_at_period_end && (
-                            <span className="block text-xs text-red-400 mt-0.5">Cancels</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                            title="Send Email"
-                          >
-                            <Mail className="w-4 h-4" />
-                          </button>
-                          <button
-                            className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-                            title="Cancel Subscription"
-                          >
-                            <Ban className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300 flex items-center gap-2" role="alert">
+          <AlertCircle className="w-4 h-4" aria-hidden="true" /> {error}
+        </div>
+      )}
+
+      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl border border-white/5 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-slate-400 border-b border-white/5">
+              <th scope="col" className="px-4 py-3 font-medium">Member</th>
+              <th scope="col" className="px-4 py-3 font-medium">Plan</th>
+              <th scope="col" className="px-4 py-3 font-medium">Renews / expires</th>
+              <th scope="col" className="px-4 py-3 font-medium">Payment</th>
+              <th scope="col" className="px-4 py-3 font-medium">Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!loading && visible.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
+                  No paid members {statusFilter !== 'all' || search ? 'match these filters' : 'yet'}.
+                </td>
+              </tr>
+            )}
+            {visible.map((m) => (
+              <tr key={m.id} className="border-b border-white/5 last:border-0">
+                <td className="px-4 py-3 text-white">
+                  <span className="inline-flex items-center gap-2">
+                    <User className="w-4 h-4 text-slate-500" aria-hidden="true" />
+                    {m.email ?? m.id}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-slate-300">
+                  {STATUS_LABEL[m.subscription_status] ?? m.subscription_status}
+                  {m.subscription_tier && m.subscription_tier !== m.subscription_status && (
+                    <span className="text-slate-500"> · {m.subscription_tier}</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-slate-300">
+                  {m.subscription_status === 'lifetime' ? 'Never' : formatDate(m.subscription_expires_at)}
+                </td>
+                <td className="px-4 py-3">
+                  {m.payment_failed_at ? (
+                    <span className="text-red-400">Failed {formatDate(m.payment_failed_at)}</span>
+                  ) : m.stripe_customer_id ? (
+                    <span className="text-emerald-400">OK</span>
+                  ) : (
+                    <span className="text-slate-500">No Stripe customer</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-slate-400">{formatDate(m.created_at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {total > PAGE_SIZE && (
+          <p className="px-4 py-3 text-xs text-slate-500">
+            Showing the newest {PAGE_SIZE} of {total.toLocaleString('en-US')}.
+          </p>
         )}
-
-        {/* Pagination */}
-        <div className="px-5 py-4 border-t border-white/5 flex items-center justify-between">
-          <span className="text-sm text-slate-400">
-            Showing {filteredSubscriptions.length} subscriptions
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <span className="text-sm text-slate-400">Page {page}</span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
 }
-

@@ -5,8 +5,8 @@
  * Designed to be placed in the header for quick access.
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback, useId } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search,
   X,
@@ -72,7 +72,11 @@ export function GlobalSearch({
   variant = 'header',
   onClose,
 }: GlobalSearchProps) {
-  const [query, setQuery] = useState('');
+  const [searchParams] = useSearchParams();
+  const urlQuery = variant === 'page' ? searchParams.get('q') ?? '' : '';
+  // On /search the box starts with the current query instead of empty. The
+  // search page remounts this component (key) when ?q= changes.
+  const [query, setQuery] = useState(urlQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -80,6 +84,8 @@ export function GlobalSearch({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const listboxId = useId();
+  const optionId = (index: number) => `${listboxId}-opt-${index}`;
 
   const debouncedQuery = useDebounce(query, 200);
 
@@ -199,6 +205,14 @@ export function GlobalSearch({
           <input
             ref={inputRef}
             type="search"
+            role="combobox"
+            aria-autocomplete="list"
+            autoFocus={variant === 'mobile'}
+            aria-expanded={showDropdown && results.length > 0}
+            aria-controls={listboxId}
+            aria-activedescendant={
+              showDropdown && selectedIndex >= 0 && results[selectedIndex] ? optionId(selectedIndex) : undefined
+            }
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -228,10 +242,15 @@ export function GlobalSearch({
             </button>
           )}
           {isLoading && (
-            <Loader2 className="absolute right-3 w-4 h-4 text-gray-400 animate-spin" />
+            <Loader2 className="absolute right-3 w-4 h-4 text-gray-400 animate-spin" aria-hidden="true" />
           )}
         </div>
       </form>
+      <div className="sr-only" aria-live="polite">
+        {showDropdown && query.trim().length >= 2 && !isLoading
+          ? `${results.length} suggestion${results.length === 1 ? '' : 's'} available`
+          : ''}
+      </div>
 
       {/* Dropdown Results */}
       {showDropdown && (
@@ -245,18 +264,25 @@ export function GlobalSearch({
         >
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+              <Loader2 className="w-6 h-6 text-gray-400 animate-spin" aria-hidden="true" />
             </div>
           ) : results.length > 0 ? (
             <>
-              <ul className="py-2">
+              <ul className="py-2" id={listboxId} role="listbox" aria-label="Search suggestions">
                 {results.map((result, index) => {
                   const Icon = getResultIcon(result.type);
                   return (
-                    <li key={`${result.type}-${result.id}`}>
-                      <button
-                        type="button"
-                        onClick={() => handleResultClick(result)}
+                    <li
+                      key={`${result.type}-${result.id}`}
+                      id={optionId(index)}
+                      role="option"
+                      aria-selected={index === selectedIndex}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleResultClick(result)}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className="cursor-pointer"
+                    >
+                      <div
                         className={cn(
                           'w-full px-3 sm:px-4 py-3 sm:py-3 flex items-start gap-2 sm:gap-3 text-left',
                           'transition-colors min-h-[52px]',
@@ -266,7 +292,7 @@ export function GlobalSearch({
                         )}
                       >
                         <div className="flex-shrink-0 mt-0.5">
-                          <Icon className="w-5 h-5 text-gray-400" />
+                          <Icon className="w-5 h-5 text-gray-400" aria-hidden="true" />
                         </div>
                         <div className="flex-grow min-w-0">
                           <div className="flex items-center gap-2">
@@ -286,7 +312,7 @@ export function GlobalSearch({
                             {result.description}
                           </p>
                         </div>
-                      </button>
+                      </div>
                     </li>
                   );
                 })}
@@ -302,7 +328,7 @@ export function GlobalSearch({
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-brand-primary hover:bg-white/5 rounded-lg transition-colors"
                 >
                   View all results
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </>
@@ -311,9 +337,16 @@ export function GlobalSearch({
               <p className="text-gray-400">No results found for "{query}"</p>
               <p className="text-sm text-gray-500 mt-1">
                 Try different keywords or browse our{' '}
-                <a href="/learn" className="text-brand-primary hover:underline">
+                <Link
+                  to="/learn"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onClose?.();
+                  }}
+                  className="text-brand-primary hover:underline"
+                >
                   guides
-                </a>
+                </Link>
               </p>
             </div>
           ) : null}
@@ -332,18 +365,30 @@ export function MobileSearchTrigger() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
         className="p-2 rounded-lg hover:bg-white/10 transition-colors lg:hidden"
         aria-label="Open search"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
       >
-        <Search className="w-5 h-5 text-gray-300" />
+        <Search className="w-5 h-5 text-gray-300" aria-hidden="true" />
       </button>
 
       {/* Mobile Search Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsOpen(false);
+          }}
+        >
           <div
             className="absolute inset-0 bg-black/50"
+            aria-hidden="true"
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute top-0 left-0 right-0 bg-gray-900 p-4 shadow-xl">
@@ -355,10 +400,12 @@ export function MobileSearchTrigger() {
                 className="flex-grow"
               />
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
                 className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                aria-label="Close search"
               >
-                <X className="w-5 h-5 text-gray-300" />
+                <X className="w-5 h-5 text-gray-300" aria-hidden="true" />
               </button>
             </div>
           </div>

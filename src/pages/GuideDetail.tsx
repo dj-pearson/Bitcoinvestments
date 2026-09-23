@@ -1,267 +1,235 @@
-import { useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Share2, BookOpen } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { getGuide } from '../data/guides';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Clock, BookOpen, ChevronRight, Wrench, CalendarCheck } from 'lucide-react';
+import {
+  getGuide,
+  getRelatedGuides,
+  formatGuideDate,
+} from '../data/guides';
 import { Newsletter } from '../components/Newsletter';
-import { SEO, generateArticleSchema, generateBreadcrumbSchema } from '../components/SEO';
+import { MarkdownContent } from '../components/MarkdownContent';
+import { ShareButton } from '../components/ShareButton';
+import { NotFound } from './NotFound';
+import {
+  SEO,
+  generateArticleSchema,
+  generateBreadcrumbSchema,
+  generateFAQSchema,
+  generateHowToSchema,
+} from '../components/SEO';
+
+const SITE_URL = 'https://bitcoinvestments.net';
+const OG_IMAGE = `${SITE_URL}/og-image.png`;
 
 export function GuideDetail() {
   const { guideId } = useParams<{ guideId: string }>();
+  const guide = guideId ? getGuide(guideId) : undefined;
 
-  if (!guideId) {
-    return <Navigate to="/learn" replace />;
-  }
-
-  const guide = getGuide(guideId);
-
+  // Unknown slug: a real "not found" (noindex), never a redirect to /learn.
   if (!guide) {
-    return <Navigate to="/learn" replace />;
+    return <NotFound />;
   }
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    const title = guide.title;
+  const guideUrl = `${SITE_URL}/learn/${guide.id}`;
+  const related = getRelatedGuides(guide);
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, url });
-      } catch {
-        // User cancelled or error occurred
-        console.log('Share cancelled or failed');
-      }
-    } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(url);
-        alert('Link copied to clipboard!');
-      } catch {
-        console.error('Failed to copy link');
-      }
-    }
-  };
-
-  const guideUrl = `https://bitcoinvestments.net/learn/${guide.id}`;
+  const schema: Record<string, unknown>[] = [
+    generateArticleSchema({
+      title: guide.title,
+      description: guide.description,
+      url: guideUrl,
+      image: OG_IMAGE,
+      author: 'Bitcoinvestments editorial team',
+      publishedDate: guide.datePublished,
+      modifiedDate: guide.dateModified,
+    }),
+    generateBreadcrumbSchema([
+      { name: 'Home', url: '/' },
+      { name: 'Learn', url: '/learn' },
+      { name: guide.title, url: `/learn/${guide.id}` },
+    ]),
+  ];
+  if (guide.faqs && guide.faqs.length > 0) {
+    schema.push(generateFAQSchema(guide.faqs));
+  }
+  if (guide.howToSteps && guide.howToSteps.length > 0) {
+    schema.push(
+      generateHowToSchema({
+        name: guide.title,
+        description: guide.description,
+        steps: guide.howToSteps,
+        image: OG_IMAGE,
+      })
+    );
+  }
 
   return (
     <div className="min-h-screen bg-brand-dark">
       <SEO
-        title={guide.title}
+        title={guide.seoTitle ?? guide.title}
         description={guide.description}
-        keywords={[guide.category, 'crypto guide', 'cryptocurrency education', guide.title]}
+        keywords={[guide.category, 'crypto guide', 'cryptocurrency education']}
         type="article"
+        image={OG_IMAGE}
+        author="Bitcoinvestments editorial team"
+        publishedTime={guide.datePublished}
+        modifiedTime={guide.dateModified}
         section={guide.category}
-        blufSummary={guide.description}
+        blufSummary={guide.summary}
         contentCategory={guide.category}
-        schema={[
-          generateArticleSchema({
-            title: guide.title,
-            description: guide.description,
-            url: guideUrl,
-          }),
-          generateBreadcrumbSchema([
-            { name: 'Home', url: '/' },
-            { name: 'Learn', url: '/learn' },
-            { name: guide.title, url: `/learn/${guide.id}` },
-          ]),
-        ]}
+        schema={schema}
       />
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-gray-900 to-brand-dark border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Back Button */}
           <Link
             to="/learn"
             className="inline-flex items-center gap-2 text-gray-400 hover:text-orange-500 transition-colors mb-6"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             Back to Learning Center
           </Link>
 
-          {/* Category Badge */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <span className="px-3 py-1 bg-orange-500/20 text-orange-500 text-sm font-medium rounded-full">
               {guide.category}
             </span>
             <div className="flex items-center gap-2 text-sm text-gray-400">
-              <Clock className="w-4 h-4" />
+              <Clock className="w-4 h-4" aria-hidden="true" />
               {guide.readTime} min read
             </div>
           </div>
 
-          {/* Title */}
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            {guide.title}
-          </h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{guide.title}</h1>
 
-          {/* Description */}
-          <p className="text-xl text-gray-400 mb-6">
-            {guide.description}
+          {/* Answer-first summary */}
+          <p className="text-xl text-gray-300 mb-4">{guide.summary}</p>
+
+          {/* Byline + dates */}
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-400 mb-6">
+            <CalendarCheck className="w-4 h-4" aria-hidden="true" />
+            <span>By {guide.author}</span>
+            <span aria-hidden="true">·</span>
+            <span>
+              Updated <time dateTime={guide.dateModified}>{formatGuideDate(guide.dateModified)}</time>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              First published <time dateTime={guide.datePublished}>{formatGuideDate(guide.datePublished)}</time>
+            </span>
           </p>
 
-          {/* Actions */}
           <div className="flex gap-3">
-            <button
-              onClick={handleShare}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-            >
-              <Share2 className="w-4 h-4" />
-              Share
-            </button>
+            <ShareButton title={guide.title} />
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <article className="prose prose-invert prose-orange max-w-none">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              h1: ({ children }) => (
-                <h1 className="text-3xl font-bold text-white mb-6 mt-8">{children}</h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-2xl font-bold text-white mb-4 mt-8 border-b border-gray-800 pb-2">
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-xl font-semibold text-white mb-3 mt-6">{children}</h3>
-              ),
-              h4: ({ children }) => (
-                <h4 className="text-lg font-semibold text-gray-200 mb-2 mt-4">{children}</h4>
-              ),
-              p: ({ children }) => (
-                <p className="text-gray-300 mb-4 leading-relaxed">{children}</p>
-              ),
-              a: ({ href, children }) => (
-                <a
-                  href={href}
-                  className="text-orange-500 hover:text-orange-400 underline"
-                  target={href?.startsWith('http') ? '_blank' : undefined}
-                  rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-                >
-                  {children}
-                </a>
-              ),
-              ul: ({ children }) => (
-                <ul className="list-disc list-inside text-gray-300 mb-4 space-y-2">
-                  {children}
-                </ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal list-inside text-gray-300 mb-4 space-y-2">
-                  {children}
-                </ol>
-              ),
-              li: ({ children }) => (
-                <li className="text-gray-300">{children}</li>
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-orange-500 pl-4 my-4 italic text-gray-400">
-                  {children}
-                </blockquote>
-              ),
-              code: ({ children, className }) => {
-                const isInline = !className;
-                return isInline ? (
-                  <code className="px-1.5 py-0.5 bg-gray-800 text-orange-400 rounded text-sm font-mono">
-                    {children}
-                  </code>
-                ) : (
-                  <code className="block bg-gray-800 text-gray-300 p-4 rounded-lg overflow-x-auto font-mono text-sm">
-                    {children}
-                  </code>
-                );
-              },
-              table: ({ children }) => (
-                <div className="overflow-x-auto my-6">
-                  <table className="w-full border-collapse border border-gray-700">
-                    {children}
-                  </table>
-                </div>
-              ),
-              thead: ({ children }) => (
-                <thead className="bg-gray-800">{children}</thead>
-              ),
-              th: ({ children }) => (
-                <th className="border border-gray-700 px-4 py-2 text-left text-white font-semibold">
-                  {children}
-                </th>
-              ),
-              td: ({ children }) => (
-                <td className="border border-gray-700 px-4 py-2 text-gray-300">
-                  {children}
-                </td>
-              ),
-              hr: () => (
-                <hr className="border-t border-gray-800 my-8" />
-              ),
-              strong: ({ children }) => (
-                <strong className="text-white font-semibold">{children}</strong>
-              ),
-            }}
-          >
-            {guide.content}
-          </ReactMarkdown>
+        <article className="max-w-none">
+          <MarkdownContent content={guide.content} />
         </article>
+
+        {/* Visible FAQ (mirrors the FAQPage schema) */}
+        {guide.faqs && guide.faqs.length > 0 && (
+          <section className="mt-12" aria-labelledby="guide-faq">
+            <h2 id="guide-faq" className="text-2xl font-bold text-white mb-6 border-b border-gray-800 pb-2">
+              Frequently asked questions
+            </h2>
+            <div className="space-y-6">
+              {guide.faqs.map((faq) => (
+                <div key={faq.question}>
+                  <h3 className="text-lg font-semibold text-white mb-2">{faq.question}</h3>
+                  <p className="text-gray-300 leading-relaxed">{faq.answer}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <p className="mt-10 text-sm text-gray-500 border-t border-gray-800 pt-6">
+          Educational content only, not financial, tax or legal advice. Facts were checked on{' '}
+          {formatGuideDate(guide.dateModified)}; crypto products, fees and rules change often, so
+          confirm anything important with the provider or a qualified professional.
+        </p>
+
+        {/* Tools that put the guide into practice */}
+        {guide.relatedTools && guide.relatedTools.length > 0 && (
+          <section className="mt-12" aria-labelledby="guide-tools">
+            <h2 id="guide-tools" className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+              <Wrench className="w-6 h-6 text-orange-500" aria-hidden="true" />
+              Put it into practice
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {guide.relatedTools.map((tool) => (
+                <Link
+                  key={tool.url}
+                  to={tool.url}
+                  className="flex items-center justify-between gap-3 bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-orange-500/50 transition-colors group"
+                >
+                  <div>
+                    <span className="font-semibold text-white group-hover:text-orange-500 transition-colors">
+                      {tool.label}
+                    </span>
+                    {tool.description && (
+                      <span className="block text-sm text-gray-400 mt-1">{tool.description}</span>
+                    )}
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Related guides */}
+        {related.length > 0 && (
+          <section className="mt-12" aria-labelledby="guide-related">
+            <h2 id="guide-related" className="text-2xl font-bold text-white mb-6">
+              Continue learning
+            </h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {related.map((g) => (
+                <Link
+                  key={g.id}
+                  to={`/learn/${g.id}`}
+                  className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-orange-500/50 transition-colors group"
+                >
+                  <span className="text-3xl" aria-hidden="true">{g.icon}</span>
+                  <span className="block text-xs font-medium text-orange-500 uppercase tracking-wide mt-3">
+                    {g.category}
+                  </span>
+                  <h3 className="font-semibold text-white mt-1 group-hover:text-orange-500 transition-colors">
+                    {g.title}
+                  </h3>
+                  <p className="text-sm text-gray-400 mt-2">{g.readTime} min read</p>
+                </Link>
+              ))}
+            </div>
+            <p className="mt-6 text-sm text-gray-400">
+              Looking up a term? Try the{' '}
+              <Link to="/glossary" className="text-orange-500 hover:text-orange-400 underline">
+                crypto glossary
+              </Link>{' '}
+              or browse{' '}
+              <Link to="/learn" className="text-orange-500 hover:text-orange-400 underline">
+                all guides
+              </Link>
+              .
+            </p>
+          </section>
+        )}
 
         {/* Newsletter CTA */}
         <div className="mt-12 p-8 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-500/20">
           <div className="text-center mb-6">
-            <BookOpen className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold text-white mb-2">
-              Want More Crypto Insights?
-            </h3>
+            <BookOpen className="w-12 h-12 text-orange-500 mx-auto mb-4" aria-hidden="true" />
+            <h2 className="text-2xl font-bold text-white mb-2">Get new guides by email</h2>
             <p className="text-gray-400">
-              Get weekly guides, market analysis, and investment tips delivered to your inbox.
+              We email when guides are added or materially updated. Unsubscribe any time.
             </p>
           </div>
           <Newsletter source={`guide-${guide.id}`} variant="inline" />
-        </div>
-
-        {/* Related Guides */}
-        <div className="mt-12">
-          <h3 className="text-2xl font-bold text-white mb-6">Continue Learning</h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Link
-              to="/learn"
-              className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-orange-500/50 transition-colors text-center"
-            >
-              <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-6 h-6 text-orange-500" />
-              </div>
-              <h4 className="font-semibold text-white mb-2">All Guides</h4>
-              <p className="text-sm text-gray-400">Browse all learning resources</p>
-            </Link>
-
-            <Link
-              to="/calculators"
-              className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-orange-500/50 transition-colors text-center"
-            >
-              <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h4 className="font-semibold text-white mb-2">Calculators</h4>
-              <p className="text-sm text-gray-400">Plan your investment strategy</p>
-            </Link>
-
-            <Link
-              to="/compare"
-              className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-orange-500/50 transition-colors text-center"
-            >
-              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                </svg>
-              </div>
-              <h4 className="font-semibold text-white mb-2">Compare</h4>
-              <p className="text-sm text-gray-400">Find the best platforms</p>
-            </Link>
-          </div>
         </div>
       </div>
     </div>

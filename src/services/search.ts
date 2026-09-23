@@ -8,6 +8,8 @@
  * - Exchanges
  * - Wallets
  * - Cryptocurrencies (via CoinGecko API)
+ *
+ * Glossary terms come from src/data/glossary.ts, the same list /glossary renders.
  */
 
 import { getAllGuides } from '../data/guides';
@@ -15,14 +17,7 @@ import { getAllCourses } from '../data/courses';
 import { exchanges } from '../data/exchanges';
 import { wallets } from '../data/wallets';
 import { searchCryptocurrencies } from './coingecko';
-
-// Glossary terms imported from page (we'll export these separately)
-export interface GlossaryTerm {
-  term: string;
-  definition: string;
-  category: string;
-  relatedTerms?: string[];
-}
+import { GLOSSARY_TERMS, glossaryTermUrl } from '../data/glossary';
 
 /**
  * Search result types
@@ -60,53 +55,6 @@ export interface SearchFilters {
   limit?: number;
   category?: string;
 }
-
-/**
- * Glossary terms data (exported for use in search)
- */
-export const GLOSSARY_TERMS: GlossaryTerm[] = [
-  // Basics
-  { term: 'Bitcoin (BTC)', definition: 'The first and most well-known cryptocurrency, created by the pseudonymous Satoshi Nakamoto in 2009.', category: 'Basics', relatedTerms: ['Blockchain', 'Cryptocurrency', 'Satoshi'] },
-  { term: 'Blockchain', definition: 'A distributed digital ledger that records all transactions across a network of computers.', category: 'Basics', relatedTerms: ['Block', 'Decentralization', 'Node'] },
-  { term: 'Cryptocurrency', definition: 'A digital or virtual currency that uses cryptography for security and operates on a decentralized network.', category: 'Basics', relatedTerms: ['Bitcoin', 'Altcoin', 'Token'] },
-  { term: 'Altcoin', definition: 'Any cryptocurrency other than Bitcoin. Examples include Ethereum (ETH), Solana (SOL), and Cardano (ADA).', category: 'Basics', relatedTerms: ['Bitcoin', 'Token', 'Cryptocurrency'] },
-  { term: 'Wallet', definition: 'A digital tool that stores your private keys and allows you to send, receive, and manage your cryptocurrencies.', category: 'Basics', relatedTerms: ['Private Key', 'Public Key', 'Cold Storage'] },
-  { term: 'Exchange', definition: 'A platform where you can buy, sell, and trade cryptocurrencies.', category: 'Basics', relatedTerms: ['Trading', 'Liquidity', 'Order Book'] },
-  // Technical
-  { term: 'Private Key', definition: 'A secret cryptographic code that proves ownership of your cryptocurrency and allows you to sign transactions.', category: 'Technical', relatedTerms: ['Public Key', 'Wallet', 'Seed Phrase'] },
-  { term: 'Public Key', definition: "A cryptographic code derived from your private key that can be shared publicly.", category: 'Technical', relatedTerms: ['Private Key', 'Wallet Address'] },
-  { term: 'Seed Phrase', definition: 'A list of 12-24 words that can be used to recover your cryptocurrency wallet. Also called a recovery phrase.', category: 'Technical', relatedTerms: ['Private Key', 'Wallet', 'Cold Storage'] },
-  { term: 'Hash', definition: 'A fixed-length alphanumeric string created by a cryptographic hash function.', category: 'Technical', relatedTerms: ['Mining', 'Proof of Work', 'Block'] },
-  { term: 'Smart Contract', definition: 'Self-executing code stored on a blockchain that automatically enforces the terms of an agreement.', category: 'Technical', relatedTerms: ['Ethereum', 'DeFi', 'dApp'] },
-  { term: 'Node', definition: 'A computer that maintains a copy of the blockchain and helps validate transactions.', category: 'Technical', relatedTerms: ['Full Node', 'Light Node', 'Validator'] },
-  { term: 'Consensus', definition: 'The mechanism by which blockchain networks agree on the current state of the ledger.', category: 'Technical', relatedTerms: ['Proof of Work', 'Proof of Stake'] },
-  // Trading
-  { term: 'HODL', definition: "A misspelling of 'hold' that became crypto slang for holding onto your investments long-term regardless of price volatility.", category: 'Trading', relatedTerms: ['Diamond Hands', 'Paper Hands'] },
-  { term: 'DCA (Dollar-Cost Averaging)', definition: 'An investment strategy where you regularly invest a fixed amount regardless of the asset price.', category: 'Trading', relatedTerms: ['Investment Strategy', 'HODL'] },
-  { term: 'FOMO', definition: "Fear Of Missing Out - the anxiety that others are profiting from an opportunity you're not participating in.", category: 'Trading', relatedTerms: ['FUD', 'Market Psychology'] },
-  { term: 'FUD', definition: 'Fear, Uncertainty, and Doubt - negative sentiment or news that may be spread to drive down prices.', category: 'Trading', relatedTerms: ['FOMO', 'Market Manipulation'] },
-  { term: 'Bull Market', definition: 'A market condition characterized by rising prices and optimistic sentiment.', category: 'Trading', relatedTerms: ['Bear Market', 'Market Cycle'] },
-  { term: 'Bear Market', definition: 'A market condition characterized by falling prices and pessimistic sentiment.', category: 'Trading', relatedTerms: ['Bull Market', 'Market Cycle'] },
-  { term: 'Market Cap', definition: 'The total value of a cryptocurrency, calculated by multiplying price by circulating supply.', category: 'Trading', relatedTerms: ['Circulating Supply', 'Fully Diluted Value'] },
-  { term: 'Liquidity', definition: 'How easily an asset can be bought or sold without significantly affecting its price.', category: 'Trading', relatedTerms: ['Order Book', 'Slippage'] },
-  // DeFi
-  { term: 'DeFi', definition: 'Decentralized Finance - financial services built on blockchain without traditional intermediaries.', category: 'DeFi', relatedTerms: ['Smart Contract', 'DEX', 'Yield Farming'] },
-  { term: 'DEX', definition: 'Decentralized Exchange - a cryptocurrency exchange that operates without a central authority.', category: 'DeFi', relatedTerms: ['AMM', 'Liquidity Pool', 'Uniswap'] },
-  { term: 'Yield Farming', definition: 'Earning rewards by providing liquidity or staking tokens in DeFi protocols.', category: 'DeFi', relatedTerms: ['Liquidity Mining', 'APY', 'Staking'] },
-  { term: 'Staking', definition: 'Locking up cryptocurrency to support network operations and earn rewards.', category: 'DeFi', relatedTerms: ['Proof of Stake', 'Validator', 'APY'] },
-  { term: 'Liquidity Pool', definition: 'A pool of tokens locked in a smart contract used to facilitate trading on DEXs.', category: 'DeFi', relatedTerms: ['AMM', 'Impermanent Loss', 'LP Token'] },
-  { term: 'APY', definition: 'Annual Percentage Yield - the rate of return on an investment over one year including compound interest.', category: 'DeFi', relatedTerms: ['APR', 'Yield Farming', 'Staking'] },
-  { term: 'Gas', definition: 'A fee paid to process transactions on the Ethereum network and other blockchains.', category: 'DeFi', relatedTerms: ['Gwei', 'Transaction Fee', 'Ethereum'] },
-  { term: 'Impermanent Loss', definition: 'The temporary loss of funds when providing liquidity due to price changes.', category: 'DeFi', relatedTerms: ['Liquidity Pool', 'AMM'] },
-  // Advanced
-  { term: 'Layer 2', definition: 'A secondary framework built on top of an existing blockchain to improve scalability.', category: 'Advanced', relatedTerms: ['Lightning Network', 'Rollup', 'Scaling'] },
-  { term: 'NFT', definition: 'Non-Fungible Token - a unique digital asset that represents ownership of specific items.', category: 'Advanced', relatedTerms: ['ERC-721', 'Digital Art', 'Collectibles'] },
-  { term: 'DAO', definition: 'Decentralized Autonomous Organization - an organization governed by smart contracts and token holders.', category: 'Advanced', relatedTerms: ['Governance', 'Voting', 'Token'] },
-  { term: 'Oracle', definition: 'A service that provides external data to smart contracts on the blockchain.', category: 'Advanced', relatedTerms: ['Chainlink', 'Price Feed', 'Smart Contract'] },
-  { term: 'Whitepaper', definition: 'A document that explains a cryptocurrency project\'s technology, goals, and tokenomics.', category: 'Advanced', relatedTerms: ['Tokenomics', 'Roadmap'] },
-  { term: 'Fork', definition: 'A change to blockchain protocol rules that creates a new version of the blockchain.', category: 'Advanced', relatedTerms: ['Hard Fork', 'Soft Fork', 'Bitcoin Cash'] },
-  { term: 'Airdrop', definition: 'Free distribution of tokens to wallet addresses, often as a marketing strategy.', category: 'Advanced', relatedTerms: ['Token Distribution', 'Marketing'] },
-];
 
 /**
  * Split a query into search terms.
@@ -325,15 +273,15 @@ function searchGlossary(query: string): SearchResult[] {
 
     if (totalScore > 0) {
       results.push({
-        id: term.term.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        id: term.slug,
         type: 'glossary',
         title: term.term,
         description: term.definition,
-        url: `/glossary?term=${encodeURIComponent(term.term)}`,
+        url: glossaryTermUrl(term.slug),
         category: term.category,
         score: totalScore,
         metadata: {
-          relatedTerms: term.relatedTerms,
+          related: term.related,
         },
       });
     }
@@ -367,7 +315,6 @@ function searchExchanges(query: string): SearchResult[] {
         score: totalScore,
         metadata: {
           country: exchange.country,
-          trustScore: exchange.trust_score,
         },
       });
     }
@@ -422,8 +369,8 @@ async function searchCryptos(query: string): Promise<SearchResult[]> {
       id: crypto.id,
       type: 'crypto' as SearchResultType,
       title: `${crypto.name} (${crypto.symbol.toUpperCase()})`,
-      description: `View price chart and market data for ${crypto.name}`,
-      url: `/charts?coin=${crypto.id}`,
+      description: `Price and market data for ${crypto.name}`,
+      url: `/coin/${encodeURIComponent(crypto.id)}`,
       category: 'Cryptocurrency',
       icon: crypto.thumb,
       score: 10 - index, // Higher rank = higher score
@@ -457,7 +404,16 @@ export async function globalSearch(
     };
   }
 
-  const allowedTypes = filters?.types || [
+  // Choosing "course" also means its modules: module hits are how most course
+  // content is found, and there is no separate Modules filter.
+  const requestedTypes = filters?.types?.length
+    ? Array.from(new Set<SearchResultType>([
+        ...filters.types,
+        ...(filters.types.includes('course') ? (['module'] as SearchResultType[]) : []),
+      ]))
+    : undefined;
+
+  const allowedTypes = requestedTypes || [
     'guide',
     'course',
     'module',
@@ -493,8 +449,8 @@ export async function globalSearch(
   }
 
   // Filter by type if specified
-  if (filters?.types && filters.types.length > 0) {
-    allResults = allResults.filter((r) => filters.types!.includes(r.type));
+  if (requestedTypes) {
+    allResults = allResults.filter((r) => requestedTypes.includes(r.type));
   }
 
   // Sort by score (descending)

@@ -1,361 +1,195 @@
-export const howToBuyCryptoGuide = {
+import type { GuideSource } from './index';
+
+export const howToBuyCryptoGuide: GuideSource = {
   id: 'how-to-buy-crypto',
   title: 'How to Buy Your First Cryptocurrency',
-  description: 'Step-by-step guide to purchasing Bitcoin and other cryptocurrencies safely.',
+  seoTitle: 'How to Buy Crypto: A Step-by-Step Guide',
+  description:
+    'How to buy Bitcoin or other crypto safely in 2026: exchange vs app vs spot ETF, account setup, fees, your first purchase, and moving coins to a wallet.',
+  summary:
+    'To buy crypto for the first time, pick a reputable regulated platform (an exchange, a payments app, or a brokerage that sells spot Bitcoin ETFs), verify your identity, fund the account by bank transfer, and start with a small purchase. Then decide whether to leave it on the platform or move it to a wallet you control, and keep records for taxes.',
   category: 'Getting Started',
-  readTime: 10,
   icon: '🛒',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['crypto-wallets-explained', 'dca-strategies', 'crypto-taxes-basics', 'common-crypto-mistakes'],
+  relatedTools: [
+    { label: 'Compare exchanges', url: '/compare', description: 'Fees, coins and features side by side' },
+    { label: 'DCA calculator', url: '/calculators', description: 'Plan a recurring purchase' },
+    { label: 'Scam database', url: '/scam-database', description: 'Check a site or offer before you send money' },
+    { label: 'Compare wallets', url: '/compare?tab=wallets', description: 'Software and hardware wallets' },
+  ],
+  howToSteps: [
+    {
+      name: 'Choose where to buy',
+      text: 'Decide between a crypto exchange, a payments or brokerage app, or a spot Bitcoin ETF in a brokerage account, and pick a reputable, regulated provider.',
+    },
+    {
+      name: 'Create and verify your account',
+      text: 'Sign up on the official website or app, complete identity verification (KYC), and turn on app-based two-factor authentication.',
+    },
+    {
+      name: 'Add a payment method',
+      text: 'Link a bank account for low-cost transfers. Avoid credit cards, which carry high fees and may be charged as cash advances.',
+    },
+    {
+      name: 'Make your first purchase',
+      text: 'Choose the asset, enter a small amount, review the total including fees and spread, and confirm.',
+    },
+    {
+      name: 'Secure your investment',
+      text: 'Either keep a small amount on the platform with strong security settings, or withdraw to a wallet you control after testing with a small amount first.',
+    },
+  ],
+  faqs: [
+    {
+      question: 'How much should I invest in crypto as a beginner?',
+      answer:
+        'Start with an amount you could lose without it affecting bills, debt payments or your emergency fund. Many beginners start with $25 to $100 to learn the process before committing more.',
+    },
+    {
+      question: 'Which cryptocurrency should I buy first?',
+      answer:
+        'Most beginners start with Bitcoin or Ethereum because they are the largest, most liquid and most widely supported. That does not make them safe: both have fallen more than 70% from past peaks.',
+    },
+    {
+      question: 'Should I buy Bitcoin directly or a spot Bitcoin ETF?',
+      answer:
+        'A spot ETF lives in a normal brokerage or IRA with no keys to manage, but charges an annual fee and you cannot withdraw the coins. Buying directly lets you self-custody and trade 24/7. Both carry the same price risk.',
+    },
+    {
+      question: 'How long does it take to buy crypto?',
+      answer:
+        'Identity checks usually take minutes to a day. Bank transfers commonly take 1 to 5 business days to settle, though many platforms let you buy immediately against a pending deposit. Card purchases are instant but cost more.',
+    },
+    {
+      question: 'Is it safe to keep crypto on an exchange?',
+      answer:
+        'It is a trade-off. A reputable US platform with strong account security is reasonable for small amounts, but exchanges can be hacked, freeze accounts or fail, as FTX did in 2022. For larger, long-term holdings, a hardware wallet removes that platform risk.',
+    },
+    {
+      question: 'Is crypto on an exchange FDIC-insured?',
+      answer:
+        'No. Some platforms hold customer US dollar balances at banks that may be FDIC pass-through insured, but crypto itself is not covered by FDIC or SIPC insurance.',
+    },
+  ],
   content: `
 # How to Buy Your First Cryptocurrency
 
-Ready to make your first crypto purchase? This comprehensive guide walks you through the entire process, from choosing an exchange to securing your investment.
+This guide walks through the whole process, from choosing where to buy to securing what you bought. It takes about an hour of setup, plus a few days for a bank transfer to clear.
 
 ## Before You Buy: Preparation Checklist
 
-### 1. Educate Yourself
+1. **Understand what you are buying.** Read [What is Bitcoin?](/learn/what-is-bitcoin) if you haven't.
+2. **Set a budget you can afford to lose.** Build an emergency fund and pay down high-interest debt first. Never invest rent or bill money.
+3. **Pick an approach.** Buying all at once (lump sum) or a fixed amount on a schedule ([dollar-cost averaging](/learn/dca-strategies)). DCA does not raise expected returns, but it spreads your entry price and makes volatility easier to live with.
+4. **Learn the scams first.** Nobody legitimate will ask for your password, 2FA code or seed phrase, or promise guaranteed returns. See [common mistakes](/learn/common-crypto-mistakes).
 
-Before investing any money:
-- ✓ Understand what cryptocurrency is and how it works
-- ✓ Research the specific crypto you want to buy (Bitcoin, Ethereum, etc.)
-- ✓ Know the risks involved
-- ✓ Only invest what you can afford to lose
+## Step 1: Choose Where to Buy
 
-### 2. Set Your Budget
+In 2026 there are three main routes for US buyers:
 
-Determine how much you're comfortable investing:
-- Start small ($50-$500 for beginners)
-- Consider dollar-cost averaging (regular small purchases)
-- Set aside emergency funds first
-- Never invest rent or bill money
+| Route | Examples | You hold | Good for |
+|---|---|---|---|
+| **Crypto exchange** | Coinbase, Kraken, Gemini | Coins in your account, withdrawable to a wallet | Most coins, lowest fees on "advanced" screens, self-custody later |
+| **Payments / brokerage app** | PayPal, Venmo, Cash App, Robinhood | Coins in the app (withdrawal support varies) | Convenience if you already use the app; usually higher spreads |
+| **Spot Bitcoin or Ether ETF** | Funds such as IBIT or FBTC, via any brokerage | ETF shares | IRAs and brokerage accounts; no keys to manage |
 
-### 3. Choose Your Strategy
+Spot Bitcoin ETFs have traded in the US since January 2024 and spot Ether ETFs since July 2024. They are often the simplest route for retirement accounts, but you pay an annual expense ratio and cannot move the underlying coins.
 
-Two main approaches:
-- **Lump Sum**: Buy all at once (higher risk/reward)
-- **Dollar-Cost Averaging (DCA)**: Buy fixed amounts regularly (lower risk)
+### What to compare between exchanges
 
-## Step 1: Choose a Cryptocurrency Exchange
+- **Fees**: most exchanges charge more on the simple "Buy" button (a spread plus a fee) than on their advanced trading screen. Kraken Pro's entry tier, for example, was 0.25% maker / 0.40% taker as of September 2026. Fee schedules change, so check the provider's current fee page or our [exchange comparison](/compare).
+- **Regulation**: is it licensed where you live, and does it publish proof of reserves?
+- **Security**: app-based 2FA or passkeys, withdrawal allow-lists, a track record without major losses of customer funds.
+- **Coins and payment methods** you need.
 
-An exchange is like a brokerage where you can buy and sell crypto. Here are the top options:
-
-### Beginner-Friendly Exchanges
-
-#### Coinbase (Best for Beginners)
-- **Pros**: Very user-friendly, high security, insured
-- **Cons**: Higher fees (1.49% + spread)
-- **Best for**: First-time buyers
-- **Sign-up bonus**: Often offers $10 in Bitcoin
-
-#### Kraken (Best for Low Fees)
-- **Pros**: Low fees (0.16%-0.26%), many cryptos
-- **Cons**: Slightly more complex interface
-- **Best for**: Buyers who want better prices
-
-#### Gemini (Best for Security)
-- **Pros**: High security, regulated, insurance
-- **Cons**: Fewer cryptocurrencies available
-- **Best for**: Security-conscious users
-
-### Comparison Quick Reference
-
-| Exchange | Fees | Ease of Use | Cryptos | Security |
-|----------|------|-------------|---------|----------|
-| Coinbase | High | Excellent | 200+ | Excellent |
-| Kraken | Low | Good | 200+ | Excellent |
-| Gemini | Medium | Good | 70+ | Excellent |
-| Binance.US | Low | Fair | 100+ | Good |
+A note on "insured": exchanges may hold your US dollar cash at banks with FDIC pass-through insurance, but **crypto balances are not FDIC or SIPC insured**. Any "crime insurance" an exchange carries covers the company, not your individual account.
 
 ## Step 2: Create and Verify Your Account
 
-### Account Creation Process
-
-1. **Visit the Exchange Website**
-   - Go directly to the official website
-   - ⚠️ Beware of phishing sites - check the URL carefully
-
-2. **Sign Up**
-   - Provide email address
-   - Create a strong password (12+ characters, mixed case, numbers, symbols)
-   - Enable 2-factor authentication (2FA) immediately
-
-3. **Identity Verification (KYC)**
-   - Prepare government-issued ID (driver's license or passport)
-   - Take a selfie for identity verification
-   - Provide address information
-   - Wait 1-24 hours for approval
-
-### Security Setup (Critical!)
-
-Enable these security features right away:
-
-✓ **Two-Factor Authentication (2FA)**
-- Use an authenticator app (Google Authenticator, Authy)
-- Never use SMS-based 2FA if you can avoid it
-
-✓ **Whitelist Withdrawal Addresses**
-- Prevents unauthorized withdrawals
-
-✓ **Email Notifications**
-- Get alerts for all account activities
+1. **Go to the official site or app store listing directly.** Type the address or use a bookmark. Phishing sites copy exchange logos, use HTTPS padlocks and buy search ads.
+2. **Sign up** with an email you control and a unique password from a password manager.
+3. **Verify your identity (KYC).** US platforms are required to collect ID. Expect to upload a driver's licence or passport and a selfie, and to give your address and Social Security number.
+4. **Turn on strong 2FA immediately.** Use an authenticator app (Google Authenticator, Microsoft Authenticator, 2FAS) or a passkey/hardware security key. Avoid SMS codes where you can, because of SIM-swap attacks.
+5. **Turn on withdrawal address allow-listing and activity alerts** if offered.
 
 ## Step 3: Add a Payment Method
 
-### Linking Your Bank Account
-
-**Pros:**
-- Lower fees
-- Higher purchase limits
-- ACH transfers (3-5 business days)
-
-**Steps:**
-1. Navigate to Payment Methods
-2. Select "Add Bank Account"
-3. Enter routing and account numbers
-4. Verify with micro-deposits (may take 1-3 days)
-
-### Adding a Debit/Credit Card
-
-**Pros:**
-- Instant purchases
-- Immediate access to crypto
-
-**Cons:**
-- Higher fees (3-4%)
-- Lower purchase limits
-- Credit cards often charged as cash advances
-
-**Steps:**
-1. Go to Payment Methods
-2. Select "Add Card"
-3. Enter card details
-4. Verify with a small charge
+| Method | Typical speed | Cost | Notes |
+|---|---|---|---|
+| Bank transfer (ACH) | 1–5 business days to settle | Usually free | Often lets you buy immediately while the deposit settles |
+| Wire transfer | Same or next day | Bank wire fee | For larger amounts |
+| Debit card | Instant | Highest (often a few percent) | Convenient for small buys |
+| Credit card | Instant | Highest, and may be a cash advance | Avoid |
 
 ## Step 4: Make Your First Purchase
 
-### Buying Process
+1. Open **Buy** (or the advanced **Trade** screen for lower fees).
+2. Choose the asset, for example Bitcoin.
+3. Enter a small amount. **$25–$100** is plenty to learn the process.
+4. **Check the total** before you confirm: the quoted price, the fee and the spread.
+5. Confirm, then save the confirmation for your tax records.
 
-1. **Find the Buy/Trade Section**
-   - Look for "Buy Crypto" or "Trade" button
-   - Select the cryptocurrency (e.g., Bitcoin, Ethereum)
+### Example (illustrative numbers)
 
-2. **Enter Amount**
-   - Choose how much to buy ($50 minimum recommended)
-   - Review the price and fees
-   - Check the total cost
+Buying $500 of Bitcoin with a 1% spread and a 1.5% fee on a simple-buy screen: about $12.50 goes to costs, so you receive roughly $487.50 of bitcoin. The same order on an advanced screen at a 0.40% taker fee costs about $2. The exact numbers vary by platform and change often.
 
-3. **Review and Confirm**
-   - Verify all details
-   - Check the exchange rate
-   - Confirm the transaction
+### Market vs limit orders
 
-4. **Transaction Complete**
-   - You'll receive a confirmation email
-   - Crypto appears in your exchange wallet
-   - Save the transaction receipt
-
-### Example Purchase
-
-If you're buying $500 of Bitcoin on Coinbase:
-- Purchase amount: $500
-- Coinbase fee: ~$7.45 (1.49%)
-- Total cost: $507.45
-- Bitcoin received: $500 worth (at current rate)
+- **Market order**: buys now at the best available price. Simple, but you can pay a little more in fast markets (slippage).
+- **Limit order**: buys only at your price or better. It may never fill.
 
 ## Step 5: Secure Your Investment
 
-### Option 1: Leave on Exchange (Simplest)
+### Option 1: Keep it on the platform
 
-**Good for:**
-- Small amounts ($100-$1,000)
-- Active traders
-- Beginners still learning
+Reasonable for small amounts while you learn, or if you are using an ETF. The risks are the platform being hacked, freezing your account or failing (FTX, Celsius and Voyager all froze customer funds in 2022).
 
-**Risks:**
-- Exchange could be hacked
-- Account could be frozen
-- "Not your keys, not your crypto"
+### Option 2: Move it to a wallet you control
 
-**Best Practices:**
-- Enable all security features
-- Use a unique, strong password
-- Check account regularly
+Better for larger, long-term holdings. See the [wallet guide](/learn/crypto-wallets-explained) and [wallet comparison](/compare?tab=wallets).
 
-### Option 2: Move to Personal Wallet (Recommended)
+- **Software wallets (free)**: BlueWallet or Sparrow (Bitcoin), Exodus, Trust Wallet
+- **Hardware wallets (roughly $60–$400)**: Ledger (Nano S Plus, Nano X, Flex, Stax), Trezor (Safe 3, Safe 5, Safe 7), BitBox02. Buy only from the maker's own store or an authorised reseller.
 
-**Good for:**
-- Long-term holding
-- Larger amounts ($1,000+)
-- Maximum security
+### How to transfer to your wallet
 
-**Wallet Options:**
-
-#### Software Wallets (Free)
-- **Exodus**: Beautiful interface, multi-crypto
-- **BlueWallet**: Bitcoin-focused, open source
-- **Trust Wallet**: Mobile-friendly, many tokens
-
-#### Hardware Wallets ($50-$200)
-- **Ledger Nano X**: Most popular, Bluetooth
-- **Trezor Model T**: Open source, touchscreen
-- **BitBox02**: Swiss-made, very secure
-
-### How to Transfer to Your Wallet
-
-1. **Set up your wallet**
-   - Download and install
-   - Write down seed phrase (12-24 words)
-   - Store seed phrase safely offline
-
-2. **Get your wallet address**
-   - Open wallet app
-   - Find "Receive" button
-   - Copy your address (long string of characters)
-
-3. **Withdraw from exchange**
-   - Go to exchange's Withdraw section
-   - Paste your wallet address
-   - ⚠️ Double-check address is correct!
-   - Enter amount to withdraw
-   - Confirm transaction
-
-4. **Wait for confirmation**
-   - Bitcoin: 30-60 minutes (6 confirmations)
-   - Ethereum: 5-10 minutes (12 confirmations)
-   - Track on blockchain explorer
+1. Set up the wallet and **write the seed phrase on paper or metal**. Never photograph it or store it online.
+2. In the wallet, tap **Receive** and copy the address.
+3. On the exchange, choose **Withdraw**, paste the address, and **check the first and last several characters** (clipboard malware and "address poisoning" swap addresses).
+4. Pick the correct network. Sending on the wrong network can lose funds.
+5. **Send a small test amount first**, confirm it arrives, then send the rest.
+6. Wait for confirmations. Bitcoin blocks arrive about every 10 minutes and exchanges typically wait for 1–6 confirmations; Ethereum transactions are final after roughly 13 minutes. Each platform sets its own rules.
 
 ## Common Mistakes to Avoid
 
-### ❌ Don't Rush
+- **Rushing.** Transactions can't be reversed.
+- **Sending to the wrong address or network.** Always test with a small amount.
+- **Falling for scams.** Unsolicited "support" contacts, "double your crypto" giveaways and investment "mentors" met online are scams. Check the [scam database](/scam-database).
+- **Panic selling** after a normal drop.
+- **Sharing your seed phrase, private keys or 2FA codes** with anyone, ever.
 
-Take your time to understand each step. Mistakes can be expensive and irreversible.
+## Taxes
 
-### ❌ Don't Send to Wrong Address
+In the US, crypto is property: buying is not taxable, but selling, swapping or spending it can create a capital gain or loss. From the 2025 tax year, US platforms report your sales on **Form 1099-DA**. Keep records of every purchase, including the date, amount and total cost. Read [Crypto Taxes: What You Need to Know](/learn/crypto-taxes-basics).
 
-Always double-check addresses. Crypto transactions can't be reversed.
+Crypto tax software (for example CoinTracker, Koinly or CoinLedger) can import exchange history and produce Form 8949. No tax software is "IRS-approved"; you remain responsible for what you file.
 
-### ❌ Don't Fall for Scams
+## After Your First Purchase
 
-- No one from the exchange will ask for your password or 2FA codes
-- "Double your Bitcoin" schemes are always scams
-- Don't click links in unsolicited emails
-
-### ❌ Don't Panic Sell
-
-Crypto is volatile. Don't sell at a loss due to short-term price movements.
-
-### ❌ Don't Share Private Information
-
-- Never share your seed phrase
-- Never share your private keys
-- Never share your 2FA codes
-
-## Tax Considerations
-
-### What You Need to Know
-
-In the US, cryptocurrency is treated as property by the IRS:
-- Buying crypto is not a taxable event
-- Selling, trading, or spending crypto triggers capital gains tax
-- Keep detailed records of all transactions
-- Report on your tax return
-
-### Recommended: Use Tax Software
-
-- **CoinTracker**: Auto-imports from exchanges
-- **Koinly**: Comprehensive tracking
-- **TaxBit**: IRS-approved calculations
-
-## Next Steps After Your First Purchase
-
-### 1. Learn More
-
-Continue your education:
-- Read our [Wallet Security Guide](/learn/crypto-wallets-explained)
-- Understand [Blockchain Technology](/learn/understanding-blockchain)
-- Learn about [Crypto Taxes](/learn/crypto-taxes-basics)
-
-### 2. Set Up Dollar-Cost Averaging
-
-Most exchanges allow recurring purchases:
-- Buy $50-$200 weekly or monthly
-- Reduces impact of volatility
-- Builds position over time
-
-### 3. Diversify (Eventually)
-
-After understanding Bitcoin:
-- Research Ethereum (ETH)
-- Learn about other major cryptocurrencies
-- Never invest in something you don't understand
-
-### 4. Join the Community
-
-- Follow reputable crypto news sources
-- Join discussion forums (Reddit r/CryptoCurrency)
-- Connect with other investors
-- Stay informed about market trends
+1. **Set up a recurring buy** if you plan to dollar-cost average. Model it with our [DCA calculator](/calculators).
+2. **Diversify slowly, if at all.** Understand an asset before you buy it.
+3. **Keep learning** with the [free beginner course](/course/beginner-complete-course).
 
 ## Quick Reference Checklist
 
-✓ Educated yourself on cryptocurrency basics
-
-✓ Chose a reputable exchange
-
-✓ Created account and completed verification
-
-✓ Enabled 2-factor authentication
-
-✓ Added payment method
-
-✓ Made first purchase
-
-✓ Decided on storage method
-
-✓ Secured seed phrase (if using personal wallet)
-
-✓ Set up recurring purchases (optional)
-
-✓ Recorded purchase for tax purposes
-
-## Frequently Asked Questions
-
-### How much should I invest?
-
-Start with an amount you're comfortable losing - typically $50-$500 for first-time buyers. Never invest money you need for bills or emergencies.
-
-### Which cryptocurrency should I buy first?
-
-Bitcoin (BTC) or Ethereum (ETH) are recommended for beginners due to their established track records and liquidity.
-
-### How long does it take to buy crypto?
-
-- Account setup: 1-24 hours (verification)
-- Bank transfer: 3-5 business days
-- Card purchase: Instant
-- Total time for first purchase: 1-5 days
-
-### Is it safe to keep crypto on an exchange?
-
-For small amounts and short-term, yes (if the exchange has good security). For larger amounts or long-term holding, transfer to a hardware wallet.
-
-### Can I sell my crypto anytime?
-
-Yes, you can sell 24/7/365. However, bank transfers to your account may take 1-5 business days.
-
-## Final Thoughts
-
-Buying your first cryptocurrency is an exciting milestone! Remember:
-
-- **Start small** and learn as you go
-- **Security first** - enable all protection features
-- **Stay patient** - crypto investing is a marathon, not a sprint
-- **Keep learning** - the space evolves constantly
-- **Be cautious** - if something seems too good to be true, it probably is
-
-Welcome to the world of cryptocurrency investing! 🚀
-
----
-
-**Disclaimer**: This guide is for educational purposes only and not financial advice. Cryptocurrency investments carry significant risks. Always do your own research and never invest more than you can afford to lose.
+- Learned the basics and set a budget
+- Chose a reputable, regulated platform (or an ETF)
+- Verified the account and enabled app-based 2FA or a passkey
+- Linked a bank account
+- Made a small first purchase and saved the receipt
+- Decided how to store it, and backed up any seed phrase offline
+- Recorded the purchase for taxes
 `,
 };

@@ -4,7 +4,7 @@
  * Displays comprehensive search results with filtering by content type.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   Search,
@@ -16,7 +16,6 @@ import {
   Wallet,
   Coins,
   Clock,
-  Star,
   ArrowRight,
 } from 'lucide-react';
 import {
@@ -30,7 +29,7 @@ import {
 import { GlobalSearch } from '../components/GlobalSearch';
 import { cn } from '../lib/utils';
 import { trackSearch, trackSearchResultClick } from '../services/analytics';
-import { usePageTitle } from '../hooks/usePageTitle';
+import { SEO } from '../components/SEO';
 
 // Get icon for result type
 function getResultIcon(type: SearchResultType) {
@@ -49,24 +48,40 @@ function getResultIcon(type: SearchResultType) {
 // Content type filters
 const CONTENT_TYPES: { type: SearchResultType; label: string; icon: typeof BookOpen }[] = [
   { type: 'guide', label: 'Guides', icon: BookOpen },
-  { type: 'course', label: 'Courses', icon: GraduationCap },
+  { type: 'course', label: 'Courses & modules', icon: GraduationCap },
   { type: 'glossary', label: 'Glossary', icon: BookMarked },
   { type: 'exchange', label: 'Exchanges', icon: Building2 },
   { type: 'wallet', label: 'Wallets', icon: Wallet },
   { type: 'crypto', label: 'Crypto', icon: Coins },
 ];
 
+const VALID_TYPES = new Set<SearchResultType>(CONTENT_TYPES.map((c) => c.type));
+
+/** Parse `?type=guide,course` into known filter types. */
+function parseTypes(value: string | null): SearchResultType[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t): t is SearchResultType => VALID_TYPES.has(t as SearchResultType));
+}
+
 export function SearchResults() {
-  usePageTitle('Search');
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  const typeFilter = searchParams.get('type') as SearchResultType | null;
+  const typeParam = searchParams.get('type');
 
   const [results, setResults] = useState<SearchResultsType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<SearchResultType[]>(
-    typeFilter ? [typeFilter] : []
-  );
+  // Filters live in the URL (?type=) so they survive reloads and sharing.
+  const activeFilters = useMemo(() => parseTypes(typeParam), [typeParam]);
+
+  const setActiveFilters = (types: SearchResultType[]) => {
+    const next = new URLSearchParams(searchParams);
+    if (types.length > 0) next.set('type', types.join(','));
+    else next.delete('type');
+    setSearchParams(next, { replace: true });
+  };
 
   // Perform search when query or filters change
   useEffect(() => {
@@ -102,12 +117,11 @@ export function SearchResults() {
 
   // Toggle filter
   const toggleFilter = (type: SearchResultType) => {
-    setActiveFilters((prev) => {
-      if (prev.includes(type)) {
-        return prev.filter((t) => t !== type);
-      }
-      return [...prev, type];
-    });
+    setActiveFilters(
+      activeFilters.includes(type)
+        ? activeFilters.filter((t) => t !== type)
+        : [...activeFilters, type]
+    );
   };
 
   // Clear all filters
@@ -129,12 +143,17 @@ export function SearchResults() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <SEO
+        title="Search"
+        description="Search Bitcoinvestments guides, the free crypto course, glossary terms, exchange and wallet comparisons, and cryptocurrency prices."
+        noindex
+      />
       {/* Search Header */}
       <div className="max-w-4xl mx-auto mb-8">
         <h1 className="text-3xl font-bold text-white mb-6">Search</h1>
 
         {/* Search Input */}
-        <GlobalSearch variant="page" placeholder="Search guides, exchanges, wallets, glossary..." />
+        <GlobalSearch key={query} variant="page" placeholder="Search guides, exchanges, wallets, glossary..." />
 
         {/* Active Query */}
         {query && (
@@ -152,7 +171,7 @@ export function SearchResults() {
         {/* Filters */}
         <div className="mt-6">
           <div className="flex items-center gap-2 mb-3">
-            <Filter className="w-4 h-4 text-gray-400" />
+            <Filter className="w-4 h-4 text-gray-400" aria-hidden="true" />
             <span className="text-sm text-gray-400">Filter by type:</span>
             {activeFilters.length > 0 && (
               <button
@@ -167,6 +186,8 @@ export function SearchResults() {
             {CONTENT_TYPES.map(({ type, label, icon: Icon }) => (
               <button
                 key={type}
+                type="button"
+                aria-pressed={activeFilters.includes(type)}
                 onClick={() => toggleFilter(type)}
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
@@ -175,7 +196,7 @@ export function SearchResults() {
                     : 'bg-white/5 text-gray-300 hover:bg-white/10'
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4" aria-hidden="true" />
                 {label}
               </button>
             ))}
@@ -212,7 +233,11 @@ export function SearchResults() {
                   (term) => (
                     <button
                       key={term}
-                      onClick={() => setSearchParams({ q: term })}
+                      onClick={() => {
+                        const next = new URLSearchParams(searchParams);
+                        next.set('q', term);
+                        setSearchParams(next);
+                      }}
                       className="px-3 py-1.5 rounded-full bg-white/5 text-gray-300 text-sm hover:bg-white/10 transition-colors"
                     >
                       {term}
@@ -290,7 +315,7 @@ export function SearchResults() {
                   </div>
                   {typeResults.length > 5 && (
                     <button
-                      onClick={() => setActiveFilters([type as SearchResultType])}
+                      onClick={() => setActiveFilters([type === 'module' ? 'course' : (type as SearchResultType)])}
                       className="mt-3 text-sm text-brand-primary hover:underline flex items-center gap-1"
                     >
                       View all {typeResults.length} {getResultTypeLabel(type as SearchResultType).toLowerCase()} results
@@ -353,12 +378,6 @@ function SearchResultCard({ result, query }: { result: SearchResult; query: stri
               <span className="flex items-center gap-1 text-xs text-gray-500">
                 <Clock className="w-3 h-3" />
                 {String(result.metadata.readTime)} min read
-              </span>
-            )}
-            {'userRating' in (result.metadata || {}) && result.metadata?.userRating !== undefined && (
-              <span className="flex items-center gap-1 text-xs text-gray-500">
-                <Star className="w-3 h-3 text-yellow-400" />
-                {String(result.metadata.userRating)}
               </span>
             )}
             {'difficulty' in (result.metadata || {}) && result.metadata?.difficulty !== undefined && (

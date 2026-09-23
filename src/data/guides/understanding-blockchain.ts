@@ -1,10 +1,20 @@
-export const understandingBlockchainGuide = {
+import type { GuideSource } from './index';
+
+export const understandingBlockchainGuide: GuideSource = {
   id: 'understanding-blockchain',
   title: 'Understanding Blockchain Technology',
-  description: 'How blockchains actually work, why they matter, and what they are genuinely bad at — explained without the jargon.',
+  description: 'How blockchains actually work, why they matter, and what they are genuinely bad at, explained without the jargon: blocks, hashes, consensus and Layer 2.',
+  summary:
+    'A blockchain is a shared ledger that thousands of independent computers keep in sync without trusting each other. Blocks are chained by cryptographic hashes so tampering is detectable, and a consensus rule (proof of work or proof of stake) makes rewriting history more expensive than it is worth.',
   category: 'Basics',
-  readTime: 15,
   icon: '⛓️',
+  datePublished: '2026-09-01',
+  dateModified: '2026-09-23',
+  relatedGuides: ['what-is-bitcoin', 'crypto-wallets-explained', 'defi-basics'],
+  relatedTools: [
+    { label: 'Crypto glossary', url: '/glossary', description: 'Blocks, hashes, nodes and more, defined' },
+    { label: 'Gas fee optimizer', url: '/gas-optimizer', description: 'See what Ethereum transactions cost right now' },
+  ],
   content: `
 # Understanding Blockchain Technology
 
@@ -97,6 +107,8 @@ Why bother? Because it makes writing history *expensive*:
 
 The security guarantee isn't "this is impossible." It's "this costs more than you'd gain." That's an economic argument, not a mathematical one, and it's worth understanding the difference.
 
+**How miners are paid, and the halving.** Each new Bitcoin block pays its miner a fixed number of newly created bitcoin (the *block subsidy*) plus the fees of the transactions inside it. The subsidy halves every 210,000 blocks, roughly every four years. The April 2024 halving cut it from 6.25 to 3.125 BTC per block; the next is expected around 2028. Over time, fees have to carry more of the cost of security. See [What is Bitcoin?](/learn/what-is-bitcoin) for the full supply schedule.
+
 **The trade-off**: Proof of Work consumes serious energy — Bitcoin's network uses roughly as much electricity annually as a mid-sized country. Whether that cost is justified is a genuine debate, not a settled question.
 
 ### Proof of Stake
@@ -161,7 +173,7 @@ Any honest explanation has to include this section.
 
 **They're slow.** Bitcoin handles about 7 transactions per second; Ethereum around 15–30. Visa handles tens of thousands. Making thousands of computers agree on every update is inherently slower than one database writing to disk.
 
-**They're expensive.** During congestion, Ethereum fees have exceeded $50 for a single transaction. Layer 2 networks help substantially, but the base layer will never be cheap by design.
+**They're expensive.** During congestion, Ethereum fees have exceeded $50 for a single transaction. Since Ethereum's Dencun upgrade (March 2024), transactions on Layer 2 rollups usually cost cents, but the base layer will never be cheap by design at busy times.
 
 **They're bad at storing data.** Every node stores everything forever. Putting a photo on-chain is wildly impractical. Blockchains store *references* and *state*, not files.
 
@@ -209,6 +221,7 @@ Now that the machinery makes sense, the practical next steps are:
 - **[Crypto Wallets Explained](/learn/crypto-wallets-explained)** — securing the private keys that represent your ownership
 - **[How to Buy Your First Cryptocurrency](/learn/how-to-buy-crypto)** — putting this into practice safely
 - **[DeFi Explained](/learn/defi-basics)** — what smart contracts made possible
+- **[Crypto glossary](/glossary)** — quick definitions when a term trips you up
 
 Blockchain is neither the world-changing miracle its loudest advocates claim nor the pure scam its harshest critics insist on. It's a specific engineering trade-off: you give up speed, cost efficiency, and privacy, and you get coordination without a trusted intermediary. Whether that trade is worth making depends entirely on whether you actually needed to remove the intermediary.
 

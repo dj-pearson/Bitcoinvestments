@@ -1,20 +1,34 @@
-export const commonCryptoMistakesGuide = {
+import type { GuideSource } from './index';
+
+export const commonCryptoMistakesGuide: GuideSource = {
   id: 'common-crypto-mistakes',
   title: '10 Common Crypto Mistakes to Avoid',
-  description: 'Learn from others\' mistakes and protect your investment.',
+  description:
+    'The 10 most costly beginner crypto mistakes, from lost seed phrases and giveaway scams to panic selling, overtrading and ignoring taxes, and how to avoid each.',
+  summary:
+    'Most money lost in crypto is lost to avoidable mistakes rather than bad luck: no seed phrase backup, scams, weak account security, leaving large sums on exchanges, panic selling, investing money you need, and ignoring taxes. Each has a simple habit that prevents it.',
   category: 'Tips',
-  readTime: 7,
   icon: '⚠️',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['crypto-wallets-explained', 'how-to-buy-crypto', 'risk-management', 'crypto-taxes-basics'],
+  relatedTools: [
+    { label: 'Scam database', url: '/scam-database', description: 'Check a site, wallet or offer before you send money' },
+    { label: 'Crypto calculators', url: '/calculators', description: 'Fees, DCA and tax estimates' },
+    { label: 'Compare wallets', url: '/compare?tab=wallets', description: 'Find a wallet you can control' },
+  ],
   content: `
 # 10 Common Crypto Mistakes to Avoid
 
 Learning from others' mistakes is cheaper than making them yourself. Here are the most common crypto investing errors and how to avoid them.
 
+> **About the examples:** the short named stories below are illustrative composites of common situations, not accounts of real people. Where we mention real events (Mt. Gox, FTX, the 2020 Twitter hack), they are documented public cases.
+
 ## 1. Not Backing Up Your Seed Phrase
 
 ### The Mistake
 
-**Story**: James bought $5,000 worth of Bitcoin, stored it on his phone wallet, but never wrote down his 12-word seed phrase. When his phone died, his Bitcoin was lost forever.
+**Illustrative example**: James bought $5,000 worth of Bitcoin, stored it on his phone wallet, but never wrote down his 12-word seed phrase. When his phone died, his Bitcoin was lost forever.
 
 **Cost**: $5,000+ lost permanently
 
@@ -22,8 +36,7 @@ Learning from others' mistakes is cheaper than making them yourself. Here are th
 
 - No seed phrase = no recovery
 - Devices fail, get lost, or stolen
-- This is THE #1 cause of lost crypto
-- More crypto is lost this way than through hacks
+- Lost keys are one of the biggest causes of permanently lost bitcoin: analytics firms such as Chainalysis estimate that millions of BTC will likely never move again
 
 ### How to Avoid It
 
@@ -53,15 +66,17 @@ If you currently have a wallet but no backup:
 
 ### The Mistake
 
-**Story**: Sarah saw a tweet from "Elon Musk" promising to double any Bitcoin sent to an address. She sent 0.5 BTC ($20,000). It was a scam account. The Bitcoin is gone forever.
+**Illustrative example**: Sarah saw a tweet from "Elon Musk" promising to double any Bitcoin sent to an address. She sent 0.5 BTC. It was a scam account and the bitcoin is gone.
 
-**Cost**: $20,000 lost
+**Cost**: 0.5 BTC, unrecoverable
+
+**Real case**: in July 2020, hackers took over verified Twitter accounts including Elon Musk's, Barack Obama's and Apple's and posted a "double your bitcoin" offer. People sent them more than $100,000 in bitcoin within hours.
 
 ### Common Scams to Watch For
 
 #### Giveaway Scams
 - "Send 1 BTC, get 2 BTC back"
-- Always fake
+- Always fake, including deepfake "live streams" of real executives
 - Often impersonate celebrities
 - Use hacked verified accounts
 
@@ -81,11 +96,16 @@ If you currently have a wallet but no backup:
 - Ask for seed phrase or private keys
 - Real support NEVER asks for this
 
+#### Romance and "Mentor" Scams (Pig Butchering)
+- A friendly stranger or new online partner introduces a "trading platform"
+- Early small withdrawals work, to build trust
+- Larger deposits can never be withdrawn ("pay a tax first")
+
 ### How to Avoid Scams
 
 ✓ If it sounds too good to be true, it is
 
-✓ No legitimate giveaways exist
+✓ Unsolicited "send X, get 2X back" giveaways are always scams
 
 ✓ Real support never contacts you first
 
@@ -95,7 +115,7 @@ If you currently have a wallet but no backup:
 
 ✓ Be skeptical of urgency ("Act now!")
 
-✓ Research before investing (check reviews, ask community)
+✓ Research before investing, and check our [scam database](/scam-database)
 
 ### Red Flags
 
@@ -115,7 +135,7 @@ If you currently have a wallet but no backup:
 
 ### The Mistake
 
-**Story**: Mike kept $30,000 on an exchange with only password protection. Hackers guessed his password and emptied his account.
+**Illustrative example**: Mike kept $30,000 on an exchange with only password protection. Hackers guessed his password and emptied his account.
 
 **Cost**: $30,000 stolen
 
@@ -130,7 +150,7 @@ If you currently have a wallet but no backup:
 
 ✓ Enable 2FA on ALL accounts
 
-✓ Use authenticator apps (Google Authenticator, Authy)
+✓ Use authenticator apps or passkeys (Google Authenticator, Microsoft Authenticator, 2FAS)
 
 ✓ Avoid SMS-based 2FA (SIM swapping risk)
 
@@ -141,9 +161,10 @@ If you currently have a wallet but no backup:
 ### Setting Up Proper 2FA
 
 1. **Download Authenticator App**
-   - Google Authenticator
-   - Authy (has backup feature)
+   - Google Authenticator (can sync to your Google account)
    - Microsoft Authenticator
+   - 2FAS (open source)
+   - Or use a passkey / hardware security key where the exchange supports it
 
 2. **Enable on Exchange**
    - Find Security Settings
@@ -162,7 +183,7 @@ If you currently have a wallet but no backup:
 
 ### The Mistake
 
-**Story**: Tom kept $100,000 worth of crypto on an exchange for convenience. The exchange was hacked. Months later, he recovered only $10,000.
+**Illustrative example**: Tom kept $100,000 worth of crypto on an exchange for convenience. The exchange was hacked. Months later, he recovered only $10,000.
 
 **Cost**: $90,000 lost
 
@@ -171,7 +192,7 @@ If you currently have a wallet but no backup:
 - Exchanges are hacking targets
 - You don't control the private keys
 - Exchange could freeze your account
-- Exchange could go bankrupt
+- Exchange could go bankrupt (Mt. Gox in 2014, FTX in 2022: FTX customers waited about two years for repayment, valued at 2022 prices rather than the far higher prices by then)
 - "Not your keys, not your crypto"
 
 ### How to Avoid It
@@ -199,14 +220,14 @@ If you currently have a wallet but no backup:
 
 ### The Mistake
 
-**Story**: Lisa bought Bitcoin at $60,000. When it dropped to $30,000, she panicked and sold everything, locking in a 50% loss. Bitcoin later recovered to $65,000.
+**Illustrative example**: Lisa put $30,000 into 0.5 BTC when the price was $60,000. When it dropped to $30,000, she panicked and sold, receiving $15,000. Bitcoin later recovered to $65,000, when her 0.5 BTC would have been worth $32,500.
 
-**Cost**: $15,000 in missed gains + realized losses
+**Cost**: a $15,000 realised loss, and $17,500 less than if she had held (fees and taxes ignored)
 
 ### Why It's Dangerous
 
 - Crypto is extremely volatile
-- 30-50% drops are normal
+- 30–50% drops have happened within most bull markets, and 75%+ drops in bear markets
 - Selling at bottom locks in losses
 - Missing recovery = lost opportunity
 
@@ -229,7 +250,7 @@ If you currently have a wallet but no backup:
 **Remember:**
 - Volatility is the price of admission
 - Short-term noise doesn't matter
-- Bitcoin has dropped 80% multiple times and recovered
+- Bitcoin has dropped roughly 75–85% several times and, so far, recovered (a smaller coin may never recover)
 - Time in market > timing market
 
 ---
@@ -238,7 +259,7 @@ If you currently have a wallet but no backup:
 
 ### The Mistake
 
-**Story**: Kevin used his emergency fund and credit cards to buy crypto, investing $50,000. The market crashed, and he needed money for emergency. Had to sell at 60% loss.
+**Illustrative example**: Kevin used his emergency fund and credit cards to buy crypto, investing $50,000. The market crashed, and he needed money for emergency. Had to sell at 60% loss.
 
 **Cost**: $30,000 loss + credit card debt
 
@@ -269,7 +290,7 @@ If you currently have a wallet but no backup:
 1. **Pay off high-interest debt** (credit cards)
 2. **Build emergency fund** (3-6 months expenses)
 3. **Max retirement accounts** (401k/IRA)
-4. **Then invest** in crypto (5-10% of portfolio)
+4. **Then invest** in crypto with a small share of your portfolio. Many planners suggest low single digits up to about 10% for most people; see [risk management](/learn/risk-management) for position sizing
 
 ---
 
@@ -277,7 +298,7 @@ If you currently have a wallet but no backup:
 
 ### The Mistake
 
-**Story**: Rachel saw Dogecoin trending and bought $10,000 at the peak without research. It crashed 80%. She had no idea what she owned or why.
+**Illustrative example**: Rachel saw Dogecoin trending and bought $10,000 at the peak without research. It crashed 80%. She had no idea what she owned or why.
 
 **Cost**: $8,000 paper loss
 
@@ -323,7 +344,7 @@ Before buying ANY crypto:
 
 ### The Mistake
 
-**Story**: David sent $15,000 of Bitcoin to an Ethereum address. Transactions are irreversible. The Bitcoin is gone forever.
+**Illustrative example**: David sent $15,000 of Bitcoin to an Ethereum address. Transactions are irreversible. The Bitcoin is gone forever.
 
 **Cost**: $15,000 lost permanently
 
@@ -368,7 +389,7 @@ Before buying ANY crypto:
 
 ### The Mistake
 
-**Story**: Chris made $200,000 trading crypto in 2021 but didn't report it. The IRS found out. He owes $60,000 in taxes plus $20,000 in penalties and interest.
+**Illustrative example**: Chris made $200,000 trading crypto in 2021 but didn't report it. The IRS found out. He owes $60,000 in taxes plus $20,000 in penalties and interest.
 
 **Cost**: $80,000 in penalties + stress
 
@@ -376,7 +397,7 @@ Before buying ANY crypto:
 
 - IRS treats crypto as property
 - All sales/trades are taxable events
-- Exchanges report to IRS
+- US exchanges now report your sales to the IRS on Form 1099-DA (from 2025 transactions)
 - Penalties for not reporting
 - Potential audit
 
@@ -393,6 +414,8 @@ Before buying ANY crypto:
 ✓ Consider tax-loss harvesting
 
 ✓ Consult crypto-savvy CPA
+
+Read [Crypto Taxes: What You Need to Know](/learn/crypto-taxes-basics) for the details.
 
 ### US Tax Basics
 
@@ -413,13 +436,13 @@ Before buying ANY crypto:
 
 ### The Mistake
 
-**Story**: Emma started day-trading crypto. After 6 months of constant trading, she calculated her returns: -15% after fees, and hundreds of hours wasted.
+**Illustrative example**: Emma started day-trading crypto. After 6 months of constant trading, she calculated her returns: -15% after fees, and hundreds of hours wasted.
 
 **Cost**: Time + stress + losses
 
 ### Why It's Dangerous
 
-- 95% of day traders lose money
+- Studies of retail day traders consistently find most lose money (one widely cited study of Brazilian futures day traders found 97% of those who kept at it for more than 300 days lost money)
 - Trading fees add up quickly
 - Emotional decision making
 - Time consuming
@@ -443,10 +466,10 @@ Before buying ANY crypto:
 ### The Math of Overtrading
 
 **Example:**
-- 100 trades per year
-- 0.25% fee per trade (buy + sell)
-- 100 trades × 0.5% = 50% in fees
-- Need 50%+ returns just to break even
+- 100 trades per year, each moving your whole balance
+- 0.25% fee per trade
+- 100 trades × 0.25% ≈ 25% of your capital paid in fees each year (about 22% once compounding is counted)
+- You need roughly a 25–30% gross return just to break even
 - Plus tax on every trade
 - Plus time and stress
 
@@ -467,8 +490,8 @@ Don't put everything in one coin. Spread risk across 3-5 quality projects.
 ### Bragging About Holdings
 Don't tell people how much you own. You become a target.
 
-### Using Public WiFi
-Never access crypto accounts on public WiFi. Use VPN or cellular.
+### Using Shared Devices or Untrusted Networks
+Avoid logging into crypto accounts on shared computers or unknown networks. Use your own device, keep it updated, and prefer your mobile connection when out.
 
 ### Not Learning Continuously
 Crypto evolves fast. Keep learning or get left behind.
@@ -520,10 +543,10 @@ Now that you know what NOT to do:
 
 1. **Secure your existing holdings** - Review your current setup
 2. **Learn proper practices** - Read our [Wallet Security Guide](/learn/crypto-wallets-explained)
-3. **Start small** - Test everything with small amounts first
-4. **Build knowledge** - Continue education before increasing investment
-5. **Join community** - Learn from experienced investors
+3. **Buy carefully** - Follow [How to Buy Your First Cryptocurrency](/learn/how-to-buy-crypto)
+4. **Start small** - Test everything with small amounts first
+5. **Size your risk** - Read [Crypto Risk Management](/learn/risk-management) and model scenarios with our [calculators](/calculators)
 
-Remember: In crypto, an ounce of prevention is worth $10,000 of cure. Learn from others' expensive mistakes!
+Remember: in crypto there is rarely anyone who can reverse a mistake for you, so prevention is everything.
 `,
 };

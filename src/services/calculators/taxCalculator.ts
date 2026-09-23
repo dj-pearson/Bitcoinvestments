@@ -2,74 +2,120 @@ import type { TaxCalculatorInput, TaxCalculatorResult } from '../../types';
 import { classifyHoldingPeriod } from './holdingPeriod';
 import { toLocalISODate } from '../../lib/utils';
 
-// US Federal capital gains tax brackets for 2024
-// Short-term gains are taxed as ordinary income (user's tax bracket is used)
-export const SHORT_TERM_BRACKETS = [
-  { min: 0, max: 11600, rate: 0.10 },
-  { min: 11600, max: 47150, rate: 0.12 },
-  { min: 47150, max: 100525, rate: 0.22 },
-  { min: 100525, max: 191950, rate: 0.24 },
-  { min: 191950, max: 243725, rate: 0.32 },
-  { min: 243725, max: 609350, rate: 0.35 },
-  { min: 609350, max: Infinity, rate: 0.37 },
-];
+import {
+  DEFAULT_TAX_YEAR,
+  computeFederalTax,
+  getFederalTaxData,
+  marginalRate,
+  type FilingStatus,
+  type TaxYear,
+} from '../../data/taxBrackets';
+import {
+  STATE_TAX_BY_CODE,
+  STATE_TAX_TABLE,
+  estimateStateCapitalGainsTax,
+  stateRateFor,
+} from '../../data/stateTaxRates';
 
-const LONG_TERM_BRACKETS = [
-  { min: 0, max: 47025, rate: 0.00 },
-  { min: 47025, max: 518900, rate: 0.15 },
-  { min: 518900, max: Infinity, rate: 0.20 },
-];
+/**
+ * Flat state rate per state code for the default tax year, derived from the one
+ * dated table in src/data/stateTaxRates.ts. Kept for callers that apply a single
+ * rate (the tax report service); new code should call estimateStateCapitalGainsTax.
+ */
+export const STATE_TAX_RATES: Record<string, number> = Object.fromEntries(
+  STATE_TAX_TABLE.map((s) => [s.code, stateRateFor(s.code, DEFAULT_TAX_YEAR)])
+);
 
-// State capital gains tax rates (simplified - actual rates may vary)
-export const STATE_TAX_RATES: Record<string, number> = {
-  CA: 0.133, // California
-  NY: 0.0882, // New York
-  NJ: 0.1075, // New Jersey
-  HI: 0.11, // Hawaii
-  MN: 0.0985, // Minnesota
-  OR: 0.099, // Oregon
-  VT: 0.0875, // Vermont
-  IA: 0.06, // Iowa
-  WI: 0.0765, // Wisconsin
-  ME: 0.0715, // Maine
-  SC: 0.07, // South Carolina
-  CT: 0.0699, // Connecticut
-  MT: 0.0675, // Montana
-  NE: 0.0664, // Nebraska
-  ID: 0.06, // Idaho
-  WV: 0.065, // West Virginia
-  AR: 0.055, // Arkansas
-  GA: 0.055, // Georgia
-  MD: 0.055, // Maryland
-  MA: 0.05, // Massachusetts
-  KY: 0.05, // Kentucky
-  NC: 0.0525, // North Carolina
-  OK: 0.05, // Oklahoma
-  VA: 0.0575, // Virginia
-  LA: 0.0425, // Louisiana
-  MS: 0.05, // Mississippi
-  AL: 0.05, // Alabama
-  MO: 0.054, // Missouri
-  KS: 0.057, // Kansas
-  MI: 0.0425, // Michigan
-  IN: 0.0315, // Indiana
-  CO: 0.044, // Colorado
-  UT: 0.0485, // Utah
-  AZ: 0.025, // Arizona
-  IL: 0.0495, // Illinois
-  OH: 0, // Ohio - no state tax on capital gains
-  PA: 0.0307, // Pennsylvania
-  ND: 0.029, // North Dakota
-  TX: 0, // Texas - no income tax
-  FL: 0, // Florida - no income tax
-  WA: 0, // Washington - no income tax (but has 7% on long-term gains over $250k)
-  NV: 0, // Nevada - no income tax
-  WY: 0, // Wyoming - no income tax
-  SD: 0, // South Dakota - no income tax
-  TN: 0, // Tennessee - no income tax
-  AK: 0, // Alaska - no income tax
-  NH: 0, // New Hampshire - no income tax (but has tax on dividends/interest)
-};
+export interface CryptoSaleTaxInput {
+  taxYear: TaxYear;
+  filingStatus: FilingStatus;
+  /** Wages and other ordinary income for the year, before the standard deduction. */
+  otherIncome: number;
+  costBasis: number;
+  proceeds: number;
+  /** Fees paid to sell (reduce proceeds). */
+  fees?: number;
+  purchaseDate: string;
+  saleDate: string;
+  state?: string;
+}
+
+export interface CryptoSaleTaxResult {
+  gain: number;
+  holdingPeriod: 'short_term' | 'long_term';
+  federalIncomeTax: number;
+  niit: number;
+  stateTax: number;
+  totalTax: number;
+  /** Total tax / gain (0 when there is no gain). */
+  effectiveRate: number;
+  /** Ordinary marginal bracket before the sale. */
+  marginalOrdinaryRate: number;
+  lossDeduction: number;
+  lossCarryforward: number;
+  /** Tax saved by a loss this year (negative tax change). */
+  taxSavedByLoss: number;
+  netAfterTax: number;
+  standardDeduction: number;
+}
+
+/**
+ * Incremental tax caused by one crypto sale: federal tax (brackets, 0/15/20%
+ * stacking, NIIT) with the sale minus the same return without it, plus a
+ * simplified state estimate. Estimate only - no credits, AMT, itemizing or
+ * other gains/losses in the year.
+ */
+export function estimateCryptoSaleTax(input: CryptoSaleTaxInput): CryptoSaleTaxResult {
+  const data = getFederalTaxData(input.taxYear, input.filingStatus);
+  const gain = input.proceeds - (input.fees ?? 0) - input.costBasis;
+  const holdingPeriod = classifyHoldingPeriod(
+    new Date(`${input.purchaseDate}T00:00:00Z`),
+    new Date(`${input.saleDate}T00:00:00Z`)
+  );
+
+  const base = computeFederalTax({
+    data,
+    status: input.filingStatus,
+    ordinaryIncome: input.otherIncome,
+    shortTermGain: 0,
+    longTermGain: 0,
+  });
+  const withSale = computeFederalTax({
+    data,
+    status: input.filingStatus,
+    ordinaryIncome: input.otherIncome,
+    shortTermGain: holdingPeriod === 'short_term' ? gain : 0,
+    longTermGain: holdingPeriod === 'long_term' ? gain : 0,
+  });
+
+  const federalIncomeTax = withSale.ordinaryTax + withSale.ltcgTax - (base.ordinaryTax + base.ltcgTax);
+  const niit = withSale.niit - base.niit;
+  const stateTax = input.state
+    ? estimateStateCapitalGainsTax(
+        input.state,
+        input.taxYear,
+        holdingPeriod === 'short_term' ? gain : 0,
+        holdingPeriod === 'long_term' ? gain : 0
+      )
+    : 0;
+  const totalTax = federalIncomeTax + niit + stateTax;
+
+  return {
+    gain,
+    holdingPeriod,
+    federalIncomeTax,
+    niit,
+    stateTax,
+    totalTax,
+    effectiveRate: gain > 0 ? totalTax / gain : 0,
+    marginalOrdinaryRate: marginalRate(base.taxableIncome, data.ordinary),
+    lossDeduction: withSale.lossDeduction,
+    lossCarryforward: withSale.lossCarryforward,
+    taxSavedByLoss: gain < 0 ? -federalIncomeTax : 0,
+    netAfterTax: gain - totalTax,
+    standardDeduction: data.standardDeduction,
+  };
+}
 
 /**
  * Calculate estimated capital gains tax
@@ -128,17 +174,16 @@ export function calculateCapitalGainsTax(
     // tax_bracket is the filer's ordinary rate, so use the income floor of that
     // bracket as a conservative stand-in for ordinary taxable income and stack
     // the gain above it.
+    // Single-filer thresholds for the default tax year (src/data/taxBrackets.ts).
+    const { ordinary, ltcg } = getFederalTaxData(DEFAULT_TAX_YEAR, 'single');
     const ordinaryRate = tax_bracket / 100;
-    const ordinaryBracket = [...SHORT_TERM_BRACKETS]
-      .reverse()
-      .find(b => ordinaryRate >= b.rate);
-    const ordinaryIncomeFloor = ordinaryBracket?.min ?? 0;
+    let ordinaryIncomeFloor = 0;
+    for (let i = 0; i < ordinary.length; i++) {
+      if (ordinaryRate >= ordinary[i].rate) ordinaryIncomeFloor = i === 0 ? 0 : ordinary[i - 1].upTo;
+    }
     const incomeIncludingGain = ordinaryIncomeFloor + gainLoss;
-
-    const bracket = LONG_TERM_BRACKETS.find(
-      b => incomeIncludingGain >= b.min && incomeIncludingGain < b.max
-    );
-    federalTaxRate = bracket?.rate ?? 0.20;
+    federalTaxRate =
+      incomeIncludingGain <= ltcg.zeroUpTo ? 0 : incomeIncludingGain <= ltcg.fifteenUpTo ? 0.15 : 0.2;
   }
 
   // Add state tax if applicable
@@ -362,10 +407,9 @@ export function estimateQuarterlyPayment(
   if (holdingPeriod === 'short_term') {
     federalRate = taxBracket / 100;
   } else {
-    const bracket = LONG_TERM_BRACKETS.find(
-      b => estimatedAnnualGains >= b.min && estimatedAnnualGains < b.max
-    );
-    federalRate = bracket?.rate || 0.15;
+    const { ltcg } = getFederalTaxData(DEFAULT_TAX_YEAR, 'single');
+    federalRate =
+      estimatedAnnualGains <= ltcg.zeroUpTo ? 0 : estimatedAnnualGains <= ltcg.fifteenUpTo ? 0.15 : 0.2;
   }
 
   const stateRate = state ? (STATE_TAX_RATES[state] || 0) : 0;
@@ -400,27 +444,14 @@ export function getStateTaxInfo(state: string): {
   hasCapitalGainsTax: boolean;
   notes: string;
 } | null {
-  const rate = STATE_TAX_RATES[state];
+  const info = STATE_TAX_BY_CODE[state];
+  if (!info) return null;
 
-  if (rate === undefined) {
-    return null;
-  }
-
-  const noTaxStates = ['TX', 'FL', 'WA', 'NV', 'WY', 'SD', 'TN', 'AK', 'NH'];
-  const hasCapitalGainsTax = rate > 0;
-
-  let notes = '';
-  if (noTaxStates.includes(state)) {
-    notes = 'No state income tax on capital gains.';
-  } else if (state === 'WA') {
-    notes = 'Washington has a 7% tax on long-term capital gains over $250,000.';
-  } else if (state === 'CA') {
-    notes = 'California taxes capital gains as ordinary income at the highest rates in the nation.';
-  }
-
+  const rate = stateRateFor(state, DEFAULT_TAX_YEAR);
   return {
     rate: rate * 100,
-    hasCapitalGainsTax,
-    notes,
+    // Washington has no income tax but does tax large long-term gains.
+    hasCapitalGainsTax: state === 'WA' || (rate > 0 && !info.noCapitalGainsTax),
+    notes: info.note ?? '',
   };
 }

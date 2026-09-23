@@ -24,7 +24,8 @@ export type FeatureKey =
   | 'affiliate'
   | 'portfolio-analysis'
   | 'developer-portal'
-  | 'advertiser';
+  | 'advertiser'
+  | 'multi-exchange';
 
 export interface FeatureLink {
   to: string;
@@ -244,6 +245,20 @@ export const FEATURES: Record<FeatureKey, FeatureInfo> = {
       'Sponsors will manage their campaigns here once accounts open. It needs an account, and accounts are not open yet.',
     plans: ['Campaign performance for sponsored articles and placements'],
     alternatives: [{ to: '/blog', label: 'Read the blog' }],
+    ready: true,
+  },
+  'multi-exchange': {
+    title: 'Multi-Exchange Tracking (Soon)',
+    description:
+      'Automatic syncing of balances from several crypto exchanges is not available. Track holdings from each exchange by hand in the free portfolio tracker.',
+    heading: 'Exchange syncing is not available',
+    summary:
+      'Connecting exchange accounts needs an account and secure storage for API keys, and neither is available yet. You can enter holdings from every exchange by hand in the portfolio tracker today.',
+    plans: ['Read-only balance sync from the exchanges you use, with keys stored encrypted on the server'],
+    alternatives: [
+      { to: '/dashboard', label: 'Open the portfolio tracker' },
+      { to: '/learn/crypto-wallets-explained', label: 'Keeping your crypto secure' },
+    ],
     ready: true,
   },
 };

@@ -1,550 +1,290 @@
 /**
- * Hardware Wallet Integration Page
+ * /hardware-wallet — Hardware wallet comparison guide (Ledger vs Trezor and
+ * others), built from the dated data in src/data/wallets.ts.
  *
- * Premium feature for tracking cold storage with Ledger/Trezor devices.
- * $14.99/month or bundled. Partner affiliate revenue from hardware sales.
+ * Replaces the old "Hardware Wallet Integration" premium tracker, which showed
+ * random balances and fake transactions and sold a $14.99/mo plan that could
+ * not be bought.
  */
 
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  HardDrive,
-  Plus,
-  RefreshCw,
-  Shield,
-  Wallet,
-  ExternalLink,
-  ChevronRight,
-  Check,
-  AlertCircle,
-  Download,
-  Trash2,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import {
-  HARDWARE_WALLET_PRICING,
-  HARDWARE_WALLET_AFFILIATES,
-  hasHardwareWalletAccess,
-  getHardwareWalletLimits,
-  getSupportedChains,
-  addHardwareWalletManually,
-  syncWalletBalances,
-  getPortfolioSummary,
-  getUserWallets,
-  getWalletAddresses,
-  removeWallet,
-  exportWalletData,
-  trackAffiliateClick,
-} from '../services/hardwareWallet';
-import type {
-  HardwareWallet,
-  HardwareWalletAddress,
-  HardwareWalletType,
-  HardwareWalletPortfolioSummary,
-  HardwareWalletSubscription,
-} from '../types/premiumFeatures';
-
+import { Check, X, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { PageSEO } from '../components/PageSEO';
-export default function HardwareWalletPage() {
-  const { user } = useAuth();
-  const [subscription] = useState<HardwareWalletSubscription | null>(null);
-  const [wallets, setWallets] = useState<HardwareWallet[]>([]);
-  const [selectedWallet, setSelectedWallet] = useState<HardwareWallet | null>(null);
-  const [, setAddresses] = useState<HardwareWalletAddress[]>([]);
-  const [portfolio, setPortfolio] = useState<HardwareWalletPortfolioSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showBalances, setShowBalances] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+import { generateBreadcrumbSchema } from '../components/SEO';
+import { AffiliateDisclosureBanner, OutboundLink } from '../components/AffiliateDisclosure';
+import { FaqSection, SourcesList, VerifiedDate, type FaqItem } from '../components/compare/CompareBlocks';
+import { SITE_URL, formatIsoDate } from '../components/compare/compareUtils';
+import { wallets, getCurrentHardwareWallets, getWalletById, WALLETS_LAST_VERIFIED } from '../data/wallets';
+import type { FactSource, Wallet } from '../types';
 
-  const hasAccess = hasHardwareWalletAccess(subscription);
-  const limits = getHardwareWalletLimits(subscription);
+function priceOf(id: string): string {
+  const w = getWalletById(id);
+  return w?.price ? `$${w.price}` : '';
+}
 
-  useEffect(() => {
-    loadData();
-  }, [user?.id]);
+const FAQS: FaqItem[] = [
+  {
+    question: 'Is Ledger or Trezor better?',
+    answer:
+      'Neither is better for everyone. Trezor publishes its firmware as open source, so outside researchers can check it, and its Safe models now also have a secure element. Ledger keeps its secure-element firmware closed but has had certified secure elements for years and offers Bluetooth and NFC on more models. If you value auditability, choose Trezor; if you want the widest phone support and coin list, choose Ledger.',
+  },
+  {
+    question: 'What is the best budget hardware wallet?',
+    answer: `The Trezor Safe 3 (${priceOf('trezor-safe-3')} list price) gives you open-source firmware and a secure element for the least money. The Ledger Nano S Plus (${priceOf('ledger-nano-s-plus')} list price, often discounted) is the Ledger alternative, but has no Bluetooth.`,
+  },
+  {
+    question: 'Do I need a hardware wallet?',
+    answer:
+      'If you hold more crypto than you would be comfortable losing from a hacked phone, computer or exchange account, yes. A hardware wallet keeps the private keys on a separate device and asks you to confirm every transaction on its own screen, so malware cannot quietly send your coins away.',
+  },
+  {
+    question: 'What happens if I lose my hardware wallet?',
+    answer:
+      'Your coins are not on the device; they are on the blockchain. You can restore them on a new device (any brand that supports the same standard) using your recovery phrase. That is why the recovery phrase must be written down offline and stored safely, and why anyone who finds it can take your coins.',
+  },
+  {
+    question: 'Are the Trezor Model T and Model One still sold?',
+    answer:
+      'No. Trezor removed both from its shop on 2026-01-08. They still receive security updates (the Model One gets critical fixes until at least 2036). The Safe 3, Safe 5 and Safe 7 replace them.',
+  },
+  {
+    question: 'Is it safe to buy a hardware wallet from Amazon or eBay?',
+    answer:
+      'Buy from the manufacturer or an authorised reseller. Tampered and "pre-configured" devices sold second-hand are a known scam. Never use a device that arrives with a recovery phrase already printed or set up: a genuine wallet always has you create a new one.',
+  },
+];
 
-  async function loadData() {
-    setIsLoading(true);
-    try {
-      if (user?.id) {
-        const userWallets = getUserWallets(user.id);
-        setWallets(userWallets);
+const SETUP_STEPS = [
+  'Buy directly from the manufacturer or an authorised reseller, and check the packaging for tampering.',
+  'Set it up from scratch: the device must generate a new recovery phrase. Never accept one that came in the box.',
+  'Write the recovery phrase on paper or a metal backup plate. Never type it into a phone, computer, cloud note or photo.',
+  'Install the official app only (Ledger Wallet or Trezor Suite) from the official website, and update firmware only through it.',
+  'Send a small test amount, then practise a restore before you move your savings.',
+  'Always check the receiving address and amount on the device screen, not just on your computer.',
+  'Consider a passphrase (a "25th word") for extra protection, but only if you can store it as safely as the phrase itself.',
+  'Expect phishing: past customer-data leaks mean scammers email, text and even post fake "replacement" devices to owners.',
+];
 
-        const portfolioData = await getPortfolioSummary(user.id);
-        setPortfolio(portfolioData);
-      }
-    } catch (err) {
-      console.error('Failed to load hardware wallet data:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+const OTHER_BRANDS: { name: string; summary: string }[] = [
+  { name: 'Coldcard (Coinkite)', summary: 'Bitcoin-only, designed for air-gapped use with a microSD card. Popular with advanced Bitcoin savers and multisig setups.' },
+  { name: 'BitBox02 (Shift Crypto, Switzerland)', summary: 'Open-source firmware with a secure chip, sold in multi-coin and Bitcoin-only editions.' },
+  { name: 'Keystone', summary: 'Air-gapped device that signs via QR codes, with a large touchscreen; works with many software wallets.' },
+  { name: 'Blockstream Jade', summary: 'Low-cost, open-source Bitcoin (and Liquid) wallet with a camera for QR-code air-gapped signing.' },
+];
 
-  async function handleSync() {
-    if (!selectedWallet) return;
-    setIsSyncing(true);
-    try {
-      await syncWalletBalances(selectedWallet.id);
-      await loadData();
-    } catch {
-      setError('Failed to sync wallet balances');
-    } finally {
-      setIsSyncing(false);
-    }
-  }
-
-  async function handleExport(format: 'csv' | 'json') {
-    if (!user?.id) return;
-    const { data, filename, error } = await exportWalletData(user.id, format);
-    if (error) {
-      setError(error);
-      return;
-    }
-
-    const blob = new Blob([data], { type: format === 'json' ? 'application/json' : 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <PageSEO pageKey="hardwareWallet" urlPath="/hardware-wallet" />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <HardDrive className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Hardware Wallet Integration
-            </h1>
-            <span className="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full">
-              PREMIUM
-            </span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Securely track your cold storage assets across Ledger, Trezor, and other hardware wallets.
-          </p>
-        </div>
-
-        {!hasAccess ? (
-          /* Premium Upsell */
-          <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl p-8 text-white mb-8">
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Unlock Hardware Wallet Tracking</h2>
-                <p className="text-blue-100 mb-6">
-                  Track your cold storage holdings in real-time. Connect your Ledger, Trezor, or other hardware wallets for complete portfolio visibility.
-                </p>
-                <ul className="space-y-3 mb-6">
-                  {HARDWARE_WALLET_PRICING.monthly.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <Check className="h-5 w-5 text-green-400" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-4xl font-bold">${HARDWARE_WALLET_PRICING.monthly.price}</span>
-                  <span className="text-blue-200">/month</span>
-                </div>
-                <Link
-                  to="/pricing"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-                >
-                  Subscribe Now
-                  <ChevronRight className="h-5 w-5" />
-                </Link>
-              </div>
-              <div className="hidden md:flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-48 h-48 bg-white/10 rounded-full flex items-center justify-center">
-                    <HardDrive className="h-24 w-24 text-white/80" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
-                    <Shield className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Premium Content */
-          <>
-            {/* Portfolio Summary */}
-            {portfolio && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-gray-600 dark:text-gray-400 text-sm">Total Value</span>
-                    <button onClick={() => setShowBalances(!showBalances)} className="text-gray-400 hover:text-gray-600">
-                      {showBalances ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {showBalances ? `$${portfolio.total_value_usd.toLocaleString()}` : '••••••'}
-                  </p>
-                  <p className={`text-sm ${portfolio.total_change_24h_percent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {portfolio.total_change_24h_percent >= 0 ? '+' : ''}{portfolio.total_change_24h_percent.toFixed(2)}% (24h)
-                  </p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">Wallets Connected</span>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{portfolio.wallets_connected}</p>
-                  <p className="text-sm text-gray-500">of {limits.maxDevices} allowed</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">Total Addresses</span>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{portfolio.total_addresses}</p>
-                  <p className="text-sm text-gray-500">of {limits.maxAddresses} allowed</p>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">Chains Tracked</span>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{portfolio.holdings_by_chain.length}</p>
-                  <div className="flex gap-1 mt-1">
-                    {portfolio.holdings_by_chain.slice(0, 4).map((chain, i) => (
-                      <span key={i} className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
-                        {chain.chain}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Actions Bar */}
-            <div className="flex flex-wrap gap-4 mb-8">
-              <button
-                onClick={() => setShowAddModal(true)}
-                disabled={wallets.length >= limits.maxDevices}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-5 w-5" />
-                Add Wallet
-              </button>
-              <button
-                onClick={handleSync}
-                disabled={isSyncing || wallets.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
-              >
-                <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
-                Sync All
-              </button>
-              <button
-                onClick={() => handleExport('csv')}
-                disabled={wallets.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
-              >
-                <Download className="h-5 w-5" />
-                Export CSV
-              </button>
-            </div>
-
-            {/* Wallets List */}
-            {wallets.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center">
-                <HardDrive className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  No Hardware Wallets Connected
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Add your first hardware wallet to start tracking your cold storage.
-                </p>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Plus className="h-5 w-5" />
-                  Add Your First Wallet
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {wallets.map(wallet => (
-                  <div key={wallet.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                          <Wallet className="h-6 w-6 text-gray-600 dark:text-gray-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{wallet.device_name}</h3>
-                          <p className="text-sm text-gray-500 capitalize">{wallet.wallet_type}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedWallet(wallet);
-                            setAddresses(getWalletAddresses(wallet.id));
-                          }}
-                          className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
-                        >
-                          View Addresses
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm('Are you sure you want to remove this wallet?')) {
-                              await removeWallet(wallet.id);
-                              loadData();
-                            }
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Chain Distribution */}
-            {portfolio && portfolio.holdings_by_chain.length > 0 && (
-              <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Holdings by Chain</h3>
-                <div className="space-y-3">
-                  {portfolio.holdings_by_chain.map((chain, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600 dark:text-gray-400 capitalize">{chain.chain}</span>
-                        <span className="text-gray-900 dark:text-white">
-                          {showBalances ? `$${chain.value_usd.toLocaleString()}` : '••••'} ({chain.percentage.toFixed(1)}%)
-                        </span>
-                      </div>
-                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-600 rounded-full"
-                          style={{ width: `${chain.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Buy Hardware Wallet Section */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Don't Have a Hardware Wallet?
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Protect your crypto with a hardware wallet. We recommend these trusted brands:
-          </p>
-          <div className="grid md:grid-cols-2 gap-6">
-            {Object.entries(HARDWARE_WALLET_AFFILIATES).map(([key, brand]) => (
-              <div key={key} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{brand.name}</h3>
-                <div className="space-y-3 mb-6">
-                  {brand.products.map((product, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">{product.name}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">${product.price}</span>
-                    </div>
-                  ))}
-                </div>
-                <a
-                  href={brand.affiliateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackAffiliateClick(user?.id || null, key as 'ledger' | 'trezor', 'general')}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                >
-                  Shop {brand.name}
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Add Wallet Modal */}
-        {showAddModal && (
-          <AddWalletModal
-            onClose={() => setShowAddModal(false)}
-            onAdd={async (type, name, addrs) => {
-              if (!user?.id) return;
-              const result = await addHardwareWalletManually(user.id, type, name, addrs);
-              if (result.error) {
-                setError(result.error);
-              } else {
-                setShowAddModal(false);
-                loadData();
-              }
-            }}
-          />
-        )}
-
-        {/* Error Toast */}
-        {error && (
-          <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            {error}
-            <button onClick={() => setError(null)} className="ml-2 hover:opacity-80">×</button>
-          </div>
-        )}
-      </div>
-    </div>
+function yesNoCell(value: boolean) {
+  return value ? (
+    <span className="inline-flex items-center gap-1 text-green-300"><Check className="w-4 h-4" aria-hidden="true" />Yes</span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-gray-400"><X className="w-4 h-4" aria-hidden="true" />No</span>
   );
 }
 
-// Add Wallet Modal Component
-function AddWalletModal({
-  onClose,
-  onAdd,
-}: {
-  onClose: () => void;
-  onAdd: (type: HardwareWalletType, name: string, addresses: { address: string; chain: string; label?: string }[]) => void;
-}) {
-  const [step, setStep] = useState<'type' | 'addresses'>('type');
-  const [walletType, setWalletType] = useState<HardwareWalletType>('ledger');
-  const [deviceName, setDeviceName] = useState('');
-  const [addressInputs, setAddressInputs] = useState([{ address: '', chain: 'ethereum', label: '' }]);
+function productSchema(w: Wallet) {
+  return {
+    '@type': 'Product',
+    name: w.name,
+    url: `${SITE_URL}/compare/wallet/${w.id}`,
+    brand: { '@type': 'Brand', name: w.brand },
+    category: 'Cryptocurrency hardware wallet',
+    ...(w.price
+      ? {
+          offers: {
+            '@type': 'Offer',
+            price: w.price.toFixed(2),
+            priceCurrency: 'USD',
+            url: w.url,
+            availability: 'https://schema.org/InStock',
+            seller: { '@type': 'Organization', name: w.brand },
+          },
+        }
+      : {}),
+  };
+}
 
-  const supportedChains = getSupportedChains(walletType);
+export default function HardwareWalletPage() {
+  const current = getCurrentHardwareWallets();
+  const discontinued = wallets.filter(w => w.type === 'hardware' && w.status === 'discontinued');
 
-  function addAddressInput() {
-    setAddressInputs([...addressInputs, { address: '', chain: 'ethereum', label: '' }]);
+  const sources: FactSource[] = [];
+  for (const w of [...current, ...discontinued]) {
+    for (const s of w.sources) {
+      if (!sources.some(existing => existing.url === s.url)) sources.push(s);
+    }
   }
 
-  function updateAddress(index: number, field: 'address' | 'chain' | 'label', value: string) {
-    const updated = [...addressInputs];
-    updated[index][field] = value;
-    setAddressInputs(updated);
-  }
-
-  function removeAddressInput(index: number) {
-    setAddressInputs(addressInputs.filter((_, i) => i !== index));
-  }
-
-  function handleSubmit() {
-    const validAddresses = addressInputs.filter(a => a.address.trim());
-    if (validAddresses.length === 0) return;
-    onAdd(walletType, deviceName || `My ${walletType}`, validAddresses);
-  }
+  const schema = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Current hardware wallets compared',
+      numberOfItems: current.length,
+      itemListElement: current.map((w, i) => ({ '@type': 'ListItem', position: i + 1, item: productSchema(w) })),
+    },
+    generateBreadcrumbSchema([
+      { name: 'Home', url: '/' },
+      { name: 'Hardware wallet comparison', url: '/hardware-wallet' },
+    ]),
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Hardware Wallet</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">×</button>
+    <div className="container mx-auto px-4 py-12 space-y-10">
+      <PageSEO pageKey="hardwareWallet" urlPath="/hardware-wallet" faqs={FAQS} customSchema={schema} />
+
+      <header className="max-w-3xl">
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          Hardware Wallet Comparison: Ledger vs Trezor (2026)
+        </h1>
+        <p className="text-lg text-gray-300">
+          A hardware wallet keeps your private keys on a separate device and makes you approve every
+          transaction on its own screen. For most people the Trezor Safe 3 ({priceOf('trezor-safe-3')} list)
+          is the best value; choose the Ledger Nano Gen5 ({priceOf('ledger-nano-gen5')}) or Trezor Safe 7
+          ({priceOf('trezor-safe-7')}) if you want Bluetooth for an iPhone. Below: every current Ledger and
+          Trezor model side by side, what changed recently, and how to set one up safely.
+        </p>
+        <div className="mt-3">
+          <VerifiedDate date={WALLETS_LAST_VERIFIED} />
+        </div>
+      </header>
+
+      <AffiliateDisclosureBanner variant="compact" />
+
+      <section aria-labelledby="table-heading" className="glass-card p-6">
+        <h2 id="table-heading" className="text-2xl font-bold text-white mb-2">Current Ledger and Trezor models compared</h2>
+        <p className="text-sm text-gray-400 mb-4">
+          US list prices, cheapest first. Manufacturers often discount older models, so check the official store.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left min-w-[860px]">
+            <caption className="sr-only">Specifications of current hardware wallets</caption>
+            <thead>
+              <tr className="border-b border-white/10 text-gray-400">
+                <th scope="col" className="py-2 pr-3 font-medium">Model</th>
+                <th scope="col" className="py-2 pr-3 font-medium">List price</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Screen</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Connectivity</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Secure element</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Open-source firmware</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Bitcoin-only firmware</th>
+                <th scope="col" className="py-2 pr-3 font-medium">Released</th>
+                <th scope="col" className="py-2 font-medium">Where to buy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {current.map(w => (
+                <tr key={w.id} className="border-b border-white/5 align-top">
+                  <th scope="row" className="py-3 pr-3 font-semibold text-white">
+                    <Link to={`/compare/wallet/${w.id}`} className="underline hover:text-orange-300">{w.name}</Link>
+                  </th>
+                  <td className="py-3 pr-3 text-white">${w.price}</td>
+                  <td className="py-3 pr-3 text-gray-300">{w.hardware?.screen}</td>
+                  <td className="py-3 pr-3 text-gray-300">{w.hardware?.connectivity.join(', ')}</td>
+                  <td className="py-3 pr-3 text-gray-300">{w.hardware?.secure_element}</td>
+                  <td className="py-3 pr-3">{yesNoCell(Boolean(w.hardware?.open_source_firmware))}</td>
+                  <td className="py-3 pr-3">{yesNoCell(Boolean(w.hardware?.bitcoin_only_edition))}</td>
+                  <td className="py-3 pr-3 text-gray-300">{w.hardware ? formatIsoDate(w.hardware.released) : ''}</td>
+                  <td className="py-3">
+                    <OutboundLink
+                      partnerId={w.affiliate_partner_id}
+                      officialUrl={w.url}
+                      name={w.name}
+                      type="wallet"
+                      className="text-orange-400 hover:text-orange-300 underline"
+                    >
+                      {w.brand} store
+                    </OutboundLink>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="diff-heading" className="glass-card p-6">
+        <h2 id="diff-heading" className="text-2xl font-bold text-white mb-4">Ledger vs Trezor: the differences that matter</h2>
+        <div className="grid md:grid-cols-2 gap-6 text-sm text-gray-300">
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-2">Ledger</h3>
+            <ul className="space-y-2 list-disc pl-5">
+              <li>Every model has a certified secure element; the firmware running on it is closed source.</li>
+              <li>Bluetooth on Nano X, Nano Gen5, Flex and Stax; NFC on Gen5, Flex and Stax. The Nano S Plus is USB only.</li>
+              <li>Managed with the Ledger Wallet app (renamed from Ledger Live in October 2025); widest coin support.</li>
+              <li>Ledger Recover (2023), an optional paid seed-backup service, showed the firmware can export key shares if you consent.</li>
+              <li>A 2020 customer-data leak still fuels phishing; a 2023 dApp library attack affected users of some websites, not the devices.</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-2">Trezor</h3>
+            <ul className="space-y-2 list-disc pl-5">
+              <li>Open-source firmware on every model, so independent researchers can audit it.</li>
+              <li>The Safe 3, 5 and 7 add a secure element; the Safe 7 adds TROPIC01, an openly auditable secure element.</li>
+              <li>Only the Safe 7 has Bluetooth, so it is the only Trezor that signs with an iPhone.</li>
+              <li>Managed with Trezor Suite; ETH, SOL and ADA staking are built in. Bitcoin-only firmware is available.</li>
+              <li>Older Model One and Model T have no secure element: seeds can be extracted with physical access unless you use a passphrase.</li>
+            </ul>
           </div>
         </div>
+      </section>
 
-        <div className="p-6">
-          {step === 'type' ? (
-            <>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">Select your hardware wallet type:</p>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {(['ledger', 'trezor', 'keepkey', 'coldcard'] as HardwareWalletType[]).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setWalletType(type)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${
-                      walletType === type
-                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <span className="font-semibold text-gray-900 dark:text-white capitalize">{type}</span>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {getSupportedChains(type).length} chains supported
-                    </p>
-                  </button>
-                ))}
-              </div>
-              <input
-                type="text"
-                placeholder="Device name (optional)"
-                value={deviceName}
-                onChange={(e) => setDeviceName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-4"
-              />
-              <button
-                onClick={() => setStep('addresses')}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
-              >
-                Continue
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">Enter your wallet addresses:</p>
-              <div className="space-y-3 mb-4">
-                {addressInputs.map((input, index) => (
-                  <div key={index} className="flex gap-2">
-                    <select
-                      value={input.chain}
-                      onChange={(e) => updateAddress(index, 'chain', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      {supportedChains.map(chain => (
-                        <option key={chain} value={chain}>{chain}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Address"
-                      value={input.address}
-                      onChange={(e) => updateAddress(index, 'address', e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                    />
-                    {addressInputs.length > 1 && (
-                      <button
-                        onClick={() => removeAddressInput(index)}
-                        className="px-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={addAddressInput}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium mb-6"
-              >
-                + Add Another Address
-              </button>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep('type')}
-                  className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-200"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!addressInputs.some(a => a.address.trim())}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Add Wallet
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      <section aria-labelledby="choose-heading" className="glass-card p-6">
+        <h2 id="choose-heading" className="text-2xl font-bold text-white mb-4">Which hardware wallet should you buy?</h2>
+        <ul className="space-y-3 text-sm text-gray-300">
+          <li><strong className="text-white">Tight budget:</strong> <Link className="underline text-orange-400" to="/compare/wallet/trezor-safe-3">Trezor Safe 3</Link> or <Link className="underline text-orange-400" to="/compare/wallet/ledger-nano-s-plus">Ledger Nano S Plus</Link>.</li>
+          <li><strong className="text-white">Open source plus a touchscreen:</strong> <Link className="underline text-orange-400" to="/compare/wallet/trezor-safe-5">Trezor Safe 5</Link>.</li>
+          <li><strong className="text-white">You mainly use an iPhone:</strong> <Link className="underline text-orange-400" to="/compare/wallet/ledger-nano-gen5">Ledger Nano Gen5</Link> or <Link className="underline text-orange-400" to="/compare/wallet/trezor-safe-7">Trezor Safe 7</Link> (both have Bluetooth).</li>
+          <li><strong className="text-white">Lots of DeFi or NFT signing:</strong> a big screen helps you read what you sign: <Link className="underline text-orange-400" to="/compare/wallet/ledger-flex">Ledger Flex</Link> or <Link className="underline text-orange-400" to="/compare/wallet/ledger-stax">Ledger Stax</Link>.</li>
+          <li><strong className="text-white">Bitcoin only:</strong> any Trezor Safe with Bitcoin-only firmware, or a Bitcoin-only device from the list below.</li>
+        </ul>
+      </section>
+
+      {discontinued.length > 0 && (
+        <section aria-labelledby="discontinued-heading" className="glass-card p-6">
+          <h2 id="discontinued-heading" className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-400" aria-hidden="true" />
+            Discontinued models
+          </h2>
+          <ul className="space-y-3 text-sm text-gray-300">
+            {discontinued.map(w => (
+              <li key={w.id}>
+                <Link to={`/compare/wallet/${w.id}`} className="font-semibold text-white underline">{w.name}</Link>: {w.status_note}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section aria-labelledby="others-heading" className="glass-card p-6">
+        <h2 id="others-heading" className="text-2xl font-bold text-white mb-2">Other hardware wallets worth knowing</h2>
+        <p className="text-sm text-gray-400 mb-4">Not yet in our detailed, dated comparison, so no prices here; check each maker&apos;s site.</p>
+        <ul className="grid md:grid-cols-2 gap-4 text-sm">
+          {OTHER_BRANDS.map(b => (
+            <li key={b.name} className="p-4 rounded-lg bg-white/5">
+              <p className="font-semibold text-white mb-1">{b.name}</p>
+              <p className="text-gray-300">{b.summary}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="setup-heading" className="glass-card p-6">
+        <h2 id="setup-heading" className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-green-400" aria-hidden="true" />
+          How to buy and set up a hardware wallet safely
+        </h2>
+        <ol className="space-y-2 text-sm text-gray-300 list-decimal pl-5">
+          {SETUP_STEPS.map(step => <li key={step}>{step}</li>)}
+        </ol>
+        <p className="text-sm text-gray-400 mt-4">
+          More background: <Link to="/learn/crypto-wallets-explained" className="underline text-orange-400">crypto wallets explained</Link>,{' '}
+          <Link to="/compare?tab=wallets" className="underline text-orange-400">all wallets compared</Link> and the{' '}
+          <Link to="/scam-database" className="underline text-orange-400">scam database</Link>.
+        </p>
+      </section>
+
+      <FaqSection faqs={FAQS} />
+
+      <SourcesList sources={sources} date={WALLETS_LAST_VERIFIED} />
     </div>
   );
 }

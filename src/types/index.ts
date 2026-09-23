@@ -93,41 +93,86 @@ export interface CryptoHistoricalData {
 }
 
 // Platform Types (Exchanges & Wallets)
+
+/** A public source backing a fact on the compare pages. */
+export interface FactSource {
+  label: string;
+  url: string;
+}
+
+/**
+ * Editorial score breakdown. Every point is an editorial judgement made
+ * against the methodology published on /compare. It is not a user rating.
+ */
+export interface EditorialScore {
+  /** Regulation, licensing and public disclosures (0-3) */
+  regulation: number;
+  /** Security record and incident handling (0-3) */
+  security: number;
+  /** Transparency: proof of reserves, public/audited financials (0-2) */
+  transparency: number;
+  /** Cost clarity: published fees vs. hidden spreads (0-2) */
+  costs: number;
+}
+
 export interface Exchange {
   id: string;
   name: string;
-  logo: string;
   description: string;
   url: string;
-  affiliate_url?: string;
-  affiliate_commission?: string;
+  /** Official fee page, linked next to the fee figures */
+  fees_url: string;
+  /** Partner id in services/affiliate.ts; links fall back to `url` when no ID is configured */
+  affiliate_partner_id?: string;
   year_established: number;
+  /** Headquarters */
   country: string;
-  trust_score: number; // 1-10
-  trading_volume_24h?: number;
+  /** Sum of `editorial` (0-10), shown as "Our editorial score" */
+  trust_score: number;
+  editorial: EditorialScore;
   fees: ExchangeFees;
+  /** How to read the fee figures (tier, platform, region) */
+  fee_notes: string;
+  /**
+   * Cost model for a simple market buy, used in the worked examples.
+   * fee_pct and spread_pct are fractions (0.01 = 1%).
+   */
+  buy_cost: {
+    label: string;
+    fee_pct: number;
+    spread_pct: number;
+    /** Flat fee charged on orders below `below` USD, if any */
+    flat_fee?: { amount: number; below: number };
+    note: string;
+  };
   features: ExchangeFeatures;
-  supported_cryptocurrencies: number;
+  /** Human-readable asset coverage, e.g. "250+ assets" */
+  assets_label: string;
   supported_fiat: string[];
   kyc_required: boolean;
   mobile_app: boolean;
+  /** Where it is (and isn't) available */
+  availability: string;
+  best_for: string;
+  not_for: string;
   pros: string[];
   cons: string[];
-  user_rating: number; // 1-5
-  review_count: number;
-  // Sponsored placement fields
+  /** ISO date the facts in this entry were last checked */
+  last_verified: string;
+  sources: FactSource[];
+  /**
+   * Paid placement. Sponsored entries are labelled "Sponsored" and are never
+   * re-ordered ahead of the reader's chosen sort.
+   */
   sponsored?: {
     is_sponsored: boolean;
-    badge_type: 'featured' | 'recommended' | 'partner';
-    placement_tier?: number; // 1 = top, 2 = high, 3 = standard
-    sponsor_since?: string;
-    monthly_fee?: number; // $500-2000/month
   };
 }
 
 export interface ExchangeFees {
   maker_fee: number;
   taker_fee: number;
+  /** undefined = network fee only / varies (shown before you confirm) */
   withdrawal_fee_btc?: number;
   withdrawal_fee_eth?: number;
   deposit_fee_fiat?: number;
@@ -147,24 +192,53 @@ export interface ExchangeFeatures {
   api_access: boolean;
 }
 
+export interface HardwareSpecs {
+  screen: string;
+  connectivity: string[];
+  /** e.g. "Yes (EAL6+)" or "No" */
+  secure_element: string;
+  open_source_firmware: boolean;
+  bitcoin_only_edition: boolean;
+  backup_options: string;
+  released: string;
+}
+
+export interface WalletIncident {
+  date: string;
+  summary: string;
+  url?: string;
+}
+
 export interface Wallet {
   id: string;
   name: string;
-  logo: string;
+  brand: string;
   description: string;
   url: string;
-  affiliate_url?: string;
+  /** Partner id in services/affiliate.ts; links fall back to `url` when no ID is configured */
+  affiliate_partner_id?: string;
   type: 'hardware' | 'software' | 'mobile' | 'web' | 'paper';
+  /** Discontinued models stay listed (with a note) so old links keep working */
+  status: 'current' | 'discontinued';
+  status_note?: string;
+  /** USD list price for hardware; 0 for free software */
   price?: number;
-  supported_cryptocurrencies: number;
+  price_note?: string;
+  /** Human-readable asset coverage, e.g. "15,000+ assets (Ledger's claim)" */
+  assets_label: string;
   supported_chains: string[];
   security_features: WalletSecurityFeatures;
   features: WalletFeatures;
+  hardware?: HardwareSpecs;
+  best_for: string;
   pros: string[];
   cons: string[];
-  user_rating: number;
-  review_count: number;
-  ease_of_use: number; // 1-10
+  incidents?: WalletIncident[];
+  /** Editorial ease-of-use judgement (1-10), not a user rating */
+  ease_of_use: number;
+  /** ISO date the facts in this entry were last checked */
+  last_verified: string;
+  sources: FactSource[];
 }
 
 export interface WalletSecurityFeatures {

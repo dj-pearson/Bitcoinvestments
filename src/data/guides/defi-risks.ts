@@ -1,24 +1,39 @@
-export const defiRisksGuide = {
+import type { GuideSource } from './index';
+
+export const defiRisksGuide: GuideSource = {
   id: 'defi-risks',
   title: 'DeFi Risks Explained: Protecting Yourself in Decentralized Finance',
-  description: 'Understand smart contract risks, rug pulls, oracle failures, and how to protect your assets in DeFi. Essential reading before farming.',
+  seoTitle: 'DeFi Risks Explained: Stay Safe in DeFi',
+  description: 'The main DeFi risks explained: smart-contract bugs, rug pulls, oracle and bridge hacks, stablecoin de-pegs, regulation and phishing, and how to stay safe.',
+  summary:
+    'DeFi puts your money in smart contracts that nobody can reverse, so a bug, a malicious developer, a broken price oracle or a hacked bridge can wipe out deposits. Billions of dollars are stolen from crypto platforms every year; limit position sizes, prefer long-running audited protocols, revoke old approvals and never sign transactions you do not understand.',
   category: 'DeFi',
-  readTime: 17,
   icon: '⚠️',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['defi-basics', 'yield-farming', 'common-crypto-mistakes', 'crypto-wallets-explained'],
+  relatedTools: [
+    { label: 'Scam database', url: '/scam-database', description: 'Check a protocol, token or site' },
+    { label: 'DeFi yield tracker', url: '/defi-yield', description: 'Yields shown alongside their risks' },
+    { label: 'Compare wallets', url: '/compare?tab=wallets', description: 'Hardware wallets for signing safely' },
+  ],
   content: `
 # DeFi Risks Explained: Protecting Yourself in Decentralized Finance
 
-DeFi offers incredible opportunities but comes with significant risks. This guide covers every major risk category and how to protect yourself.
+DeFi offers real opportunities but comes with significant risks. This guide covers every major risk category and how to protect yourself. New to DeFi? Start with [DeFi Explained](/learn/defi-basics).
 
 ## The Reality of DeFi Risk
 
-### DeFi Losses by the Numbers
+### Losses by the Numbers
 
-- **2021**: $1.3 billion lost to DeFi exploits
-- **2022**: $3.1 billion lost to DeFi exploits
-- **2023**: $1.7 billion lost to DeFi exploits
+Funds stolen in hacks across the crypto industry (DeFi protocols, bridges, exchanges and individual wallets), as reported by blockchain-analytics firm Chainalysis:
 
-These numbers don't include:
+- **2022**: about $3.7 billion (the peak year for DeFi and bridge hacks)
+- **2023**: about $1.7 billion
+- **2024**: about $2.2 billion
+- **2025**: more than $3.4 billion, including roughly $1.5 billion from the February 2025 hack of the Bybit exchange
+
+North Korean groups were attributed a large share of the 2024 and 2025 totals. These numbers don't include:
 - Impermanent loss
 - Failed projects
 - Scams and rug pulls
@@ -43,7 +58,7 @@ Smart contracts are code, and code has bugs.
 |---------------|-------------|---------|
 | Reentrancy | Attacker repeatedly calls function | The DAO hack ($60M) |
 | Flash loan attacks | Manipulate prices in single tx | bZx ($8M) |
-| Integer overflow | Math errors | Multiple protocols |
+| Integer overflow | Math errors (largely prevented by Solidity 0.8+, released 2020, which checks arithmetic by default) | Older protocols |
 | Access control | Unauthorized functions | Countless projects |
 | Logic errors | Flawed business logic | Many protocols |
 
@@ -260,12 +275,16 @@ Bridges are especially risky due to complexity.
 
 ## Regulatory Risks
 
-### Current Landscape
+### Current Landscape (as of September 2026)
 
-- US SEC increasingly active
-- Various tokens classified as securities
-- Sanctions compliance (Tornado Cash)
-- Tax reporting requirements
+US crypto policy changed sharply in 2025:
+
+- **SEC**: in 2025 the SEC dropped or closed most of its enforcement cases against major crypto exchanges and developers, and set up a crypto task force to write new rules. A future administration could change course.
+- **Tornado Cash**: the US Treasury sanctioned the mixer in 2022, a federal appeals court (Fifth Circuit, *Van Loon v. Treasury*) ruled in November 2024 that its immutable smart contracts could not be sanctioned, and Treasury lifted the sanctions in March 2025. Criminal cases against individual developers continued separately.
+- **Stablecoins**: the GENIUS Act, signed in July 2025, created the first federal framework for payment stablecoins (reserve, disclosure and licensing rules).
+- **Market structure**: the CLARITY Act, which would divide oversight between the SEC and CFTC, passed the House in July 2025 and was still being debated in the Senate as of September 2026.
+- **Tax**: US brokers report sales on Form 1099-DA from 2025; the rule that would have covered DeFi front-ends was repealed in April 2025, but DeFi income and gains are still taxable. See [Crypto Taxes](/learn/crypto-taxes-basics).
+- **Elsewhere**: the EU's MiCA regulation has applied to crypto-asset service providers since December 2024.
 
 ### Potential Impacts
 
@@ -338,12 +357,7 @@ Bridges are especially risky due to complexity.
 
 ### Insurance Providers
 
-| Provider | Coverage Type |
-|----------|---------------|
-| Nexus Mutual | Smart contract, oracle |
-| InsurAce | Multi-chain coverage |
-| Unslashed | Validator, exchange |
-| Risk Harbor | Algorithmic coverage |
+Nexus Mutual is the longest-running provider of smart-contract cover. Several other providers have launched and wound down over the years, so check that any provider is active and solvent, and read its claims record, before paying a premium.
 
 ### Limitations
 
@@ -426,6 +440,13 @@ Know what to do if:
 - Diversification is essential
 - Only invest what you can afford to lose completely
 - Research, research, research
+
+## Keep Reading
+
+- [Common Crypto Mistakes](/learn/common-crypto-mistakes): the scams and slip-ups that cost beginners most
+- [Crypto Wallets Explained](/learn/crypto-wallets-explained): signing safely with a hardware wallet
+- [Yield Farming Guide](/learn/yield-farming): where DeFi yield actually comes from
+- [Scam database](/scam-database): check a site or token before you connect your wallet
 
 ## Risk Management Commandments
 

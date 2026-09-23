@@ -23,7 +23,7 @@ interface Env extends MailerEnv {
 const WINDOW_MINUTES = 10;
 const SITE_URL = 'https://bitcoinvestments.net';
 
-function welcomeHtml(): string {
+function welcomeHtml(email: string, unsubscribeToken: string | null): string {
   const link = (path: string, label: string) =>
     `<a href="${SITE_URL}${path}" style="color:#f97316;text-decoration:none;font-weight:500;">${label}</a>`;
 
@@ -46,7 +46,9 @@ function welcomeHtml(): string {
 </td></tr>
 <tr><td style="background:#111827;padding:24px 30px;text-align:center;font-size:12px;color:#6b7280;">
 You're receiving this because you subscribed at bitcoinvestments.net.<br>
-${link('/privacy', 'Privacy Policy')}
+${unsubscribeToken
+  ? link(`/unsubscribe?email=${encodeURIComponent(email)}&amp;token=${encodeURIComponent(unsubscribeToken)}`, 'Unsubscribe') + ' &middot; '
+  : ''}${link('/privacy', 'Privacy Policy')}
 </td></tr></table></td></tr></table></body></html>`;
 }
 
@@ -67,17 +69,22 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   const since = new Date(Date.now() - WINDOW_MINUTES * 60_000).toISOString();
   const query =
     `email=eq.${encodeURIComponent(email)}&is_active=eq.true` +
-    `&subscribed_at=gte.${encodeURIComponent(since)}&select=id`;
+    `&subscribed_at=gte.${encodeURIComponent(since)}&select=id,unsubscribe_token`;
 
-  const lookup = await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/newsletter_subscribers?${query}`, {
-    headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-    },
-  });
+  const headers = {
+    apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+  };
+  const base = `${env.VITE_SUPABASE_URL}/rest/v1/newsletter_subscribers`;
+  let lookup = await fetch(`${base}?${query}`, { headers });
+  if (lookup.status === 400) {
+    // unsubscribe_token arrives with migration 20260923000400; without it,
+    // send the welcome email with no unsubscribe link rather than none at all.
+    lookup = await fetch(`${base}?${query.replace(',unsubscribe_token', '')}`, { headers });
+  }
   if (!lookup.ok) return jsonError('Lookup failed', 502);
 
-  const rows = (await lookup.json()) as unknown[];
+  const rows = (await lookup.json()) as Array<{ id: string; unsubscribe_token?: string | null }>;
   // Same response whether or not the address qualified, so the endpoint cannot
   // be used to test who is subscribed.
   if (rows.length === 0) return jsonSuccess({ success: true }, 200);
@@ -85,7 +92,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   const result = await sendMail(env, {
     to: email,
     subject: 'Welcome to Bitcoinvestments',
-    html: welcomeHtml(),
+    html: welcomeHtml(email, rows[0].unsubscribe_token ?? null),
   });
   if (!result.ok) return jsonError(result.error, 502);
 

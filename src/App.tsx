@@ -66,6 +66,7 @@ const UserManagement = lazy(() => import('./pages/UserManagement').then(m => ({ 
 const ScamDatabase = lazy(() => import('./pages/ScamDatabase').then(m => ({ default: m.ScamDatabase })));
 const ScamReportDetail = lazy(() => import('./pages/ScamReportDetail').then(m => ({ default: m.ScamReportDetail })));
 const ReportScam = lazy(() => import('./pages/ReportScam').then(m => ({ default: m.ReportScam })));
+const HowToReportScam = lazy(() => import('./pages/HowToReportScam').then(m => ({ default: m.HowToReportScam })));
 const AdminAISettings = lazy(() => import('./pages/AdminAISettings').then(m => ({ default: m.AdminAISettings })));
 const TaxReports = lazy(() => import('./pages/TaxReports'));
 const AdvisorDashboard = lazy(() => import('./pages/AdvisorDashboard').then(m => ({ default: m.AdvisorDashboard })));
@@ -92,6 +93,9 @@ const RebalancingAlertsPage = lazy(() => import('./pages/RebalancingAlerts'));
 const DCAAutomationPage = lazy(() => import('./pages/DCAAutomation'));
 const SmartAlertBundlesPage = lazy(() => import('./pages/SmartAlertBundles'));
 const Accessibility = lazy(() => import('./pages/Accessibility').then(m => ({ default: m.Accessibility })));
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
+const Disclaimer = lazy(() => import('./pages/Disclaimer').then(m => ({ default: m.Disclaimer })));
+const Unsubscribe = lazy(() => import('./pages/Unsubscribe').then(m => ({ default: m.Unsubscribe })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const ServerError = lazy(() => import('./pages/ServerError'));
 const Forbidden = lazy(() => import('./pages/Forbidden'));
@@ -190,7 +194,8 @@ function App({ location, client }: AppProps = {}) {
                   <Route path="compare/:type/:id" element={withErrorBoundary(<Compare />, 'CompareDetail')} />
                   <Route path="scam-database" element={withErrorBoundary(<ScamDatabase />, 'ScamDatabase')} />
                   <Route path="scam/:id" element={withErrorBoundary(<ScamReportDetail />, 'ScamReportDetail')} />
-                  <Route path="report-scam" element={<FeatureGate feature="report-scam"><ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute></FeatureGate>} />
+                  {/* Without accounts, /report-scam is a public guide to reporting a scam to the authorities. */}
+                  <Route path="report-scam" element={<FeatureGate feature="report-scam" fallback={withErrorBoundary(<HowToReportScam />, 'HowToReportScam')}><ProtectedRoute>{withErrorBoundary(<ReportScam />, 'ReportScam')}</ProtectedRoute></FeatureGate>} />
                   <Route path="login" element={<FeatureGate feature="login">{withErrorBoundary(<Login />, 'Login')}</FeatureGate>} />
                   <Route path="signup" element={<FeatureGate feature="signup">{withErrorBoundary(<Signup />, 'Signup')}</FeatureGate>} />
                   <Route path="forgot-password" element={<FeatureGate feature="password-reset">{withErrorBoundary(<ForgotPassword />, 'ForgotPassword')}</FeatureGate>} />
@@ -221,7 +226,9 @@ function App({ location, client }: AppProps = {}) {
                   <Route path="sponsored/:slug" element={withErrorBoundary(<SponsoredArticle />, 'SponsoredArticle')} />
                   <Route path="privacy" element={withErrorBoundary(<Privacy />, 'Privacy')} />
                   <Route path="terms" element={withErrorBoundary(<Terms />, 'Terms')} />
-                  <Route path="disclaimer" element={withErrorBoundary(<Terms />, 'Disclaimer')} />
+                  <Route path="disclaimer" element={withErrorBoundary(<Disclaimer />, 'Disclaimer')} />
+                  <Route path="about" element={withErrorBoundary(<About />, 'About')} />
+                  <Route path="unsubscribe" element={withErrorBoundary(<Unsubscribe />, 'Unsubscribe')} />
                   <Route path="pricing" element={withErrorBoundary(<Pricing />, 'Pricing')} />
                   <Route path="developers/pricing" element={withErrorBoundary(<ApiPricing />, 'ApiPricing')} />
                   <Route path="developers/portal" element={<FeatureGate feature="developer-portal"><ProtectedRoute>{withErrorBoundary(<DeveloperPortal />, 'DeveloperPortal')}</ProtectedRoute></FeatureGate>} />
@@ -241,7 +248,7 @@ function App({ location, client }: AppProps = {}) {
                   <Route path="retirement-calculator" element={withErrorBoundary(<RetirementCalculator />, 'RetirementCalculator')} />
 
                   {/* New Premium Monetization Features */}
-                  <Route path="multi-exchange" element={withErrorBoundary(<MultiExchange />, 'MultiExchange')} />
+                  <Route path="multi-exchange" element={<FeatureGate feature="multi-exchange">{withErrorBoundary(<MultiExchange />, 'MultiExchange')}</FeatureGate>} />
                   <Route path="staking-calculator" element={withErrorBoundary(<StakingCalculator />, 'StakingCalculator')} />
                   <Route path="trading-indicators" element={withErrorBoundary(<TradingIndicators />, 'TradingIndicators')} />
                   <Route path="whale-tracking" element={withErrorBoundary(<WhaleTrackingPage />, 'WhaleTracking')} />

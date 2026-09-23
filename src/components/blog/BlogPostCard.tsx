@@ -5,6 +5,7 @@
 
 import { Link } from 'react-router-dom';
 import { Clock, Eye, Sparkles, Calendar } from 'lucide-react';
+import { formatDate } from './blogUtils';
 import type { BlogPost } from '../../types/blog';
 
 interface BlogPostCardProps {
@@ -14,17 +15,11 @@ interface BlogPostCardProps {
 }
 
 export function BlogPostCard({ post, variant = 'default', showStatus = false }: BlogPostCardProps) {
-  const formattedDate = post.published_at
-    ? new Date(post.published_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : new Date(post.created_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
+  const formattedDate = formatDate(post.published_at || post.created_at, 'short');
+  const categoryLabel = post.category_name || post.category;
+  // View counts are only meaningful in the admin list (the public counter is
+  // written by an RPC and not shown to readers).
+  const showViews = showStatus;
 
   if (variant === 'featured') {
     return (
@@ -36,6 +31,9 @@ export function BlogPostCard({ post, variant = 'default', showStatus = false }: 
         <div className="aspect-[21/9] relative">
           {post.featured_image ? (
             <img
+              width={1260}
+              height={540}
+              decoding="async"
               src={post.featured_image}
               alt={post.title}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
@@ -50,7 +48,7 @@ export function BlogPostCard({ post, variant = 'default', showStatus = false }: 
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
           <div className="flex items-center gap-3 mb-3">
             <span className="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs font-medium rounded">
-              {post.category}
+              {categoryLabel}
             </span>
             {post.ai_generated && (
               <span className="flex items-center gap-1 px-2 py-1 bg-violet-500/20 text-violet-400 text-xs font-medium rounded">
@@ -77,10 +75,6 @@ export function BlogPostCard({ post, variant = 'default', showStatus = false }: 
               <Clock className="w-4 h-4" />
               {post.read_time_minutes} min read
             </span>
-            <span className="flex items-center gap-1">
-              <Eye className="w-4 h-4" />
-              {post.view_count.toLocaleString()}
-            </span>
           </div>
         </div>
       </Link>
@@ -97,6 +91,10 @@ export function BlogPostCard({ post, variant = 'default', showStatus = false }: 
         <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden">
           {post.featured_image ? (
             <img
+              width={80}
+              height={80}
+              loading="lazy"
+              decoding="async"
               src={post.featured_image}
               alt={post.title}
               className="w-full h-full object-cover"
@@ -130,6 +128,10 @@ export function BlogPostCard({ post, variant = 'default', showStatus = false }: 
       <div className="aspect-video relative">
         {post.featured_image ? (
           <img
+            width={640}
+            height={360}
+            loading="lazy"
+            decoding="async"
             src={post.featured_image}
             alt={post.title}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
@@ -162,7 +164,7 @@ export function BlogPostCard({ post, variant = 'default', showStatus = false }: 
         {/* Meta */}
         <div className="flex items-center gap-2 mb-2">
           <span className="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-xs font-medium rounded">
-            {post.category}
+            {categoryLabel}
           </span>
           {post.ai_generated && (
             <span className="flex items-center gap-1 px-2 py-0.5 bg-violet-500/10 text-violet-400 text-xs font-medium rounded">
@@ -194,10 +196,12 @@ export function BlogPostCard({ post, variant = 'default', showStatus = false }: 
               {post.read_time_minutes} min
             </span>
           </div>
-          <span className="flex items-center gap-1">
-            <Eye className="w-3 h-3" />
-            {post.view_count.toLocaleString()}
-          </span>
+          {showViews && (
+            <span className="flex items-center gap-1">
+              <Eye className="w-3 h-3" aria-hidden="true" />
+              {(post.view_count || 0).toLocaleString('en-US')} views
+            </span>
+          )}
         </div>
       </div>
     </Link>

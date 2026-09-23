@@ -1,298 +1,84 @@
-import type {
-  StakingCalculatorInput,
-  StakingCalculatorResult,
-  StakingMonthlyReward,
-} from '../../types';
-
 /**
- * Calculate staking rewards over a period of time
+ * Staking reward math, shared by /staking-calculator and the staking tab on
+ * /calculators.
+ *
+ * Rates are handled explicitly as either:
+ *  - APY: an effective annual yield that already includes compounding. When
+ *    rewards are restaked, balance = P × (1 + APY)^(years). When they are paid
+ *    out, each payout is P × ((1 + APY)^(1/n) − 1) for n payouts a year.
+ *  - APR: a simple annual rate. Restaked with n compounding periods a year,
+ *    balance = P × (1 + APR/n)^(n × years); paid out, rewards = P × APR × years.
+ * The old code compounded an APY a second time, and its "no compounding" branch
+ * returned $0 rewards when restaking was on.
  */
-export function calculateStakingRewards(
-  input: StakingCalculatorInput
-): StakingCalculatorResult {
-  const { amount, apy, duration_months, compound_frequency } = input;
 
-  // Convert APY to periodic rate based on compounding frequency
-  const periodsPerYear = getPeriodsPerYear(compound_frequency);
-  const periodicRate = apy / 100 / periodsPerYear;
+export type RateType = 'apy' | 'apr';
 
-  let currentBalance = amount;
-  const monthlyRewards: StakingMonthlyReward[] = [];
+export interface StakingInput {
+  /** Amount staked, in tokens or dollars - the result is in the same unit. */
+  principal: number;
+  /** Rate in percent. */
+  rate: number;
+  rateType: RateType;
+  /** Provider commission taken from rewards, percent (0 if the rate is already net). */
+  commissionPct?: number;
+  months: number;
+  /** Rewards added to the stake (compounding) or paid out. */
+  restake: boolean;
+  /** Payouts / compounding events per year (365 daily, 52 weekly, 12 monthly...). */
+  periodsPerYear: number;
+}
 
-  // Compounding periods completed so far. Tracked cumulatively because a month
-  // is not a whole number of periods: the loop below used
-  // "period < periodsPerYear / 12" as its bound, and a fractional bound runs
-  // only the whole iterations, silently discarding the remainder every month.
-  // Weekly compounding ran 4 periods a month - 48 a year instead of 52 - and
-  // daily ran 30, for 360 instead of 365.
-  //
-  // That made the month-by-month schedule disagree with the effective_apy this
-  // function returns, which is computed from the closed-form formula and so
-  // assumed the full period count. It also inverted the whole point of
-  // compareCompoundingStrategies: at 10% APY over a year, weekly compounding
-  // shortchanged by four periods finishes below monthly compounding, which
-  // cannot happen, so bestStrategy reported the wrong frequency.
-  //
-  // Carrying the cumulative count forward gives each month the periods it is
-  // actually owed and lands on exactly periodsPerYear after twelve months.
-  let periodsElapsed = 0;
+export interface StakingMonth {
+  month: number;
+  balance: number;
+  cumulativeRewards: number;
+}
 
-  // Calculate month by month
-  for (let month = 1; month <= duration_months; month++) {
-    const startingBalance = currentBalance;
-    let rewardsThisMonth = 0;
+export interface StakingResult {
+  rewards: number;
+  finalBalance: number;
+  /** Effective annual yield actually earned, % (after commission, incl. compounding if restaked). */
+  effectiveApy: number;
+  /** Net rate after commission, in the input's rate type. */
+  netRate: number;
+  months: StakingMonth[];
+}
 
-    if (compound_frequency === 'none') {
-      // Simple interest - rewards don't compound
-      rewardsThisMonth = (amount * (apy / 100)) / 12;
-      currentBalance = amount + (rewardsThisMonth * month);
-    } else {
-      // Compound interest
-      const periodsCompletedByNow = Math.floor((periodsPerYear * month) / 12);
-      const periodsThisMonth = periodsCompletedByNow - periodsElapsed;
-      periodsElapsed = periodsCompletedByNow;
+/** Convert any rate to the periodic rate per payout. */
+function periodicRate(rate: number, type: RateType, n: number): number {
+  const r = rate / 100;
+  return type === 'apy' ? Math.pow(1 + r, 1 / n) - 1 : r / n;
+}
 
-      for (let period = 0; period < periodsThisMonth; period++) {
-        const periodReward = currentBalance * periodicRate;
-        rewardsThisMonth += periodReward;
-        currentBalance += periodReward;
-      }
-    }
+export function calculateStaking(input: StakingInput): StakingResult {
+  const principal = Math.max(0, input.principal);
+  const months = Math.max(0, Math.round(input.months));
+  const n = Math.max(1, input.periodsPerYear);
+  const netRate = input.rate * (1 - Math.min(100, Math.max(0, input.commissionPct ?? 0)) / 100);
+  const p = periodicRate(netRate, input.rateType, n);
 
-    monthlyRewards.push({
-      month,
-      starting_balance: startingBalance,
-      rewards_earned: rewardsThisMonth,
-      ending_balance: currentBalance,
-    });
+  const balanceAt = (years: number) =>
+    input.restake ? principal * Math.pow(1 + p, n * years) : principal * (1 + p * n * years);
+
+  const rows: StakingMonth[] = [];
+  for (let m = 1; m <= months; m++) {
+    const b = balanceAt(m / 12);
+    rows.push({ month: m, balance: b, cumulativeRewards: b - principal });
   }
 
-  const totalRewards = currentBalance - amount;
-  const effectiveApy = compound_frequency === 'none'
-    ? apy
-    : calculateEffectiveAPY(apy, periodsPerYear);
+  const final = balanceAt(months / 12);
+  const rewards = final - principal;
+  const years = months / 12;
+  const effectiveApy =
+    principal > 0 && years > 0 ? (Math.pow(final / principal, 1 / years) - 1) * 100 : input.restake ? (Math.pow(1 + p, n) - 1) * 100 : p * n * 100;
 
-  return {
-    initial_amount: amount,
-    final_amount: currentBalance,
-    total_rewards: totalRewards,
-    effective_apy: effectiveApy,
-    monthly_rewards: monthlyRewards,
-  };
+  return { rewards, finalBalance: final, effectiveApy, netRate, months: rows };
 }
 
-/**
- * Get the number of compounding periods per year
- */
-function getPeriodsPerYear(frequency: StakingCalculatorInput['compound_frequency']): number {
-  switch (frequency) {
-    case 'daily':
-      return 365;
-    case 'weekly':
-      return 52;
-    case 'monthly':
-      return 12;
-    case 'none':
-      return 1;
-  }
-}
-
-/**
- * Calculate effective APY when compounding
- * Formula: (1 + r/n)^n - 1
- */
-function calculateEffectiveAPY(apy: number, periodsPerYear: number): number {
-  const rate = apy / 100;
-  const effectiveRate = Math.pow(1 + rate / periodsPerYear, periodsPerYear) - 1;
-  return effectiveRate * 100;
-}
-
-/**
- * Compare staking rewards across different compounding frequencies
- */
-export function compareCompoundingStrategies(
-  amount: number,
-  apy: number,
-  duration_months: number
-): {
-  daily: StakingCalculatorResult;
-  weekly: StakingCalculatorResult;
-  monthly: StakingCalculatorResult;
-  none: StakingCalculatorResult;
-  bestStrategy: 'daily' | 'weekly' | 'monthly' | 'none';
-  maxDifference: number;
-} {
-  const daily = calculateStakingRewards({
-    cryptocurrency: 'generic',
-    amount,
-    apy,
-    duration_months,
-    compound_frequency: 'daily',
-  });
-
-  const weekly = calculateStakingRewards({
-    cryptocurrency: 'generic',
-    amount,
-    apy,
-    duration_months,
-    compound_frequency: 'weekly',
-  });
-
-  const monthly = calculateStakingRewards({
-    cryptocurrency: 'generic',
-    amount,
-    apy,
-    duration_months,
-    compound_frequency: 'monthly',
-  });
-
-  const none = calculateStakingRewards({
-    cryptocurrency: 'generic',
-    amount,
-    apy,
-    duration_months,
-    compound_frequency: 'none',
-  });
-
-  const results = { daily, weekly, monthly, none };
-  const finalAmounts = {
-    daily: daily.final_amount,
-    weekly: weekly.final_amount,
-    monthly: monthly.final_amount,
-    none: none.final_amount,
-  };
-
-  const bestStrategy = (Object.keys(finalAmounts) as Array<keyof typeof finalAmounts>)
-    .reduce((a, b) => finalAmounts[a] > finalAmounts[b] ? a : b);
-
-  const maxDifference = Math.max(...Object.values(finalAmounts)) -
-    Math.min(...Object.values(finalAmounts));
-
-  return {
-    ...results,
-    bestStrategy,
-    maxDifference,
-  };
-}
-
-/**
- * Calculate how long it takes to double your stake
- */
-export function calculateDoubleTime(apy: number): {
-  simple_years: number;
-  compound_years: number;
-  compound_months: number;
-} {
-  // Rule of 72 for simple interest approximation
-  const simple_years = 72 / apy;
-
-  // Compound interest: ln(2) / ln(1 + r)
-  const rate = apy / 100;
-  const compound_years = Math.log(2) / Math.log(1 + rate);
-  const compound_months = compound_years * 12;
-
-  return {
-    simple_years,
-    compound_years,
-    compound_months,
-  };
-}
-
-/**
- * Calculate rewards needed to reach a target amount
- */
-export function calculateToReachTarget(
-  initialAmount: number,
-  targetAmount: number,
-  apy: number,
-  compound_frequency: StakingCalculatorInput['compound_frequency']
-): {
-  months_required: number;
-  years_required: number;
-  total_rewards: number;
-} {
-  const periodsPerYear = getPeriodsPerYear(compound_frequency);
-  const periodicRate = apy / 100 / periodsPerYear;
-
-  let currentAmount = initialAmount;
-  let periods = 0;
-
-  while (currentAmount < targetAmount && periods < 1200) { // Max 100 years
-    if (compound_frequency === 'none') {
-      currentAmount += initialAmount * (apy / 100 / periodsPerYear);
-    } else {
-      currentAmount *= 1 + periodicRate;
-    }
-    periods++;
-  }
-
-  const years = periods / periodsPerYear;
-  const months = years * 12;
-
-  return {
-    months_required: Math.ceil(months),
-    years_required: parseFloat(years.toFixed(2)),
-    total_rewards: currentAmount - initialAmount,
-  };
-}
-
-/**
- * Get popular staking rates for common cryptocurrencies
- * Note: These are approximate and should be updated regularly
- */
-export function getPopularStakingRates(): {
-  symbol: string;
-  name: string;
-  apy_range: { min: number; max: number };
-  lock_period: string;
-}[] {
-  return [
-    { symbol: 'ETH', name: 'Ethereum', apy_range: { min: 3.5, max: 5.5 }, lock_period: 'Variable' },
-    { symbol: 'SOL', name: 'Solana', apy_range: { min: 5.0, max: 7.5 }, lock_period: '2-3 days unstake' },
-    { symbol: 'ADA', name: 'Cardano', apy_range: { min: 3.0, max: 5.0 }, lock_period: 'None' },
-    { symbol: 'ATOM', name: 'Cosmos', apy_range: { min: 15, max: 20 }, lock_period: '21 days unstake' },
-    { symbol: 'DOT', name: 'Polkadot', apy_range: { min: 10, max: 15 }, lock_period: '28 days unstake' },
-    { symbol: 'AVAX', name: 'Avalanche', apy_range: { min: 7, max: 10 }, lock_period: '14 days unstake' },
-    { symbol: 'MATIC', name: 'Polygon', apy_range: { min: 4, max: 6 }, lock_period: 'Variable' },
-    { symbol: 'NEAR', name: 'NEAR Protocol', apy_range: { min: 8, max: 12 }, lock_period: '36-48 hours unstake' },
-  ];
-}
-
-/**
- * Calculate validator rewards vs delegator rewards
- */
-export function calculateValidatorVsDelegator(
-  amount: number,
-  baseApy: number,
-  validatorCommission: number, // percentage, e.g., 10 for 10%
-  duration_months: number
-): {
-  validatorRewards: number;
-  delegatorRewards: number;
-  commissionPaid: number;
-} {
-  // Validator gets full APY
-  const validatorResult = calculateStakingRewards({
-    cryptocurrency: 'generic',
-    amount,
-    apy: baseApy,
-    duration_months,
-    compound_frequency: 'daily',
-  });
-
-  // Delegator gets APY minus commission
-  const effectiveDelegatorApy = baseApy * (1 - validatorCommission / 100);
-  const delegatorResult = calculateStakingRewards({
-    cryptocurrency: 'generic',
-    amount,
-    apy: effectiveDelegatorApy,
-    duration_months,
-    compound_frequency: 'daily',
-  });
-
-  return {
-    validatorRewards: validatorResult.total_rewards,
-    delegatorRewards: delegatorResult.total_rewards,
-    commissionPaid: validatorResult.total_rewards - delegatorResult.total_rewards,
-  };
+/** How many years until the stake doubles when rewards are restaked. */
+export function yearsToDouble(ratePct: number, type: RateType, periodsPerYear: number): number | null {
+  const p = periodicRate(ratePct, type, Math.max(1, periodsPerYear));
+  if (p <= 0) return null;
+  return Math.log(2) / (Math.max(1, periodsPerYear) * Math.log(1 + p));
 }

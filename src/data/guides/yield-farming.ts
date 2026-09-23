@@ -1,14 +1,26 @@
-export const yieldFarmingGuide = {
+import type { GuideSource } from './index';
+
+export const yieldFarmingGuide: GuideSource = {
   id: 'yield-farming',
   title: 'Yield Farming Guide: Earning Passive Income in DeFi',
-  description: 'Learn yield farming strategies, understand impermanent loss, liquidity provision, and how to maximize returns while managing risks.',
+  seoTitle: 'Yield Farming Explained: DeFi Guide',
+  description: 'How DeFi yield farming works: liquidity pools, lending, staking and vaults, impermanent loss with worked numbers, true-yield maths, and the risks to weigh.',
+  summary:
+    'Yield farming means depositing crypto into DeFi protocols (liquidity pools, lending markets or staking) to earn trading fees, interest or token rewards. Advertised APYs are often inflated by reward tokens that lose value, and liquidity providers can suffer impermanent loss, so the realistic return is usually much lower than the headline number and always carries smart-contract risk.',
   category: 'DeFi',
-  readTime: 20,
   icon: '🌾',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['defi-basics', 'defi-risks', 'crypto-taxes-basics'],
+  relatedTools: [
+    { label: 'DeFi yield tracker', url: '/defi-yield', description: 'Current yields with risk notes' },
+    { label: 'Staking calculator', url: '/staking-calculator', description: 'Project staking rewards with compounding' },
+    { label: 'Gas fee optimizer', url: '/gas-optimizer', description: 'Check what a deposit will cost in gas' },
+  ],
   content: `
 # Yield Farming Guide: Earning Passive Income in DeFi
 
-Yield farming is the practice of earning returns by providing liquidity or staking assets in DeFi protocols. This guide covers strategies, risks, and how to get started.
+Yield farming is the practice of earning returns by providing liquidity or staking assets in DeFi protocols. This guide covers strategies, risks, and how to get started. If DeFi is new to you, start with [DeFi Explained](/learn/defi-basics).
 
 ## What is Yield Farming?
 
@@ -59,11 +71,11 @@ Deposit assets in lending protocols to earn interest.
 3. You earn interest automatically
 4. Can withdraw anytime (usually)
 
-**Example - Aave:**
+**Example - Aave (illustrative rate):**
 - Deposit 10,000 USDC
-- Current APY: 3%
-- Earn ~$300/year in interest
-- May also earn AAVE token rewards
+- At, say, a 4% variable APY
+- Earn roughly $400/year in interest, but the rate changes constantly with borrowing demand
+- See current rates on our [DeFi yield page](/defi-yield)
 
 **Best for:**
 - Lower risk tolerance
@@ -124,11 +136,11 @@ Borrow to increase yield farming position.
 3. Farm with borrowed assets
 4. Yield > Borrow cost = Profit
 
-**Example:**
+**Example (illustrative rates):**
 - Deposit $10,000 ETH as collateral
 - Borrow $5,000 USDC at 2% interest
 - Farm with USDC at 8% APY
-- Net profit: 6% on $5,000 = $300/year
+- Net profit: 6% on $5,000 = $300/year, as long as both rates stay put (they are variable and often move against you)
 
 **WARNING:** High risk strategy. Liquidation risk if collateral drops.
 
@@ -216,8 +228,10 @@ True Yield = (Fee APY + Reward APY - IL) - Gas Costs
 | Advertised | Daily Compound | Weekly Compound | No Compound |
 |------------|----------------|-----------------|-------------|
 | 10% APR | 10.52% | 10.51% | 10% |
-| 50% APR | 64.87% | 63.16% | 50% |
-| 100% APR | 171.46% | 159.27% | 100% |
+| 50% APR | 64.82% | 64.48% | 50% |
+| 100% APR | 171.46% | 169.26% | 100% |
+
+Formula: APY = (1 + APR / n)^n − 1, where n is the number of compounding periods per year. Real-world compounding also costs gas each time, which can wipe out the benefit on small positions.
 
 Higher APR = bigger compounding benefit.
 
@@ -236,14 +250,15 @@ Start with lower risk options:
 |-------|------|------|
 | Ethereum | Most liquidity | High gas |
 | Arbitrum | Low gas, good liquidity | Less protocols |
-| Polygon | Very low gas | Slower bridges |
+| Base / Optimism | Very low gas | Newer; some bridge delays |
+| Polygon (POL) | Very low gas | Less liquidity than the largest chains |
 | Solana | Fast, cheap | Different ecosystem |
 
 ### Step 3: Prepare Your Wallet
 
 1. Set up MetaMask or compatible wallet
 2. Add the chain you'll use
-3. Fund with native token for gas (ETH, MATIC, etc.)
+3. Fund with the chain's native token for gas (ETH, POL, SOL, etc.; Polygon's MATIC was migrated to POL in September 2024)
 4. Transfer farming tokens
 
 ### Step 4: Execute the Farm
@@ -329,10 +344,10 @@ Protocols pay for votes to direct emissions:
 
 ### Flash Loans
 
-Borrow without collateral if repaid in same transaction.
-- Used for arbitrage
-- Risk-free if done correctly
-- Requires technical knowledge
+Borrow without collateral if repaid in the same transaction.
+- Used by developers for arbitrage and liquidations
+- Requires writing smart contracts; not a retail strategy
+- Also a common tool in DeFi exploits, which is why protocols guard against them
 
 ## Common Mistakes to Avoid
 
@@ -398,8 +413,9 @@ Before entering any farm:
 3. Graduate to ETH/USDC pairs
 4. Explore yield aggregators
 5. Learn about concentrated liquidity
-6. Read our DeFi risks guide for safety
+6. Read our [DeFi Risks guide](/learn/defi-risks) before depositing anything significant
+7. Understand the tax side: rewards are usually income when received. See [Crypto Taxes](/learn/crypto-taxes-basics)
 
-Remember: High APY = High Risk. Sustainable yields in DeFi are typically 5-20% for stable strategies.
+Remember: High APY = High Risk. In 2025–2026, lending major stablecoins on established protocols has mostly paid in the low-to-mid single digits. Yields far above that are usually paid in inflationary reward tokens or come with extra risk.
 `
 };

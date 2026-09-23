@@ -1,130 +1,214 @@
 /**
- * Blog Page
- * Public blog listing with categories and search
+ * Blog listing: /blog and /blog/category/:category
+ *
+ * Renders from the build-time snapshot (src/content/blog/snapshot.json) on the
+ * first render, so the heading, summary, SEO tags and any saved posts are
+ * present without JavaScript or a database. Live Supabase results are merged
+ * in afterwards (see useBlogIndex). Filtering, search and pagination all run
+ * on the merged list in the browser.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { Search, Tag, ChevronLeft, ChevronRight, Rss, Mail } from 'lucide-react';
-import { getPublicBlogPosts, getCategories, getFeaturedPost } from '../services/blog';
-import { BlogPostCard } from '../components/blog';
-import type { BlogPost, BlogCategory } from '../types/blog';
-import { motion } from 'framer-motion';
+import {
+  Search,
+  Tag,
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  Calculator,
+  BookA,
+  Scale,
+  ShieldAlert,
+} from 'lucide-react';
+import { BlogPostCard } from '../components/blog/BlogPostCard';
+import { useBlogIndex } from '../components/blog/useBlogData';
+import { buildCollectionSchema, formatDate } from '../components/blog/blogUtils';
+import { filterPosts } from '../services/blog';
+import { resolveCategory } from '../content/blog';
+import { Newsletter } from '../components/Newsletter';
+import { SEO, generateBreadcrumbSchema } from '../components/SEO';
+import { PAGE_METADATA } from '../lib/seo';
+import { NotFound } from './NotFound';
 
-import { PageSEO } from '../components/PageSEO';
+const PAGE_SIZE = 12;
+/** When the hub copy on this page was last reviewed. */
+const PAGE_REVIEWED = '2026-09-23';
+
+/** Evergreen, static sections of the site that always exist. */
+const EVERGREEN_LINKS = [
+  {
+    to: '/learn',
+    label: 'Beginner guides',
+    text: 'Step-by-step guides: what Bitcoin is, buying safely, wallets, DCA and DeFi risks.',
+    icon: BookOpen,
+  },
+  {
+    to: '/glossary',
+    label: 'Crypto glossary',
+    text: 'Plain-English definitions of the terms you will meet in crypto news.',
+    icon: BookA,
+  },
+  {
+    to: '/calculators',
+    label: 'Calculators',
+    text: 'DCA, fee, staking and tax calculators that run in your browser.',
+    icon: Calculator,
+  },
+  {
+    to: '/compare',
+    label: 'Compare platforms',
+    text: 'Side-by-side comparisons of exchanges and wallets.',
+    icon: Scale,
+  },
+  {
+    to: '/scam-database',
+    label: 'Scam database',
+    text: 'Common crypto scams, warning signs and what to do if you are targeted.',
+    icon: ShieldAlert,
+  },
+];
+
+function pageWindow(current: number, total: number): Array<number | 'gap'> {
+  const pages = new Set([1, total, current - 1, current, current + 1]);
+  const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out: Array<number | 'gap'> = [];
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1] > 1) out.push('gap');
+    out.push(p);
+  });
+  return out;
+}
+
+function clampDescription(text: string): string {
+  if (text.length <= 160) return text;
+  return `${text.slice(0, 157).replace(/\s+\S*$/, '')}...`;
+}
+
 export function Blog() {
   const { category: categoryParam } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tagParam = searchParams.get('tag');
-  const searchParam = searchParams.get('q');
-  const pageParam = parseInt(searchParams.get('page') || '1', 10);
-
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [featuredPost, setFeaturedPost] = useState<BlogPost | null>(null);
-  const [categories, setCategories] = useState<BlogCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(1);
+  const tagParam = searchParams.get('tag') || undefined;
+  const searchParam = searchParams.get('q') || undefined;
+  const rawPage = parseInt(searchParams.get('page') || '1', 10);
   const [searchQuery, setSearchQuery] = useState(searchParam || '');
-  const [allTags, setAllTags] = useState<string[]>([]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
+  const { index, live } = useBlogIndex();
+  const { posts: allPosts, categories } = index;
 
-      const [postsResult, categoriesResult, featuredResult] = await Promise.all([
-        getPublicBlogPosts({
-          category: categoryParam,
-          tag: tagParam || undefined,
-          search: searchParam || undefined,
-          page: pageParam,
-          limit: 12,
-        }),
-        getCategories(),
-        !categoryParam && !tagParam && !searchParam && pageParam === 1
-          ? getFeaturedPost()
-          : Promise.resolve({ data: null }),
-      ]);
+  const categorySlug = categoryParam?.toLowerCase();
+  const knownCategory = categorySlug
+    ? categories.find((c) => c.slug.toLowerCase() === categorySlug)
+    : undefined;
+  // Only call a category unknown once we have an authoritative category list.
+  const categoryListSettled = live !== 'loading' && categories.length > 0;
+  if (categorySlug && !knownCategory && categoryListSettled) {
+    return <NotFound />;
+  }
+  const currentCategory = categorySlug
+    ? knownCategory
+      ? { slug: knownCategory.slug, name: knownCategory.name, description: knownCategory.description }
+      : { ...resolveCategory(categorySlug, []), description: null }
+    : null;
 
-      if (postsResult.data) {
-        setPosts(postsResult.data.posts);
-        setTotalPages(postsResult.data.totalPages);
+  const filtered = filterPosts(allPosts, { category: categorySlug, tag: tagParam, search: searchParam });
+  const isUnfiltered = !categorySlug && !tagParam && !searchParam;
+  const featuredPost = isUnfiltered && filtered.length > 1 ? filtered[0] : null;
+  const gridPosts = featuredPost ? filtered.slice(1) : filtered;
+  const totalPages = Math.max(1, Math.ceil(gridPosts.length / PAGE_SIZE));
+  const page = Math.min(Math.max(1, Number.isFinite(rawPage) ? rawPage : 1), totalPages);
+  const pagePosts = gridPosts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const showFeatured = featuredPost && page === 1;
 
-        // Extract unique tags
-        const tags = new Set<string>();
-        postsResult.data.posts.forEach((post) => {
-          post.tags?.forEach((tag) => tags.add(tag));
-        });
-        setAllTags(Array.from(tags).slice(0, 20));
-      }
+  const tagCounts = new Map<string, number>();
+  allPosts.forEach((p) => p.tags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) || 0) + 1)));
+  const popularTags = [...tagCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 20)
+    .map(([t]) => t);
 
-      if (categoriesResult.data) {
-        setCategories(categoriesResult.data);
-      }
-
-      if (featuredResult.data) {
-        setFeaturedPost(featuredResult.data);
-      }
-
-      setLoading(false);
-    };
-
-    loadData();
-  }, [categoryParam, tagParam, searchParam, pageParam]);
+  const newest = allPosts[0];
+  const lastUpdated = newest ? newest.published_at || newest.updated_at : PAGE_REVIEWED;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      setSearchParams({ q: searchQuery.trim() });
-    } else {
-      setSearchParams({});
-    }
+    const q = searchQuery.trim();
+    setSearchParams(q ? { q } : {});
   };
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams);
-    params.set('page', newPage.toString());
+    if (newPage <= 1) params.delete('page');
+    else params.set('page', String(newPage));
     setSearchParams(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const currentCategory = categoryParam
-    ? categories.find((c) => c.slug === categoryParam)
-    : null;
+  // ---- SEO ----
+  const base = PAGE_METADATA.blog;
+  const path = currentCategory ? `/blog/category/${currentCategory.slug}` : '/blog';
+  const seoTitle = currentCategory ? `${currentCategory.name} Articles & Analysis` : base.title;
+  const seoDescription = currentCategory
+    ? clampDescription(
+        `${currentCategory.name} articles from Bitcoinvestments${
+          currentCategory.description ? `: ${currentCategory.description.replace(/\.$/, '')}` : ''
+        }. Plain-English analysis for everyday crypto investors${
+          currentCategory.description ? '' : ', with links to our free guides and calculators'
+        }.`
+      )
+    : base.description;
+  const h1 = currentCategory
+    ? `${currentCategory.name} Articles`
+    : 'Bitcoinvestments Blog: Crypto News, Analysis & Guides';
+  // Thin or duplicate listings stay out of the index.
+  const noindex = Boolean(searchParam || tagParam) || filtered.length === 0;
+
+  const breadcrumbs = [
+    { name: 'Home', url: '/' },
+    { name: 'Blog', url: '/blog' },
+    ...(currentCategory ? [{ name: currentCategory.name, url: path }] : []),
+  ];
 
   return (
     <div className="min-h-screen py-12">
-      <PageSEO pageKey="blog" urlPath="/blog" />
+      <SEO
+        title={seoTitle}
+        description={seoDescription}
+        keywords={base.keywords}
+        url={`https://bitcoinvestments.net${path}`}
+        noindex={noindex}
+        blufSummary={seoDescription}
+        schema={[
+          buildCollectionSchema({
+            name: h1,
+            description: seoDescription,
+            path,
+            posts: filtered.slice(0, 30),
+          }),
+          generateBreadcrumbSchema(breadcrumbs),
+        ]}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <motion.h1
-            className="text-4xl md:text-5xl font-bold text-white mb-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {currentCategory ? currentCategory.name : 'Blog'}
-          </motion.h1>
-          <motion.p
-            className="text-lg text-slate-400 max-w-2xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+        <header className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{h1}</h1>
+          <p className="text-lg text-slate-300 max-w-3xl mx-auto">
             {currentCategory
-              ? currentCategory.description
-              : 'Stay informed with the latest cryptocurrency news, guides, and insights.'}
-          </motion.p>
+              ? `Every Bitcoinvestments article filed under ${currentCategory.name}${
+                  currentCategory.description ? ` — ${currentCategory.description.replace(/\.$/, '')}` : ''
+                }. Each post page links to related guides and tools.`
+              : 'Plain-English crypto news analysis and explainers for everyday investors: what happened, why it matters, and what (if anything) to do about it. Posts link to our free guides, glossary and calculators so you can check the details yourself.'}
+          </p>
+          <p className="mt-3 text-sm text-slate-500">
+            {newest ? 'Latest post published ' : 'Page last reviewed '}
+            <time dateTime={lastUpdated}>{formatDate(lastUpdated)}</time>
+          </p>
 
           {tagParam && (
             <div className="mt-4 flex items-center justify-center gap-2">
-              <Tag className="w-4 h-4 text-orange-400" />
-              <span className="text-orange-400 font-medium">
-                Posts tagged "{tagParam}"
-              </span>
-              <Link
-                to="/blog"
-                className="text-sm text-slate-500 hover:text-white ml-2"
-              >
+              <Tag className="w-4 h-4 text-orange-400" aria-hidden="true" />
+              <span className="text-orange-400 font-medium">Posts tagged "{tagParam}"</span>
+              <Link to="/blog" className="text-sm text-slate-400 hover:text-white ml-2">
                 Clear
               </Link>
             </div>
@@ -133,35 +217,43 @@ export function Blog() {
           {searchParam && (
             <div className="mt-4 text-slate-400">
               Search results for "{searchParam}"
-              <Link
-                to="/blog"
-                className="text-sm text-orange-400 hover:text-orange-300 ml-2"
-              >
+              <Link to="/blog" className="text-sm text-orange-400 hover:text-orange-300 ml-2">
                 Clear
               </Link>
             </div>
           )}
-        </div>
+        </header>
+
+        {live === 'failed' && allPosts.length > 0 && (
+          <p className="mb-6 text-sm text-slate-400 bg-slate-800/50 border border-white/10 rounded-lg px-4 py-3" role="status">
+            Showing the posts saved at our last site update. We could not reach the article database just now, so
+            anything published since may be missing.
+          </p>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3">
-            {/* Featured Post */}
-            {featuredPost && !categoryParam && !tagParam && !searchParam && pageParam === 1 && (
-              <motion.div
-                className="mb-8"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
+            {showFeatured && featuredPost && (
+              <div className="mb-8">
                 <BlogPostCard post={featuredPost} variant="featured" />
-              </motion.div>
+              </div>
             )}
 
-            {/* Posts Grid */}
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
+            {pagePosts.length > 0 ? (
+              <section aria-labelledby="blog-posts-heading">
+                <h2 id="blog-posts-heading" className="sr-only">
+                  {currentCategory ? `${currentCategory.name} posts` : 'Latest posts'}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pagePosts.map((post) => (
+                    <BlogPostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              </section>
+            ) : showFeatured ? null : live === 'loading' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-hidden="true">
+                {[0, 1, 2].map((i) => (
                   <div
                     key={i}
                     className="bg-slate-800/50 rounded-xl border border-white/10 overflow-hidden animate-pulse"
@@ -175,145 +267,144 @@ export function Blog() {
                   </div>
                 ))}
               </div>
-            ) : posts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-slate-500">No posts found.</p>
-                <Link
-                  to="/blog"
-                  className="text-orange-400 hover:text-orange-300 mt-2 inline-block"
-                >
-                  View all posts
-                </Link>
-              </div>
             ) : (
-              <motion.div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                {posts
-                  .filter((p) => !featuredPost || p.id !== featuredPost.id)
-                  .map((post, index) => (
-                    <motion.div
-                      key={post.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                    >
-                      <BlogPostCard post={post} />
-                    </motion.div>
-                  ))}
-              </motion.div>
+              <EmptyState
+                filtered={!isUnfiltered}
+                unreachable={live === 'failed'}
+                categoryName={currentCategory?.name}
+              />
             )}
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-12">
+              <nav className="flex items-center justify-center gap-2 mt-12" aria-label="Blog pages">
                 <button
-                  onClick={() => handlePageChange(pageParam - 1)}
-                  disabled={pageParam === 1}
+                  type="button"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
                   className="flex items-center gap-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4" aria-hidden="true" />
                   Previous
                 </button>
                 <div className="flex items-center gap-1">
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handlePageChange(i + 1)}
-                      className={`
-                        w-10 h-10 rounded-lg transition-colors
-                        ${pageParam === i + 1
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:text-white'
-                        }
-                      `}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                  {pageWindow(page, totalPages).map((p, i) =>
+                    p === 'gap' ? (
+                      <span key={`gap-${i}`} className="px-2 text-slate-500" aria-hidden="true">
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        aria-current={p === page ? 'page' : undefined}
+                        aria-label={`Page ${p}`}
+                        className={`w-10 h-10 rounded-lg transition-colors ${
+                          p === page ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
                 </div>
                 <button
-                  onClick={() => handlePageChange(pageParam + 1)}
-                  disabled={pageParam === totalPages}
+                  type="button"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
                   className="flex items-center gap-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
                 </button>
-              </div>
+              </nav>
             )}
+
+            {/* What this blog is */}
+            <section className="mt-16 p-6 bg-slate-800/30 rounded-xl border border-white/10" aria-labelledby="blog-about-heading">
+              <h2 id="blog-about-heading" className="text-xl font-semibold text-white mb-3">
+                About this blog
+              </h2>
+              <p className="text-slate-300 mb-3">
+                The Bitcoinvestments blog covers crypto news and market developments for beginner and intermediate
+                investors. We explain what changed and why it matters, and point to the evergreen guide or tool that
+                goes deeper.
+              </p>
+              <p className="text-sm text-slate-400">
+                Nothing on this blog is financial, tax or legal advice. Crypto assets are volatile and you can lose
+                money; do your own research and consider speaking to a qualified professional.
+              </p>
+            </section>
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+          <aside className="lg:col-span-1 space-y-6" aria-label="Blog navigation">
             {/* Search */}
             <div className="bg-slate-800/50 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Search</h3>
-              <form onSubmit={handleSearch} className="relative">
+              <h2 className="text-sm font-semibold text-white mb-3">
+                <label htmlFor="blog-search">Search posts</label>
+              </h2>
+              <form onSubmit={handleSearch} className="relative" role="search">
                 <input
-                  type="text"
+                  id="blog-search"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search posts..."
                   className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden="true" />
               </form>
             </div>
 
             {/* Categories */}
-            <div className="bg-slate-800/50 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Categories</h3>
-              <div className="space-y-1">
-                <Link
-                  to="/blog"
-                  className={`
-                    block px-3 py-2 rounded-lg text-sm transition-colors
-                    ${!categoryParam
-                      ? 'bg-orange-500/20 text-orange-400'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }
-                  `}
-                >
-                  All Posts
-                </Link>
-                {categories.map((cat) => (
+            {categories.length > 0 && (
+              <nav className="bg-slate-800/50 rounded-xl border border-white/10 p-4" aria-labelledby="blog-categories-heading">
+                <h2 id="blog-categories-heading" className="text-sm font-semibold text-white mb-3">
+                  Categories
+                </h2>
+                <div className="space-y-1">
                   <Link
-                    key={cat.id}
-                    to={`/blog/category/${cat.slug}`}
-                    className={`
-                      block px-3 py-2 rounded-lg text-sm transition-colors
-                      ${categoryParam === cat.slug
-                        ? 'bg-orange-500/20 text-orange-400'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }
-                    `}
+                    to="/blog"
+                    aria-current={!categorySlug ? 'page' : undefined}
+                    className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                      !categorySlug ? 'bg-orange-500/20 text-orange-400' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
                   >
-                    {cat.name}
+                    All posts
                   </Link>
-                ))}
-              </div>
-            </div>
+                  {categories.map((cat) => (
+                    <Link
+                      key={cat.id || cat.slug}
+                      to={`/blog/category/${cat.slug}`}
+                      aria-current={categorySlug === cat.slug.toLowerCase() ? 'page' : undefined}
+                      className={`block px-3 py-2 rounded-lg text-sm transition-colors ${
+                        categorySlug === cat.slug.toLowerCase()
+                          ? 'bg-orange-500/20 text-orange-400'
+                          : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              </nav>
+            )}
 
             {/* Tags */}
-            {allTags.length > 0 && (
+            {popularTags.length > 0 && (
               <div className="bg-slate-800/50 rounded-xl border border-white/10 p-4">
-                <h3 className="text-sm font-semibold text-white mb-3">Popular Tags</h3>
+                <h2 className="text-sm font-semibold text-white mb-3">Popular tags</h2>
                 <div className="flex flex-wrap gap-2">
-                  {allTags.map((tag) => (
+                  {popularTags.map((tag) => (
                     <Link
                       key={tag}
                       to={`/blog?tag=${encodeURIComponent(tag)}`}
-                      className={`
-                        px-2 py-1 text-xs rounded transition-colors
-                        ${tagParam === tag
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }
-                      `}
+                      aria-current={tagParam === tag ? 'page' : undefined}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        tagParam === tag ? 'bg-orange-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
                     >
                       {tag}
                     </Link>
@@ -322,35 +413,85 @@ export function Blog() {
               </div>
             )}
 
-            {/* Newsletter CTA */}
-            <div className="bg-gradient-to-br from-orange-500/20 to-amber-500/10 rounded-xl border border-orange-500/20 p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Mail className="w-5 h-5 text-orange-400" />
-                <h3 className="font-semibold text-white">Newsletter</h3>
-              </div>
-              <p className="text-sm text-slate-400 mb-4">
-                Get the latest crypto insights delivered to your inbox weekly.
-              </p>
-              <Link
-                to="/"
-                className="block w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-center text-sm rounded-lg transition-colors"
-              >
-                Subscribe Now
-              </Link>
-            </div>
+            {/* Evergreen content */}
+            <nav className="bg-slate-800/50 rounded-xl border border-white/10 p-4" aria-labelledby="blog-start-heading">
+              <h2 id="blog-start-heading" className="text-sm font-semibold text-white mb-3">
+                Start here
+              </h2>
+              <ul className="space-y-2">
+                {EVERGREEN_LINKS.slice(0, 3).map((l) => (
+                  <li key={l.to}>
+                    <Link to={l.to} className="text-sm text-orange-400 hover:text-orange-300">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
 
-            {/* RSS Feed */}
-            <a
-              href="/blog/rss.xml"
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-800/50 rounded-xl border border-white/10 text-slate-400 hover:text-white transition-colors"
-            >
-              <Rss className="w-4 h-4" />
-              RSS Feed
-            </a>
-          </div>
+            {/* Newsletter */}
+            <div id="newsletter">
+              <Newsletter source="blog-sidebar" variant="card" />
+            </div>
+          </aside>
         </div>
       </div>
     </div>
+  );
+}
+
+function EmptyState({
+  filtered,
+  unreachable,
+  categoryName,
+}: {
+  filtered: boolean;
+  unreachable: boolean;
+  categoryName?: string;
+}) {
+  const heading = filtered
+    ? categoryName
+      ? `No ${categoryName} posts yet`
+      : 'No posts match that'
+    : 'New posts are on the way';
+  return (
+    <section className="py-8" aria-labelledby="blog-empty-heading">
+      <h2 id="blog-empty-heading" className="text-2xl font-semibold text-white mb-3">
+        {heading}
+      </h2>
+      <p className="text-slate-300 mb-2">
+        {filtered
+          ? 'Try another category or search term, or browse everything on the blog.'
+          : 'We have not published any blog posts yet. In the meantime, our evergreen guides and tools answer the questions most new investors ask.'}
+      </p>
+      {unreachable && (
+        <p className="text-sm text-slate-400 mb-2" role="status">
+          We could not reach the article database just now, so recent posts may not be listed. Please try again
+          later.
+        </p>
+      )}
+      {filtered && (
+        <Link to="/blog" className="inline-block text-orange-400 hover:text-orange-300 mb-6">
+          View all posts
+        </Link>
+      )}
+      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+        {EVERGREEN_LINKS.map(({ to, label, text, icon: Icon }) => (
+          <li key={to}>
+            <Link
+              to={to}
+              className="flex gap-3 h-full p-4 bg-slate-800/50 rounded-xl border border-white/10 hover:border-orange-500/30 transition-colors"
+            >
+              <Icon className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span>
+                <span className="block font-medium text-white">{label}</span>
+                <span className="block text-sm text-slate-400">{text}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

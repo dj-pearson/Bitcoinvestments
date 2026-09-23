@@ -5,8 +5,9 @@
  */
 
 import { Link } from 'react-router-dom';
-import { Home, LogIn, ShieldAlert, CreditCard } from 'lucide-react';
+import { Home, LogIn, ShieldAlert, CreditCard, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { STATIC_MODE } from '../config/staticMode';
 
 import { SEO } from '../components/SEO';
 export function Forbidden() {
@@ -29,13 +30,23 @@ export function Forbidden() {
         <h2 className="text-xl md:text-2xl font-semibold text-gray-300 mb-4">Access Denied</h2>
 
         <p className="text-gray-400 mb-8">
-          {user
-            ? "You don't have permission to access this page. This content may require a premium subscription or admin access."
-            : 'You need to be signed in to access this page.'}
+          {STATIC_MODE
+            ? "This page needs an account, and accounts aren't open yet. Everything else on the site is free to use without one."
+            : user
+              ? "You don't have permission to access this page. It may need a paid plan or admin access."
+              : 'You need to be signed in to access this page.'}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          {user ? (
+          {STATIC_MODE ? (
+            <Link
+              to="/learn"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand-primary hover:bg-brand-primary/90 text-white font-medium rounded-lg transition-colors"
+            >
+              <BookOpen className="w-5 h-5" aria-hidden="true" />
+              Browse the guides
+            </Link>
+          ) : user ? (
             <Link
               to="/pricing"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand-primary hover:bg-brand-primary/90 text-white font-medium rounded-lg transition-colors"

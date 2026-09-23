@@ -39,61 +39,53 @@ export interface PageMeta {
  */
 export const PAGE_METADATA: Record<string, PageMeta> = {
   home: {
-    title: 'Learn Crypto Investing for Beginners',
+    title: 'Learn to Invest in Bitcoin Safely',
     description:
-      'Learn how to invest in Bitcoin and cryptocurrency safely. Compare exchanges, wallets, and get educational guides for beginners. Free DCA calculators, portfolio tracking, and crypto scam database.',
+      'Free, plain-English guides to buying, storing and investing in Bitcoin safely, plus calculators, exchange comparisons and a crypto scam checker.',
     keywords: [
-      'Bitcoin',
-      'cryptocurrency',
-      'crypto investment',
       'how to invest in Bitcoin',
+      'learn to invest in Bitcoin safely',
+      'Bitcoin for beginners',
       'cryptocurrency for beginners',
+      'crypto scam checker',
       'DCA calculator',
-      'dollar cost averaging',
-      'crypto education',
       'exchange comparison',
-      'wallet comparison',
-      'crypto scam database',
-      'portfolio tracker',
+      'crypto education',
     ],
   },
   dashboard: {
-    title: 'Cryptocurrency Market Dashboard',
+    title: 'Crypto Prices Today: Top 100 Coins',
     description:
-      'Real-time cryptocurrency prices, market data, and portfolio tracking. Monitor Bitcoin, Ethereum, and 10,000+ altcoins with live price updates and market sentiment analysis.',
+      'Live prices, 24h change and market cap for the top 100 cryptocurrencies from CoinGecko, plus a Bitcoin chart, gas fees and a private portfolio tracker.',
     keywords: [
+      'crypto prices today',
       'cryptocurrency prices',
-      'crypto market data',
+      'crypto market cap',
       'Bitcoin price',
       'Ethereum price',
+      'top 100 cryptocurrencies',
       'crypto portfolio tracker',
-      'market cap',
-      'crypto dashboard',
-      'real-time prices',
-      'altcoin prices',
-      'crypto market analysis',
+      'bitcoin dominance',
     ],
   },
   charts: {
-    title: 'Cryptocurrency Price Charts & Analysis',
+    title: 'Crypto Price Charts & Coin Comparison',
     description:
-      'Interactive cryptocurrency price charts with technical analysis tools. Compare Bitcoin, Ethereum, and altcoin prices with customizable timeframes and indicators.',
+      'Free interactive crypto price charts from 24 hours to 1 year. Compare up to 8 coins on one chart and see each coin’s change, high, low and max drawdown.',
     keywords: [
       'crypto charts',
-      'Bitcoin chart',
+      'Bitcoin price chart',
       'cryptocurrency price chart',
-      'crypto technical analysis',
-      'price comparison',
-      'trading charts',
-      'crypto analysis tools',
-      'historical prices',
-      'price trends',
+      'compare crypto performance',
+      'BTC vs ETH chart',
+      'historical crypto prices',
+      'max drawdown',
     ],
   },
   calculators: {
-    title: 'Cryptocurrency Calculators - DCA, Staking, Tax & More',
+    title: 'Crypto Calculators: DCA, Tax & Fees',
     description:
-      'Free cryptocurrency calculators for DCA (Dollar Cost Averaging), staking rewards, trading fees, and tax estimation. Plan your crypto investments with precision.',
+      'Free crypto calculators: DCA backtest on real BTC, ETH and SOL prices, 2025/2026 capital gains tax, exchange fees, staking and a live price converter.',
     keywords: [
       'DCA calculator',
       'crypto calculator',
@@ -107,9 +99,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   compare: {
-    title: 'Compare Cryptocurrency Exchanges & Wallets',
+    title: 'Best Crypto Exchanges & Wallets (2026)',
     description:
-      'Side-by-side comparison of the best cryptocurrency exchanges and wallets. Compare fees, security, features, and user ratings to find the best platform for you.',
+      'Crypto exchanges and wallets compared: real costs of a $100 and $1,000 bitcoin buy, fees verified Sept 2026, hardware wallet specs and our scoring method.',
     keywords: [
       'crypto exchange comparison',
       'best crypto exchange',
@@ -122,9 +114,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   learn: {
-    title: 'Learn Cryptocurrency - Free Guides & Courses',
+    title: 'Learn Crypto Investing: Free Guides',
     description:
-      'Free cryptocurrency education from blockchain basics to advanced trading strategies. Beginner-friendly guides, courses, and tutorials for Bitcoin and crypto investing.',
+      'Free, plain-English crypto guides and a 6-module beginner course: Bitcoin, wallets, buying safely, taxes, DCA, risk and DeFi, with a start-here learning path.',
     keywords: [
       'learn cryptocurrency',
       'crypto education',
@@ -138,9 +130,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   glossary: {
-    title: 'Cryptocurrency Glossary - 300+ Crypto Terms Explained',
+    title: 'Crypto Glossary: Key Terms Explained',
     description:
-      'Comprehensive cryptocurrency glossary with 300+ terms explained in plain English. From HODL to DeFi, understand every crypto term and concept.',
+      'Plain-English definitions of the crypto terms beginners meet most, from Bitcoin and seed phrases to staking, slippage and spot ETFs, each with its own link.',
     keywords: [
       'crypto glossary',
       'cryptocurrency terms',
@@ -154,9 +146,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   scamDatabase: {
-    title: 'Crypto Scam Database - Protect Yourself from Fraud',
+    title: 'Crypto Scam Checker & Scam Types Guide',
     description:
-      'Free community-powered cryptocurrency scam database. Search known scams, report fraud, and protect yourself from phishing, rug pulls, and ponzi schemes.',
+      'Check a crypto wallet or website before you send, learn how 11 common crypto scams work, see FBI IC3 loss data, and know what to do if you are scammed.',
     keywords: [
       'crypto scam database',
       'cryptocurrency scams',
@@ -170,23 +162,20 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   pricing: {
-    title: 'Pricing Plans - Premium Crypto Tools & Features',
+    title: 'Pricing & Plans',
     description:
-      'Unlock premium cryptocurrency tools and features. Compare our free and paid plans for portfolio tracking, alerts, tax reports, and advanced analytics.',
+      'Everything on Bitcoinvestments is free today: guides, calculators, comparisons and the scam database. See what Premium will add and join the waitlist.',
     keywords: [
-      'crypto tools pricing',
-      'premium features',
-      'portfolio tracker subscription',
-      'crypto alerts',
-      'tax reports',
-      'advanced analytics',
+      'Bitcoinvestments pricing',
+      'is Bitcoinvestments free',
+      'crypto education free',
       'premium crypto tools',
     ],
   },
   backtesting: {
-    title: 'Crypto Backtesting Tool - Test Trading Strategies',
+    title: 'Bitcoin Backtest: Lump Sum vs DCA',
     description:
-      'Backtest your cryptocurrency trading strategies with historical data. Simulate DCA, lump sum, and custom strategies to optimize your investment approach.',
+      'What if you had invested in Bitcoin? Backtest lump sum vs DCA for BTC and ETH since 2014 on weekly price history, with drawdowns and XIRR returns.',
     keywords: [
       'crypto backtesting',
       'trading strategy test',
@@ -198,9 +187,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   stakingCalculator: {
-    title: 'Crypto Staking Calculator - Calculate Staking Rewards',
+    title: 'Crypto Staking Rewards Calculator',
     description:
-      'Calculate your potential cryptocurrency staking rewards. Compare APY rates across coins and platforms to maximize your passive income.',
+      'Estimate staking rewards for ETH, SOL, ADA, DOT and ATOM with dated typical APY ranges, correct compounding, lockup notes and staking tax basics.',
     keywords: [
       'staking calculator',
       'crypto staking rewards',
@@ -212,9 +201,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   retirementCalculator: {
-    title: 'Crypto Retirement Calculator - Plan Your Future',
+    title: 'Crypto Retirement Calculator',
     description:
-      'Plan your retirement with cryptocurrency investments. Calculate how much Bitcoin or crypto you need to retire based on your goals and timeline.',
+      'Model crypto in your retirement plan: Monte Carlo success odds, today\'s-dollar projections, 2026 tax brackets, Social Security and what-if scenarios.',
     keywords: [
       'crypto retirement calculator',
       'Bitcoin retirement',
@@ -225,44 +214,42 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   whaleTracking: {
-    title: 'Whale Tracking - Monitor Large Crypto Transactions',
+    title: 'Bitcoin Whale Tracking Explained',
     description:
-      'Track large cryptocurrency transactions and whale wallet movements. Get alerts when whales move Bitcoin, Ethereum, and other major cryptocurrencies.',
+      'See the largest transactions in the latest Bitcoin blocks, learn how to track whales yourself, and why big transfers rarely mean what headlines claim.',
     keywords: [
       'whale tracking',
-      'crypto whale alerts',
-      'large transactions',
-      'whale wallet',
-      'Bitcoin whale',
-      'smart money tracking',
-      'on-chain analytics',
+      'bitcoin whale transactions',
+      'crypto whale',
+      'large bitcoin transactions',
+      'whale alert',
+      'block explorer',
     ],
   },
   tradingIndicators: {
-    title: 'Crypto Trading Indicators & Signals',
+    title: 'Crypto Indicators: RSI, MACD & Bollinger',
     description:
-      'Professional cryptocurrency trading indicators and market signals. RSI, MACD, moving averages, and custom indicators for informed trading decisions.',
+      'Free live RSI, MACD, Bollinger Bands, SMA, EMA and Stochastic readings for Bitcoin, Ethereum and Solana, with plain-English guides to each indicator.',
     keywords: [
       'crypto indicators',
-      'trading signals',
-      'RSI indicator',
+      'bitcoin RSI',
       'MACD crypto',
-      'technical indicators',
-      'market signals',
-      'trading analysis',
+      'Bollinger Bands',
+      'moving average',
+      'technical analysis',
     ],
   },
   onChainAnalytics: {
-    title: 'On-Chain Analytics - Blockchain Data Analysis',
+    title: 'Bitcoin On-Chain Metrics Explained',
     description:
-      'Deep dive into blockchain data with on-chain analytics. Analyze network activity, holder distribution, and smart contract interactions.',
+      'Live Bitcoin hashrate, difficulty, fees, mempool, transaction and address counts from public sources, with what each metric means and its limits.',
     keywords: [
       'on-chain analytics',
-      'blockchain data',
-      'network analysis',
-      'holder distribution',
-      'smart contract analytics',
-      'blockchain metrics',
+      'bitcoin on-chain metrics',
+      'bitcoin hashrate',
+      'bitcoin fees',
+      'mempool',
+      'active addresses',
     ],
   },
   defiYield: {
@@ -294,9 +281,9 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   hardwareWallet: {
-    title: 'Hardware Wallet Guide - Secure Your Crypto',
+    title: 'Hardware Wallet Comparison (2026)',
     description:
-      'Complete guide to cryptocurrency hardware wallets. Compare Ledger, Trezor, and other hardware wallets to secure your digital assets.',
+      'Ledger vs Trezor and other hardware wallets compared: current models, list prices, secure elements, open-source firmware and connectivity, checked Sept 2026.',
     keywords: [
       'hardware wallet',
       'Ledger wallet',
@@ -308,16 +295,14 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   multiExchange: {
-    title: 'Multi-Exchange Portfolio - Track All Accounts',
+    title: 'Track Crypto Across Exchanges',
     description:
-      'Connect and track all your cryptocurrency exchange accounts in one dashboard. Unified portfolio view across Coinbase, Kraken, Binance, and more.',
+      'How to track crypto held on several exchanges safely: manual tracking, CSV exports and read-only API keys. Automatic exchange syncing is not available.',
     keywords: [
-      'multi-exchange',
-      'portfolio tracker',
-      'exchange aggregator',
-      'unified dashboard',
-      'exchange connection',
-      'portfolio management',
+      'track crypto multiple exchanges',
+      'read-only API key',
+      'crypto portfolio tracker',
+      'exchange CSV export',
     ],
   },
   dcaAutomation: {
@@ -373,16 +358,16 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   socialTrading: {
-    title: 'Social Trading - Copy Top Crypto Traders',
+    title: 'Copy Trading Crypto Explained',
     description:
-      'Follow and copy successful cryptocurrency traders. Learn from the best and replicate winning trading strategies automatically.',
+      'How crypto copy trading works, where US residents can use it, what it costs, and the risks: leverage, survivorship bias and lag. Includes a vetting checklist.',
     keywords: [
-      'social trading',
       'copy trading',
-      'follow traders',
-      'crypto signals',
-      'trading community',
-      'copy strategies',
+      'crypto copy trading',
+      'social trading',
+      'copy trading risks',
+      'eToro CopyTrader',
+      'survivorship bias',
     ],
   },
   influencerVerification: {
@@ -401,14 +386,25 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
   privacy: {
     title: 'Privacy Policy',
     description:
-      'Bitcoinvestments privacy policy. Learn how we collect, use, and protect your personal information.',
-    keywords: ['privacy policy', 'data protection', 'personal information', 'GDPR'],
+      'What Bitcoinvestments collects, which services see your data (Cloudflare, CoinGecko, Supabase, Google Analytics and more), browser storage and your rights.',
+    keywords: [
+      'privacy policy',
+      'data protection',
+      'GDPR',
+      'CCPA',
+      'cookies',
+    ],
   },
   terms: {
     title: 'Terms of Service',
     description:
-      'Bitcoinvestments terms of service and user agreement. Read our terms and conditions for using our platform.',
-    keywords: ['terms of service', 'user agreement', 'terms and conditions', 'legal'],
+      'The terms for using Bitcoinvestments: educational use, no financial advice, affiliate links, planned paid plans and API, liability and how to contact us.',
+    keywords: [
+      'terms of service',
+      'terms and conditions',
+      'user agreement',
+      'legal',
+    ],
   },
   login: {
     title: 'Login to Your Account',
@@ -430,7 +426,7 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
   blog: {
     title: 'Crypto Blog - News, Analysis & Education',
     description:
-      'Latest cryptocurrency news, market analysis, and educational content. Stay informed about Bitcoin, Ethereum, DeFi, and the broader crypto market with expert insights.',
+      'Plain-English crypto news analysis for everyday investors: Bitcoin, Ethereum, DeFi, security and regulation, linked to our free guides and calculators.',
     keywords: [
       'crypto blog',
       'cryptocurrency news',
@@ -458,42 +454,61 @@ export const PAGE_METADATA: Record<string, PageMeta> = {
     ],
   },
   apiPricing: {
-    title: 'API Pricing - Developer Plans & Access',
+    title: 'Developer API',
     description:
-      'Flexible API pricing plans for cryptocurrency data access. Free tier available with rate-limited access. Premium plans for production use.',
+      'The Bitcoinvestments developer API: the endpoints that exist today, how authentication and rate limits work, and how to join the waitlist for keys.',
     keywords: [
-      'API pricing',
-      'crypto API plans',
-      'data access pricing',
-      'developer plans',
-      'API subscription',
+      'crypto price API',
+      'Bitcoinvestments API',
+      'cryptocurrency API',
+      'developer API',
     ],
   },
   accessibility: {
-    title: 'Accessibility Settings',
+    title: 'Accessibility Statement',
     description:
-      'Customize your Bitcoinvestments experience with accessibility settings. Adjust font size, contrast, animations, and screen reader preferences.',
+      'How accessible Bitcoinvestments is today: our WCAG 2.2 AA target, known issues, the display settings you can change and how to report a barrier.',
     keywords: [
-      'accessibility',
-      'a11y settings',
+      'accessibility statement',
+      'WCAG 2.2',
       'screen reader',
       'high contrast',
-      'font size',
-      'WCAG compliance',
+      'reduced motion',
+    ],
+  },
+  about: {
+    title: 'About Us & Editorial Policy',
+    description:
+      'Who runs Bitcoinvestments, how we research and update our guides, how we make money from affiliate links and sponsorships, and how to report a mistake.',
+    keywords: [
+      'about Bitcoinvestments',
+      'editorial policy',
+      'affiliate disclosure',
+      'corrections policy',
+    ],
+  },
+  disclaimer: {
+    title: 'Disclaimer & Affiliate Disclosure',
+    description:
+      'Bitcoinvestments is educational, not financial advice. Read the risks of crypto investing, how our affiliate links and sponsored content work, and our limits.',
+    keywords: [
+      'not financial advice',
+      'crypto risk disclaimer',
+      'affiliate disclosure',
+      'sponsored content',
     ],
   },
   reportScam: {
-    title: 'Report a Crypto Scam - Help Protect the Community',
+    title: 'How to Report a Crypto Scam',
     description:
-      'Report cryptocurrency scams to our community database. Submit details about phishing sites, rug pulls, fake exchanges, and other crypto fraud to protect other investors.',
+      'Step-by-step guide to reporting a crypto scam to the FBI IC3, FTC, SEC, CFTC and your exchange, what evidence to keep, and how to avoid recovery scams.',
     keywords: [
+      'how to report a crypto scam',
       'report crypto scam',
-      'report fraud',
-      'crypto scam report',
-      'phishing report',
-      'rug pull report',
-      'scam submission',
-      'crypto fraud alert',
+      'report bitcoin scam',
+      'IC3 crypto complaint',
+      'crypto scam recovery',
+      'crypto fraud report',
     ],
   },
 };
@@ -1440,7 +1455,7 @@ export function getRelatedPages(currentPath: string): RelatedLink[] {
     '/charts': [
       { title: 'Market Dashboard', url: '/dashboard', description: 'Real-time market data' },
       { title: 'Trading Indicators', url: '/trading-indicators', description: 'Technical analysis tools' },
-      { title: 'Whale Tracking', url: '/whale-tracking', description: 'Monitor large transactions' },
+      { title: 'Whale Tracking Guide', url: '/whale-tracking', description: 'What large Bitcoin transfers mean' },
     ],
     '/calculators': [
       { title: 'Staking Calculator', url: '/staking-calculator', description: 'Calculate staking rewards' },
@@ -1470,7 +1485,7 @@ export function getRelatedPages(currentPath: string): RelatedLink[] {
     '/defi-yield': [
       { title: 'Staking Calculator', url: '/staking-calculator', description: 'Calculate rewards' },
       { title: 'Gas Optimizer', url: '/gas-optimizer', description: 'Save on fees' },
-      { title: 'On-Chain Analytics', url: '/onchain-analytics', description: 'Analyze protocols' },
+      { title: 'On-Chain Metrics', url: '/onchain-analytics', description: 'Bitcoin network metrics explained' },
     ],
   };
 

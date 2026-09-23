@@ -24,20 +24,26 @@ import { FEATURES, type FeatureKey } from '../config/features';
 interface FeatureGateProps {
   feature: FeatureKey;
   children: ReactNode;
+  /**
+   * Rendered instead of the ComingSoon page when the feature is off or the
+   * database is unavailable, for routes that have a useful public version
+   * (e.g. /report-scam shows how to report a scam to the authorities).
+   */
+  fallback?: ReactNode;
 }
 
-export function FeatureGate({ feature, children }: FeatureGateProps) {
+export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
   const status = useBackendStatus();
   const ready = FEATURES[feature].ready || import.meta.env.DEV;
 
   if (status === 'disabled' || !ready) {
-    return <ComingSoon feature={feature} />;
+    return fallback !== undefined ? <>{fallback}</> : <ComingSoon feature={feature} />;
   }
   if (status === 'checking') {
     return <PageLoader message="Loading..." />;
   }
   if (status === 'down' || status === 'outdated') {
-    return <ComingSoon feature={feature} reason="unavailable" />;
+    return fallback !== undefined ? <>{fallback}</> : <ComingSoon feature={feature} reason="unavailable" />;
   }
   return <>{children}</>;
 }

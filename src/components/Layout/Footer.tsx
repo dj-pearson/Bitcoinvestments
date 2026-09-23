@@ -8,14 +8,14 @@ import { reopenConsentBanner } from '@/lib/consent';
 
 
 export const Footer = memo(function Footer() {
-    const [btcPrice, setBtcPrice] = useState<{ price: number; change: number } | null>(null);
+    const [btcPrice, setBtcPrice] = useState<{ price: number; change: number | null } | null>(null);
 
     useEffect(() => {
         async function fetchBtc() {
             try {
                 const data = await getCachedTopCryptocurrencies(1);
                 if (data[0]) {
-                    setBtcPrice({ price: data[0].current_price, change: data[0].price_change_percentage_24h });
+                    setBtcPrice({ price: data[0].current_price, change: data[0].price_change_percentage_24h ?? null });
                 }
             } catch { /* silent */ }
         }
@@ -134,6 +134,11 @@ export const Footer = memo(function Footer() {
                         <h3 className="font-semibold text-white mb-4">Legal</h3>
                         <ul className="space-y-3">
                             <li>
+                                <Link to="/about" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
+                                    About &amp; How We Make Money
+                                </Link>
+                            </li>
+                            <li>
                                 <Link to="/privacy" className="text-gray-400 hover:text-brand-primary text-sm transition-colors">
                                     Privacy Policy
                                 </Link>
@@ -187,9 +192,11 @@ export const Footer = memo(function Footer() {
                             <Link to="/coin/bitcoin" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors">
                                 <span className="text-xs text-gray-400">BTC</span>
                                 <span className="text-sm font-medium text-white">${btcPrice.price.toLocaleString()}</span>
-                                <span className={`text-xs font-medium ${btcPrice.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {btcPrice.change >= 0 ? '+' : ''}{btcPrice.change.toFixed(2)}%
-                                </span>
+                                {btcPrice.change != null && (
+                                    <span className={`text-xs font-medium ${btcPrice.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {btcPrice.change >= 0 ? '+' : ''}{btcPrice.change.toFixed(2)}%
+                                    </span>
+                                )}
                             </Link>
                         )}
                     </div>

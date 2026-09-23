@@ -73,7 +73,9 @@ export function extractRoutes() {
       if (!full.includes(':') && !full.includes('*')) {
         routes.push({
           path: full,
-          gated: line.includes('<ProtectedRoute>'),
+          // A route that only sits behind ProtectedRoute when accounts are on
+          // (STATIC_MODE ? public page : <ProtectedRoute>) is public today.
+          gated: line.includes('<ProtectedRoute>') && !line.includes('STATIC_MODE ?'),
           // A route whose element is only a <Navigate> is a redirect, not a page.
           redirect: /element=\{<Navigate /.test(line),
         });

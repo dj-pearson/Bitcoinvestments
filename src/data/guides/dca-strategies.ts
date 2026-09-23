@@ -1,14 +1,26 @@
-export const dcaStrategiesGuide = {
+import type { GuideSource } from './index';
+
+export const dcaStrategiesGuide: GuideSource = {
   id: 'dca-strategies',
   title: 'Advanced DCA Strategies: Beyond Basic Dollar-Cost Averaging',
-  description: 'Master sophisticated DCA variations including value averaging, dynamic DCA, and market-aware accumulation strategies.',
+  seoTitle: 'Crypto DCA Strategies Explained',
+  description: 'How dollar-cost averaging works for crypto, plus value averaging, sentiment-based DCA, dip-buying and lump-sum hybrids, with worked examples and trade-offs.',
+  summary:
+    'Dollar-cost averaging (DCA) means investing a fixed amount on a fixed schedule regardless of price, which spreads your entry point and removes the pressure to time the market. Variations such as value averaging or buying more in fearful markets change how much you invest each time; they can lower your average cost in some periods but add complexity and need spare cash.',
   category: 'Trading',
-  readTime: 15,
   icon: '📈',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['portfolio-rebalancing', 'risk-management', 'how-to-buy-crypto'],
+  relatedTools: [
+    { label: 'DCA calculator', url: '/calculators', description: 'Model a recurring purchase' },
+    { label: 'Strategy backtester', url: '/backtesting', description: 'Test DCA against historical prices' },
+    { label: 'DCA automation', url: '/dca-automation', description: 'Plan and schedule recurring buys' },
+  ],
   content: `
 # Advanced DCA Strategies: Beyond Basic Dollar-Cost Averaging
 
-Dollar-cost averaging (DCA) is one of the most effective investment strategies, but there's more to it than just buying the same amount at regular intervals. This guide explores advanced DCA variations that can potentially improve your returns.
+Dollar-cost averaging (DCA) is one of the simplest ways to build a position, but there's more to it than just buying the same amount at regular intervals. This guide covers the basics and then the main variations, with honest notes on what each one does and doesn't achieve. You can try the numbers yourself in our [DCA calculator](/calculators) and [backtester](/backtesting).
 
 ## Understanding Traditional DCA
 
@@ -26,9 +38,11 @@ Traditional DCA involves:
 ### Why DCA Works
 
 - **Removes emotion**: No need to time the market
-- **Averages out volatility**: Buy more when cheap, less when expensive
+- **Averages out volatility**: A fixed dollar amount buys more coins when the price is low and fewer when it is high
 - **Builds discipline**: Consistent investing habit
 - **Reduces regret**: No single "wrong" entry point
+
+DCA does not guarantee a profit or protect against a long decline; if the price falls for years, you keep buying into the fall.
 
 ## Advanced Strategy #1: Value Averaging (VA)
 
@@ -55,7 +69,7 @@ Value averaging adjusts your investment amount based on performance, targeting a
 ### Value Averaging Pros & Cons
 
 **Pros:**
-- Often outperforms traditional DCA
+- Can produce a lower average cost than plain DCA in choppy markets (most published backtests are on stocks, and results vary a lot by period)
 - Systematic "buy low, sell high"
 - More responsive to market conditions
 
@@ -81,9 +95,11 @@ Dynamic DCA adjusts your investment based on specific market conditions while ma
 
 Adjust DCA amount based on price relative to moving averages:
 
-**Above 200-day MA**: Invest 50% of normal amount
-**At 200-day MA**: Invest 100% of normal amount
-**Below 200-day MA**: Invest 150% of normal amount
+- **More than 5% above the 200-day MA**: invest 50% of normal amount
+- **Within ±5% of the 200-day MA**: invest 100% of normal amount
+- **More than 5% below the 200-day MA**: invest 150% of normal amount
+
+The 5% band is arbitrary; pick a rule and stick with it.
 
 ### Fear & Greed Index DCA
 
@@ -91,11 +107,13 @@ Adjust based on market sentiment:
 
 | Fear & Greed Score | Investment Multiplier |
 |--------------------|-----------------------|
-| 0-25 (Extreme Fear) | 2x normal amount |
-| 25-45 (Fear) | 1.5x normal amount |
-| 45-55 (Neutral) | 1x normal amount |
-| 55-75 (Greed) | 0.75x normal amount |
-| 75-100 (Extreme Greed) | 0.5x normal amount |
+| 0–24 (Extreme Fear) | 2x normal amount |
+| 25–44 (Fear) | 1.5x normal amount |
+| 45–55 (Neutral) | 1x normal amount |
+| 56–75 (Greed) | 0.75x normal amount |
+| 76–100 (Extreme Greed) | 0.5x normal amount |
+
+The Fear & Greed Index measures market *sentiment*, not value. Buying more when others are fearful is a contrarian rule of thumb, not a guarantee that prices are low.
 
 ### RSI-Based DCA
 
@@ -114,7 +132,7 @@ Use the Relative Strength Index:
 | Jan | 72 (Greed) | 0.75x | $300 |
 | Feb | 45 (Neutral) | 1x | $400 |
 | Mar | 18 (Extreme Fear) | 2x | $800 |
-| Apr | 55 (Greed) | 0.75x | $300 |
+| Apr | 55 (Neutral) | 1x | $400 |
 | May | 30 (Fear) | 1.5x | $600 |
 
 ## Advanced Strategy #3: Lump Sum + DCA Hybrid
@@ -128,7 +146,7 @@ Combines the statistical advantage of lump sum with the psychological comfort of
 
 ### Why This Works
 
-- Studies show lump sum beats DCA about 2/3 of the time
+- Vanguard's 2012 study of US, UK and Australian stock/bond portfolios found investing a lump sum immediately beat spreading it over 12 months about two-thirds of the time, because markets rise more often than they fall. That research was not on crypto, which is far more volatile, so treat it as a rough guide
 - DCA portion provides psychological comfort
 - Reduces regret if market drops immediately
 - Still captures most of the time-in-market benefit
@@ -162,6 +180,8 @@ Maintains regular DCA but adds extra purchases during significant dips.
 | 30% | Buy extra $600 |
 | 40% | Buy extra $800 |
 | 50% | Buy extra $600 |
+
+The four tranches add up to the $2,400 reserve, so the last one is smaller simply because that is what is left. You could equally split the reserve evenly; the point is to decide in advance.
 
 ### Managing Dip Buy Capital
 
@@ -200,8 +220,9 @@ Adjusts DCA based on your current portfolio allocation.
 - Portfolio tracking apps
 
 **Automated DCA:**
-- Exchange recurring buys (basic only)
-- Custom scripts/bots for advanced strategies
+- Exchange and brokerage recurring buys (basic DCA; many brokerages also allow recurring spot Bitcoin ETF purchases)
+- Plan a schedule with our [DCA automation planner](/dca-automation)
+- Be very wary of third-party "DCA bots" that need exchange API keys with withdrawal rights
 
 ### Key Considerations
 
@@ -212,7 +233,7 @@ Adjusts DCA based on your current portfolio allocation.
 
 ## Strategy Comparison
 
-| Strategy | Complexity | Capital Flexibility | Potential Alpha |
+| Strategy | Complexity | Capital Flexibility | Potential edge over plain DCA (not guaranteed) |
 |----------|------------|---------------------|-----------------|
 | Traditional DCA | Low | Fixed | Baseline |
 | Value Averaging | High | Very High | Medium-High |
@@ -269,7 +290,7 @@ Consider:
 ### Step 4: Commit to Timeframe
 
 - Minimum 1 year evaluation period
-- Ideally 1 full market cycle (4 years)
+- Ideally a full market cycle (historically about 4 years, though there's no guarantee cycles repeat)
 - Don't judge short-term results
 
 ## Key Takeaways
@@ -283,10 +304,12 @@ Consider:
 
 ## Next Steps
 
-1. Choose one strategy to implement
-2. Set up your tracking system
+1. Choose one strategy to implement, and test it first in the [backtester](/backtesting)
+2. Set up your tracking system (and keep cost-basis records for [taxes](/learn/crypto-taxes-basics))
 3. Commit to following it for at least 12 months
 4. Review and adjust after evaluation period
+
+Once you hold several assets, read [Portfolio Rebalancing](/learn/portfolio-rebalancing) and [Risk Management](/learn/risk-management).
 
 Remember: The best strategy is one you'll actually follow. Start with what you can commit to consistently.
 `

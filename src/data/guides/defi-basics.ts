@@ -1,14 +1,26 @@
-export const defiBasicsGuide = {
+import type { GuideSource } from './index';
+
+export const defiBasicsGuide: GuideSource = {
   id: 'defi-basics',
   title: 'DeFi Explained: Understanding Decentralized Finance',
-  description: 'A comprehensive introduction to DeFi, including key protocols, how they work, and the revolutionary potential of decentralized finance.',
+  seoTitle: 'What Is DeFi? Decentralized Finance Guide',
+  description: 'What DeFi is and how it works: DEXs, lending, stablecoins, liquidity pools and AMMs, plus fees, key metrics, the risks, and how to start safely.',
+  summary:
+    'DeFi (decentralized finance) is a set of financial apps, such as exchanges, lending markets and stablecoins, that run as smart contracts on public blockchains instead of through banks or brokers. You use them from your own wallet, which gives you control and 24/7 access but also leaves you responsible for security, with no deposit insurance or support line.',
   category: 'DeFi',
-  readTime: 18,
   icon: '🏦',
+  datePublished: '2026-01-02',
+  dateModified: '2026-09-23',
+  relatedGuides: ['yield-farming', 'defi-risks', 'understanding-blockchain'],
+  relatedTools: [
+    { label: 'DeFi yield tracker', url: '/defi-yield', description: 'Compare yields, with the risks spelled out' },
+    { label: 'Gas fee optimizer', url: '/gas-optimizer', description: 'Current network fees and cheaper options' },
+    { label: 'Scam database', url: '/scam-database', description: 'Check a protocol or token before connecting' },
+  ],
   content: `
 # DeFi Explained: Understanding Decentralized Finance
 
-Decentralized Finance (DeFi) is rebuilding traditional financial services on blockchain technology. This guide explains what DeFi is, how it works, and how you can participate.
+Decentralized Finance (DeFi) rebuilds financial services such as trading, lending and saving as smart contracts on public blockchains. This guide explains what DeFi is, how it works, and how to try it safely. If blockchains and smart contracts are new to you, read [Understanding Blockchain Technology](/learn/understanding-blockchain) first.
 
 ## What is DeFi?
 
@@ -22,18 +34,19 @@ DeFi stands for **Decentralized Finance** - a collection of financial applicatio
 | Limited hours | 24/7/365 |
 | Requires permission | Permissionless |
 | Opaque (hidden processes) | Transparent (open code) |
-| Slow (days for transfers) | Fast (minutes) |
-| Geographic restrictions | Global access |
+| Slow (days for transfers) | Fast (seconds to minutes) |
+| Geographic restrictions | Global access (some front-ends block certain countries) |
 | Identity required | Pseudonymous |
+| Deposit insurance, fraud teams | No insurance, no reversals |
 
 ### The DeFi Stack
 
-DeFi is built in layers:
+DeFi is built in layers (not to be confused with "Layer 2" scaling networks, which are separate blockchains that settle to a base chain):
 
-1. **Layer 1 - Blockchain**: Ethereum, Solana, Avalanche
-2. **Layer 2 - Protocols**: Smart contracts that enable services
-3. **Layer 3 - Applications**: User interfaces for interacting
-4. **Layer 4 - Aggregators**: Tools that optimize across protocols
+1. **Settlement layer**: the blockchain itself, e.g. Ethereum, Solana, or an Ethereum Layer 2 such as Arbitrum or Base
+2. **Protocol layer**: smart contracts that provide the service (a lending market, an exchange)
+3. **Application layer**: websites and apps you use to interact with those contracts
+4. **Aggregation layer**: tools that route your trade or deposit across many protocols
 
 ## Core DeFi Concepts
 
@@ -80,7 +93,7 @@ The total amount of assets deposited in DeFi protocols. Used to measure protocol
 
 ### Gas Fees
 
-Transaction fees paid to network validators. In DeFi:
+Transaction fees paid to use the network. On Ethereum, part of each fee (the base fee) is burned and the rest (the priority fee) goes to validators. In DeFi:
 - Complex transactions = higher gas
 - Busy networks = higher gas
 - Layer 2s and other chains = lower gas
@@ -99,11 +112,12 @@ Trade cryptocurrencies without centralized intermediaries.
 **Popular DEXs:**
 | DEX | Chain | Type |
 |-----|-------|------|
-| Uniswap | Ethereum | AMM |
-| SushiSwap | Multi-chain | AMM |
-| Curve | Ethereum | Stablecoin AMM |
-| dYdX | Ethereum L2 | Order book |
+| Uniswap | Ethereum and L2s | AMM |
+| Curve | Ethereum and L2s | Stablecoin AMM |
+| Aerodrome | Base | AMM |
 | Jupiter | Solana | Aggregator |
+
+Perpetual-futures exchanges such as dYdX (now its own Cosmos-based chain) and Hyperliquid are not available to US users and involve leverage; they are not a starting point for beginners.
 
 ### 2. Lending & Borrowing
 
@@ -124,9 +138,9 @@ DeFi loans require more collateral than the loan amount.
 - If collateral value drops, loan gets liquidated
 
 **Popular Lending Protocols:**
-- **Aave**: Multi-chain, flash loans, stable rates
-- **Compound**: Ethereum-focused, algorithmic rates
-- **MakerDAO**: Issues DAI stablecoin against collateral
+- **Aave**: The largest lending market, on many chains; variable rates (its old "stable rate" borrowing has been retired)
+- **Compound**: One of the original lending protocols; algorithmic rates
+- **Sky** (formerly MakerDAO): Issues the USDS stablecoin (and the older DAI) against collateral
 
 ### 3. Stablecoins
 
@@ -136,9 +150,11 @@ Cryptocurrencies designed to maintain stable value, usually $1.
 
 | Type | How It Works | Examples |
 |------|--------------|----------|
-| Fiat-backed | Held in bank reserves | USDC, USDT |
-| Crypto-backed | Over-collateralized by crypto | DAI |
-| Algorithmic | Supply adjusts to maintain peg | FRAX |
+| Fiat-backed | Reserves of cash and short-term US Treasury bills | USDC, USDT, PYUSD |
+| Crypto-backed | Over-collateralized by crypto and other assets | DAI, USDS |
+| Algorithmic | Supply adjusts to maintain the peg, with little or no collateral | TerraUSD (UST), which collapsed in May 2022 |
+
+Purely algorithmic stablecoins have a poor track record: UST lost its peg and wiped out roughly $40 billion of value in days. In the US, the **GENIUS Act** (signed July 2025) set federal rules for payment stablecoins, including 1:1 reserves of cash and short-term Treasuries and regular public disclosure of reserves. It does not make a stablecoin risk-free or government-insured.
 
 **Use Cases:**
 - Store value without volatility
@@ -155,10 +171,12 @@ Financial contracts based on underlying assets.
 - **Options**: Right to buy/sell at specific price
 - **Synthetic assets**: Track real-world assets
 
-**Popular Platforms:**
-- dYdX (perpetuals)
+**Examples:**
+- dYdX and Hyperliquid (perpetuals; not available to US users)
 - GMX (perpetuals)
 - Synthetix (synthetic assets)
+
+Leveraged derivatives can liquidate your whole deposit in minutes. They are not suitable for beginners.
 
 ### 5. Yield Aggregators
 
@@ -186,9 +204,9 @@ Protect against smart contract failures and hacks.
 - Exchange hacks
 
 **Providers:**
-- Nexus Mutual
-- InsurAce
-- Unslashed Finance
+- Nexus Mutual is the longest-running; a handful of smaller providers come and go
+
+Coverage is limited, claims are decided by the provider's members or rules, and cover amounts are small relative to DeFi deposits. Read exactly what is and isn't covered.
 
 ## How to Get Started with DeFi
 
@@ -233,13 +251,15 @@ Transaction fees vary by:
 - Transaction complexity
 - Chain used
 
-**Cost Comparison:**
+**Rough cost comparison (typical 2025–2026 ranges; fees change minute to minute):**
 | Chain | Typical Swap Cost |
 |-------|-------------------|
-| Ethereum Mainnet | $5-50+ |
-| Arbitrum | $0.10-1 |
-| Polygon | $0.01-0.10 |
-| Solana | $0.01-0.05 |
+| Ethereum mainnet | Often under $1–5 when quiet; $20+ at busy times |
+| Arbitrum, Base, Optimism | Usually a few cents |
+| Polygon (POL) | Usually under a cent to a few cents |
+| Solana | Usually under a cent to a few cents |
+
+Since Ethereum's Dencun upgrade (March 2024), Layer 2 fees have dropped sharply. Check live Ethereum fees in our [gas optimizer](/gas-optimizer).
 
 ### Protocol Fees
 
@@ -263,7 +283,7 @@ Transaction fees vary by:
 - Want customer support
 - Need fiat on/off ramps
 - Not comfortable with self-custody
-- Want insured deposits
+- Want a company you can contact (note that crypto held with a centralized platform is not FDIC-insured, and platforms such as Celsius and FTX failed in 2022)
 
 ### The Hybrid Approach
 
@@ -283,8 +303,8 @@ Simple interest, not compounded
 Includes compound interest
 
 **Example:**
-- 10% APR = 10% return
-- 10% APY with daily compounding = 10.52% return
+- 10% APR, not compounded = 10% return over a year
+- 10% APR compounded daily = about 10.52% APY
 
 ### Impermanent Loss
 
@@ -295,7 +315,7 @@ When providing liquidity, you can lose value compared to just holding.
 - ETH price doubles to $4000
 - Your LP position is now worth less than if you just held
 
-*We'll cover this in detail in the Yield Farming guide.*
+*We cover this in detail, with a table, in the [Yield Farming guide](/learn/yield-farming).*
 
 ### Health Factor
 
@@ -330,6 +350,7 @@ Higher collateral = higher health factor = safer loan.
 - Unrealistic APYs (1000%+)
 - Recently launched (< 6 months)
 - Low TVL (< $10M)
+- Listed in our [scam database](/scam-database)
 
 ## The Future of DeFi
 
@@ -346,7 +367,7 @@ Higher collateral = higher health factor = safer loan.
 - Better user interfaces
 - Cross-chain bridges
 - Institutional adoption
-- Regulatory clarity developing
+- Regulatory frameworks developing (the US GENIUS Act for stablecoins in 2025; market-structure legislation still pending in the Senate as of September 2026)
 
 ## Key Takeaways
 
@@ -362,8 +383,9 @@ Higher collateral = higher health factor = safer loan.
 1. Set up a Web3 wallet (MetaMask)
 2. Transfer a small amount of ETH or other crypto
 3. Practice a simple swap on Uniswap
-4. Learn about yield farming in our next guide
-5. Understand the risks before going deeper
+4. Learn about [yield farming](/learn/yield-farming) in our next guide
+5. Read [DeFi Risks Explained](/learn/defi-risks) before going deeper
+6. Compare current yields, with their risks, on our [DeFi yield page](/defi-yield)
 
 DeFi is powerful but complex. Take your time learning before committing significant capital.
 `

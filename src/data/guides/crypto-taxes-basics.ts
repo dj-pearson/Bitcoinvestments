@@ -1,10 +1,49 @@
-export const cryptoTaxesBasicsGuide = {
+import type { GuideSource } from './index';
+
+// NEEDS-OWNER: a named, credentialed reviewer (CPA or EA) for this guide.
+export const cryptoTaxesBasicsGuide: GuideSource = {
   id: 'crypto-taxes-basics',
   title: 'Cryptocurrency Taxes: What You Need to Know',
-  description: 'How crypto is taxed in the US, which everyday actions trigger a taxable event, and the record-keeping that makes filing survivable.',
+  seoTitle: 'Crypto Taxes in the US: The Basics',
+  description: 'How US crypto tax works for 2025–2026: taxable events, short vs long-term rates, cost basis, Form 1099-DA, losses, and the records you need to file.',
+  summary:
+    'In the US, crypto is taxed as property: buying and holding is not taxable, but selling, swapping one coin for another, or spending it is, and being paid in crypto counts as income. Brokers now report sales to the IRS on Form 1099-DA (from the 2025 tax year), so accurate cost-basis records matter more than ever.',
   category: 'Taxes',
-  readTime: 16,
   icon: '📊',
+  datePublished: '2026-09-01',
+  dateModified: '2026-09-23',
+  relatedGuides: ['portfolio-rebalancing', 'risk-management', 'common-crypto-mistakes'],
+  relatedTools: [
+    { label: 'Crypto tax calculator', url: '/calculators?type=tax', description: 'Estimate the tax on a sale' },
+    { label: 'Crypto glossary', url: '/glossary', description: 'Cost basis, capital gains and more, defined' },
+  ],
+  faqs: [
+    {
+      question: 'Do I pay tax on crypto if I never cash out to dollars?',
+      answer:
+        'You can. Swapping one crypto for another and spending crypto are both disposals, so they can create a taxable gain even if no dollars reach your bank account. Simply buying and holding is not taxable.',
+    },
+    {
+      question: 'Is moving crypto between my own wallets taxable?',
+      answer:
+        'No. Transferring between accounts or wallets you own is not a disposal. Keep records showing both ends are yours, because exchanges may report the withdrawal and tax software can mistake it for a sale. Any network fee paid in crypto may itself be a small disposal.',
+    },
+    {
+      question: 'What is Form 1099-DA?',
+      answer:
+        'Form 1099-DA is the IRS form US crypto brokers use to report your sales. For 2025 transactions brokers report gross proceeds; from 2026 they also report cost basis for coins bought on or after January 1, 2026 and kept in the same account. You still report every disposal on Form 8949, including ones no broker reported.',
+    },
+    {
+      question: 'Does the wash-sale rule apply to crypto?',
+      answer:
+        'As of September 2026, no: the wash-sale rule applies to stocks and securities, and the IRS treats crypto as property. Bills to extend it to digital assets have been introduced but have not become law, so check the current rules before relying on this.',
+    },
+    {
+      question: 'How are staking rewards taxed?',
+      answer:
+        'Under Revenue Ruling 2023-14, staking rewards are ordinary income at their fair market value when you gain control of them. That value becomes your cost basis for a later sale.',
+    },
+  ],
   content: `
 # Cryptocurrency Taxes: What You Need to Know
 
@@ -62,13 +101,13 @@ Transferring from an exchange to your hardware wallet is not a disposal — you 
 
 ### Not taxable: Gifting, within limits
 
-Gifting crypto is generally not taxable to the giver below the annual exclusion (\\$19,000 per recipient for 2025). The recipient typically inherits your cost basis. Donating directly to a qualified charity can be notably efficient — you may deduct the fair market value without realising the gain — but the rules are detailed and worth professional input.
+Gifting crypto is generally not taxable to the giver below the annual exclusion (\\$19,000 per recipient for both 2025 and 2026). The recipient typically inherits your cost basis. Donating directly to a qualified charity can be notably efficient — you may deduct the fair market value without realising the gain — but the rules are detailed and worth professional input.
 
 ## Short-Term vs Long-Term: The Rule Worth Building Around
 
 How long you held before disposing determines the rate you pay, and the gap is large.
 
-**Short-term** (held one year or less) is taxed as **ordinary income** — the same rates as your salary, currently up to 37% federally.
+**Short-term** (held one year or less) is taxed as **ordinary income** — the same rates as your salary, up to 37% federally for 2025 and 2026 (2025 legislation made the current bracket structure permanent).
 
 **Long-term** (held more than one year) gets preferential rates: **0%, 15%, or 20%** depending on your total taxable income.
 
@@ -101,7 +140,7 @@ Which coins did you sell?
 
 ### A rule change worth knowing about
 
-The IRS has moved toward requiring cost basis to be tracked **per wallet or account** rather than universally across all your holdings. Revenue Procedure 2024-28 provided a safe harbour for allocating existing basis to specific accounts. If you hold the same asset across several exchanges and wallets, this is exactly the sort of detail worth raising with a professional rather than assuming your old approach still applies.
+Since **January 1, 2025**, cost basis must be tracked **per wallet or account**, not pooled across all your holdings. When you sell BTC from Exchange A, only the lots held at Exchange A count. Revenue Procedure 2024-28 gave a one-time safe harbour for allocating older, pooled basis to specific accounts; that transition window has now passed. If you hold the same asset across several exchanges and wallets and never did that allocation, raise it with a tax professional.
 
 ## Losses Are Genuinely Useful
 
@@ -117,9 +156,9 @@ Losses aren't just disappointing — they have real tax value.
 
 **Tax-loss harvesting** means deliberately selling a losing position to realise the loss and reduce your bill.
 
-For stocks, the **wash sale rule** blocks claiming a loss if you buy a substantially identical security within 30 days either side. Because crypto is classified as property rather than a security, that rule has historically not applied to it — meaning crypto holders could sell at a loss and rebuy immediately.
+For stocks, the **wash sale rule** blocks claiming a loss if you buy a substantially identical security within 30 days either side. Because crypto is classified as property rather than a security, that rule does not apply to it as of September 2026, so crypto holders can sell at a loss and rebuy immediately. (Spot Bitcoin and Ether **ETFs** are securities, so the wash sale rule does apply to them.)
 
-Two cautions. First, closing this gap has been repeatedly proposed in Congress; treat it as a rule that could change. Second, the **economic substance doctrine** gives the IRS room to challenge transactions with no purpose beyond tax avoidance. Aggressive same-minute round trips are a strategy to discuss with a professional, not to copy from social media.
+Two cautions. First, bills to extend the rule to digital assets have been introduced in Congress (most recently in 2025–2026) and some drafts would apply retroactively to the current tax year; check the status before you rely on this. Second, the **economic substance doctrine** gives the IRS room to challenge transactions with no purpose beyond tax avoidance. Aggressive same-minute round trips are a strategy to discuss with a professional, not to copy from social media.
 
 One more detail that trips people up: losses net **within** their holding period first — short-term against short-term, long-term against long-term — and only the remainder crosses over. It's a small rule with a real effect on the final number.
 
@@ -131,7 +170,7 @@ One more detail that trips people up: losses net **within** their holding period
 
 **Airdrops** are generally ordinary income when you have dominion and control over the tokens.
 
-**DeFi is genuinely unsettled.** Supplying liquidity, wrapping tokens, borrowing against collateral, receiving LP tokens — the treatment of many of these is not fully specified in guidance. Conservative positions and professional input matter more here than anywhere else in this guide.
+**DeFi is genuinely unsettled.** Supplying liquidity, wrapping tokens, borrowing against collateral, receiving LP tokens — the treatment of many of these is not fully specified in guidance. The rule that would have made DeFi front-ends file 1099-DAs was repealed by Congress in April 2025, so most DeFi activity will not appear on any form you receive. It is still reportable by you. Conservative positions and professional input matter more here than anywhere else in this guide.
 
 **NFTs** are property too, but some may qualify as **collectibles**, which carry a higher maximum long-term rate of 28%. Creators and traders face different treatment again.
 
@@ -151,7 +190,19 @@ The federal deadline is generally **April 15**. An extension to file is not an e
 
 ### Form 1099-DA is changing things
 
-Brokers began reporting digital asset dispositions on the new **Form 1099-DA** for transactions from 2025, with cost basis reporting phasing in for 2026. Practically: the IRS increasingly receives information about your trades directly. Any mismatch between what an exchange reports and what you file invites a notice. Whatever your record-keeping was like before, this is the moment to tighten it.
+US custodial brokers (exchanges and apps such as Coinbase, Kraken or Robinhood) now report your sales on **Form 1099-DA**:
+
+| Tax year | What the broker reports |
+|---|---|
+| 2025 (forms issued early 2026) | Gross proceeds of each sale only |
+| 2026 onward | Gross proceeds **plus cost basis** for "covered" coins: bought on or after January 1, 2026 and held in that same account |
+
+Two practical consequences:
+
+1. **Your 2025 form shows proceeds without basis.** If you file without supplying your own basis, the whole sale can look like profit. Reconcile the 1099-DA against your records.
+2. **Transfers break the chain.** Coins moved in from another wallet are "noncovered" at the new broker, so basis reporting for them is still your job.
+
+Decentralised (DeFi) platforms do not issue 1099-DAs, because the DeFi broker rule was repealed in 2025. Any mismatch between what an exchange reports and what you file invites an IRS notice, so tighten your record-keeping now.
 
 ## Record-Keeping: Do This Now, Not in April
 
@@ -201,7 +252,7 @@ If you have unreported crypto activity, the answer is to fix it — amended retu
 
 The property-based model is common but far from universal:
 
-- **United Kingdom** — Capital Gains Tax with an annual exempt amount; HMRC has detailed crypto guidance
+- **United Kingdom** — Capital Gains Tax with an annual exempt amount of £3,000 (since April 2024); HMRC has detailed crypto guidance
 - **Germany** — private sales of crypto held over one year have been tax-free, subject to conditions
 - **Portugal** — long treated as favourable, though the rules have tightened
 - **Australia** — CGT applies, with a discount for assets held over a year
@@ -227,6 +278,7 @@ These change. Verify current rules for your jurisdiction rather than relying on 
 - **[Crypto Tax Calculator](/calculators?type=tax)** — estimate capital gains on a disposal
 - **[Crypto Risk Management](/learn/risk-management)** — position sizing and planning for the downside
 - **[Portfolio Rebalancing](/learn/portfolio-rebalancing)** — rebalancing is itself a taxable event worth planning around
+- **[Common Crypto Mistakes](/learn/common-crypto-mistakes)** — including the tax ones
 
 Tax is the part of investing most people avoid thinking about until it's urgent. An hour spent on record-keeping today is worth many hours and a great deal of money next April.
 `

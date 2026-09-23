@@ -227,9 +227,9 @@ const CONTENT_HUBS: Record<ContentHubProps['category'], RelatedLink[]> = {
   education: [
     { title: 'Getting Started', url: '/learn', description: 'Beginner guides' },
     { title: 'Glossary', url: '/glossary', description: 'Crypto terms explained in plain English' },
-    { title: 'What is Bitcoin', url: '/article/what-is-bitcoin', description: 'Bitcoin basics' },
-    { title: 'DeFi Basics', url: '/article/defi-basics', description: 'DeFi explained' },
-    { title: 'Crypto Wallets', url: '/article/crypto-wallets-explained', description: 'Wallet guide' },
+    { title: 'What is Bitcoin', url: '/learn/what-is-bitcoin', description: 'Bitcoin basics' },
+    { title: 'DeFi Basics', url: '/learn/defi-basics', description: 'DeFi explained' },
+    { title: 'Crypto Wallets', url: '/learn/crypto-wallets-explained', description: 'Wallet guide' },
   ],
   comparison: [
     { title: 'Exchange Comparison', url: '/compare', description: 'Compare exchanges' },
@@ -246,7 +246,7 @@ const CONTENT_HUBS: Record<ContentHubProps['category'], RelatedLink[]> = {
   defi: [
     { title: 'Yield Farming', url: '/defi-yield', description: 'Compare yields' },
     { title: 'Staking', url: '/staking-calculator', description: 'Staking rewards' },
-    { title: 'On-Chain Analytics', url: '/onchain-analytics', description: 'Blockchain data' },
+    { title: 'On-Chain Metrics', url: '/onchain-analytics', description: 'Bitcoin network metrics explained' },
     { title: 'Gas Tracker', url: '/gas-optimizer', description: 'Monitor gas prices' },
   ],
 };

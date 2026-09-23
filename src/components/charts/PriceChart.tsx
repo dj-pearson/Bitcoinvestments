@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo, useMemo } from 'react';
+import { useEffect, useRef, useState, memo, useMemo, useCallback } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,10 +10,12 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import type { ChartOptions } from 'chart.js';
+import type { ChartOptions, ScriptableContext } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { getHistoricalData } from '../../services/coingecko';
-import { Loader2 } from 'lucide-react';
+import { fetchHistoricalData, describeMarketError } from '../../services/coingecko';
+import { formatCompactCurrency } from '../../lib/utils';
+import { fmtAxisUsd, fmtUsd, fmtPct, fmtDateTime } from '../../lib/marketFormat';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -26,13 +28,43 @@ ChartJS.register(
   Filler
 );
 
+export type ChartPeriod = 1 | 7 | 14 | 30 | 90 | 180 | 365;
+
+export const CHART_PERIODS: { label: string; long: string; value: ChartPeriod }[] = [
+  { label: '24H', long: '24 hours', value: 1 },
+  { label: '7D', long: '7 days', value: 7 },
+  { label: '14D', long: '14 days', value: 14 },
+  { label: '1M', long: '1 month', value: 30 },
+  { label: '3M', long: '3 months', value: 90 },
+  { label: '6M', long: '6 months', value: 180 },
+  { label: '1Y', long: '1 year', value: 365 },
+];
+
+export function formatChartLabel(timestamp: number, period: number): string {
+  const date = new Date(timestamp);
+  if (period === 1) {
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+  if (period <= 7) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' });
+  }
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 interface PriceChartProps {
   cryptocurrencyId: string;
   cryptocurrencyName?: string;
-  days?: 1 | 7 | 14 | 30 | 90 | 180 | 365;
+  days?: ChartPeriod;
   currency?: string;
   height?: number;
   showVolume?: boolean;
+  /**
+   * When provided, the period is controlled by the parent (`days` is the
+   * current value) and this is called when the user picks another period.
+   */
+  onPeriodChange?: (days: ChartPeriod) => void;
+  /** Heading level for the chart title (default h3). */
+  titleAs?: 'h2' | 'h3';
 }
 
 export const PriceChart = memo(function PriceChart({
@@ -42,10 +74,14 @@ export const PriceChart = memo(function PriceChart({
   currency = 'usd',
   height = 300,
   showVolume = false,
+  onPeriodChange,
+  titleAs: TitleTag = 'h3',
 }: PriceChartProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<number>(days);
+  const [internalPeriod, setInternalPeriod] = useState<ChartPeriod>(days);
+  const selectedPeriod: ChartPeriod = onPeriodChange ? days : internalPeriod;
+  const [meta, setMeta] = useState<{ fetchedAt: number; stale: boolean } | null>(null);
   const chartRef = useRef<ChartJS<'line'>>(null);
 
   const [chartData, setChartData] = useState<{
@@ -58,46 +94,41 @@ export const PriceChart = memo(function PriceChart({
     volumes: [],
   });
 
-  useEffect(() => {
-    loadChartData();
-  }, [cryptocurrencyId, selectedPeriod, currency]);
+  function selectPeriod(value: ChartPeriod) {
+    if (onPeriodChange) onPeriodChange(value);
+    else setInternalPeriod(value);
+  }
 
-  async function loadChartData() {
+  const loadChartData = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await getHistoricalData(cryptocurrencyId, selectedPeriod, currency);
+      const result = await fetchHistoricalData(cryptocurrencyId, selectedPeriod, currency, { force });
+      const data = result.data;
 
       if (!data.prices || data.prices.length === 0) {
         throw new Error('No price data available');
       }
 
-      // Format data for Chart.js
-      const labels = data.prices.map(([timestamp]) => {
-        const date = new Date(timestamp);
-        if (selectedPeriod === 1) {
-          return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        } else if (selectedPeriod <= 7) {
-          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' });
-        } else {
-          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-      });
-
+      const labels = data.prices.map(([timestamp]) => formatChartLabel(timestamp, selectedPeriod));
       const prices = data.prices.map(([, price]) => price);
       const volumes = data.total_volumes?.map(([, volume]) => volume) || [];
 
       setChartData({ labels, prices, volumes });
+      setMeta({ fetchedAt: result.fetchedAt, stale: result.stale });
     } catch (err) {
-      console.error('Error loading chart data:', err);
-      setError('Failed to load chart data');
+      setError(describeMarketError(err));
     } finally {
       setLoading(false);
     }
-  }
+  }, [cryptocurrencyId, selectedPeriod, currency]);
 
-  const priceChange = useMemo(() => chartData.prices.length > 0
+  useEffect(() => {
+    loadChartData();
+  }, [loadChartData]);
+
+  const priceChange = useMemo(() => chartData.prices.length > 0 && chartData.prices[0] > 0
     ? ((chartData.prices[chartData.prices.length - 1] - chartData.prices[0]) / chartData.prices[0]) * 100
     : 0, [chartData.prices]);
 
@@ -110,7 +141,7 @@ export const PriceChart = memo(function PriceChart({
         label: cryptocurrencyName || cryptocurrencyId,
         data: chartData.prices,
         borderColor: isPositive ? '#10b981' : '#ef4444',
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: ScriptableContext<'line'>) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, height);
           gradient.addColorStop(0, isPositive ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)');
@@ -150,13 +181,7 @@ export const PriceChart = memo(function PriceChart({
         padding: 12,
         displayColors: false,
         callbacks: {
-          label: (context) => {
-            const value = context.parsed.y ?? 0;
-            return `$${value.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: value < 1 ? 6 : 2,
-            })}`;
-          },
+          label: (context) => fmtUsd(context.parsed.y ?? 0),
         },
       },
     },
@@ -181,27 +206,11 @@ export const PriceChart = memo(function PriceChart({
         },
         ticks: {
           color: '#6b7280',
-          callback: (value) => {
-            const num = value as number;
-            if (num >= 1000) {
-              return `$${(num / 1000).toFixed(1)}k`;
-            }
-            return `$${num.toLocaleString(undefined, { maximumFractionDigits: num < 1 ? 2 : 0 })}`;
-          },
+          callback: (value) => fmtAxisUsd(Number(value)),
         },
       },
     },
   };
-
-  const periods = [
-    { label: '24H', value: 1 },
-    { label: '7D', value: 7 },
-    { label: '14D', value: 14 },
-    { label: '1M', value: 30 },
-    { label: '3M', value: 90 },
-    { label: '6M', value: 180 },
-    { label: '1Y', value: 365 },
-  ];
 
   if (loading) {
     return (
@@ -227,24 +236,31 @@ export const PriceChart = memo(function PriceChart({
         className="flex items-center justify-center bg-gray-900/50 rounded-xl border border-gray-800"
         style={{ height }}
         role="alert"
-        aria-live="assertive"
       >
-        <div className="text-center text-red-400">
-          <p className="font-medium mb-1">Failed to load chart</p>
-          <p className="text-sm text-gray-400">{error}</p>
+        <div className="text-center text-red-400 px-4">
+          <p className="font-medium mb-1">Chart unavailable</p>
+          <p className="text-sm text-gray-400 mb-3">{error}</p>
+          <button
+            type="button"
+            onClick={() => loadChartData(true)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm"
+          >
+            <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" /> Retry
+          </button>
         </div>
       </div>
     );
   }
 
   const currentPrice = chartData.prices[chartData.prices.length - 1];
-  const periodLabel = selectedPeriod === 1 ? '24 hours' : selectedPeriod === 7 ? '7 days' : selectedPeriod === 14 ? '14 days' : selectedPeriod === 30 ? '1 month' : selectedPeriod === 90 ? '3 months' : selectedPeriod === 180 ? '6 months' : '1 year';
-  const chartDescription = `${cryptocurrencyName || cryptocurrencyId} price chart showing ${periodLabel} of history. Current price is $${currentPrice?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Price has ${isPositive ? 'increased' : 'decreased'} by ${Math.abs(priceChange).toFixed(2)} percent during this period.`;
+  const periodLabel = CHART_PERIODS.find((p) => p.value === selectedPeriod)?.long ?? `${selectedPeriod} days`;
+  const chartDescription = `${cryptocurrencyName || cryptocurrencyId} price chart showing ${periodLabel} of history. Latest price is ${fmtUsd(currentPrice)}. Price has ${isPositive ? 'increased' : 'decreased'} by ${Math.abs(priceChange).toFixed(2)} percent during this period.`;
+  const recentVolumes = chartData.volumes.slice(-50);
+  const maxVolume = recentVolumes.length > 0 ? Math.max(...recentVolumes) : 0;
 
   return (
     <figure
       className="bg-gray-900/50 rounded-xl border border-gray-800 p-4"
-      role="figure"
       aria-label={`${cryptocurrencyName || cryptocurrencyId} price chart`}
     >
       {/* Screen reader description */}
@@ -254,37 +270,38 @@ export const PriceChart = memo(function PriceChart({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div>
           {cryptocurrencyName && (
-            <h3 className="text-lg font-bold text-white mb-1">{cryptocurrencyName} Price</h3>
+            <TitleTag className="text-lg font-bold text-white mb-1">{cryptocurrencyName} Price</TitleTag>
           )}
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-white" aria-label={`Current price: $${currentPrice?.toLocaleString()}`}>
-              ${currentPrice?.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: currentPrice < 1 ? 6 : 2,
-              })}
-            </span>
+            <span className="text-2xl font-bold text-white">{fmtUsd(currentPrice)}</span>
             <span
               className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}
-              aria-label={`Price change: ${isPositive ? 'up' : 'down'} ${Math.abs(priceChange).toFixed(2)} percent`}
+              aria-label={`Change over ${periodLabel}: ${isPositive ? 'up' : 'down'} ${Math.abs(priceChange).toFixed(2)} percent`}
             >
-              {isPositive ? '+' : ''}{priceChange.toFixed(2)}%
+              {fmtPct(priceChange)}
             </span>
           </div>
+          {meta && (
+            <p className={`text-xs mt-1 ${meta.stale ? 'text-amber-300' : 'text-gray-500'}`}>
+              {meta.stale ? 'Could not refresh; data as of ' : 'CoinGecko data, updated '}
+              {fmtDateTime(meta.fetchedAt)}
+            </p>
+          )}
         </div>
 
         {/* Period Selector */}
         <div
-          className="flex gap-1 bg-gray-800/50 rounded-lg p-1"
-          role="tablist"
-          aria-label="Select time period"
+          className="flex flex-wrap gap-1 bg-gray-800/50 rounded-lg p-1"
+          role="group"
+          aria-label="Time period"
         >
-          {periods.map((period) => (
+          {CHART_PERIODS.map((period) => (
             <button
               key={period.value}
-              onClick={() => setSelectedPeriod(period.value)}
-              role="tab"
-              aria-selected={selectedPeriod === period.value}
-              aria-label={`Show ${period.label === '24H' ? '24 hour' : period.label === '7D' ? '7 day' : period.label === '14D' ? '14 day' : period.label === '1M' ? '1 month' : period.label === '3M' ? '3 month' : period.label === '6M' ? '6 month' : '1 year'} price history`}
+              type="button"
+              onClick={() => selectPeriod(period.value)}
+              aria-pressed={selectedPeriod === period.value}
+              aria-label={`Show ${period.long} of price history`}
               className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
                 selectedPeriod === period.value
                   ? 'bg-orange-500 text-white'
@@ -302,37 +319,15 @@ export const PriceChart = memo(function PriceChart({
         <Line ref={chartRef} data={data} options={options} />
       </div>
 
-      {/* Accessible data summary for screen readers */}
-      <div className="sr-only" role="table" aria-label="Price data summary">
-        <div role="rowgroup">
-          <div role="row">
-            <span role="columnheader">Time</span>
-            <span role="columnheader">Price</span>
-          </div>
-        </div>
-        <div role="rowgroup">
-          {chartData.labels.slice(0, 5).map((label, index) => (
-            <div key={index} role="row">
-              <span role="cell">{label}</span>
-              <span role="cell">${chartData.prices[index]?.toLocaleString()}</span>
-            </div>
-          ))}
-          {chartData.labels.length > 5 && (
-            <div role="row">
-              <span role="cell">...and {chartData.labels.length - 5} more data points</span>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Volume Chart (Optional) */}
-      {showVolume && chartData.volumes.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-800" role="img" aria-label="Trading volume visualization">
-          <p className="text-xs text-gray-400 mb-2">24h Volume</p>
+      {showVolume && recentVolumes.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-gray-800">
+          <p className="text-xs text-gray-400 mb-2">
+            Trading volume (rolling 24h), latest {recentVolumes.length} data points
+          </p>
           <div className="flex gap-1 h-12" aria-hidden="true">
-            {chartData.volumes.slice(-50).map((volume, index) => {
-              const maxVolume = Math.max(...chartData.volumes);
-              const heightPercent = (volume / maxVolume) * 100;
+            {recentVolumes.map((volume, index) => {
+              const heightPercent = maxVolume > 0 ? (volume / maxVolume) * 100 : 0;
               return (
                 <div
                   key={index}
@@ -340,7 +335,7 @@ export const PriceChart = memo(function PriceChart({
                   style={{ height: `${heightPercent}%`, alignSelf: 'flex-end' }}
                 >
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 rounded text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    ${(volume / 1e9).toFixed(2)}B
+                    {formatCompactCurrency(volume)}
                   </div>
                 </div>
               );
@@ -351,4 +346,3 @@ export const PriceChart = memo(function PriceChart({
     </figure>
   );
 });
-

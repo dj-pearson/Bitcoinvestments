@@ -39,8 +39,10 @@
 ### P0: security (done first)
 - [x] Checkout: ignore caller metadata/mode; own-origin redirect URLs only.
 - [x] `/api/send-email`: require worker secret or signed-in user (own address or admin); welcome mail moved to a fixed-template `/api/newsletter-welcome`; Resend-first mailer.
-- [ ] Scam-report RLS: drop the permissive legacy policies, force `pending` on insert, `SECURITY DEFINER` vote trigger (WS-E).
-- [ ] Scam detail: render reported URLs as plain text/`nofollow ugc`, block `javascript:`; stop showing emails (WS-E).
+- [x] Scam-report RLS: drop the permissive legacy policies, force `pending` on insert, `SECURITY DEFINER` vote trigger (WS-E, migration `20260923000100`).
+- [x] Scam detail: render reported URLs as plain text, block `javascript:`; stop showing emails (WS-E).
+- [x] Found during WS-K: a leftover wallet-login policy let any signed-in user without a profile insert one with `role = 'super_admin'`; API-key owners could raise their own tier; review authors could approve their own reviews (migration `20260923000300`).
+- [x] Admin user list selected `*` on `users`, shipping every account's 2FA secret to the admin's browser.
 
 ### WS-0: site-wide SEO/GEO hygiene
 - Strip page-specific and fabricated JSON-LD from `index.html` (keep Organization + WebSite); fix meta description; drop "1,000+ reports", "300+ terms", "$29.99/mo" and crypto-payments claims.
@@ -98,3 +100,36 @@ Idempotent reconcile migration (signup profile trigger + backfill, missing `user
 - Whether Supabase project `mkdckqrukmukbmgxabyk` is live and which migrations it has; production `VITE_SUPABASE_*` build vars. *Default: `STATIC_MODE` stays on.*
 - Email provider (Resend key) and legal entity/address for Terms and Privacy.
 - Whether paid plans, the API product and the tax package will launch. *Default: waitlist, no dead-end checkout.*
+
+---
+
+## 6. Status (2026-09-23): all workstreams complete
+
+| Workstream | Status | Notes |
+|---|---|---|
+| P0 security | Done | Checkout metadata injection, open email relay, scam RLS, super_admin self-grant, admin 2FA leak |
+| WS-0 hygiene | Done | index.html stripped of fabricated/page-specific schema; RouteHead; robots, llms.txt, ai.txt, redirects, X-Robots-Tag |
+| WS-A Learn/guides/courses/glossary | Done | Facts refreshed and dated, single H1, real 404s, bylines + schema, 113-term glossary in the DOM, real course progress |
+| WS-B Compare + hardware wallets | Done | No invented ratings, honest sponsored labels, env affiliate IDs, refreshed lineups/fees with sources |
+| WS-C Calculators | Done | 2025/2026 tax tables, historical DCA, lognormal Monte Carlo, price history to Sep 2026 |
+| WS-D Market pages | Done | Working gas via `/api/gas`, typed CoinGecko errors + last-good cache, 20 curated coin profiles |
+| WS-E Scam database | Done | Sourced scam-type guide, IC3 figures, documented cases, neutral no-match wording, how-to-report guide |
+| WS-F DeFi/lending/gas | Done | Real yields via `/api/yields` (DefiLlama), CeFi collapse lessons, fixed gas cost bug |
+| WS-G Analytics | Done | Indicators fixed; on-chain + whale pages on public data via `/api/onchain`; copy-trading guide; multi-exchange gated |
+| WS-H Alerts/automation | Done | Rebalancing calculator, DCA planner, browser price alerts, influencer-vetting guide; price-alert emails can fire |
+| WS-I Blog | Done | Build-time snapshot + live merge, public `authors`, category fix, sponsored disclosure |
+| WS-J Home/pricing/legal | Done | No fabricated social proof, honest pricing/waitlist, accurate legal pages, About, unsubscribe |
+| WS-K Database readiness | Done | Reconcile migration, replayable migrations, FeatureGate + `VITE_ACCOUNTS_ENABLED`, fixed Stripe webhook, rebuild guide |
+| WS-L Prerendering | Done | 113 routes prerendered (92 indexable), generated sitemap, real 404s, functions for DB routes, CI-enforced checks |
+
+**Verified here:** `pnpm run build` with `PRERENDER_STRICT=1` (every indexable page: one H1, self-canonical, title <= 60, description <= 160), `pnpm run lint` (0 errors), `pnpm run audit:routes`, and a Playwright pass over 43 routes (all hydrate with no errors; client navigation and tools work).
+
+**Not verifiable from this environment** (no network to these hosts): Supabase (migrations untested against the live project; replayed on PGlite), DefiLlama, mempool.space, Blockchain.com, CoinGecko. Check `/api/yields`, `/api/onchain`, `/api/gas`, `/api/btc-fees` on a preview deploy.
+
+### Owner checklist
+1. Confirm the Supabase project is live; apply migrations `20260923000000`-`20260923000400` (order in `rebuild/REBUILD_GUIDE.md`).
+2. Set repository/Pages build variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`; secrets `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. If Cloudflare builds from git instead of `deploy.yml`, set them there as build variables.
+3. Supply: author names/bios (`authors` table, `EDITORIAL_AUTHOR`), a CPA/EA reviewer for tax content, affiliate IDs (`VITE_AFFILIATE_*`), which sponsorships are real (`src/data/exchanges.ts`), legal entity/governing law (Terms/Privacy placeholders).
+4. Re-check flagged facts: Gemini ActiveTrader fees, hardware wallet prices, unverified state tax rows, IC3 2025 figures, `src/data/notableScams.ts`, `src/data/coins.ts`.
+5. Decide: AI-training crawler policy (currently allowed), which paid products will launch, price-history data licence (Coin Metrics CC BY-NC), whether to pause the price-alert cron while accounts are off.
+6. When ready for accounts: set `VITE_ACCOUNTS_ENABLED=true` and follow the go-live checklist.

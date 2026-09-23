@@ -131,9 +131,12 @@ for (const route of routes) {
 }
 
 // 404 page: rendered from the catch-all route.
+// It is served for every unknown URL, so it is client-rendered rather than
+// hydrated: the markup was rendered for /404 and would not match the route tree
+// of whatever URL the visitor actually requested.
 {
   const { html, head } = await render('/404');
-  write(path.join(DIST, '404.html'), page(head, html));
+  write(path.join(DIST, '404.html'), page(head, html).replace(' data-ssr="static"', ''));
 }
 
 // ---------------------------------------------------------------------------

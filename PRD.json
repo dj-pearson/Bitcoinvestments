@@ -2031,7 +2031,7 @@
         "A test asserts, for every partner, that a missing ID yields the plain URL and a present ID yields the template URL with the ID URL-encoded",
         "Typecheck passes"
       ],
-      "priority": 119,
+      "priority": 3.05,
       "passes": false,
       "notes": "Replaces nothing; kept from the draft with fixes. Analytics is Plausible behind the cookie-consent banner (src/services/analytics.ts), not GA4, and click tracking already exists, so the AC extends it rather than adding it. PRD.md lines 19 and 52-53 already list tax software (CoinTracker, Koinly, ZenLedger, 20-30% commission) as a revenue idea; no PRD.json story implements it. No unit-test runner exists yet (US-004 Vitest is open, 0 *.test.* files in src): the test lands with US-004 or as a node:test script under scripts/. Competitive rationale: CoinLedger's affiliate terms describe recurring commission per filing year; Coinbase's affiliate program pays a share of referred trading fees for a limited window, which earns little from buy-and-hold beginners. Re-check both terms at signup. Sources: https://help.coinledger.io/en/articles/5968702-how-can-i-join-the-affiliate-program , https://www.coinbase.com/nl/blog/introducing-the-coinbase-affiliate-program . Size: S. Success metric: affiliate clicks per 1,000 sessions by placement; first confirmed commission within 60 days; tax-software conversions Jan-Apr. Owner action: set partner IDs as GitHub repository variables (names only in code, never values)."
     },
@@ -2049,7 +2049,7 @@
         "Report starts, completions, downloads and tax-software referral clicks are tracked without any transaction data in the event",
         "Typecheck passes"
       ],
-      "priority": 120,
+      "priority": 3.1,
       "passes": false,
       "notes": "New story; replaces the draft's certificate story (LEAP-012), which failed check (a): src/services/certifications.ts already models verifiable certificates with verificationUrl and linkedinShareUrl, course modules already carry quizzes (src/data/courses/index.ts quiz arrays), the Certifications component sits on US-113's list, and PRD.md line 86 already planned course certificates. Competitive rationale: tax software (Koinly, CoinLedger, CoinTracker) generally lets users import free and charges to download the filing report; a free, private, browser-only draft for a beginner with one or two exchanges is the step before them and refers the complex cases to them, so it feeds LEAP-001 rather than competing with it. Confirm each vendor's current free/paid line before stating it in public copy. Sources: https://www.irs.gov/forms-pubs/about-form-1099-da , https://www.kucoin.com/blog/koinly-review . Depends on US-105 (wash sale review) for the wording of any wash-sale note and on US-116 for currency formatting of tax outputs (never abbreviated, per US-118). Size: M. Success metric: completed reports per week in Jan-Apr, tax-software referral conversions from 'tax-report', organic clicks for 1099-DA queries."
     },
@@ -2067,7 +2067,7 @@
         "FAQ JSON-LD per state; a test asserts no page renders a tax figure from an unverified row without the notice",
         "Typecheck passes"
       ],
-      "priority": 121,
+      "priority": 3.14,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-006) and widened with state availability, which turns a tax-only page into a local buying guide. The route is /crypto/<state> rather than /crypto-tax/<state> so one URL carries both. STATE_TAX_TABLE has 54 `code:` entries; confirm which are states, DC and non-state rows before emitting. Competitive rationale: per-location calculator pages are a documented SEO pattern (Ahrefs on NerdWallet's calculators); Koinly and CoinTracker sell annual reports and do not publish free state-by-state availability plus tax explainers. Sources: https://ahrefs.com/blog/website-calculators/ , https://www.capterra.com/p/233948/Koinly/ . Owner action: the per-state exchange availability data needs research against each exchange's published state list. Size: M. Success metric: organic clicks on /crypto/* with the Feb-Apr peak, affiliate clicks per state page."
     },
@@ -2084,7 +2084,7 @@
         "The page carries FAQ JSON-LD, links the relevant guides, and is added to public/llms.txt under Tools",
         "Typecheck passes"
       ],
-      "priority": 122,
+      "priority": 3.19,
       "passes": false,
       "notes": "Kept from the draft with the competitive claim softened. NerdWallet and Finder cover ETF vs exchange in articles; neither offers a cost calculation at the reader's own amount, horizon and state with tax treatment. That is a narrower claim than 'no major publisher offers it', and it is the one the sources support. Sources: https://www.nerdwallet.com/article/investing/bitcoin-etfs , https://www.finder.com/ca/bitcoin-investing-etf-vs-exchange . etfs.ts is reused by LEAP-019. Not investment advice: the page compares costs and never recommends a route. Size: M. Success metric: organic sessions to /first-bitcoin, completion rate (result rendered), affiliate CTR from results, shares of result URLs."
     },
@@ -2101,7 +2101,7 @@
         "Affiliate links on pair pages use the LEAP-001 placement id 'pair-page'",
         "Typecheck passes"
       ],
-      "priority": 123,
+      "priority": 3.24,
       "passes": false,
       "notes": "Kept from the draft with counts corrected: the draft said about 16 exchanges and 28 wallets; the repo has 14 exchange ids and 16 typed wallets, and cross-type wallet pairs (hardware vs mobile) would be thin pages, so they are excluded. Compare.tsx already reads useParams type/id, so the pair route extends it. Competitive rationale: calculator-style pages that need user input hold up better against AI Overviews than definition pages. Sources: https://ahrefs.com/blog/website-calculators/ , https://searchengineland.com/google-ai-overviews-drive-drop-organic-paid-ctr-464212 . Size: M. Success metric: indexed pair pages, Search Console clicks from 'vs' queries, affiliate revenue per pair page."
     },
@@ -2118,7 +2118,7 @@
         "Signup source (footer, waitlist, scam lookup, calculator, state page) is recorded per subscriber",
         "Typecheck passes"
       ],
-      "priority": 124,
+      "priority": 3.29,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-011); EarlyAccess mounting dropped because it is a US-113 decision and EarlyAccess uses src/services/earlyAccess.ts, which needs the database. US-054 covers newsletter content generation, not capture, so there is no overlap. Competitive rationale: owned email is the one channel a search-result summary cannot intercept; Milk Road's growth case study credits a referral reward built on a single PDF. Sources: https://www.beehiiv.com/case-studies/milk-road , https://www.beehiiv.com/blog/newsletter-referral-program . Size: S, ranked here because LEAP-012 and the waitlists depend on it. Success metric: confirmed subscribers per week; signups per 1,000 sessions by source."
     },
@@ -2135,7 +2135,7 @@
         "A test asserts the three-state rendering and that a lookup failure never renders as a clean result",
         "Typecheck passes"
       ],
-      "priority": 125,
+      "priority": 3.33,
       "passes": false,
       "notes": "Kept from the draft with a fix for check (a): the draft proposed a new /is-this-safe page, but the lookup UI already exists in ScamDatabase.tsx, so a second page would duplicate it and split its search ranking. The new work is the static-mode backend and the message-pattern mode. Competitive rationale: Chainabuse holds the report data and an API but is a database, not a beginner explainer; exchanges have no reason to warn a user off a purchase. Sources: https://www.chainabuse.com/ , https://www.trmlabs.com/resources/blog/announcing-the-launch-of-chainabuse-the-multi-chain-scam-reporting-tool-that-empowers-crypto-users-against-fraud . US-087 (KV rate limiting) is the shared dependency. Size: M. Success metric: lookups per week, newsletter signups from results (LEAP-006 source 'scam lookup'), backlinks earned by the page."
     },
@@ -2153,7 +2153,7 @@
         "Referrals from AI assistants (chatgpt.com, perplexity.ai, claude.ai, gemini.google.com) are segmented in Plausible",
         "Typecheck passes"
       ],
-      "priority": 126,
+      "priority": 3.38,
       "passes": false,
       "notes": "Merges the draft's LEAP-016 (verification engine) and LEAP-017 (open data for AI answer engines). LEAP-017 failed check (b) as a standalone story: public/llms.txt and ai.txt already exist and are thorough, and GEOContent is no longer unmounted (FAQSection is imported by Dashboard, Charts and CoinDetail), so what remained was JSON exports, which belong with the registry that dates them. The draft's cron that refreshes weekly prices is dropped here because US-106 already plans live CoinGecko history with caching; this story registers priceHistory's max age and leaves the fetch to US-106. Competitive rationale: NerdWallet and Finder show an updated date but no per-figure verification history. Sources: https://searchengineland.com/google-ai-overviews-drive-drop-organic-paid-ctr-464212 , https://nerdwallet.com/best/investing/crypto-exchanges-platforms . Size: M. Success metric: share of datasets within max age (target 100%), NEEDS-OWNER count trending to 0, AI-assistant referral sessions, referring domains linking to /data."
     },
@@ -2171,7 +2171,7 @@
         "The US-113 decision for AILearningAssistant is recorded as 'mounted' after review",
         "Typecheck passes"
       ],
-      "priority": 127,
+      "priority": 3.43,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-003), moved down because it is blocked on US-103 and US-087, and fixed: the draft assumed the service runs without a database, but aiLearningAssistant.ts imports db from src/lib/supabase. The member-unlimited quota moves to LEAP-010. Competitor pricing (CoinGecko AI quota, CoinStats AI agent price) is quoted from the cited pages as of drafting; re-check before using in public copy. The Kraken source in the draft (cryptometer.io) is a weak secondary source and is dropped. Sources: https://www.coingecko.com/en/premium/pricing , https://coinstats.app/pricing/ . Size: L. Success metric: weekly questions, share of answers with citations (target 100%), quota-hit to /pricing click-through."
     },
@@ -2188,7 +2188,7 @@
         "Checkout start, checkout complete and cancellation are tracked with plan and billing interval",
         "Typecheck passes"
       ],
-      "priority": 128,
+      "priority": 3.48,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-002), moved down the order because it cannot ship until the REBUILD_GUIDE step 2A go-live (new Supabase project, VITE_ACCOUNTS_ENABLED) and US-114 server-side entitlements land. Fixed: there is no separate PricingStatic file; the static branch lives inside src/pages/Pricing.tsx. The lifetime $299 tier in stripe.ts also needs an owner decision. Competitor prices must be re-read from the source on the day the comparison ships. Sources: https://www.coingecko.com/en/premium/pricing , https://coinstats.app/pricing/ . Size: L. Success metric: paying members and MRR; first 50 paying members within 90 days of launch; free-to-paid conversion of /pricing visitors."
     },
@@ -2205,7 +2205,7 @@
         "Share clicks and inbound sessions from shared URLs are tracked separately",
         "Typecheck passes"
       ],
-      "priority": 129,
+      "priority": 3.52,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-009). Prerendered pages read og tags from HTML, so the og:image for a param URL must be set in the Pages Function response, not only client-side (US-034 notes the SPA limitation). Competitive claim softened: CoinGecko and CoinStats portfolio results sit behind sign-in, so they cannot be shared as public result pages; the beehiiv source supports owned-audience growth, not share cards specifically. Sources: https://ahrefs.com/blog/website-calculators/ , https://www.beehiiv.com/case-studies/milk-road . Size: M. Success metric: shares per 100 calculator completions, inbound sessions from shared URLs, referring domains."
     },
@@ -2222,7 +2222,7 @@
         "Follows, sends, opens and clicks back to bitcoinvestments.net are tracked per exchange",
         "Typecheck passes"
       ],
-      "priority": 130,
+      "priority": 3.57,
       "passes": false,
       "notes": "New story; replaces the draft's browser price-alert watchlist (LEAP-014), which failed check (a): device-local price alerts already exist in src/services/localPriceAlerts.ts and are mounted on /alert-bundles (SmartAlertBundles.tsx), and a service worker (public/sw.js) and pushNotifications.ts exist; background notifications would have been polish on a shipped feature. Price alerts are also what every tracker offers; fee and terms change alerts are something only a site that verifies fee data can send. Competitive claim: no evidence was found of NerdWallet, Finder, CoinGecko or CoinStats sending per-exchange fee change notices; treat as 'not observed', not proven absent. Depends on LEAP-006 and LEAP-008. Size: M. Success metric: follows per week, 90-day subscriber retention of followers vs non-followers, clicks per alert email."
     },
@@ -2238,7 +2238,7 @@
         "A test asserts that an exchange with an empty safety object renders the 'no public evidence' line for each item",
         "Typecheck passes"
       ],
-      "priority": 131,
+      "priority": 3.62,
       "passes": false,
       "notes": "New story; replaces the draft's direct sponsorships story (LEAP-019), which failed check (a): a self-hosted ad system already exists (docs/AD_SYSTEM.md, src/services/ads.ts, AdManager and AdvertiserDashboard pages, AdUnit component, functions/sponsored and SponsoredArticle), and PRD.md lines 62-114 already plan sponsorships and sponsored content. Competitive rationale: CoinGecko's exchange Trust Score is weighted to liquidity and covers a global list; NerdWallet uses star ratings. A sourced, dated evidence record for the 14 US exchanges a beginner chooses between is a different and checkable artefact. Verify both competitor methods against their own methodology pages before naming them in public copy. Sources: https://www.coingecko.com/en/methodology , https://nerdwallet.com/best/investing/crypto-exchanges-platforms . Owner action: research per exchange. Size: M. Success metric: time on exchange pages, affiliate CTR on exchanges with complete records vs incomplete, backlinks to exchange pages."
     },
@@ -2255,7 +2255,7 @@
         "generateEmbedCode() in portfolioSharing.ts either resolves to a working route or is removed",
         "Typecheck passes"
       ],
-      "priority": 132,
+      "priority": 3.67,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-010). Claim softened: the draft said NerdWallet's calculators are not embeddable without a source; the supported claim is that calculator pages are NerdWallet's documented SEO engine. Sources: https://ahrefs.com/blog/website-calculators/ , https://www.digitalthriveai.com/en-us/resources/seo/nerdwallet-seo-case-study/ . US-015 and US-088 own the CSP and headers; coordinate the frame-ancestors change there. Size: S-M. Success metric: active host domains, referring domains in Search Console, sessions arriving from embed links."
     },
@@ -2272,7 +2272,7 @@
         "Package purchases are tracked by season and source page",
         "Typecheck passes"
       ],
-      "priority": 133,
+      "priority": 3.71,
       "passes": false,
       "notes": "Kept from the draft. Requires a live Stripe price for the package and the webhook path; US-101 (idempotent webhook) applies. Claim softened: the draft cited complaints about CoinTracker tier pricing from aggregator pages; the supported point is only that Koinly and CoinTracker price per tax year. Sources: https://www.kucoin.com/blog/koinly-review , https://pricingsaas.com/companies/cointracker . Size: M. Success metric: tax-panel usage, package sales Jan-Apr, tax-software referral conversions."
     },
@@ -2289,7 +2289,7 @@
         "Plan starts and completions are tracked; no plan content is ever sent in an event",
         "Typecheck passes"
       ],
-      "priority": 134,
+      "priority": 3.76,
       "passes": false,
       "notes": "New story; replaces the draft's risk-profile quiz (LEAP-013), which failed checks (a) and (b): RiskAssessmentQuiz.tsx and src/services/riskAssessment.ts are already built, mounting them is the open US-113 decision, and the work was S-M. Competitive rationale: inheritance is sold inside paid custody and recovery products (Casa's paid plans, Ledger Recover's subscription); no beginner education publisher offers a free planner. Prices and plan contents of both vendors were not verified in this review; confirm at https://casa.io and https://www.ledger.com/recover before citing them. Legal note: the page states it is not a will and does not replace an estate attorney. Size: M. Success metric: completed plans per week, hardware-wallet affiliate clicks from 'inheritance', backlinks from estate-planning sites."
     },
@@ -2306,7 +2306,7 @@
         "Tool calls and downstream visits to bitcoinvestments.net from cited URLs (UTM-tagged) are tracked",
         "Typecheck passes"
       ],
-      "priority": 135,
+      "priority": 3.81,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-018). Calculation logic must be shared with the pages (import from src/services/calculators and src/data), not re-implemented, or the tool and the page will disagree. Sources trimmed to the one that supports the claim: https://feedbagel.com/post/coinbase-launches-tool-to-let-ai-agents-manage-trading-and-payments ; the ai.com and Nansen links in the draft describe general AI agents, not crypto purchase paths, and are dropped. Depends on LEAP-004 and LEAP-007. Size: M. Success metric: weekly tool calls, unique clients, referral sessions from cited URLs."
     },
@@ -2323,7 +2323,7 @@
         "The LEAP-007 lookup consults approved community reports alongside Chainabuse and labels the source of each hit",
         "Typecheck passes"
       ],
-      "priority": 136,
+      "priority": 3.86,
       "passes": false,
       "notes": "Kept from the draft (was LEAP-008), moved down because it needs the REBUILD_GUIDE step 2A Supabase project and US-115 (write policies) first. Competitive rationale: Chainabuse merges by address and supports votes; Bitcoin Investments' layer is the plain-English US-beginner explanation per page. Sources: https://www.chainabuse.com/ , https://cointelegraph.com/news/crypto-giants-co-launch-chainabuse-platform-to-water-down-rising-scams . Size: L. Success metric: approved reports per month, indexed /scam/:id pages, organic clicks to scam pages."
     },
@@ -2340,7 +2340,7 @@
         "Both datasets are registered in the LEAP-008 verification registry and exported as JSON",
         "Typecheck passes"
       ],
-      "priority": 137,
+      "priority": 3.9,
       "passes": false,
       "notes": "New story; fills the slot freed by merging the draft's LEAP-016 and LEAP-017. Competitive rationale stated honestly: NerdWallet already publishes ETF and crypto IRA lists, so this is not unoccupied ground; the edge is the same as the rest of the compare section, a dated fee record and a cost computed at the reader's balance and horizon. Source: https://www.nerdwallet.com/article/investing/bitcoin-etfs . Owner action: research provider fees and affiliate terms. Depends on LEAP-004 (etfs.ts). Size: M. Success metric: organic clicks on /compare/etf and /compare/ira, retirement-category affiliate conversions."
     },
@@ -2357,7 +2357,7 @@
         "At least one design partner integration is recorded before general availability",
         "Typecheck passes"
       ],
-      "priority": 138,
+      "priority": 3.95,
       "passes": false,
       "notes": "Kept from the draft. Last in the order because it depends on LEAP-018, the rebuilt database, Chainabuse terms permitting redistribution of their results, and US-048/US-095. Sources: https://www.chainabuse.com/ , https://www.trmlabs.com/resources/blog/announcing-the-launch-of-chainabuse-the-multi-chain-scam-reporting-tool-that-empowers-crypto-users-against-fraud . Size: L. Success metric: API keys issued, paid API accounts, monthly API revenue."
     }

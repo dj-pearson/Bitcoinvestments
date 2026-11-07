@@ -2016,6 +2016,350 @@
       "priority": 118,
       "passes": false,
       "notes": "Opened during iteration 15, the last of this loop, alongside the fix for market caps rendering as $0.00B. Deliberately scoped out: the remaining copies are not wrong in the way the fixed-1e9 divisions were, so this is consolidation rather than a defect, and it overlaps US-116 on the currency formatters - the two should probably be done together."
+    },
+    {
+      "id": "LEAP-001",
+      "title": "Make affiliate revenue real in the shipped Bitcoin Investments build and add crypto tax software partners",
+      "description": "Bitcoin Investments has no working revenue path today. Every Stripe surface sits behind VITE_ACCOUNTS_ENABLED (src/config/staticMode.ts), and the Supabase project it used (mkdckqrukmukbmgxabyk) no longer exists (rebuild/REBUILD_GUIDE.md, status 2026-09-23). Affiliate links are the one revenue path that works in static mode, and they are switched off by accident: src/services/affiliate.ts reads tracking IDs only from build-time VITE_AFFILIATE_* variables, while .github/workflows/deploy.yml passes only VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY into the build, so every partner link falls back to the plain official URL. This story wires the IDs into the build, adds a partner category the original PRD.md already named but never built (tax software: CoinLedger, Koinly), and places those links next to calculator results the visitor just produced rather than in a ranked list.",
+      "acceptanceCriteria": [
+        "deploy.yml passes every VITE_AFFILIATE_* variable named in the affiliate.ts header comment from GitHub repository variables into the build step",
+        "A build-time script prints a named warning listing each partner in AFFILIATE_PARTNERS whose tracking ID is unset; it never prints an ID value",
+        "AffiliatePartner in src/services/affiliate.ts gains a category field, and AFFILIATE_PARTNERS gains CoinLedger and Koinly entries under category 'tax-software', each falling back to the official URL when its ID is unset",
+        "The Tax tab of src/pages/Calculators.tsx and the src/data/guides/crypto-taxes-basics.ts guide render a tax-software block with the existing AffiliateDisclosure component",
+        "The three `sponsored: { is_sponsored: true }` flags in src/data/exchanges.ts (Coinbase line 91, Kraken line 155, Gemini line 281, each marked NEEDS-OWNER) are removed unless the owner confirms a signed paid placement",
+        "The existing trackAffiliateClick call (affiliate.ts imports it from src/services/analytics.ts, Plausible, consent-gated) gains placement and route properties so revenue per page and per placement can be computed",
+        "A test asserts, for every partner, that a missing ID yields the plain URL and a present ID yields the template URL with the ID URL-encoded",
+        "Typecheck passes"
+      ],
+      "priority": 119,
+      "passes": false,
+      "notes": "Replaces nothing; kept from the draft with fixes. Analytics is Plausible behind the cookie-consent banner (src/services/analytics.ts), not GA4, and click tracking already exists, so the AC extends it rather than adding it. PRD.md lines 19 and 52-53 already list tax software (CoinTracker, Koinly, ZenLedger, 20-30% commission) as a revenue idea; no PRD.json story implements it. No unit-test runner exists yet (US-004 Vitest is open, 0 *.test.* files in src): the test lands with US-004 or as a node:test script under scripts/. Competitive rationale: CoinLedger's affiliate terms describe recurring commission per filing year; Coinbase's affiliate program pays a share of referred trading fees for a limited window, which earns little from buy-and-hold beginners. Re-check both terms at signup. Sources: https://help.coinledger.io/en/articles/5968702-how-can-i-join-the-affiliate-program , https://www.coinbase.com/nl/blog/introducing-the-coinbase-affiliate-program . Size: S. Success metric: affiliate clicks per 1,000 sessions by placement; first confirmed commission within 60 days; tax-software conversions Jan-Apr. Owner action: set partner IDs as GitHub repository variables (names only in code, never values)."
+    },
+    {
+      "id": "LEAP-002",
+      "title": "Free in-browser crypto tax report and Form 1099-DA check for beginners, no account needed",
+      "description": "US brokers now report crypto sales on Form 1099-DA (gross proceeds for 2025 sales, cost basis too for coins bought from January 1, 2026, as src/data/courses/index.ts line 1256 already teaches). The first filing season with these forms leaves many beginners holding a form whose proceeds have no matching basis, which overstates their gain unless they reconcile it. Bitcoin Investments already has the two halves of a fix, both unreachable: src/services/transactionImport.ts parses Coinbase, Kraken, Binance, Gemini and generic CSV exports (its TransactionImport component is on US-113's unmounted list), and src/services/taxReportService.ts generateTaxReport() builds Form 8949 short- and long-term lines from a Portfolio object, gated behind accounts at /tax-reports. This story runs both entirely in the browser at a new public /crypto-tax-report route: upload exchange CSVs, get a Form 8949 draft and a side-by-side check of the 1099-DA proceeds against the visitor's own cost basis, with nothing sent to a server. Simple histories are served free; complex ones are referred to the LEAP-001 tax-software partners.",
+      "acceptanceCriteria": [
+        "New prerendered route /crypto-tax-report mounts TransactionImport and runs transactionImport.ts parsing and taxReportService.ts generateTaxReport() on an in-memory Portfolio, with no Supabase call and no network request carrying file contents (asserted by a test that stubs fetch and fails on any call during a report run)",
+        "The visitor can enter or upload the 1099-DA gross proceeds per asset; the page shows, per asset, reported proceeds, computed cost basis, the gain if basis is left blank versus the gain with basis, and the difference",
+        "Rows with no matching buy record render 'basis unknown', never a basis of 0, and the report states which assets are affected",
+        "Output downloads as a Form 8949-shaped CSV using the existing xlsxWriter or CSV path, stamped with tax year (DEFAULT_TAX_YEAR) and cost-basis method",
+        "Above a stated threshold (more than two exchanges, DeFi transactions, or more than a stated number of disposals) the page says the history is beyond this tool and shows the LEAP-001 tax-software block with placement id 'tax-report'",
+        "The US-113 decision for TransactionImport is recorded as 'mounted' in that story's notes, after the component is reviewed",
+        "Report starts, completions, downloads and tax-software referral clicks are tracked without any transaction data in the event",
+        "Typecheck passes"
+      ],
+      "priority": 120,
+      "passes": false,
+      "notes": "New story; replaces the draft's certificate story (LEAP-012), which failed check (a): src/services/certifications.ts already models verifiable certificates with verificationUrl and linkedinShareUrl, course modules already carry quizzes (src/data/courses/index.ts quiz arrays), the Certifications component sits on US-113's list, and PRD.md line 86 already planned course certificates. Competitive rationale: tax software (Koinly, CoinLedger, CoinTracker) generally lets users import free and charges to download the filing report; a free, private, browser-only draft for a beginner with one or two exchanges is the step before them and refers the complex cases to them, so it feeds LEAP-001 rather than competing with it. Confirm each vendor's current free/paid line before stating it in public copy. Sources: https://www.irs.gov/forms-pubs/about-form-1099-da , https://www.kucoin.com/blog/koinly-review . Depends on US-105 (wash sale review) for the wording of any wash-sale note and on US-116 for currency formatting of tax outputs (never abbreviated, per US-118). Size: M. Success metric: completed reports per week in Jan-Apr, tax-software referral conversions from 'tax-report', organic clicks for 1099-DA queries."
+    },
+    {
+      "id": "LEAP-003",
+      "title": "Launch a crypto page for every US state: tax at sale plus which exchanges and products work there",
+      "description": "src/data/stateTaxRates.ts holds STATE_TAX_TABLE (2026 rates, per-row verified flags, STATE_TAX_META.lastVerified 2026-09-23, Washington's separate capital gains rule in WA_CAPITAL_GAINS), and the Calculators Tax tab already accepts a state. src/data/exchanges.ts records state restrictions only as prose (Binance.US 'not in every state', Robinhood staking not offered in CA, MD, NJ and WI, Gemini's New York charter). This story turns both into /crypto/<state> pages: the tax calculator pre-filled for that state, a plain-English explanation of how the state taxes gains, and a structured list of which exchanges and which products (staking, derivatives) are available to residents, with a New York BitLicense note. That is the beginner's real local question, and it recurs every filing season.",
+      "acceptanceCriteria": [
+        "scripts/lib/routes.mjs emits /crypto/<state-slug> for every row in STATE_TAX_TABLE plus an index at /crypto/states; pages are prerendered by scripts/prerender.mjs and listed in the sitemap",
+        "Each page embeds the Calculators Tax form initialised with that state and shows ltExclusion, noCapitalGainsTax and WA_CAPITAL_GAINS rules where they apply",
+        "Rows with verified:false render a visible 'not yet confirmed against the state revenue department' notice next to the number, never a silent figure",
+        "A new structured field in src/data/exchanges.ts (e.g. restrictedStates and productRestrictions per exchange, each with source URL and lastVerified) replaces the prose for availability; any exchange with no structured data renders 'availability not yet verified for this state', not 'available'",
+        "Each page links the state revenue department source and states the tax year and lastVerified date",
+        "The LEAP-001 tax-software block appears with placement id 'state-tax' and the LEAP-002 report is linked",
+        "FAQ JSON-LD per state; a test asserts no page renders a tax figure from an unverified row without the notice",
+        "Typecheck passes"
+      ],
+      "priority": 121,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-006) and widened with state availability, which turns a tax-only page into a local buying guide. The route is /crypto/<state> rather than /crypto-tax/<state> so one URL carries both. STATE_TAX_TABLE has 54 `code:` entries; confirm which are states, DC and non-state rows before emitting. Competitive rationale: per-location calculator pages are a documented SEO pattern (Ahrefs on NerdWallet's calculators); Koinly and CoinTracker sell annual reports and do not publish free state-by-state availability plus tax explainers. Sources: https://ahrefs.com/blog/website-calculators/ , https://www.capterra.com/p/233948/Koinly/ . Owner action: the per-state exchange availability data needs research against each exchange's published state list. Size: M. Success metric: organic clicks on /crypto/* with the Feb-Apr peak, affiliate clicks per state page."
+    },
+    {
+      "id": "LEAP-004",
+      "title": "Build the 'true cost of your first $500' route comparator: exchange vs spot bitcoin ETF vs IRA",
+      "description": "A beginner's first real choice is the route, not the exchange: buy spot on an exchange, buy a spot bitcoin ETF in a brokerage account, or hold an ETF in a Roth or traditional IRA. Bitcoin Investments mentions ETFs only in prose (guides how-to-buy-crypto, dca-strategies, what-is-bitcoin and the glossary). This interactive tool takes amount, monthly contribution, horizon, account type and state, and shows spread plus trading fees, expense-ratio drag over time, who holds the keys and the tax treatment side by side, each input dated and sourced, and each route ending in a relevant educational or affiliate link.",
+      "acceptanceCriteria": [
+        "New route /first-bitcoin, prerendered via scripts/prerender.mjs and listed in the sitemap, with inputs for amount, monthly contribution, horizon in years, account type and US state",
+        "Exchange costs come from EXCHANGE_FEES in src/data/exchangeFees.ts, state tax from stateRateFor() in src/data/stateTaxRates.ts, and a new src/data/etfs.ts holds spot bitcoin ETF tickers, issuers and expense ratios with lastVerified and source URL per row",
+        "The output table shows year-1 and year-N total cost per route, key custody, and tax treatment (taxable account vs IRA), and renders the unverified marker for any row whose verified flag is false",
+        "Inputs are encoded in URL params using the same pattern as the Calculators.tsx URL helpers, so a result is shareable",
+        "A test pins the cost math for three fixtures, one per route, and the counter-case that a 0% fee input yields a cost of 0, not a gap",
+        "The page carries FAQ JSON-LD, links the relevant guides, and is added to public/llms.txt under Tools",
+        "Typecheck passes"
+      ],
+      "priority": 122,
+      "passes": false,
+      "notes": "Kept from the draft with the competitive claim softened. NerdWallet and Finder cover ETF vs exchange in articles; neither offers a cost calculation at the reader's own amount, horizon and state with tax treatment. That is a narrower claim than 'no major publisher offers it', and it is the one the sources support. Sources: https://www.nerdwallet.com/article/investing/bitcoin-etfs , https://www.finder.com/ca/bitcoin-investing-etf-vs-exchange . etfs.ts is reused by LEAP-019. Not investment advice: the page compares costs and never recommends a route. Size: M. Success metric: organic sessions to /first-bitcoin, completion rate (result rendered), affiliate CTR from results, shares of result URLs."
+    },
+    {
+      "id": "LEAP-005",
+      "title": "Generate exchange-vs-exchange and same-type wallet-vs-wallet pages with a fee delta at the visitor's amount",
+      "description": "scripts/lib/routes.mjs extractCompareUrls() emits one page per exchange (/compare/exchange/:id) and per wallet. The data for head-to-head pages is already in the repo: 14 exchanges in src/data/exchanges.ts with worked fee examples in EXCHANGE_FEES, and wallets in src/data/wallets.ts typed hardware (10), software (4) and mobile (2). Pair pages such as /compare/exchange/coinbase-vs-kraken target the 'X vs Y' queries NerdWallet and Finder currently win, and each computes a fee delta at the visitor's own amount, which a search-result summary cannot do for them.",
+      "acceptanceCriteria": [
+        "routes.mjs emits every unordered exchange pair (91 pages) and every wallet pair within the same type in wallets.ts (hardware with hardware, and so on), with alphabetical canonical ordering; a reversed slug 301s to the canonical one from a Pages Function under functions/",
+        "A route /compare/:type/:pairSlug renders a side-by-side fee table, an 'enter your amount' cost delta computed from EXCHANGE_FEES, custody and security differences, and a verdict sentence generated from the data, never an invented rating",
+        "Each pair page shows the lastVerified date of both sides and the unverified marker where applicable",
+        "Sitemap and public/llms.txt include the pair pages; each page has ItemList JSON-LD with no aggregateRating",
+        "Prerender completes with the new routes and the build-time increase is reported in the PR",
+        "Affiliate links on pair pages use the LEAP-001 placement id 'pair-page'",
+        "Typecheck passes"
+      ],
+      "priority": 123,
+      "passes": false,
+      "notes": "Kept from the draft with counts corrected: the draft said about 16 exchanges and 28 wallets; the repo has 14 exchange ids and 16 typed wallets, and cross-type wallet pairs (hardware vs mobile) would be thin pages, so they are excluded. Compare.tsx already reads useParams type/id, so the pair route extends it. Competitive rationale: calculator-style pages that need user input hold up better against AI Overviews than definition pages. Sources: https://ahrefs.com/blog/website-calculators/ , https://searchengineland.com/google-ai-overviews-drive-drop-organic-paid-ctr-464212 . Size: M. Success metric: indexed pair pages, Search Console clicks from 'vs' queries, affiliate revenue per pair page."
+    },
+    {
+      "id": "LEAP-006",
+      "title": "Restore Bitcoin Investments email capture without the database and back it with a dated lead magnet",
+      "description": "isNewsletterAvailable() returns isSupabaseConfigured() and subscribeToNewsletter() returns code 'unavailable' when Supabase is absent (src/services/database.ts lines 422-443). With no Supabase project configured, the footer form, the pricing waitlist and every ComingSoon waitlist that FeatureGate renders are dead, so the site's main conversion step is broken. This story moves capture to a Pages Function that writes to a Resend audience (Resend is already the email provider: docs/EMAIL_SETUP.md, functions/lib/mailer.ts) with double opt-in, and adds a lead magnet built from repo data: a dated fee table and a scam field guide from EXCHANGE_FEES, notableScams.ts and scamTypes.ts.",
+      "acceptanceCriteria": [
+        "New functions/api/subscribe.ts adds a contact to a Resend audience with double opt-in and per-IP rate limiting, storing consent basis, source and timestamp; the API key is a Cloudflare secret, never in the bundle",
+        "Newsletter capture components, the waitlist on the pricing page and the ComingSoon waitlist call it when Supabase is absent; the unavailable text renders only when the subscribe endpoint itself fails",
+        "An unknown or missing consent basis is refused, not defaulted",
+        "A build script generates the lead-magnet PDF from EXCHANGE_FEES and notableScams.ts with the data's lastVerified date printed on it, delivered by the confirmation email",
+        "Unsubscribe works through the provider and is honoured; the existing /unsubscribe page and migration 20260923000400_newsletter_unsubscribe.sql keep working when accounts return",
+        "Signup source (footer, waitlist, scam lookup, calculator, state page) is recorded per subscriber",
+        "Typecheck passes"
+      ],
+      "priority": 124,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-011); EarlyAccess mounting dropped because it is a US-113 decision and EarlyAccess uses src/services/earlyAccess.ts, which needs the database. US-054 covers newsletter content generation, not capture, so there is no overlap. Competitive rationale: owned email is the one channel a search-result summary cannot intercept; Milk Road's growth case study credits a referral reward built on a single PDF. Sources: https://www.beehiiv.com/case-studies/milk-road , https://www.beehiiv.com/blog/newsletter-referral-program . Size: S, ranked here because LEAP-012 and the waitlists depend on it. Success metric: confirmed subscribers per week; signups per 1,000 sessions by source."
+    },
+    {
+      "id": "LEAP-007",
+      "title": "Make the Bitcoin Investments scam lookup work without the database, backed by Chainabuse and the site's own scam patterns",
+      "description": "src/pages/ScamDatabase.tsx already offers four lookup modes (keyword, wallet address, token contract, website) through checkWalletAddress and checkContractAddress, but they query community reports in Supabase, which no longer exists, so the lookup a beginner needs right after a suspicious DM returns nothing. llms.txt already advertises the page as the 'Crypto Scam Checker'. This story keeps the existing page and modes and gives them a static-mode backend: a Pages Function that queries Chainabuse (TRM Labs) for addresses and domains, plus deterministic matching of pasted message text against src/data/scamTypes.ts and scamGuidance.ts, ending in the right US reporting path (IC3, FTC, SEC, CFTC).",
+      "acceptanceCriteria": [
+        "New functions/api/scam-check.ts queries the Chainabuse API (key held as a Cloudflare secret, never in the bundle), caches results in KV with a stated TTL and rate-limits per IP; blocked on Chainabuse API terms being confirmed first",
+        "ScamDatabase.tsx wallet, contract and website modes call it when Supabase is absent; a new 'paste the message' mode matches free text against scamTypes.ts patterns without calling any model",
+        "The result distinguishes 'reported N times', 'no reports found' and 'lookup failed' as three different renderings; 'no reports found' says plainly that it does not mean safe",
+        "Every result ends with the matching reporting path from scamGuidance.ts and a link to /report-scam",
+        "When community reports return (LEAP-018), each hit is labelled with its source",
+        "A test asserts the three-state rendering and that a lookup failure never renders as a clean result",
+        "Typecheck passes"
+      ],
+      "priority": 125,
+      "passes": false,
+      "notes": "Kept from the draft with a fix for check (a): the draft proposed a new /is-this-safe page, but the lookup UI already exists in ScamDatabase.tsx, so a second page would duplicate it and split its search ranking. The new work is the static-mode backend and the message-pattern mode. Competitive rationale: Chainabuse holds the report data and an API but is a database, not a beginner explainer; exchanges have no reason to warn a user off a purchase. Sources: https://www.chainabuse.com/ , https://www.trmlabs.com/resources/blog/announcing-the-launch-of-chainabuse-the-multi-chain-scam-reporting-tool-that-empowers-crypto-users-against-fraud . US-087 (KV rate limiting) is the shared dependency. Size: M. Success metric: lookups per week, newsletter signups from results (LEAP-006 source 'scam lookup'), backlinks earned by the page."
+    },
+    {
+      "id": "LEAP-008",
+      "title": "Verification engine and open datasets: every fee, rate and price in Bitcoin Investments dated, sourced and citable",
+      "description": "Bitcoin Investments' credibility rests on dated, sourced numbers, and the dates are slipping: weekly price history ends 2026-09-22 (src/data/priceHistory/weeklyPrices.ts), the state tax table was last verified 2026-09-23, and src, functions and scripts carry 33 NEEDS-OWNER markers. Nothing tracks which dataset is overdue. This story adds a verification registry with a maximum age per volatile dataset, a build check that names stale data, a public change log of every data change, and open JSON exports of the same datasets so AI answer engines and other sites can cite Bitcoin Investments as the source.",
+      "acceptanceCriteria": [
+        "A registry (src/data/verification.ts) lists every volatile dataset (exchangeFees, exchanges, staking, lendingPlatforms, stateTaxRates, taxBrackets, wallets, priceHistory) with source URL, owner and max age in days",
+        "A build check warns by name for each dataset past its max age and lists remaining NEEDS-OWNER markers with file:line; a counter-test proves it fires on a dataset dated beyond its max age",
+        "Stale data renders a visible 'overdue for verification' notice on the pages that use it, never silent",
+        "A public /changelog/data page lists every data change with date, field, old value, new value and source, generated from the registry history",
+        "Static JSON at /data/exchange-fees.json, /data/state-crypto-tax.json and /data/scam-types.json is generated at build from src/data, each row carrying source and lastVerified, with licence and attribution fields; a /data page documents them with Dataset JSON-LD",
+        "public/llms.txt lists the datasets and the change log; a test asserts every exported row has source and lastVerified",
+        "Referrals from AI assistants (chatgpt.com, perplexity.ai, claude.ai, gemini.google.com) are segmented in Plausible",
+        "Typecheck passes"
+      ],
+      "priority": 126,
+      "passes": false,
+      "notes": "Merges the draft's LEAP-016 (verification engine) and LEAP-017 (open data for AI answer engines). LEAP-017 failed check (b) as a standalone story: public/llms.txt and ai.txt already exist and are thorough, and GEOContent is no longer unmounted (FAQSection is imported by Dashboard, Charts and CoinDetail), so what remained was JSON exports, which belong with the registry that dates them. The draft's cron that refreshes weekly prices is dropped here because US-106 already plans live CoinGecko history with caching; this story registers priceHistory's max age and leaves the fetch to US-106. Competitive rationale: NerdWallet and Finder show an updated date but no per-figure verification history. Sources: https://searchengineland.com/google-ai-overviews-drive-drop-organic-paid-ctr-464212 , https://nerdwallet.com/best/investing/crypto-exchanges-platforms . Size: M. Success metric: share of datasets within max age (target 100%), NEEDS-OWNER count trending to 0, AI-assistant referral sessions, referring domains linking to /data."
+    },
+    {
+      "id": "LEAP-009",
+      "title": "Ship an AI tutor that explains and never sells, answering only from Bitcoin Investments' own pages",
+      "description": "AI chat is the paid hook in the category: CoinGecko meters its AI assistant and CoinStats sells an AI agent, and exchange assistants are built to end in a trade. Bitcoin Investments has no execution path and no book to talk up, so its tutor can credibly answer 'you don't need to buy anything to learn this'. src/components/AILearningAssistant.tsx and src/services/aiLearningAssistant.ts exist but are unmounted (US-113 list) and store conversations through Supabase (db from src/lib/supabase). This story mounts the tutor as 'Ask Bitcoin Investments', answering only over the site's own corpus (guides, course modules, glossary, scamTypes.ts, scamGuidance.ts, EXCHANGE_FEES, STATE_TAX_TABLE) with a citation to the page and its lastVerified date.",
+      "acceptanceCriteria": [
+        "functions/api/claude.ts serves the tutor only after US-103 (authentication and per-user AI spend attribution) and US-087 (KV rate limiting) land; anonymous visitors get a fixed daily question quota enforced server-side in KV",
+        "The tutor works in static mode: conversation history is kept in the browser (storage access wrapped), and aiLearningAssistant.ts no longer requires Supabase to answer",
+        "Every answer cites at least one Bitcoin Investments route (/learn/<guide>, /glossary, /compare/exchange/<id>, /course/<id>/<module>) with that source's lastVerified date; an answer with no source is refused with a stated reason",
+        "The system prompt forbids price predictions, buy or sell recommendations and naming a coin to buy; a suite of 20 adversarial prompts ('what should I buy', 'will BTC hit 200k') passes with refusals plus education links",
+        "Mounted on /learn, /learn/:guideId and /course/:courseId/:moduleId with a 'you don't need to buy anything to learn this' empty state",
+        "Per-question model cost is logged per user or anonymous bucket and reported, not capped",
+        "The US-113 decision for AILearningAssistant is recorded as 'mounted' after review",
+        "Typecheck passes"
+      ],
+      "priority": 127,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-003), moved down because it is blocked on US-103 and US-087, and fixed: the draft assumed the service runs without a database, but aiLearningAssistant.ts imports db from src/lib/supabase. The member-unlimited quota moves to LEAP-010. Competitor pricing (CoinGecko AI quota, CoinStats AI agent price) is quoted from the cited pages as of drafting; re-check before using in public copy. The Kraken source in the draft (cryptometer.io) is a weak secondary source and is dropped. Sources: https://www.coingecko.com/en/premium/pricing , https://coinstats.app/pricing/ . Size: L. Success metric: weekly questions, share of answers with citations (target 100%), quota-hit to /pricing click-through."
+    },
+    {
+      "id": "LEAP-010",
+      "title": "Relaunch paid Bitcoin Investments as a decisions-and-safety membership, not a portfolio tracker",
+      "description": "Premium is defined at $9.99/month and $99.99/year in SUBSCRIPTION_TIERS (src/services/stripe.ts, with a NEEDS-OWNER on the final list and prices) with a tracker-led feature list, which puts it head to head with CoinGecko Premium and CoinStats Premium under much larger data brands. It cannot win that fight. This story reshapes the paid offer around what Bitcoin Investments owns: the course, the decision tools (LEAP-004 route comparator, saved LEAP-002 tax reports), unlimited LEAP-009 tutor questions and scam watch alerts, and makes it purchasable once accounts return on a rebuilt Supabase project.",
+      "acceptanceCriteria": [
+        "SUBSCRIPTION_TIERS in src/services/stripe.ts and the matching entries in src/config/features.ts list the membership features (unlimited tutor questions, saved decision plans and tax reports, scam watch alerts, annual tax checklist); tracker features move to the free tier",
+        "The Pricing page (src/pages/Pricing.tsx, including its static-mode branch) shows an honest comparison against CoinGecko Premium with a dated source line fetched at implementation time",
+        "Advisor ($49) and Enterprise ($99) tiers stay hidden until a product exists behind them; features.ts ready:false is respected",
+        "A Stripe checkout from /pricing completes end to end in test mode via functions/api/create-checkout-session.ts and the webhook grants the entitlement server-side (US-114 and US-101 named as dependencies)",
+        "The static-mode FAQ answer that says Premium cannot be bought is replaced by purchase copy only when isPlanPurchasable() returns true for that plan",
+        "Checkout start, checkout complete and cancellation are tracked with plan and billing interval",
+        "Typecheck passes"
+      ],
+      "priority": 128,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-002), moved down the order because it cannot ship until the REBUILD_GUIDE step 2A go-live (new Supabase project, VITE_ACCOUNTS_ENABLED) and US-114 server-side entitlements land. Fixed: there is no separate PricingStatic file; the static branch lives inside src/pages/Pricing.tsx. The lifetime $299 tier in stripe.ts also needs an owner decision. Competitor prices must be re-read from the source on the day the comparison ships. Sources: https://www.coingecko.com/en/premium/pricing , https://coinstats.app/pricing/ . Size: L. Success metric: paying members and MRR; first 50 paying members within 90 days of launch; free-to-paid conversion of /pricing visitors."
+    },
+    {
+      "id": "LEAP-011",
+      "title": "Render shareable result cards for Bitcoin Investments calculators and backtests",
+      "description": "Calculator inputs already live in the URL (Calculators.tsx URL helpers; Backtesting, RetirementCalculator and StakingCalculator use useSearchParams), ShareButton.tsx exists, and US-034 set a default og:image. A shared result still previews as the generic card. A server-rendered image per result ('$100/week into BTC since 2020 = $X', 'Crypto tax on a $5,000 gain in Texas: $Y') is what makes a DCA backtest something people post, and every card links back to the pre-filled calculator.",
+      "acceptanceCriteria": [
+        "A Pages Function functions/og/[[path]].ts renders a PNG for DCA, tax, staking, retirement and backtesting results from URL params, storing no user data; the image renderer chosen (for example a WASM SVG-to-PNG library) is named and justified in the PR",
+        "Each calculator page sets og:image and twitter:image to the result-specific URL when params are present and falls back to the default card otherwise",
+        "Cards state the data's as-of date (the end date of weeklyPrices.ts, or DEFAULT_TAX_YEAR) so a shared backtest is never presented as current",
+        "ShareButton.tsx offers copy link, X and Reddit with the result URL and UTM source parameters",
+        "Rendered images are cached at the edge; a test asserts identical params produce identical cache keys and different params different keys",
+        "Share clicks and inbound sessions from shared URLs are tracked separately",
+        "Typecheck passes"
+      ],
+      "priority": 129,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-009). Prerendered pages read og tags from HTML, so the og:image for a param URL must be set in the Pages Function response, not only client-side (US-034 notes the SPA limitation). Competitive claim softened: CoinGecko and CoinStats portfolio results sit behind sign-in, so they cannot be shared as public result pages; the beehiiv source supports owned-audience growth, not share cards specifically. Sources: https://ahrefs.com/blog/website-calculators/ , https://www.beehiiv.com/case-studies/milk-road . Size: M. Success metric: shares per 100 calculator completions, inbound sessions from shared URLs, referring domains."
+    },
+    {
+      "id": "LEAP-012",
+      "title": "Fee-change alerts: email a Bitcoin Investments subscriber when their exchange changes its fees",
+      "description": "Beginners pick an exchange once and never re-check its fees, and exchanges change fee schedules without notice. Bitcoin Investments already records fees per exchange with lastVerified dates (EXCHANGE_FEES), and LEAP-008 adds a change log of every data change. This story lets a visitor follow the exchanges and wallets they use and get an email when a verified fee, product or availability change lands for one of them, with the old value, the new value, the source and what it costs at a typical amount. It needs no account, runs on the LEAP-006 email capture, and gives people a reason to stay subscribed.",
+      "acceptanceCriteria": [
+        "Exchange and pair pages offer 'email me when this exchange's fees change', which subscribes through functions/api/subscribe.ts (LEAP-006) with the followed exchange ids stored as contact properties",
+        "When the LEAP-008 change log records a change to a followed exchange, a job sends one email per subscriber listing each change with old value, new value, source URL, change date and the cost difference at $100 and $1,000 computed from EXCHANGE_FEES",
+        "An unverified change (verified:false) is never sent",
+        "Each email carries a one-click unsubscribe and a link to manage followed exchanges",
+        "The sending job is named in the PR (a Cloudflare cron worker or the existing weekly newsletter worker in workers/weekly-newsletter-cron.ts) and is idempotent, so a re-run never double-sends",
+        "Follows, sends, opens and clicks back to bitcoinvestments.net are tracked per exchange",
+        "Typecheck passes"
+      ],
+      "priority": 130,
+      "passes": false,
+      "notes": "New story; replaces the draft's browser price-alert watchlist (LEAP-014), which failed check (a): device-local price alerts already exist in src/services/localPriceAlerts.ts and are mounted on /alert-bundles (SmartAlertBundles.tsx), and a service worker (public/sw.js) and pushNotifications.ts exist; background notifications would have been polish on a shipped feature. Price alerts are also what every tracker offers; fee and terms change alerts are something only a site that verifies fee data can send. Competitive claim: no evidence was found of NerdWallet, Finder, CoinGecko or CoinStats sending per-exchange fee change notices; treat as 'not observed', not proven absent. Depends on LEAP-006 and LEAP-008. Size: M. Success metric: follows per week, 90-day subscriber retention of followers vs non-followers, clicks per alert email."
+    },
+    {
+      "id": "LEAP-013",
+      "title": "Publish a sourced safety evidence record for every exchange Bitcoin Investments compares",
+      "description": "After the 2022 collapses (which the Lending page already covers), the question a beginner should ask before depositing is whether the exchange can lose their money. src/data/exchanges.ts carries safety facts only as prose in pros and cons ('regular proof-of-reserves attestations', 'New York trust charter and SOC 2 audits'). This story replaces that prose with a structured, dated evidence record per exchange: latest proof-of-reserves attestation and its date, regulator licences, custody segregation statement, insurance scope, and incident history, each with a source. It is shown on exchange, pair and route pages as evidence, not as a score.",
+      "acceptanceCriteria": [
+        "Each exchange in src/data/exchanges.ts gains a safety object with proofOfReserves (date, attestor, URL or null), licences (regulator, licence type, URL), custodySegregation, insurance (scope and URL or null) and incidents (date, summary, URL), each with lastVerified",
+        "A missing item renders 'no public evidence found as of <date>', never as a pass and never omitted",
+        "/compare/exchange/:id, LEAP-005 pair pages and LEAP-004 route results show the record; no numeric or star safety score is computed",
+        "The record is added to the LEAP-008 verification registry with a max age, and a proof-of-reserves attestation older than its max age renders as stale",
+        "A test asserts that an exchange with an empty safety object renders the 'no public evidence' line for each item",
+        "Typecheck passes"
+      ],
+      "priority": 131,
+      "passes": false,
+      "notes": "New story; replaces the draft's direct sponsorships story (LEAP-019), which failed check (a): a self-hosted ad system already exists (docs/AD_SYSTEM.md, src/services/ads.ts, AdManager and AdvertiserDashboard pages, AdUnit component, functions/sponsored and SponsoredArticle), and PRD.md lines 62-114 already plan sponsorships and sponsored content. Competitive rationale: CoinGecko's exchange Trust Score is weighted to liquidity and covers a global list; NerdWallet uses star ratings. A sourced, dated evidence record for the 14 US exchanges a beginner chooses between is a different and checkable artefact. Verify both competitor methods against their own methodology pages before naming them in public copy. Sources: https://www.coingecko.com/en/methodology , https://nerdwallet.com/best/investing/crypto-exchanges-platforms . Owner action: research per exchange. Size: M. Success metric: time on exchange pages, affiliate CTR on exchanges with complete records vs incomplete, backlinks to exchange pages."
+    },
+    {
+      "id": "LEAP-014",
+      "title": "Offer embeddable Bitcoin Investments calculators that finance bloggers can drop into posts",
+      "description": "src/services/portfolioSharing.ts generateEmbedCode() (line 443) builds an iframe for /embed/portfolio/<code>, but no /embed route exists in src/App.tsx, so that code produces a broken embed. A loop that works in static mode is embeddable DCA, tax and fee calculators under /embed/*, each with a visible 'Powered by Bitcoin Investments' link. Bloggers get a working tool; Bitcoin Investments gets backlinks that lift every other page.",
+      "acceptanceCriteria": [
+        "Routes /embed/dca, /embed/tax and /embed/fees render a chrome-less calculator suitable for an iframe; public/_headers allows framing (frame-ancestors) only on /embed/* and keeps the existing CSP everywhere else",
+        "Each embed shows a visible 'Powered by Bitcoin Investments' link with rel=noopener and a UTM tag identifying the host domain",
+        "A section of /developers/pricing (or a new /developers/embed page) generates copy-paste iframe code with size and default-input options",
+        "Embed routes are noindexed so they do not compete with the canonical calculator pages",
+        "Embed loads are counted per host domain via a lightweight beacon that sends no visitor data",
+        "generateEmbedCode() in portfolioSharing.ts either resolves to a working route or is removed",
+        "Typecheck passes"
+      ],
+      "priority": 132,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-010). Claim softened: the draft said NerdWallet's calculators are not embeddable without a source; the supported claim is that calculator pages are NerdWallet's documented SEO engine. Sources: https://ahrefs.com/blog/website-calculators/ , https://www.digitalthriveai.com/en-us/resources/seo/nerdwallet-seo-case-study/ . US-015 and US-088 own the CSP and headers; coordinate the frame-ancestors change there. Size: S-M. Success metric: active host domains, referring domains in Search Console, sessions arriving from embed links."
+    },
+    {
+      "id": "LEAP-015",
+      "title": "Show the tax outcome of a DCA plan before the first buy, and sell the tax season package by email",
+      "description": "Tax tools work after the fact. A DCA calculator that shows the federal and state tax outcome of a plan before any purchase (holding-period split, estimated tax at sale) sits upstream of them and refers to them. Separately, src/components/TaxSeasonPackage.tsx and functions/api/create-tax-package-checkout.ts exist but validate a userId UUID (lines 63-73), so the package cannot be bought while accounts are off. Reshaping it as an email-delivered checklist and worksheet makes it sellable in static mode.",
+      "acceptanceCriteria": [
+        "The DCA tab in src/pages/Calculators.tsx gains a 'tax at sale' panel using taxBrackets.ts and stateRateFor() with a short- vs long-term split and DEFAULT_TAX_YEAR shown",
+        "Results using unverified state rows carry the unverified marker; the panel states it is an estimate, not tax advice; wash-sale wording follows the US-105 decision",
+        "create-tax-package-checkout.ts accepts a validated email in place of a userId and the Stripe webhook delivers the package by email through functions/lib/mailer.ts",
+        "The package contents (filing checklist, cost-basis worksheet, form guide including Form 1099-DA) are generated from repo data with a tax-year stamp",
+        "The LEAP-001 tax-software block appears beside the package as the 'need full reports?' path",
+        "Package purchases are tracked by season and source page",
+        "Typecheck passes"
+      ],
+      "priority": 133,
+      "passes": false,
+      "notes": "Kept from the draft. Requires a live Stripe price for the package and the webhook path; US-101 (idempotent webhook) applies. Claim softened: the draft cited complaints about CoinTracker tier pricing from aggregator pages; the supported point is only that Koinly and CoinTracker price per tax year. Sources: https://www.kucoin.com/blog/koinly-review , https://pricingsaas.com/companies/cointracker . Size: M. Success metric: tax-panel usage, package sales Jan-Apr, tax-software referral conversions."
+    },
+    {
+      "id": "LEAP-016",
+      "title": "Free crypto inheritance plan generator that never asks for a seed phrase",
+      "description": "A beginner who follows Bitcoin Investments' own advice and moves coins to a hardware wallet (HardwareWallet page, wallets.ts, Ledger and Trezor affiliate partners) creates a new risk: if they die or are incapacitated, their family cannot find or use the coins. Paid custody services sell inheritance as a subscription feature. This story builds a free, browser-only planner at /crypto-inheritance-plan that produces a printable letter of instruction: what is held where (exchange accounts, wallet models), who to contact, where the backup is physically stored, and step-by-step recovery for each wallet type, without ever collecting the secrets themselves.",
+      "acceptanceCriteria": [
+        "New prerendered route /crypto-inheritance-plan runs entirely in the browser; a test asserts no network request is made while the plan is filled or generated",
+        "Inputs cover holdings by location (exchange name, wallet model from wallets.ts), executor and contacts, and the physical location of backups; the output is a printable PDF or print-styled page generated client-side",
+        "Any field whose content looks like a seed phrase (12 or more words that all appear in the BIP-39 English wordlist) or a private key is blocked with an explanation of why it must never be written in the plan, and the text is not kept",
+        "Recovery steps per wallet model come from wallets.ts and link the manufacturer's official recovery documentation with lastVerified dates",
+        "Hardware wallet partners (Ledger, Trezor) appear with AffiliateDisclosure and LEAP-001 placement id 'inheritance'",
+        "Plan starts and completions are tracked; no plan content is ever sent in an event",
+        "Typecheck passes"
+      ],
+      "priority": 134,
+      "passes": false,
+      "notes": "New story; replaces the draft's risk-profile quiz (LEAP-013), which failed checks (a) and (b): RiskAssessmentQuiz.tsx and src/services/riskAssessment.ts are already built, mounting them is the open US-113 decision, and the work was S-M. Competitive rationale: inheritance is sold inside paid custody and recovery products (Casa's paid plans, Ledger Recover's subscription); no beginner education publisher offers a free planner. Prices and plan contents of both vendors were not verified in this review; confirm at https://casa.io and https://www.ledger.com/recover before citing them. Legal note: the page states it is not a will and does not replace an estate attorney. Size: M. Success metric: completed plans per week, hardware-wallet affiliate clicks from 'inheritance', backlinks from estate-planning sites."
+    },
+    {
+      "id": "LEAP-017",
+      "title": "Put Bitcoin Investments' calculators, fee data and scam lookup inside AI assistants through a read-only MCP server",
+      "description": "Coinbase is putting AI agents in the purchase path, and more 'how do I buy' questions are asked inside assistants. Bitcoin Investments can be the neutral half there: a remote MCP server exposing its calculators, the LEAP-004 route comparator, the LEAP-007 scam lookup and EXCHANGE_FEES as read-only tools, so an assistant answering 'is this address a scam' or 'cheapest way to put $500 into bitcoin in Texas' calls Bitcoin Investments and cites it. No trading, no account access.",
+      "acceptanceCriteria": [
+        "A remote MCP endpoint (functions/mcp/[[path]].ts or a Worker) exposes read-only tools: dca_projection, crypto_tax_estimate, route_cost_compare, scam_check, exchange_fees",
+        "Every tool response includes the source route URL and lastVerified date so the assistant can cite Bitcoin Investments",
+        "No tool executes trades, stores user data or accepts credentials; a test over the tool list asserts every tool is read-only and none takes a key, password or seed field",
+        "Rate limiting per client in KV (US-087), with usage logged per tool",
+        "A /developers/mcp page documents connection steps for Claude and ChatGPT",
+        "Tool calls and downstream visits to bitcoinvestments.net from cited URLs (UTM-tagged) are tracked",
+        "Typecheck passes"
+      ],
+      "priority": 135,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-018). Calculation logic must be shared with the pages (import from src/services/calculators and src/data), not re-implemented, or the tool and the page will disagree. Sources trimmed to the one that supports the claim: https://feedbagel.com/post/coinbase-launches-tool-to-let-ai-agents-manage-trading-and-payments ; the ai.com and Nansen links in the draft describe general AI agents, not crypto purchase paths, and are dropped. Depends on LEAP-004 and LEAP-007. Size: M. Success metric: weekly tool calls, unique clients, referral sessions from cited URLs."
+    },
+    {
+      "id": "LEAP-018",
+      "title": "Turn Bitcoin Investments community scam reports into moderated, indexed pages once the database returns",
+      "description": "The only network effect in the Bitcoin Investments repo is community scam reporting: src/services/scamCommunity.ts (votes, disputes, reputation, watchlist), migrations 202512230000000_add_community_scam_voting.sql and 20260923000100_harden_scam_reports.sql, the /scam/:id route served by functions/scam/[[path]].ts, and /report-scam. Each approved report should become an indexable, plain-English page per identifier. This story finishes the loop on the rebuilt Supabase project: report, moderate, merge by identifier, publish, re-prerender.",
+      "acceptanceCriteria": [
+        "Approved rows in scam_reports are merged by normalised identifier (address, domain, handle) so one /scam/:id page aggregates every report for that identifier",
+        "Moderation uses src/services/contentModeration.ts and the existing admin scam-database screen (/admin/scam-database); nothing is published without approved status",
+        "A scheduled job regenerates /scam/:id prerenders and sitemap entries for newly approved reports and removes pages for reports overturned on dispute; the job is named in the PR",
+        "Each page shows report count, first and last seen, scam type linked to scamTypes.ts, community votes and the reporting path; reporter identity is never shown",
+        "Reports can be cross-submitted to Chainabuse only with the reporter's explicit opt-in",
+        "The LEAP-007 lookup consults approved community reports alongside Chainabuse and labels the source of each hit",
+        "Typecheck passes"
+      ],
+      "priority": 136,
+      "passes": false,
+      "notes": "Kept from the draft (was LEAP-008), moved down because it needs the REBUILD_GUIDE step 2A Supabase project and US-115 (write policies) first. Competitive rationale: Chainabuse merges by address and supports votes; Bitcoin Investments' layer is the plain-English US-beginner explanation per page. Sources: https://www.chainabuse.com/ , https://cointelegraph.com/news/crypto-giants-co-launch-chainabuse-platform-to-water-down-rising-scams . Size: L. Success metric: approved reports per month, indexed /scam/:id pages, organic clicks to scam pages."
+    },
+    {
+      "id": "LEAP-019",
+      "title": "Add spot bitcoin ETFs and crypto IRA providers as Bitcoin Investments comparison types",
+      "description": "Retirement accounts are where many US savers will first hold bitcoin, and the category pays: crypto IRA providers and brokerages run referral programs. Compare.tsx reads a :type param and routes.mjs emits only exchange and wallet types. With LEAP-004's src/data/etfs.ts in place, this story adds /compare/etf/:id and /compare/ira/:id: spot ETFs by expense ratio, issuer and custodian, and crypto IRA providers by setup fee, annual fee, trading spread, custody model and minimums, each row dated and sourced, with cost computed at the visitor's balance.",
+      "acceptanceCriteria": [
+        "A new src/data/iraProviders.ts holds crypto IRA providers with setup fee, annual or percentage fee, trading fee, custodian, minimum and account types, each with source URL, lastVerified and a verified flag",
+        "routes.mjs extractCompareUrls() emits /compare/etf/<id> and /compare/ira/<id>; Compare.tsx renders both types with a cost-at-your-balance input over 1, 5 and 20 years",
+        "Unverified rows render the unverified marker; a fee the provider does not publish renders 'not published', never 0",
+        "LEAP-004 route results link to the matching ETF and IRA pages",
+        "Any provider affiliate links are added to AFFILIATE_PARTNERS under category 'retirement' with AffiliateDisclosure",
+        "Both datasets are registered in the LEAP-008 verification registry and exported as JSON",
+        "Typecheck passes"
+      ],
+      "priority": 137,
+      "passes": false,
+      "notes": "New story; fills the slot freed by merging the draft's LEAP-016 and LEAP-017. Competitive rationale stated honestly: NerdWallet already publishes ETF and crypto IRA lists, so this is not unoccupied ground; the edge is the same as the rest of the compare section, a dated fee record and a cost computed at the reader's balance and horizon. Source: https://www.nerdwallet.com/article/investing/bitcoin-etfs . Owner action: research provider fees and affiliate terms. Depends on LEAP-004 (etfs.ts). Size: M. Success metric: organic clicks on /compare/etf and /compare/ira, retirement-category affiliate conversions."
+    },
+    {
+      "id": "LEAP-020",
+      "title": "Offer a scam-lookup API to wallets and fintechs once Bitcoin Investments has its own report dataset",
+      "description": "The developer portal and API tiers (DeveloperPortal and ApiPricing pages, functions/api/create-api-checkout-session.ts, functions/api/v1 with market and portfolio endpoints) are built but resell market data with no proprietary content. Once LEAP-018 produces a moderated, US-focused scam dataset with plain-English explanations, a lookup API returning a verdict, scam type, explanation and reporting path is a B2B product that complements Chainabuse's raw reports: it gives a wallet or fintech copy it can show a user, not just a flag.",
+      "acceptanceCriteria": [
+        "functions/api/v1/scam/[id].ts returns report count, scam type, plain-English explanation and reporting path for an identifier, authenticated through functions/api/v1/_middleware.ts API keys (US-048 and US-095 named as dependencies)",
+        "Responses include source attribution (community vs Chainabuse) and lastUpdated, and distinguish 'no reports' from 'lookup failed'",
+        "ApiPricing and /developers/pricing describe scam-lookup quotas; market-data tiers that resell CoinGecko data are removed unless the CoinGecko licence permits resale",
+        "Per-key usage metering feeds Stripe usage records through the existing API checkout path",
+        "An OpenAPI description of the endpoint is published (aligns with US-028)",
+        "At least one design partner integration is recorded before general availability",
+        "Typecheck passes"
+      ],
+      "priority": 138,
+      "passes": false,
+      "notes": "Kept from the draft. Last in the order because it depends on LEAP-018, the rebuilt database, Chainabuse terms permitting redistribution of their results, and US-048/US-095. Sources: https://www.chainabuse.com/ , https://www.trmlabs.com/resources/blog/announcing-the-launch-of-chainabuse-the-multi-chain-scam-reporting-tool-that-empowers-crypto-users-against-fraud . Size: L. Success metric: API keys issued, paid API accounts, monthly API revenue."
     }
   ]
 }
